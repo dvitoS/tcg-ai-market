@@ -1,0 +1,1 @@
+TCG_API_KEY=tcg_live_d1fad161f64221a2c8fd0cd27a335db2cd57afa1
