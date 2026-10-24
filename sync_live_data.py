@@ -12,16 +12,20 @@ from config import PAGE_SIZE, TCG_API_KEY
 from database import Card, PriceHistory, get_session, init_db
 
 
-def top_cards(limit: int = PAGE_SIZE) -> list[Card]:
+def list_cards(limit: int | None = PAGE_SIZE) -> list[Card]:
+    """Karte po cijeni (skupo prvo). limit=None → sve karte u bazi."""
     session = get_session()
     try:
-        return list(
-            session.scalars(
-                select(Card).order_by(Card.market_price.desc()).limit(limit)
-            ).all()
-        )
+        query = select(Card).order_by(Card.market_price.desc())
+        if limit is not None:
+            query = query.limit(limit)
+        return list(session.scalars(query).all())
     finally:
         session.close()
+
+
+def top_cards(limit: int = PAGE_SIZE) -> list[Card]:
+    return list_cards(limit=limit)
 
 
 def replace_card_history(card_id: str, points: list[dict]) -> int:
@@ -45,20 +49,21 @@ def replace_card_history(card_id: str, points: list[dict]) -> int:
         session.close()
 
 
-def sync_live_price_history(limit: int = PAGE_SIZE) -> int:
-    """Za svaku od top karata dohvaća live povijest. Vraća broj upisanih cijena."""
+def sync_live_price_history(limit: int | None = PAGE_SIZE) -> dict[str, int]:
+    """Dohvaća live povijest s PokéWalleta. limit=None → sve karte u bazi."""
     if not TCG_API_KEY:
         raise RuntimeError(
             "TCG_API_KEY nije postavljen. Dodaj ga u .env pa ponovno pokreni sync_live_data.py."
         )
 
     init_db()
-    cards = top_cards(limit)
+    cards = list_cards(limit=limit)
     if not cards:
         print("Nema karata u bazi. Prvo pokreni main.py.")
-        return 0
+        return {"updated": 0, "skipped": 0, "saved": 0, "total_history": 0}
 
-    print(f"Sinkroniziram live povijest za {len(cards)} karata (PokéWallet)...")
+    scope = "sve karte" if limit is None else f"top {limit}"
+    print(f"Sinkroniziram live povijest za {len(cards)} karata ({scope}, PokéWallet)...")
     saved = updated = skipped = 0
     for index, card in enumerate(cards, start=1):
         print(f"[{index}/{len(cards)}] {card.name} ({card.id})")
@@ -97,14 +102,20 @@ def sync_live_price_history(limit: int = PAGE_SIZE) -> int:
 
     print(
         f"Gotovo: {updated} karata ažurirano, {skipped} preskočeno, "
-        f"{saved} novih cijena. price_history sada ima {total} redaka."
+        f"{saved} novih cijena. price_history sada ima {total} redova."
     )
-    return saved
+    return {
+        "updated": updated,
+        "skipped": skipped,
+        "saved": saved,
+        "total_history": int(total),
+    }
 
 
 def main() -> int:
     print("=== TCG Market: live povijest cijena ===")
     try:
+        # Bez argumenata: top PAGE_SIZE. Za sve karte: sync_live_price_history(limit=None)
         sync_live_price_history()
         return 0
     except RuntimeError as exc:

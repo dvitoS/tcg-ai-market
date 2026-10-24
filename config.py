@@ -11,6 +11,7 @@ load_dotenv(ENV_PATH)
 # Javna dokumentacija: https://pokemontcg.io
 # REST API v2: https://api.pokemontcg.io/v2
 POKEMON_TCG_API_URL = "https://api.pokemontcg.io/v2/cards"
+POKEMON_TCG_SETS_URL = "https://api.pokemontcg.io/v2/sets"
 POKEMON_TCG_DOCS_URL = "https://pokemontcg.io"
 
 # Povijest cijena: https://api.pokewallet.io/cards/{id}/price-history
@@ -23,9 +24,22 @@ API_REQUEST_DELAY_SECONDS = 0.75
 
 DATABASE_NAME = "tcg_market.db"
 DATABASE_URL = f"sqlite:///{DATABASE_NAME}"
+PROJECT_ROOT = Path(__file__).resolve().parent
+AUTOMATION_LOG = PROJECT_ROOT / "automation.log"
 
 DEFAULT_SET_NAME = "Scarlet & Violet"
 DEFAULT_SET_ID = "sv1"
+# Scarlet & Violet + Sword & Shield era (tisuće karata kroz paginaciju).
+CATALOG_SERIES = (
+    "Scarlet & Violet",
+    "Sword & Shield",
+)
+# Strogi rate limit: max 100 karata / min → pageSize 100 i 1 zahtjev u ~65 s.
 PAGE_SIZE = 100
+RATE_LIMIT_CARDS_PER_MINUTE = 100
+RATE_LIMIT_SLEEP_SECONDS = 65
+RATE_LIMIT_RETRY_SLEEP_SECONDS = 90
 REQUEST_TIMEOUT_SECONDS = 30
 MAX_RETRIES = 3
+NIGHTLY_TASK_NAME = "TCGMarketNightlyUpdate"
+NIGHTLY_SCHEDULE_TIME = "03:00"

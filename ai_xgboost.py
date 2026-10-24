@@ -265,6 +265,25 @@ def fit_predictor() -> tuple[xgb.XGBRegressor, pd.DataFrame]:
     return model, card_forecasts(model, featured)
 
 
+def retrain_model() -> dict[str, float | int]:
+    """Ponovno trenira XGBoost na cijelom price_history. Za nightly_update."""
+    history = load_history()
+    featured, _encoders = add_time_features(history)
+    trainable = drop_incomplete_rows(featured)
+    if len(trainable) < 20:
+        raise RuntimeError(f"Premalo redova za trening ({len(trainable)}).")
+
+    X_train, X_test, y_train, y_test = split_features(trainable)
+    model = train_xgboost(X_train, y_train)
+    rmse, r2 = evaluate_model(model, X_test, y_test)
+    return {
+        "rows": int(len(trainable)),
+        "cards": int(history["card_id"].nunique()),
+        "rmse": float(rmse),
+        "r2": float(r2),
+    }
+
+
 def main() -> int:
     print("=== TCG Market: XGBoost time-series model ===")
     try:

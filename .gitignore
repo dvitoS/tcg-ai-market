@@ -18,6 +18,11 @@ dist/
 # Local SQLite databases
 *.db
 
+# Automation / scheduler
+automation.log
+*.log
+run_nightly.bat
+
 # Secrets
 .env
 .env.*

@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
 from api_client import clean_cards, fetch_cards
-from config import DATABASE_NAME, DEFAULT_SET_NAME, TCG_API_KEY
+from config import CATALOG_SERIES, DATABASE_NAME, TCG_API_KEY
 from database import Card, PriceHistory, get_session, init_db
 from generate_history import ensure_price_history
 
@@ -29,6 +29,7 @@ def save_cards(cards: list[dict]) -> int:
                 "rarity": stmt.excluded.rarity,
                 "set_name": stmt.excluded.set_name,
                 "market_price": stmt.excluded.market_price,
+                "image_url": stmt.excluded.image_url,
             },
         )
         session.execute(stmt)
@@ -74,12 +75,13 @@ def main() -> int:
         print(f"Inicijaliziram bazu '{DATABASE_NAME}'...")
         init_db()
 
-        raw_cards = fetch_cards(set_name=DEFAULT_SET_NAME)
+        raw_cards = fetch_cards(series_names=CATALOG_SERIES, paginate=True)
         cleaned = clean_cards(raw_cards)
         save_cards(cleaned)
         if TCG_API_KEY:
             from sync_live_data import sync_live_price_history
 
+            # Prvi uvoz: top PAGE_SIZE (rate limit). Noćni job sinkronizira sve.
             sync_live_price_history()
         else:
             print("TCG_API_KEY nije u .env. Povijest ostaje lokalna dok ne pokreneš sync_live_data.py.")
