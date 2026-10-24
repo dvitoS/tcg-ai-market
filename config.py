@@ -1,9 +1,25 @@
 """Konfiguracija za Pokémon TCG API i lokalnu SQLite bazu."""
 
+import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+ENV_PATH = Path(__file__).resolve().parent / ".env"
+load_dotenv(ENV_PATH)
+
 # Javna dokumentacija: https://pokemontcg.io
 # REST API v2: https://api.pokemontcg.io/v2
 POKEMON_TCG_API_URL = "https://api.pokemontcg.io/v2/cards"
 POKEMON_TCG_DOCS_URL = "https://pokemontcg.io"
+
+# Povijest cijena: https://api.pokewallet.io/cards/{id}/price-history
+# Ključ ide u .env kao TCG_API_KEY=... i šalje se kao X-API-Key.
+# Odgovor su snimke (danas, 7, 14, 30, 60 dana), ne dnevni niz.
+TCG_API_KEY = os.getenv("TCG_API_KEY", "").strip()
+TCG_API_BASE_URL = "https://api.pokewallet.io"
+PRICE_HISTORY_DAYS = 60
+API_REQUEST_DELAY_SECONDS = 0.75
 
 DATABASE_NAME = "tcg_market.db"
 DATABASE_URL = f"sqlite:///{DATABASE_NAME}"

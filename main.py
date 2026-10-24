@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
 from api_client import clean_cards, fetch_cards
-from config import DATABASE_NAME, DEFAULT_SET_NAME
+from config import DATABASE_NAME, DEFAULT_SET_NAME, TCG_API_KEY
 from database import Card, PriceHistory, get_session, init_db
 from generate_history import ensure_price_history
 
@@ -77,7 +77,13 @@ def main() -> int:
         raw_cards = fetch_cards(set_name=DEFAULT_SET_NAME)
         cleaned = clean_cards(raw_cards)
         save_cards(cleaned)
-        ensure_price_history()
+        if TCG_API_KEY:
+            from sync_live_data import sync_live_price_history
+
+            sync_live_price_history()
+        else:
+            print("TCG_API_KEY nije u .env. Povijest ostaje lokalna dok ne pokreneš sync_live_data.py.")
+            ensure_price_history()
         print_summary()
         print("Gotovo.")
         return 0

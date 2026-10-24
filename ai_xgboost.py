@@ -57,8 +57,40 @@ def load_history() -> pd.DataFrame:
     df["set_name"] = df["set_name"].fillna("Unknown").astype(str)
     df = df.dropna(subset=["price", "card_id", "date"])
     df = df.sort_values(["card_id", "date"]).reset_index(drop=True)
-    print(f"Učitano {len(df)} dnevnih cijena za {df['card_id'].nunique()} karata.")
-    return df
+    print(f"Učitano {len(df)} snimki za {df['card_id'].nunique()} karata.")
+    return resample_daily_history(df)
+
+
+def resample_daily_history(df: pd.DataFrame) -> pd.DataFrame:
+    """Nepravilne PokéWallet snimke pretvara u dnevni niz: mean po danu, zatim ffill."""
+    print("Resampling po card_id: .resample('D').mean() + .ffill()...")
+    if df.empty:
+        return df
+
+    meta_columns = ["name", "supertype", "rarity", "set_name", "market_price"]
+    frames: list[pd.DataFrame] = []
+    for card_id, group in df.groupby("card_id", sort=False):
+        indexed = group.sort_values("date").set_index("date")
+        daily_price = indexed["price"].resample("D").mean().ffill().dropna()
+        if daily_price.empty:
+            continue
+        daily = daily_price.rename("price").reset_index()
+        daily["card_id"] = card_id
+        for column in meta_columns:
+            daily[column] = indexed[column].iloc[0]
+        frames.append(daily)
+
+    if not frames:
+        print("Nakon resamplinga nema dnevnih cijena.")
+        return df.iloc[0:0].copy()
+
+    resampled = pd.concat(frames, ignore_index=True)
+    resampled = resampled.sort_values(["card_id", "date"]).reset_index(drop=True)
+    print(
+        f"Nakon resamplinga: {len(resampled)} dnevnih cijena "
+        f"za {resampled['card_id'].nunique()} karata."
+    )
+    return resampled
 
 
 def add_time_features(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, LabelEncoder]]:
