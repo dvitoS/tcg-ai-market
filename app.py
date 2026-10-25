@@ -1,14 +1,29 @@
 """TCG AI Market Dashboard — stvarna povijest cijena i XGBoost."""
 
+import importlib
 import subprocess
 import sys
 
-try:
-    import plotly  # noqa: F401
-except ModuleNotFoundError:
+_REQUIRED_PIP = ("plotly", "xgboost", "scikit-learn")
+
+
+def _ensure_runtime_deps() -> None:
+    """Streamlit Cloud ponekad ne povuče requirements.txt — instaliraj kritične pakete."""
+    missing: list[str] = []
+    for name in _REQUIRED_PIP:
+        try:
+            importlib.import_module(name)
+        except ModuleNotFoundError:
+            missing.append(name)
+    if not missing:
+        return
     subprocess.check_call(
-        [sys.executable, "-m", "pip", "install", "plotly", "xgboost", "scikit-learn"]
+        [sys.executable, "-m", "pip", "install", "--upgrade", *_REQUIRED_PIP],
     )
+    importlib.invalidate_caches()
+
+
+_ensure_runtime_deps()
 
 from html import escape
 
