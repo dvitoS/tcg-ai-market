@@ -5,45 +5,81 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-ENV_PATH = Path(__file__).resolve().parent / ".env"
-load_dotenv(ENV_PATH)
-
 PROJECT_ROOT = Path(__file__).resolve().parent
+ENV_PATH = PROJECT_ROOT / ".env"
+
+# Lokalni env fajlovi (ne commitati tajne).
+load_dotenv(ENV_PATH)
+load_dotenv(PROJECT_ROOT / "tcg.env.txt")
 
 
-def _secret(name: str, default: str = "") -> str:
-    """Prvo .env / OS, zatim Streamlit secrets (Cloud)."""
-    value = os.getenv(name, "").strip()
-    if value:
-        return value
+def _from_streamlit_secrets(name: str) -> str:
+    """Čita Streamlit Secrets (Cloud ili .streamlit/secrets.toml)."""
     try:
         import streamlit as st
 
-        raw = st.secrets.get(name, default)
-        return str(raw or default).strip()
+        secrets = st.secrets
     except Exception:
-        return default
+        return ""
+
+    try:
+        if name in secrets:
+            return str(secrets[name]).strip()
+    except Exception:
+        pass
+
+    # Nested: [supabase] url / key / db_url
+    nested_map = {
+        "SUPABASE_URL": ("supabase", "url"),
+        "SUPABASE_KEY": ("supabase", "key"),
+        "SUPABASE_DB_URL": ("supabase", "db_url"),
+        "TCG_API_KEY": ("tcg", "api_key"),
+    }
+    section_key = nested_map.get(name)
+    if not section_key:
+        return ""
+    section, key = section_key
+    try:
+        section_obj = secrets[section]
+        if key in section_obj:
+            return str(section_obj[key]).strip()
+    except Exception:
+        return ""
+    return ""
+
+
+def _secret(name: str, default: str = "") -> str:
+    """Prvo OS/.env, zatim Streamlit secrets (uvijek svježe — Cloud injektira kasnije)."""
+    value = os.getenv(name, "").strip()
+    if value:
+        return value
+    value = _from_streamlit_secrets(name)
+    if value:
+        return value
+    return default
+
+
+def get_supabase_credentials() -> tuple[str, str]:
+    """Uvijek svježe SUPABASE_URL / SUPABASE_KEY (ne koristi stale module konstante)."""
+    return _secret("SUPABASE_URL"), _secret("SUPABASE_KEY")
 
 
 # Javna dokumentacija: https://pokemontcg.io
-# REST API v2: https://api.pokemontcg.io/v2
 POKEMON_TCG_API_URL = "https://api.pokemontcg.io/v2/cards"
 POKEMON_TCG_SETS_URL = "https://api.pokemontcg.io/v2/sets"
 POKEMON_TCG_DOCS_URL = "https://pokemontcg.io"
 
-# Povijest cijena: https://api.pokewallet.io/cards/{id}/price-history
 TCG_API_KEY = _secret("TCG_API_KEY")
 TCG_API_BASE_URL = "https://api.pokewallet.io"
 PRICE_HISTORY_DAYS = 60
 API_REQUEST_DELAY_SECONDS = 0.75
 
-# Supabase (PostgreSQL u oblaku)
+# Napomena: za runtime koristi get_supabase_credentials() — ove konstante
+# mogu biti prazne ako se config učita prije Streamlit Secrets konteksta.
 SUPABASE_URL = _secret("SUPABASE_URL")
 SUPABASE_KEY = _secret("SUPABASE_KEY")
-# Opcionalno: direktan Postgres URI za CREATE TABLE (Settings → Database).
 SUPABASE_DB_URL = _secret("SUPABASE_DB_URL")
 
-# Lokalni SQLite seed — jednokratni import u prazan Supabase.
 SEED_DATABASE_PATH = PROJECT_ROOT / "data" / "seed_tcg_market.db"
 AUTOMATION_LOG = PROJECT_ROOT / "automation.log"
 

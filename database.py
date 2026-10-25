@@ -12,7 +12,7 @@ from typing import Any
 import pandas as pd
 from supabase import Client, create_client
 
-from config import SEED_DATABASE_PATH, SUPABASE_DB_URL, SUPABASE_KEY, SUPABASE_URL
+from config import SEED_DATABASE_PATH, get_supabase_credentials, _secret
 
 PAGE = 1000
 
@@ -32,15 +32,11 @@ class Card:
 
 
 def _require_supabase_env() -> tuple[str, str]:
-    # Ponovno čitaj secrets (Streamlit Cloud ih injektira kasnije od importa).
-    from config import _secret
-
-    url = (SUPABASE_URL or _secret("SUPABASE_URL")).strip()
-    key = (SUPABASE_KEY or _secret("SUPABASE_KEY")).strip()
+    url, key = get_supabase_credentials()
     if not url or not key:
         raise RuntimeError(
             "SUPABASE_URL i SUPABASE_KEY nisu postavljeni. "
-            "Dodaj ih u .env (lokalno) ili Streamlit Secrets (Cloud)."
+            "Dodaj ih u Streamlit Secrets (Cloud) ili .env (lokalno)."
         )
     return url, key
 
@@ -106,28 +102,34 @@ def _apply_schema_via_postgres(db_url: str) -> None:
     """CREATE TABLE IF NOT EXISTS preko direktnog Postgres URI-ja (opcionalno)."""
     try:
         import psycopg
+        from psycopg import ClientCursor
     except ImportError as exc:
         raise RuntimeError(
             "Za automatski DDL instaliraj psycopg: pip install 'psycopg[binary]'"
         ) from exc
-    with psycopg.connect(db_url) as conn:
-        conn.execute(SCHEMA_SQL)
-        conn.commit()
+    # ClientCursor podržava više SQL naredbi u jednom execute().
+    with psycopg.connect(db_url, autocommit=True, cursor_factory=ClientCursor) as conn:
+        with conn.cursor() as cur:
+            cur.execute(SCHEMA_SQL)
 
 
 def _verify_tables(client: Client) -> None:
     missing: list[str] = []
+    details: list[str] = []
     for name in ("cards", "price_history", "portfolio"):
         try:
             client.table(name).select("*").limit(1).execute()
-        except Exception:
+        except Exception as exc:
             missing.append(name)
+            details.append(f"{name}: {exc}")
     if missing:
+        detail = " | ".join(details)
         raise RuntimeError(
-            "Supabase tablice nedostaju: "
+            "Supabase tablice nedostaju ili API ih ne vidi: "
             + ", ".join(missing)
-            + ". Pokreni supabase_schema.sql u SQL Editoru "
-            "ili postavi SUPABASE_DB_URL pa ponovno init_db()."
+            + ". Pokreni supabase_schema.sql u SQL Editoru (cijeli fajl → Run), "
+            "zatim Reload schema cache. Detalj: "
+            + detail
         )
 
 
@@ -155,8 +157,9 @@ def _backfill_image_urls() -> None:
 def init_db() -> None:
     """Inicijalizacija: opcionalni DDL + provjera tablica + backfill image_url."""
     client = get_supabase()
-    if SUPABASE_DB_URL:
-        _apply_schema_via_postgres(SUPABASE_DB_URL)
+    db_url = _secret("SUPABASE_DB_URL")
+    if db_url:
+        _apply_schema_via_postgres(db_url)
     _verify_tables(client)
     _backfill_image_urls()
 

@@ -1,5 +1,7 @@
--- Pokreni jednom u Supabase → SQL Editor (ili postavi SUPABASE_DB_URL pa init_db()).
--- Za Streamlit Cloud koristi service_role ključ kao SUPABASE_KEY (bypass RLS).
+-- Pokreni JEDNOM u Supabase → SQL Editor → New query → Run
+-- Zatim: Table Editor (provjeri cards / price_history / portfolio)
+-- Ako API i dalje ne vidi tablice: Settings → API → Reload schema cache
+-- ili pokreni zadnji red: NOTIFY pgrst, 'reload schema';
 
 create table if not exists public.cards (
     id text primary key,
@@ -36,7 +38,6 @@ alter table public.cards enable row level security;
 alter table public.price_history enable row level security;
 alter table public.portfolio enable row level security;
 
--- Service role zaobilazi RLS; anon treba policy ako koristiš anon key.
 drop policy if exists "service_read_cards" on public.cards;
 create policy "service_read_cards" on public.cards for select using (true);
 drop policy if exists "service_write_cards" on public.cards;
@@ -51,3 +52,11 @@ drop policy if exists "service_read_portfolio" on public.portfolio;
 create policy "service_read_portfolio" on public.portfolio for select using (true);
 drop policy if exists "service_write_portfolio" on public.portfolio;
 create policy "service_write_portfolio" on public.portfolio for all using (true) with check (true);
+
+grant usage on schema public to postgres, anon, authenticated, service_role;
+grant all on table public.cards to postgres, anon, authenticated, service_role;
+grant all on table public.price_history to postgres, anon, authenticated, service_role;
+grant all on table public.portfolio to postgres, anon, authenticated, service_role;
+grant usage, select on all sequences in schema public to postgres, anon, authenticated, service_role;
+
+notify pgrst, 'reload schema';

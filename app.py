@@ -1283,14 +1283,49 @@ def main() -> None:
     st.title("📈 TCG AI Market Dashboard")
     st.caption("Pokémon TCG burza · portfelj · XGBoost predikcija")
 
+    from config import get_supabase_credentials
+
+    url, key = get_supabase_credentials()
+    if not url or not key:
+        st.error("Nedostaju Supabase credentials.")
+        st.markdown(
+            """
+**Streamlit Cloud → ⋮ Manage app → Settings → Secrets**  
+zalijepi točno ovaj TOML (zamijeni vrijednosti), **Save**, pa **Reboot**:
+
+```toml
+SUPABASE_URL = "https://YOUR_PROJECT.supabase.co"
+SUPABASE_KEY = "YOUR_SERVICE_ROLE_KEY"
+```
+
+Ključeve nađi u Supabase → **Project Settings → API**  
+(`Project URL` + `service_role` secret).
+"""
+        )
+        return
+
     try:
         history, market, model = load_exchange()
     except RuntimeError as exc:
-        st.error(
-            f"{exc}\n\nProvjeri SUPABASE_URL / SUPABASE_KEY u Secrets, "
-            "pokreni `supabase_schema.sql` u Supabase SQL Editoru, "
-            "zatim Reboot (seed se uvozi automatski ako je history prazan)."
-        )
+        st.error(str(exc))
+        message = str(exc).lower()
+        if "tablice" in message or "schema" in message or "cards" in message:
+            from database import SCHEMA_SQL
+
+            st.markdown(
+                """
+### Kreiraj tablice u Supabaseu
+1. Otvori [Supabase Dashboard](https://supabase.com/dashboard) → svoj projekt  
+2. Lijevo: **SQL Editor** → **New query**  
+3. Kopiraj SQL ispod → zalijepi → **Run**  
+4. **Table Editor**: moraš vidjeti `cards`, `price_history`, `portfolio`  
+5. Ako app i dalje javlja grešku: **Project Settings → API → Reload schema**  
+6. Streamlit → **Reboot**
+"""
+            )
+            st.code(SCHEMA_SQL, language="sql")
+        else:
+            st.info("Provjeri Secrets i Reboot app.")
         return
     if market.empty or history.empty:
         st.error("Nema povijesti cijena. Provjeri seed bazu ili pokreni generate_history.py.")

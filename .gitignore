@@ -28,6 +28,11 @@ run_nightly.bat
 # Secrets
 .env
 .env.*
+!.env.example
+tcg.env.txt
+tcg.txt
+.streamlit/secrets.toml
+tcg_market.db.bak
 
 # Test and type-check caches
 .pytest_cache/
