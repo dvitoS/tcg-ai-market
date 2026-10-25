@@ -12,12 +12,14 @@ on:
 jobs:
   nightly-update:
     runs-on: ubuntu-24.04
-    # Puni sync kataloga + rate limit može trajati satima
     timeout-minutes: 360
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
+
+      - name: Install system libs for XGBoost
+        run: sudo apt-get update && sudo apt-get install -y libgomp1
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v6
@@ -29,6 +31,16 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+
+      - name: Smoke-import critical packages
+        run: |
+          python - <<'PY'
+          import xgboost
+          import sklearn
+          import supabase
+          import pandas
+          print("imports ok", xgboost.__version__)
+          PY
 
       - name: Verify required secrets
         env:
@@ -47,6 +59,9 @@ jobs:
       - name: Run nightly_update.py
         env:
           PYTHONUNBUFFERED: "1"
+          # Ručni test: stavi NIGHTLY_CARD_LIMIT=50 u workflow_dispatch inputs kasnije ako treba.
+          # Prazno = sync svih karata (noćni job).
+          NIGHTLY_CARD_LIMIT: ${{ github.event_name == 'workflow_dispatch' && '100' || '' }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
           TCG_API_KEY: ${{ secrets.TCG_API_KEY }}

@@ -1,21 +1,14 @@
-# pip install requests python-dotenv sqlalchemy pandas xgboost scikit-learn
+# pip install requests python-dotenv pandas xgboost scikit-learn supabase
 """Noćni radnik: katalog → PokéWallet snimke → re-trening XGBoost."""
 
 from __future__ import annotations
 
 import logging
+import os
 import sys
 import traceback
 from datetime import datetime
 from pathlib import Path
-
-from ai_xgboost import retrain_model
-from api_client import clean_cards, fetch_cards
-from config import AUTOMATION_LOG, CATALOG_SERIES, PROJECT_ROOT, TCG_API_KEY
-from database import init_db
-from generate_history import ensure_price_history
-from main import print_summary, save_cards
-from sync_live_data import sync_live_price_history
 
 LOG = logging.getLogger("tcg.nightly")
 
@@ -46,7 +39,7 @@ class _TeeStream:
             self._buffer = ""
 
 
-def setup_logging(log_path: Path = AUTOMATION_LOG) -> None:
+def setup_logging(log_path: Path) -> None:
     log_path.parent.mkdir(parents=True, exist_ok=True)
     LOG.handlers.clear()
     LOG.setLevel(logging.INFO)
@@ -56,17 +49,21 @@ def setup_logging(log_path: Path = AUTOMATION_LOG) -> None:
     file_handler.setFormatter(formatter)
     LOG.addHandler(file_handler)
 
-    # Konzola bez dvostrukog zapisa kad Tee već piše u LOG.
     console = logging.StreamHandler(sys.__stdout__)
     console.setFormatter(formatter)
     LOG.addHandler(console)
 
     sys.stdout = _TeeStream(sys.__stdout__, LOG, logging.INFO)
-    sys.stderr = _TeeStream(sys.__stderr__, LOG, logging.ERROR)
+    # Na GitHub Actionsu ne diraj stderr — traceback mora ići čisto u log.
+    if not os.environ.get("GITHUB_ACTIONS"):
+        sys.stderr = _TeeStream(sys.__stderr__, LOG, logging.ERROR)
 
 
 def refresh_card_catalog() -> int:
-    """Povlači tisuće karata iz Scarlet & Violet + Sword & Shield era."""
+    from api_client import clean_cards, fetch_cards
+    from config import CATALOG_SERIES
+    from main import save_cards
+
     LOG.info("Korak 1/3: osvježavam katalog karata (%s)...", ", ".join(CATALOG_SERIES))
     raw = fetch_cards(series_names=CATALOG_SERIES, paginate=True)
     cleaned = clean_cards(raw)
@@ -76,14 +73,26 @@ def refresh_card_catalog() -> int:
 
 
 def refresh_price_history() -> dict[str, int]:
-    """Za sve karte u bazi dohvaća snimke s PokéWalleta (ili lokalni fallback)."""
-    LOG.info("Korak 2/3: sinkroniziram price_history za SVE karte...")
-    if not TCG_API_KEY:
+    from config import _secret
+    from generate_history import ensure_price_history
+    from sync_live_data import sync_live_price_history
+
+    LOG.info("Korak 2/3: sinkroniziram price_history...")
+    tcg_key = _secret("TCG_API_KEY")
+    if not tcg_key:
         LOG.warning("TCG_API_KEY nije postavljen — koristim lokalni ensure_price_history().")
         ensure_price_history()
         return {"updated": 0, "skipped": 0, "saved": 0, "total_history": 0}
 
-    stats = sync_live_price_history(limit=None)
+    # NIGHTLY_CARD_LIMIT=100 za brži test; prazno/None = sve karte.
+    raw_limit = os.environ.get("NIGHTLY_CARD_LIMIT", "").strip()
+    limit: int | None
+    if raw_limit.lower() in {"", "all", "none"}:
+        limit = None
+    else:
+        limit = int(raw_limit)
+    LOG.info("Sync limit: %s", "sve karte" if limit is None else f"top {limit}")
+    stats = sync_live_price_history(limit=limit)
     LOG.info(
         "Povijest: updated=%s skipped=%s saved=%s total_history=%s",
         stats["updated"],
@@ -95,6 +104,8 @@ def refresh_price_history() -> dict[str, int]:
 
 
 def retrain_ai() -> dict[str, float | int]:
+    from ai_xgboost import retrain_model
+
     LOG.info("Korak 3/3: re-trening XGBoost na proširenom nizu...")
     metrics = retrain_model()
     LOG.info(
@@ -109,10 +120,15 @@ def retrain_ai() -> dict[str, float | int]:
 
 def run_nightly() -> int:
     """Glavna noćna logika — sve greške idu u terminal (GitHub Actions log)."""
+    from config import PROJECT_ROOT
+    from database import init_db
+    from main import print_summary
+
     started = datetime.now()
     try:
         LOG.info("=== Nightly update start (%s) ===", started.isoformat(timespec="seconds"))
         LOG.info("Radni direktorij: %s", PROJECT_ROOT)
+        LOG.info("GITHUB_ACTIONS=%s", os.environ.get("GITHUB_ACTIONS", ""))
 
         init_db()
         refresh_card_catalog()
@@ -124,7 +140,6 @@ def run_nightly() -> int:
         LOG.info("=== Nightly update gotov za %.1f s ===", elapsed)
         return 0
     except Exception as e:
-        # Cijeli traceback u Actions log (tip greške + broj linije).
         print(f"Nightly update FAILED: {type(e).__name__}: {e}", file=sys.__stderr__)
         traceback.print_exc(file=sys.__stderr__)
         try:
@@ -136,8 +151,9 @@ def run_nightly() -> int:
 
 def main() -> int:
     try:
-        setup_logging()
-        # Pokemontcg/PokéWallet printovi idu u stdout; StreamHandler ih i dalje vidi.
+        from config import AUTOMATION_LOG
+
+        setup_logging(AUTOMATION_LOG)
         return run_nightly()
     except Exception as e:
         print(f"Nightly bootstrap FAILED: {type(e).__name__}: {e}", file=sys.__stderr__)
