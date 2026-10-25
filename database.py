@@ -1,11 +1,14 @@
 """SQLite baza podataka za TCG karte (SQLAlchemy)."""
 
+from __future__ import annotations
+
+import shutil
 from datetime import date
 
 from sqlalchemy import Date, Float, ForeignKey, Integer, String, create_engine, event, inspect, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, relationship, sessionmaker
 
-from config import DATABASE_URL
+from config import DATABASE_PATH, DATABASE_URL, SEED_DATABASE_PATH
 
 
 class Base(DeclarativeBase):
@@ -119,6 +122,31 @@ def init_db() -> None:
     Base.metadata.create_all(bind=engine)
     _ensure_card_columns()
     _backfill_image_urls()
+
+
+def _price_history_count() -> int:
+    if not inspect(engine).has_table("price_history"):
+        return 0
+    with engine.connect() as connection:
+        return int(connection.execute(text("SELECT COUNT(*) FROM price_history")).scalar() or 0)
+
+
+def ensure_seed_database() -> bool:
+    """Ako je price_history prazna, kopiraj seed bazu (za Streamlit Cloud / prvi start).
+
+    Vraća True ako je seed primijenjen.
+    """
+    init_db()
+    if _price_history_count() > 0:
+        return False
+    if not SEED_DATABASE_PATH.is_file():
+        return False
+
+    engine.dispose()
+    DATABASE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(SEED_DATABASE_PATH, DATABASE_PATH)
+    init_db()
+    return _price_history_count() > 0
 
 
 def get_session() -> Session:

@@ -15,8 +15,10 @@ dist/
 *.egg-info/
 .eggs/
 
-# Local SQLite databases
+# Local SQLite databases (seed za Cloud ostaje u repou)
 *.db
+!data/
+!data/seed_tcg_market.db
 
 # Automation / scheduler
 automation.log

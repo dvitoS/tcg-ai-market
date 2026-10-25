@@ -44,7 +44,14 @@ from ai_xgboost import (
     train_xgboost,
 )
 from api_client import pokemontcg_image_url
-from database import add_portfolio_position, delete_portfolio_position, engine, init_db
+from database import (
+    add_portfolio_position,
+    delete_portfolio_position,
+    engine,
+    ensure_seed_database,
+    init_db,
+)
+from generate_history import ensure_price_history
 
 st.set_page_config(
     page_title="TCG AI Market Dashboard",
@@ -433,6 +440,13 @@ def assign_signals(quotes: pd.DataFrame) -> pd.DataFrame:
 
 @st.cache_resource(show_spinner="Učitavam povijest i treniram XGBoost...")
 def load_exchange() -> tuple[pd.DataFrame, pd.DataFrame, object]:
+    init_db()
+    if ensure_seed_database():
+        # Seed napuni praznu Cloud bazu (tcg_market.db je u .gitignore).
+        pass
+    else:
+        # Lokalni fallback: sintetička povijest ako postoje karte bez history redova.
+        ensure_price_history()
     history = load_history()
     featured, _encoders = add_time_features(history)
     trainable = drop_incomplete_rows(featured)
@@ -1286,10 +1300,16 @@ def main() -> None:
     st.title("📈 TCG AI Market Dashboard")
     st.caption("Pokémon TCG burza · portfelj · XGBoost predikcija")
 
-    init_db()
-    history, market, model = load_exchange()
+    try:
+        history, market, model = load_exchange()
+    except RuntimeError as exc:
+        st.error(
+            f"{exc}\n\nNa Cloudu treba `data/seed_tcg_market.db` u repou, "
+            "ili lokalno pokreni `python main.py` pa `python generate_history.py`."
+        )
+        return
     if market.empty or history.empty:
-        st.error("Nema povijesti cijena. Pokreni `python generate_history.py`.")
+        st.error("Nema povijesti cijena. Provjeri seed bazu ili pokreni generate_history.py.")
         return
 
     tab1, tab2, tab3 = st.tabs(["Tržište & AI", "Moj Portfelj", "🤖 AI Scanner"])

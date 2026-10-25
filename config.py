@@ -22,9 +22,12 @@ TCG_API_BASE_URL = "https://api.pokewallet.io"
 PRICE_HISTORY_DAYS = 60
 API_REQUEST_DELAY_SECONDS = 0.75
 
-DATABASE_NAME = "tcg_market.db"
-DATABASE_URL = f"sqlite:///{DATABASE_NAME}"
 PROJECT_ROOT = Path(__file__).resolve().parent
+DATABASE_NAME = "tcg_market.db"
+DATABASE_PATH = PROJECT_ROOT / DATABASE_NAME
+SEED_DATABASE_PATH = PROJECT_ROOT / "data" / "seed_tcg_market.db"
+# Apsolutna putanja — ista baza lokalno i na Streamlit Cloudu.
+DATABASE_URL = f"sqlite:///{DATABASE_PATH.resolve().as_posix()}"
 AUTOMATION_LOG = PROJECT_ROOT / "automation.log"
 
 DEFAULT_SET_NAME = "Scarlet & Violet"
