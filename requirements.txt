@@ -1,9 +1,8 @@
-streamlit
-pandas
-numpy
+plotly
 xgboost
 scikit-learn
-plotly
-python-dotenv
+pandas
+numpy
 requests
 sqlalchemy
+python-dotenv
