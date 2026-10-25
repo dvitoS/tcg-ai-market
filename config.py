@@ -8,9 +8,10 @@ from dotenv import load_dotenv
 PROJECT_ROOT = Path(__file__).resolve().parent
 ENV_PATH = PROJECT_ROOT / ".env"
 
-# Lokalni env fajlovi (ne commitati tajne).
+# Lokalni env fajlovi (ne commitati tajne). U CI koristi samo Actions env.
 load_dotenv(ENV_PATH)
-load_dotenv(PROJECT_ROOT / "tcg.env.txt")
+if not os.environ.get("GITHUB_ACTIONS"):
+    load_dotenv(PROJECT_ROOT / "tcg.env.txt")
 
 
 def _from_streamlit_secrets(name: str) -> str:
@@ -59,14 +60,23 @@ def _secret(name: str, default: str = "") -> str:
     return default
 
 
+def _clean_secret_value(value: str) -> str:
+    """Makni navodnike, BOM i whitespace (često u GitHub Secrets copy-paste)."""
+    cleaned = (value or "").replace("\ufeff", "").strip()
+    if (cleaned.startswith('"') and cleaned.endswith('"')) or (
+        cleaned.startswith("'") and cleaned.endswith("'")
+    ):
+        cleaned = cleaned[1:-1].strip()
+    return cleaned.replace("\r", "").replace("\n", "").strip()
+
+
 def normalize_supabase_url(url: str) -> str:
     """Project URL only — bez /rest/v1 (klijent ga dodaje sam; inače PGRST125)."""
-    cleaned = (url or "").strip().strip('"').strip("'").rstrip("/")
-    for suffix in ("/rest/v1", "/rest/v1/", "/auth/v1", "/auth/v1/"):
-        if cleaned.lower().endswith(suffix.rstrip("/")):
-            cleaned = cleaned[: -len(suffix.rstrip("/"))].rstrip("/")
+    cleaned = _clean_secret_value(url).rstrip("/")
+    for suffix in ("/rest/v1", "/auth/v1"):
+        if cleaned.lower().endswith(suffix):
+            cleaned = cleaned[: -len(suffix)].rstrip("/")
             break
-    # Često: zalijepljen cijeli REST endpoint s trailing slashom.
     lower = cleaned.lower()
     marker = "/rest/v1"
     if marker in lower:
@@ -77,7 +87,7 @@ def normalize_supabase_url(url: str) -> str:
 def get_supabase_credentials() -> tuple[str, str]:
     """Uvijek svježe SUPABASE_URL / SUPABASE_KEY (ne koristi stale module konstante)."""
     url = normalize_supabase_url(_secret("SUPABASE_URL"))
-    key = _secret("SUPABASE_KEY").strip().strip('"').strip("'")
+    key = _clean_secret_value(_secret("SUPABASE_KEY"))
     return url, key
 
 

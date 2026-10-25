@@ -126,11 +126,19 @@ def run_nightly() -> int:
 
     started = datetime.now()
     try:
+        from config import get_supabase_credentials
+        from database import ensure_seed_database
+
         LOG.info("=== Nightly update start (%s) ===", started.isoformat(timespec="seconds"))
         LOG.info("Radni direktorij: %s", PROJECT_ROOT)
         LOG.info("GITHUB_ACTIONS=%s", os.environ.get("GITHUB_ACTIONS", ""))
+        url, key = get_supabase_credentials()
+        LOG.info("Supabase URL host: %s", url)
+        LOG.info("Supabase key: len=%s prefix=%s", len(key), (key[:8] + "…") if key else "(empty)")
 
         init_db()
+        if ensure_seed_database():
+            LOG.info("Seed uvezen u prazan Supabase.")
         refresh_card_catalog()
         refresh_price_history()
         retrain_ai()

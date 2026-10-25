@@ -49,6 +49,7 @@ jobs:
         run: |
           if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_KEY" ]; then
             echo "::error::Missing SUPABASE_URL or SUPABASE_KEY in repo Actions secrets."
+            echo "Repo → Settings → Secrets and variables → Actions → New repository secret"
             exit 1
           fi
           echo "Supabase secrets are present."
@@ -56,12 +57,46 @@ jobs:
             echo "::warning::TCG_API_KEY is empty — nightly will use synthetic history fallback."
           fi
 
+      - name: Diagnose Supabase REST
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: |
+          python - <<'PY'
+          from urllib.error import HTTPError, URLError
+          from urllib.request import Request, urlopen
+
+          from config import get_supabase_credentials
+
+          url, key = get_supabase_credentials()
+          print("normalized_url:", url)
+          print("key_len:", len(key), "key_prefix:", key[:6] if key else "")
+          endpoint = f"{url}/rest/v1/cards?select=id&limit=1"
+          req = Request(
+              endpoint,
+              headers={
+                  "apikey": key,
+                  "Authorization": f"Bearer {key}",
+                  "Accept": "application/json",
+              },
+          )
+          try:
+              with urlopen(req, timeout=30) as resp:
+                  body = resp.read()[:300]
+                  print("HTTP", resp.status, body)
+          except HTTPError as exc:
+              detail = exc.read()[:500]
+              print("HTTPError", exc.code, detail)
+              raise SystemExit(f"Supabase REST failed: HTTP {exc.code}") from exc
+          except URLError as exc:
+              raise SystemExit(f"Supabase network failed: {exc}") from exc
+          print("Supabase REST OK")
+          PY
+
       - name: Run nightly_update.py
         env:
           PYTHONUNBUFFERED: "1"
-          # Ručni test: stavi NIGHTLY_CARD_LIMIT=50 u workflow_dispatch inputs kasnije ako treba.
-          # Prazno = sync svih karata (noćni job).
-          NIGHTLY_CARD_LIMIT: ${{ github.event_name == 'workflow_dispatch' && '100' || '' }}
+          NIGHTLY_CARD_LIMIT: "100"
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
           TCG_API_KEY: ${{ secrets.TCG_API_KEY }}
