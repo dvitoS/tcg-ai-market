@@ -38,6 +38,17 @@ def _require_supabase_env() -> tuple[str, str]:
             "SUPABASE_URL i SUPABASE_KEY nisu postavljeni. "
             "Dodaj ih u Streamlit Secrets (Cloud) ili .env (lokalno)."
         )
+    if url.startswith("postgresql://") or url.startswith("postgres://"):
+        raise RuntimeError(
+            "SUPABASE_URL mora biti Project URL (https://xxxx.supabase.co), "
+            "ne Postgres connection string. Postgres URI stavi u SUPABASE_DB_URL."
+        )
+    if "supabase.co" not in url and "localhost" not in url:
+        raise RuntimeError(
+            f"Sumnjiv SUPABASE_URL: {url!r}. "
+            "Očekujem npr. https://YOUR_PROJECT.supabase.co "
+            "(bez /rest/v1 na kraju)."
+        )
     return url, key
 
 

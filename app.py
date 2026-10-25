@@ -1298,11 +1298,15 @@ SUPABASE_URL = "https://YOUR_PROJECT.supabase.co"
 SUPABASE_KEY = "YOUR_SERVICE_ROLE_KEY"
 ```
 
-Ključeve nađi u Supabase → **Project Settings → API**  
-(`Project URL` + `service_role` secret).
+Ključeve: Supabase → **Project Settings → API**  
+(`Project URL` + `service_role`).
+
+**Važno:** URL mora biti samo `https://xxxx.supabase.co` —  
+**bez** `/rest/v1` na kraju (inače greška PGRST125).
 """
         )
         return
+
 
     try:
         history, market, model = load_exchange()

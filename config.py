@@ -59,9 +59,26 @@ def _secret(name: str, default: str = "") -> str:
     return default
 
 
+def normalize_supabase_url(url: str) -> str:
+    """Project URL only — bez /rest/v1 (klijent ga dodaje sam; inače PGRST125)."""
+    cleaned = (url or "").strip().strip('"').strip("'").rstrip("/")
+    for suffix in ("/rest/v1", "/rest/v1/", "/auth/v1", "/auth/v1/"):
+        if cleaned.lower().endswith(suffix.rstrip("/")):
+            cleaned = cleaned[: -len(suffix.rstrip("/"))].rstrip("/")
+            break
+    # Često: zalijepljen cijeli REST endpoint s trailing slashom.
+    lower = cleaned.lower()
+    marker = "/rest/v1"
+    if marker in lower:
+        cleaned = cleaned[: lower.index(marker)].rstrip("/")
+    return cleaned
+
+
 def get_supabase_credentials() -> tuple[str, str]:
     """Uvijek svježe SUPABASE_URL / SUPABASE_KEY (ne koristi stale module konstante)."""
-    return _secret("SUPABASE_URL"), _secret("SUPABASE_KEY")
+    url = normalize_supabase_url(_secret("SUPABASE_URL"))
+    key = _secret("SUPABASE_KEY").strip().strip('"').strip("'")
+    return url, key
 
 
 # Javna dokumentacija: https://pokemontcg.io
