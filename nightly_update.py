@@ -12,7 +12,7 @@ import requests
 
 from ai_xgboost import retrain_model
 from api_client import clean_cards, fetch_cards
-from config import AUTOMATION_LOG, CATALOG_SERIES, DATABASE_NAME, PROJECT_ROOT, TCG_API_KEY
+from config import AUTOMATION_LOG, CATALOG_SERIES, PROJECT_ROOT, TCG_API_KEY
 from database import init_db
 from generate_history import ensure_price_history
 from main import print_summary, save_cards
@@ -72,7 +72,7 @@ def refresh_card_catalog() -> int:
     raw = fetch_cards(series_names=CATALOG_SERIES, paginate=True)
     cleaned = clean_cards(raw)
     saved = save_cards(cleaned)
-    LOG.info("Katalog: %s očišćenih karata, %s spremljenih/ ažuriranih u %s.", len(cleaned), saved, DATABASE_NAME)
+    LOG.info("Katalog: %s očišćenih karata, %s spremljenih/ažuriranih u Supabase.", len(cleaned), saved)
     return saved
 
 

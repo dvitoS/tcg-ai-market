@@ -13,7 +13,7 @@ from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 
-from database import engine
+from database import load_history_frame
 
 RANDOM_SEED = 42
 TEST_SIZE = 0.2
@@ -28,26 +28,12 @@ FEATURE_LABELS = {
     "supertype_encoded": "supertype",
 }
 
-HISTORY_QUERY = """
-SELECT
-    h.card_id,
-    h.price,
-    h.date,
-    c.name,
-    c.supertype,
-    c.rarity,
-    c.set_name,
-    c.market_price
-FROM price_history AS h
-INNER JOIN cards AS c ON c.id = h.card_id
-"""
-
 
 def load_history() -> pd.DataFrame:
-    print("Učitavam price_history spojenu s cards...")
-    df = pd.read_sql(HISTORY_QUERY, engine)
+    print("Učitavam price_history spojenu s cards (Supabase)...")
+    df = load_history_frame()
     if df.empty:
-        raise RuntimeError("price_history je prazna. Pokreni generate_history.py.")
+        raise RuntimeError("price_history je prazna. Pokreni generate_history.py ili seed import.")
     df["date"] = pd.to_datetime(df["date"])
     df["price"] = pd.to_numeric(df["price"], errors="coerce")
     df["market_price"] = pd.to_numeric(df["market_price"], errors="coerce")

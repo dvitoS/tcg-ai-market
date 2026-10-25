@@ -10,7 +10,7 @@ import pandas as pd
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import LabelEncoder
 
-from database import engine
+from database import load_cards_frame
 
 HISTORY_DAYS = 7
 FORECAST_DAYS = 7
@@ -33,8 +33,8 @@ RARITY_SCORES = {
 
 
 def load_cards() -> pd.DataFrame:
-    print("Učitavam karte iz tablice 'cards'...")
-    df = pd.read_sql("SELECT * FROM cards", engine)
+    print("Učitavam karte iz Supabase tablice 'cards'...")
+    df = load_cards_frame()
     print(f"Učitano {len(df)} redova.")
     return df
 

@@ -539,21 +539,13 @@ def history_points_from_payload(payload: dict[str, Any], *, today: date | None =
 
 
 def _store_pokewallet_id(card_id: str, pokewallet_id: str) -> None:
-    from database import Card, get_session
+    from database import get_card, update_card_pokewallet_id
 
-    session = get_session()
-    try:
-        card = session.get(Card, card_id)
-        if card is None or card.pokewallet_id == pokewallet_id:
-            return
-        card.pokewallet_id = pokewallet_id
-        session.commit()
-        print(f"  spremljen pokewallet_id za {card_id}.")
-    except Exception:
-        session.rollback()
-        raise
-    finally:
-        session.close()
+    card = get_card(card_id)
+    if card is None or card.pokewallet_id == pokewallet_id:
+        return
+    update_card_pokewallet_id(card_id, pokewallet_id)
+    print(f"  spremljen pokewallet_id za {card_id}.")
 
 
 def fetch_card_price_history(card_id: str) -> list[dict[str, Any]]:
@@ -562,23 +554,19 @@ def fetch_card_price_history(card_id: str) -> list[dict[str, Any]]:
     Endpoint: GET https://api.pokewallet.io/cards/{pokewallet_id}/price-history
     Zaglavlje: X-API-Key
     """
-    from database import Card, get_session, init_db
+    from database import get_card, init_db
 
     init_db()
     if str(card_id).startswith("pk_"):
         external_id = str(card_id)
     else:
-        session = get_session()
-        try:
-            card = session.get(Card, card_id)
-            if card is None or not card.name:
-                print(f"Karta {card_id} nije u lokalnoj bazi.")
-                return []
-            external_id = card.pokewallet_id
-            name = card.name
-            set_name = card.set_name
-        finally:
-            session.close()
+        card = get_card(card_id)
+        if card is None or not card.name:
+            print(f"Karta {card_id} nije u Supabase bazi.")
+            return []
+        external_id = card.pokewallet_id
+        name = card.name
+        set_name = card.set_name
 
         if not external_id:
             external_id = resolve_pokewallet_card_id(card_id, name, set_name)

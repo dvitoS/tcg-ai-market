@@ -47,9 +47,9 @@ from api_client import pokemontcg_image_url
 from database import (
     add_portfolio_position,
     delete_portfolio_position,
-    engine,
     ensure_seed_database,
     init_db,
+    load_portfolio_lots as fetch_portfolio_lots,
 )
 from generate_history import ensure_price_history
 
@@ -597,24 +597,7 @@ def is_holo_eligible(rarity: str | None, *, is_top_ai: bool = False) -> bool:
 
 
 def load_portfolio_lots() -> pd.DataFrame:
-    lots = pd.read_sql(
-        """
-        SELECT
-            p.id,
-            p.card_id,
-            p.quantity,
-            p.purchase_price,
-            p.purchase_date,
-            c.name,
-            c.rarity,
-            c.market_price,
-            c.image_url
-        FROM portfolio AS p
-        INNER JOIN cards AS c ON c.id = p.card_id
-        ORDER BY p.id
-        """,
-        engine,
-    )
+    lots = fetch_portfolio_lots()
     if lots.empty:
         return lots
     lots["image_url"] = [
@@ -1304,8 +1287,9 @@ def main() -> None:
         history, market, model = load_exchange()
     except RuntimeError as exc:
         st.error(
-            f"{exc}\n\nNa Cloudu treba `data/seed_tcg_market.db` u repou, "
-            "ili lokalno pokreni `python main.py` pa `python generate_history.py`."
+            f"{exc}\n\nProvjeri SUPABASE_URL / SUPABASE_KEY u Secrets, "
+            "pokreni `supabase_schema.sql` u Supabase SQL Editoru, "
+            "zatim Reboot (seed se uvozi automatski ako je history prazan)."
         )
         return
     if market.empty or history.empty:
