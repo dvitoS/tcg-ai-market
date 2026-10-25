@@ -11,7 +11,7 @@ on:
 
 jobs:
   nightly-update:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # Puni sync kataloga + rate limit može trajati satima
     timeout-minutes: 360
 

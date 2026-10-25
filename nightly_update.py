@@ -5,10 +5,9 @@ from __future__ import annotations
 
 import logging
 import sys
+import traceback
 from datetime import datetime
 from pathlib import Path
-
-import requests
 
 from ai_xgboost import retrain_model
 from api_client import clean_cards, fetch_cards
@@ -109,33 +108,40 @@ def retrain_ai() -> dict[str, float | int]:
 
 
 def run_nightly() -> int:
+    """Glavna noćna logika — sve greške idu u terminal (GitHub Actions log)."""
     started = datetime.now()
-    LOG.info("=== Nightly update start (%s) ===", started.isoformat(timespec="seconds"))
-    LOG.info("Radni direktorij: %s", PROJECT_ROOT)
-
     try:
+        LOG.info("=== Nightly update start (%s) ===", started.isoformat(timespec="seconds"))
+        LOG.info("Radni direktorij: %s", PROJECT_ROOT)
+
         init_db()
         refresh_card_catalog()
         refresh_price_history()
         retrain_ai()
         print_summary()
-    except Exception as exc:
-        LOG.exception("Nightly update nije uspio: %s", exc)
-        return 1
 
-    elapsed = (datetime.now() - started).total_seconds()
-    LOG.info("=== Nightly update gotov za %.1f s ===", elapsed)
-    return 0
+        elapsed = (datetime.now() - started).total_seconds()
+        LOG.info("=== Nightly update gotov za %.1f s ===", elapsed)
+        return 0
+    except Exception as e:
+        # Cijeli traceback u Actions log (tip greške + broj linije).
+        print(f"Nightly update FAILED: {type(e).__name__}: {e}", file=sys.__stderr__)
+        traceback.print_exc(file=sys.__stderr__)
+        try:
+            LOG.exception("Nightly update nije uspio: %s", e)
+        except Exception:
+            pass
+        return 1
 
 
 def main() -> int:
-    setup_logging()
-    # Pokemontcg/PokéWallet printovi idu u stdout; StreamHandler ih i dalje vidi.
-    # Ključne faze i greške idu u automation.log.
     try:
+        setup_logging()
+        # Pokemontcg/PokéWallet printovi idu u stdout; StreamHandler ih i dalje vidi.
         return run_nightly()
-    except requests.RequestException as exc:
-        LOG.error("Mrežna greška: %s", exc)
+    except Exception as e:
+        print(f"Nightly bootstrap FAILED: {type(e).__name__}: {e}", file=sys.__stderr__)
+        traceback.print_exc(file=sys.__stderr__)
         return 1
 
 
