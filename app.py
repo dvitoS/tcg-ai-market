@@ -1,7 +1,14 @@
-# pip install streamlit plotly
 """TCG AI Market Dashboard — stvarna povijest cijena i XGBoost."""
 
-from __future__ import annotations
+import subprocess
+import sys
+
+try:
+    import plotly  # noqa: F401
+except ModuleNotFoundError:
+    subprocess.check_call(
+        [sys.executable, "-m", "pip", "install", "plotly", "xgboost", "scikit-learn"]
+    )
 
 from html import escape
 
