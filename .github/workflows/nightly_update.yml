@@ -1,6 +1,6 @@
-# Nightly katalog + PokéWallet povijest + XGBoost retrain (UTC).
+# Nightly katalog + JustTCG (NM) / PokéWallet povijest + XGBoost retrain (UTC).
 # Secrets (Settings → Secrets and variables → Actions):
-#   SUPABASE_URL, SUPABASE_KEY, TCG_API_KEY
+#   SUPABASE_URL, SUPABASE_KEY, JUSTTCG_API_KEY (prefer), TCG_API_KEY (fallback)
 name: Nightly TCG Database & AI Update
 
 on:
@@ -14,7 +14,7 @@ on:
         type: boolean
         default: true
       card_limit:
-        description: "PokéWallet live sync limit (100, or all)"
+        description: "Live price sync limit (all, or e.g. 50)"
         type: string
         default: "all"
 
@@ -62,8 +62,12 @@ jobs:
             exit 1
           fi
           echo "Supabase secrets are present."
-          if [ -z "${{ secrets.TCG_API_KEY }}" ]; then
-            echo "::warning::TCG_API_KEY is empty — nightly will use synthetic history fallback."
+          if [ -z "${{ secrets.JUSTTCG_API_KEY }}" ] && [ -z "${{ secrets.TCG_API_KEY }}" ]; then
+            echo "::warning::JUSTTCG_API_KEY and TCG_API_KEY empty — synthetic history fallback."
+          elif [ -n "${{ secrets.JUSTTCG_API_KEY }}" ]; then
+            echo "JUSTTCG_API_KEY is present (preferred NM sync)."
+          else
+            echo "TCG_API_KEY is present (PokéWallet fallback)."
           fi
 
       - name: Diagnose Supabase REST
@@ -111,6 +115,7 @@ jobs:
           NIGHTLY_CARD_LIMIT: ${{ github.event_name == 'workflow_dispatch' && inputs.card_limit || 'all' }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          JUSTTCG_API_KEY: ${{ secrets.JUSTTCG_API_KEY }}
           TCG_API_KEY: ${{ secrets.TCG_API_KEY }}
         run: python nightly_update.py
 

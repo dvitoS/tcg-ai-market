@@ -35,6 +35,7 @@ def _from_streamlit_secrets(name: str) -> str:
         "SUPABASE_KEY": ("supabase", "key"),
         "SUPABASE_DB_URL": ("supabase", "db_url"),
         "TCG_API_KEY": ("tcg", "api_key"),
+        "JUSTTCG_API_KEY": ("justtcg", "api_key"),
     }
     section_key = nested_map.get(name)
     if not section_key:
@@ -98,6 +99,12 @@ POKEMON_TCG_DOCS_URL = "https://pokemontcg.io"
 
 TCG_API_KEY = _secret("TCG_API_KEY")
 TCG_API_BASE_URL = "https://api.pokewallet.io"
+JUSTTCG_API_KEY = _secret("JUSTTCG_API_KEY")
+JUSTTCG_API_BASE_URL = "https://api.justtcg.com/v1"
+# Free: 20 / request, 100 / day, 10 / min — drži delay ≥ 6s.
+JUSTTCG_BATCH_SIZE = 20
+JUSTTCG_REQUEST_DELAY_SECONDS = 6.5
+JUSTTCG_HISTORY_DURATION = "30d"
 PRICE_HISTORY_DAYS = 60
 API_REQUEST_DELAY_SECONDS = 0.75
 

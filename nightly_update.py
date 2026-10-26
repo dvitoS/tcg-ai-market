@@ -106,25 +106,48 @@ def refresh_card_catalog() -> int:
 def refresh_price_history() -> dict[str, int]:
     from config import _secret
     from generate_history import ensure_price_history, generate_price_history
+    from justtcg_client import justtcg_api_key
+    from sync_justtcg import sync_justtcg_price_history
     from sync_live_data import sync_live_price_history
 
     LOG.info("Korak 2/3: sinkroniziram price_history...")
-    tcg_key = _secret("TCG_API_KEY")
-    if not tcg_key:
-        LOG.warning("TCG_API_KEY nije postavljen — koristim lokalni ensure_price_history().")
-        ensure_price_history()
-        # Dopuni nove karte bez povijesti (ako tablica već nije prazna).
-        generate_price_history(replace=False)
-        return {"updated": 0, "skipped": 0, "saved": 0, "total_history": 0}
 
     raw_limit = os.environ.get("NIGHTLY_CARD_LIMIT", "").strip()
     if raw_limit.lower() in {"", "all", "none"}:
         limit: int | None = None
     else:
         limit = int(raw_limit)
-    LOG.info("Sync limit: %s", "sve karte" if limit is None else f"top {limit}")
+
+    # Preferiraj JustTCG (NM + history); fallback PokéWallet; pa sintetički.
+    if justtcg_api_key():
+        LOG.info(
+            "JustTCG sync (NM) — limit: %s",
+            "svi curated setovi" if limit is None else f"top {limit}",
+        )
+        stats = sync_justtcg_price_history(limit=limit)
+        filled = generate_price_history(replace=False)
+        LOG.info(
+            "JustTCG: updated=%s skipped=%s saved=%s total_history=%s synthetic_new=%s",
+            stats["updated"],
+            stats["skipped"],
+            stats["saved"],
+            stats["total_history"],
+            filled,
+        )
+        return stats
+
+    tcg_key = _secret("TCG_API_KEY")
+    if not tcg_key:
+        LOG.warning(
+            "JUSTTCG_API_KEY i TCG_API_KEY nisu postavljeni — "
+            "koristim lokalni ensure_price_history()."
+        )
+        ensure_price_history()
+        generate_price_history(replace=False)
+        return {"updated": 0, "skipped": 0, "saved": 0, "total_history": 0}
+
+    LOG.info("PokéWallet sync — limit: %s", "sve karte" if limit is None else f"top {limit}")
     stats = sync_live_price_history(limit=limit)
-    # Nakon ograničenog live synca, sintetički popuni karte koje još nemaju history.
     filled = generate_price_history(replace=False)
     LOG.info(
         "Povijest: updated=%s skipped=%s saved=%s total_history=%s synthetic_new=%s",

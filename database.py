@@ -18,6 +18,14 @@ PAGE = 1000
 
 SCHEMA_SQL = (Path(__file__).resolve().parent / "supabase_schema.sql").read_text(encoding="utf-8")
 
+# PostgREST schema cache: None = još nije provjereno.
+_TCGPLAYER_ID_COLUMN: bool | None = None
+
+TCGPLAYER_ID_MIGRATE_SQL = (
+    "alter table public.cards add column if not exists tcgplayer_id text;\n"
+    "notify pgrst, 'reload schema';"
+)
+
 
 @dataclass
 class Card:
@@ -28,6 +36,7 @@ class Card:
     set_name: str | None = None
     market_price: float | None = None
     pokewallet_id: str | None = None
+    tcgplayer_id: str | None = None
     image_url: str | None = None
 
 
@@ -81,6 +90,7 @@ def _card_from_row(row: dict[str, Any]) -> Card:
         set_name=row.get("set_name"),
         market_price=float(price) if price is not None else None,
         pokewallet_id=row.get("pokewallet_id"),
+        tcgplayer_id=row.get("tcgplayer_id"),
         image_url=row.get("image_url"),
     )
 
@@ -244,24 +254,49 @@ def get_card(card_id: str) -> Card | None:
     return _card_from_row(rows[0]) if rows else None
 
 
+def cards_have_tcgplayer_id_column() -> bool:
+    """True ako PostgREST vidi cards.tcgplayer_id (nakon ALTER + reload cache)."""
+    global _TCGPLAYER_ID_COLUMN
+    if _TCGPLAYER_ID_COLUMN is not None:
+        return _TCGPLAYER_ID_COLUMN
+    client = get_supabase()
+    try:
+        client.table("cards").select("tcgplayer_id").limit(1).execute()
+        _TCGPLAYER_ID_COLUMN = True
+    except Exception as exc:
+        text = str(exc).lower()
+        if "tcgplayer_id" in text or "pgrst204" in text:
+            _TCGPLAYER_ID_COLUMN = False
+            print(
+                "Napomena: kolona cards.tcgplayer_id nedostaje u Supabase.\n"
+                "Pokreni u SQL Editoru:\n"
+                f"{TCGPLAYER_ID_MIGRATE_SQL}"
+            )
+        else:
+            raise
+    return bool(_TCGPLAYER_ID_COLUMN)
+
+
 def upsert_cards(cards: list[dict[str, Any]]) -> int:
     if not cards:
         return 0
     client = get_supabase()
+    include_tcp = cards_have_tcgplayer_id_column()
     payload = []
     for card in cards:
-        payload.append(
-            {
-                "id": card["id"],
-                "name": card.get("name"),
-                "supertype": card.get("supertype"),
-                "rarity": card.get("rarity"),
-                "set_name": card.get("set_name"),
-                "market_price": card.get("market_price"),
-                "pokewallet_id": card.get("pokewallet_id"),
-                "image_url": card.get("image_url"),
-            }
-        )
+        row: dict[str, Any] = {
+            "id": card["id"],
+            "name": card.get("name"),
+            "supertype": card.get("supertype"),
+            "rarity": card.get("rarity"),
+            "set_name": card.get("set_name"),
+            "market_price": card.get("market_price"),
+            "pokewallet_id": card.get("pokewallet_id"),
+            "image_url": card.get("image_url"),
+        }
+        if include_tcp and card.get("tcgplayer_id"):
+            row["tcgplayer_id"] = card.get("tcgplayer_id")
+        payload.append(row)
     for batch in _chunked(payload):
         client.table("cards").upsert(batch, on_conflict="id").execute()
     return len(payload)
@@ -270,6 +305,14 @@ def upsert_cards(cards: list[dict[str, Any]]) -> int:
 def update_card_pokewallet_id(card_id: str, pokewallet_id: str) -> None:
     client = get_supabase()
     client.table("cards").update({"pokewallet_id": pokewallet_id}).eq("id", card_id).execute()
+
+
+def update_card_market_price(card_id: str, market_price: float, *, tcgplayer_id: str | None = None) -> None:
+    client = get_supabase()
+    payload: dict[str, Any] = {"market_price": float(market_price)}
+    if tcgplayer_id and cards_have_tcgplayer_id_column():
+        payload["tcgplayer_id"] = str(tcgplayer_id)
+    client.table("cards").update(payload).eq("id", card_id).execute()
 
 
 def replace_card_history(card_id: str, points: list[dict[str, Any]]) -> int:

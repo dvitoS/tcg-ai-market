@@ -461,6 +461,8 @@ def clean_cards(
             below_min += 1
             continue
 
+        from justtcg_client import extract_tcgplayer_product_id
+
         cleaned.append(
             {
                 "id": str(card_id),
@@ -469,6 +471,7 @@ def clean_cards(
                 "rarity": card.get("rarity"),
                 "set_name": set_info.get("name") or set_info.get("id"),
                 "market_price": market_price,
+                "tcgplayer_id": extract_tcgplayer_product_id(card),
                 "image_url": image_url,
             }
         )
