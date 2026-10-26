@@ -64,6 +64,7 @@ st.set_page_config(
 HOLD_BAND = 0.0035
 FORECAST_DAYS = 7
 SCANNER_GROWTH_FLOOR = 10.0
+MARKET_PAGE_SIZE_DEFAULT = 24
 SIGNAL_CLASS = {"KUPI": "signal-buy", "PRODAJ": "signal-sell", "DRŽI": "signal-hold"}
 HOLO_RARITY_KEYWORDS = ("rare", "holo", "secret", "ultra")
 
@@ -141,6 +142,64 @@ CUSTOM_CSS = """
         font-weight: 700;
         letter-spacing: 0.04em;
         margin: 18px 0 8px;
+    }
+    .market-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 18px 16px;
+        margin: 8px 0 12px;
+    }
+    .market-tile {
+        text-align: center;
+        padding: 0;
+        margin: 0;
+    }
+    .market-tile img {
+        display: block;
+        width: 100%;
+        height: auto;
+        border-radius: 4.35% / 3%;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+    }
+    .market-tile-name {
+        margin: 8px 0 2px;
+        font-size: 0.86rem;
+        font-weight: 700;
+        line-height: 1.25;
+        color: #f8fafc !important;
+    }
+    .market-tile-meta {
+        font-size: 0.72rem;
+        opacity: 0.78;
+        color: #94a3b8 !important;
+        margin: 0 0 4px;
+    }
+    .market-tile-price {
+        font-size: 0.92rem;
+        font-weight: 650;
+        color: #e2e8f0 !important;
+        margin: 0;
+    }
+    .market-tile-signal {
+        display: inline-block;
+        margin-top: 6px;
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+    }
+    .market-tile-signal.KUPI { background: #14532d; border: 1px solid #22c55e; color: #dcfce7 !important; }
+    .market-tile-signal.PRODAJ { background: #7f1d1d; border: 1px solid #f87171; color: #fee2e2 !important; }
+    .market-tile-signal.DRŽI { background: #78350f; border: 1px solid #fbbf24; color: #fef3c7 !important; }
+    .pager-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 4px 0 14px;
+        font-size: 0.9rem;
+        opacity: 0.9;
     }
     .card-grid {
         display: grid;
@@ -815,16 +874,82 @@ def inject_pokemon_card_fx() -> None:
     )
 
 
+def filter_portfolio_gallery(
+    view: pd.DataFrame,
+    *,
+    query: str,
+    rarity: str,
+    pnl_filter: str,
+    sort_by: str,
+) -> pd.DataFrame:
+    frame = view.copy()
+    if query.strip():
+        q = query.strip()
+        name_ok = frame["name"].astype(str).str.contains(q, case=False, na=False)
+        id_ok = frame["card_id"].astype(str).str.contains(q, case=False, na=False)
+        frame = frame.loc[name_ok | id_ok]
+    if rarity != "Sve" and "rarity" in frame.columns:
+        frame = frame.loc[frame["rarity"].astype(str) == rarity]
+    if pnl_filter == "U plusu":
+        frame = frame.loc[frame["pnl"] > 0]
+    elif pnl_filter == "U minusu":
+        frame = frame.loc[frame["pnl"] < 0]
+    elif pnl_filter == "TOP AI":
+        if "is_top_ai" in frame.columns:
+            frame = frame.loc[frame["is_top_ai"].astype(bool)]
+
+    sort_map = {
+        "Ime A–Z": ("name", True),
+        "Vrijednost ↓": ("market_value", False),
+        "Vrijednost ↑": ("market_value", True),
+        "P&L ↓": ("pnl", False),
+        "P&L ↑": ("pnl", True),
+        "Količina ↓": ("quantity", False),
+    }
+    column, ascending = sort_map.get(sort_by, ("name", True))
+    if column in frame.columns:
+        frame = frame.sort_values(column, ascending=ascending, kind="mergesort")
+    return frame.reset_index(drop=True)
+
+
 def render_portfolio_gallery(view: pd.DataFrame) -> None:
     """Vizualna galerija inspirirana tcg.pokemon.com galleries."""
     st.markdown("##### Galerija kolekcije")
     st.caption(
         "Hover: 3D nagib · rijetke/TOP AI: holo-foil · klik: uvećanje + isti 3D nagib · ❌ uklanja unos"
     )
-    st.markdown('<div class="card-grid">', unsafe_allow_html=True)
 
+    rarities = ["Sve"]
+    if "rarity" in view.columns:
+        rarities += sorted({str(r) for r in view["rarity"].dropna().unique().tolist() if str(r).strip()})
+
+    f1, f2, f3, f4 = st.columns([1.6, 1.1, 1, 1.2])
+    query = f1.text_input("Pretraži", placeholder="Ime ili ID…", key="gallery_query")
+    rarity_filter = f2.selectbox("Rijetkost", rarities, key="gallery_rarity")
+    pnl_filter = f3.selectbox("P&L", ["Sve", "U plusu", "U minusu", "TOP AI"], key="gallery_pnl")
+    sort_by = f4.selectbox(
+        "Sortiraj",
+        ["Ime A–Z", "Vrijednost ↓", "Vrijednost ↑", "P&L ↓", "P&L ↑", "Količina ↓"],
+        key="gallery_sort",
+    )
+
+    filtered = filter_portfolio_gallery(
+        view,
+        query=query,
+        rarity=rarity_filter,
+        pnl_filter=pnl_filter,
+        sort_by=sort_by,
+    )
+    st.caption(f"Prikazano **{len(filtered)}** / {len(view)} unosa")
+
+    if filtered.empty:
+        st.info("Nema unosa za odabrane filtere.")
+        inject_pokemon_card_fx()
+        return
+
+    st.markdown('<div class="card-grid">', unsafe_allow_html=True)
     cols_per_row = 4
-    rows = list(view.itertuples(index=False))
+    rows = list(filtered.itertuples(index=False))
     for start in range(0, len(rows), cols_per_row):
         chunk = rows[start : start + cols_per_row]
         cols = st.columns(cols_per_row)
@@ -927,36 +1052,126 @@ def render_week_outlook(current_value: float, week_value: float) -> None:
     )
 
 
-def render_market(history: pd.DataFrame, market: pd.DataFrame, model) -> None:
-    st.subheader("Tražilica karata")
-    filters = st.columns([1.4, 1, 1])
-    query = filters[0].text_input("Pretraži po imenu", placeholder="npr. Pikachu, Charizard...")
-    rarities = ["Sve"] + sorted(market["rarity"].dropna().unique().tolist())
-    rarity_filter = filters[1].selectbox("Rijetkost", rarities)
-    signal_filter = filters[2].selectbox("Signal", ["Sve", "KUPI", "PRODAJ", "DRŽI"])
+def card_image_for_id(card_id: str) -> str:
+    return pokemontcg_image_url(str(card_id)) or ""
 
-    filtered = market
-    if query.strip():
-        filtered = filtered[filtered["name"].str.contains(query.strip(), case=False, na=False)]
-    if rarity_filter != "Sve":
-        filtered = filtered[filtered["rarity"] == rarity_filter]
-    if signal_filter != "Sve":
-        filtered = filtered[filtered["signal"] == signal_filter]
 
-    if filtered.empty:
-        st.warning("Nema karata za taj upit.")
-        filtered = market
-
-    labels = {
-        row.id: f"{row.name}  ·  {row.id}  ·  ${row.price:.2f}  ·  {row.signal}"
-        for row in filtered.itertuples(index=False)
-    }
-    selected_id = st.selectbox(
-        "Odaberi kartu",
-        options=list(labels.keys()),
-        format_func=lambda card_id: labels[card_id],
+def market_tile_html(row) -> str:
+    """Jedan tile u market/scanner gridu."""
+    card_id = str(getattr(row, "id", getattr(row, "card_id", "")))
+    name = escape(str(getattr(row, "name", getattr(row, "Naziv", ""))))
+    set_name = escape(str(getattr(row, "set_name", getattr(row, "Set", ""))))
+    rarity = escape(str(getattr(row, "rarity", getattr(row, "Rijetkost", "")) or ""))
+    signal = str(getattr(row, "signal", "") or "")
+    price = getattr(row, "price", None)
+    if price is None:
+        price = getattr(row, "Trenutna cijena", 0.0)
+    change = getattr(row, "expected_change_pct", None)
+    if change is None:
+        change = getattr(row, "Očekivani ROI (%)", None)
+    image = escape(card_image_for_id(card_id), quote=True)
+    change_txt = f"{float(change):+.1f}%" if change is not None and pd.notna(change) else "—"
+    signal_html = (
+        f'<span class="market-tile-signal {escape(signal)}">{escape(signal)}</span>'
+        if signal
+        else f'<span class="market-tile-meta">{escape(change_txt)}</span>'
     )
-    card = market.loc[market["id"] == selected_id].iloc[0]
+    return f"""
+    <div class="market-tile">
+      <img src="{image}" alt="{name}" loading="lazy"
+           onerror="this.style.opacity='0.25';" />
+      <div class="market-tile-name">{name}</div>
+      <div class="market-tile-meta">{set_name} · {rarity}</div>
+      <div class="market-tile-price">${float(price):.2f} · {escape(change_txt)}</div>
+      {signal_html}
+    </div>
+    """
+
+
+def filter_market_frame(
+    market: pd.DataFrame,
+    *,
+    query: str,
+    set_name: str,
+    rarity: str,
+    signal: str,
+    sort_by: str,
+) -> pd.DataFrame:
+    frame = market.copy()
+    if query.strip():
+        q = query.strip()
+        mask = frame["name"].astype(str).str.contains(q, case=False, na=False) | frame[
+            "id"
+        ].astype(str).str.contains(q, case=False, na=False)
+        frame = frame.loc[mask]
+    if set_name != "Svi setovi":
+        frame = frame.loc[frame["set_name"] == set_name]
+    if rarity != "Sve":
+        frame = frame.loc[frame["rarity"] == rarity]
+    if signal != "Sve" and "signal" in frame.columns:
+        frame = frame.loc[frame["signal"] == signal]
+
+    sort_map = {
+        "Ime A–Z": ("name", True),
+        "Cijena ↓": ("price", False),
+        "Cijena ↑": ("price", True),
+        "Očekivano % ↓": ("expected_change_pct", False),
+        "Očekivano % ↑": ("expected_change_pct", True),
+    }
+    column, ascending = sort_map.get(sort_by, ("name", True))
+    if column in frame.columns:
+        frame = frame.sort_values(column, ascending=ascending, kind="mergesort")
+    return frame.reset_index(drop=True)
+
+
+def paginate_frame(frame: pd.DataFrame, page: int, page_size: int) -> tuple[pd.DataFrame, int, int]:
+    total = len(frame)
+    pages = max(1, (total + page_size - 1) // page_size) if page_size else 1
+    page = min(max(1, page), pages)
+    start = (page - 1) * page_size
+    return frame.iloc[start : start + page_size].copy(), page, pages
+
+
+def render_pager(prefix: str, page: int, pages: int, total: int, page_size: int) -> int:
+    """Prev/next + info. Vraća novi broj stranice."""
+    start = (page - 1) * page_size + 1 if total else 0
+    end = min(page * page_size, total)
+    left, mid, right = st.columns([1, 2, 1])
+    with left:
+        if st.button("← Prethodna", key=f"{prefix}_prev", disabled=page <= 1):
+            page = max(1, page - 1)
+            st.session_state[f"{prefix}_page"] = page
+            st.rerun()
+    with mid:
+        st.markdown(
+            f'<div class="pager-bar" style="justify-content:center;">'
+            f"Stranica <b>{page}</b> / {pages} · prikaz {start}–{end} od {total}"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+    with right:
+        if st.button("Sljedeća →", key=f"{prefix}_next", disabled=page >= pages):
+            page = min(pages, page + 1)
+            st.session_state[f"{prefix}_page"] = page
+            st.rerun()
+    return int(st.session_state.get(f"{prefix}_page", page))
+
+
+def render_market_grid(page_rows: pd.DataFrame, cols_per_row: int = 6) -> None:
+    rows = list(page_rows.itertuples(index=False))
+    if not rows:
+        st.info("Nema karata za prikaz.")
+        return
+    for start in range(0, len(rows), cols_per_row):
+        chunk = rows[start : start + cols_per_row]
+        cols = st.columns(cols_per_row)
+        for col, row in zip(cols, chunk, strict=False):
+            with col:
+                st.markdown(market_tile_html(row), unsafe_allow_html=True)
+
+
+def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, card_id: str) -> None:
+    card = market.loc[market["id"] == card_id].iloc[0]
     series = card_history(history, str(card["id"]))
     if series.empty:
         st.error("Za odabranu kartu nema redaka u price_history.")
@@ -975,8 +1190,8 @@ def render_market(history: pd.DataFrame, market: pd.DataFrame, model) -> None:
         predicted = float(card["predicted_price"])
     change_pct = (predicted - last_price) / last_price * 100.0
     lags = lag_features_for_last_day(series) or {
-        "price_lag_1": float(card["price_lag_1"]),
-        "rolling_mean_7": float(card["rolling_mean_7"]),
+        "price_lag_1": float(card.get("price_lag_1", last_price)),
+        "rolling_mean_7": float(card.get("rolling_mean_7", last_price)),
     }
     day_change_pct = (last_price - previous_price) / previous_price * 100.0 if previous_price else 0.0
     period_change_pct = (last_price / float(series["price"].iloc[0]) - 1.0) * 100.0
@@ -1003,10 +1218,7 @@ def render_market(history: pd.DataFrame, market: pd.DataFrame, model) -> None:
             ],
             "stat-row",
         )
-        st.plotly_chart(
-            price_chart(series, predicted, str(card["name"])),
-            width="stretch",
-        )
+        st.plotly_chart(price_chart(series, predicted, str(card["name"])), width="stretch")
 
     with right:
         st.subheader("AI predikcija (XGBoost)")
@@ -1022,22 +1234,15 @@ def render_market(history: pd.DataFrame, market: pd.DataFrame, model) -> None:
         )
         st.caption(
             f"Postotak je očekivana promjena cijene sutra. "
-            f"DRŽI unutar ±{HOLD_BAND * 100:.2f}%, inače KUPI ili PRODAJ. "
-            "Značajke: cijena od jučer, prije 3 i 7 dana te 7-dnevni prosjek."
+            f"DRŽI unutar ±{HOLD_BAND * 100:.2f}%, inače KUPI ili PRODAJ."
         )
         st.dataframe(
             pd.DataFrame(
                 {
-                    "Polje": [
-                        "ID",
-                        "Supertype",
-                        "Točaka u nizu",
-                        "Cijena jučer",
-                        "7-dnevni prosjek",
-                    ],
+                    "Polje": ["ID", "Supertype", "Točaka u nizu", "Cijena jučer", "7-dnevni prosjek"],
                     "Vrijednost": [
                         str(card["id"]),
-                        str(card["supertype"]),
+                        str(card.get("supertype", "")),
                         str(len(series)),
                         f"${float(lags['price_lag_1']):.4f}",
                         f"${float(lags['rolling_mean_7']):.4f}",
@@ -1048,39 +1253,80 @@ def render_market(history: pd.DataFrame, market: pd.DataFrame, model) -> None:
             width="stretch",
         )
 
-    st.divider()
-    st.subheader("Pregled tržišta")
-    overview = market[
-        ["id", "name", "set_name", "rarity", "price", "predicted_price", "expected_change_pct", "signal"]
-    ].rename(
-        columns={
-            "id": "ID",
-            "name": "Ime",
-            "set_name": "Set",
-            "rarity": "Rijetkost",
-            "price": "Zatvaranje",
-            "predicted_price": "AI sljedeći dan",
-            "expected_change_pct": "Očekivano %",
-            "signal": "Signal",
-        }
-    )
-    st.dataframe(
-        overview,
-        width="stretch",
-        height=360,
-        column_config={
-            "Zatvaranje": st.column_config.NumberColumn(format="$%.4f"),
-            "AI sljedeći dan": st.column_config.NumberColumn(format="$%.4f"),
-            "Očekivano %": st.column_config.NumberColumn(format="%+.2f%%"),
-        },
-    )
 
-    counts = market["signal"].value_counts()
+def render_market(history: pd.DataFrame, market: pd.DataFrame, model) -> None:
+    st.subheader("Tržište & AI")
+    counts = market["signal"].value_counts() if "signal" in market.columns else {}
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Karata", len(market))
     m2.metric("KUPI", int(counts.get("KUPI", 0)))
     m3.metric("DRŽI", int(counts.get("DRŽI", 0)))
     m4.metric("PRODAJ", int(counts.get("PRODAJ", 0)))
+
+    f1, f2, f3, f4, f5 = st.columns([1.6, 1.2, 1, 1, 1])
+    query = f1.text_input("Pretraži", placeholder="Ime ili ID…", key="market_query")
+    sets = ["Svi setovi"] + sorted(market["set_name"].dropna().unique().tolist())
+    set_filter = f2.selectbox("Set", sets, key="market_set")
+    rarities = ["Sve"] + sorted(market["rarity"].dropna().unique().tolist())
+    rarity_filter = f3.selectbox("Rijetkost", rarities, key="market_rarity")
+    signal_filter = f4.selectbox("Signal", ["Sve", "KUPI", "PRODAJ", "DRŽI"], key="market_signal")
+    sort_by = f5.selectbox(
+        "Sortiraj",
+        ["Ime A–Z", "Cijena ↓", "Cijena ↑", "Očekivano % ↓", "Očekivano % ↑"],
+        key="market_sort",
+    )
+
+    filtered = filter_market_frame(
+        market,
+        query=query,
+        set_name=set_filter,
+        rarity=rarity_filter,
+        signal=signal_filter,
+        sort_by=sort_by,
+    )
+
+    filter_fingerprint = f"{query}|{set_filter}|{rarity_filter}|{signal_filter}|{sort_by}"
+    if st.session_state.get("market_filter_fp") != filter_fingerprint:
+        st.session_state["market_filter_fp"] = filter_fingerprint
+        st.session_state["market_page"] = 1
+
+    p1, p2 = st.columns([1, 3])
+    page_size = int(
+        p1.selectbox("Po stranici", [12, 24, 48, 96], index=1, key="market_page_size")
+    )
+    p2.caption(f"Filtrirano: **{len(filtered)}** / {len(market)} karata")
+
+    page = int(st.session_state.get("market_page", 1))
+    page_rows, page, pages = paginate_frame(filtered, page, page_size)
+    st.session_state["market_page"] = page
+    render_pager("market", page, pages, len(filtered), page_size)
+
+    st.markdown("##### Grid karata")
+    if filtered.empty:
+        st.warning("Nema karata za odabrane filtere.")
+    else:
+        render_market_grid(page_rows)
+
+    st.divider()
+    st.markdown("##### Detalj i AI predikcija")
+    if filtered.empty:
+        return
+    labels = {
+        row.id: f"{row.name} · {row.id} · ${float(row.price):.2f} · {row.signal}"
+        for row in filtered.itertuples(index=False)
+    }
+    default_id = st.session_state.get("market_selected_id")
+    options = list(labels.keys())
+    index = options.index(default_id) if default_id in options else 0
+    selected_id = st.selectbox(
+        "Odaberi kartu za graf",
+        options=options,
+        index=index,
+        format_func=lambda card_id: labels[card_id],
+        key="market_detail_select",
+    )
+    st.session_state["market_selected_id"] = selected_id
+    render_market_detail(history, market, model, str(selected_id))
 
 
 @st.cache_data(show_spinner=False)
@@ -1128,7 +1374,8 @@ def build_ai_scan(history: pd.DataFrame, market: pd.DataFrame, _model) -> pd.Dat
 
 
 def scanner_table(frame: pd.DataFrame, height: int = 320) -> None:
-    display = frame[["Naziv", "Set", "Trenutna cijena", "AI Ciljna cijena", "Očekivani ROI (%)"]]
+    cols = [c for c in ["Naziv", "Set", "Rijetkost", "Trenutna cijena", "AI Ciljna cijena", "Očekivani ROI (%)"] if c in frame.columns]
+    display = frame[cols]
     st.dataframe(
         display,
         hide_index=True,
@@ -1144,6 +1391,37 @@ def scanner_table(frame: pd.DataFrame, height: int = 320) -> None:
     )
 
 
+def _scanner_page_block(prefix: str, frame: pd.DataFrame, page_size: int) -> None:
+    """Grid + tablica + pager za jednu scanner sekciju."""
+    if frame.empty:
+        return
+    fp_key = f"{prefix}_fp"
+    fingerprint = f"{len(frame)}|{page_size}|{frame.iloc[0]['id'] if 'id' in frame.columns else ''}"
+    if st.session_state.get(fp_key) != fingerprint:
+        st.session_state[fp_key] = fingerprint
+        st.session_state[f"{prefix}_page"] = 1
+
+    page = int(st.session_state.get(f"{prefix}_page", 1))
+    page_rows, page, pages = paginate_frame(frame, page, page_size)
+    st.session_state[f"{prefix}_page"] = page
+    render_pager(prefix, page, pages, len(frame), page_size)
+
+    # Grid očekuje name/set_name/price/expected_change_pct
+    grid = page_rows.rename(
+        columns={
+            "id": "id",
+            "Naziv": "name",
+            "Set": "set_name",
+            "Rijetkost": "rarity",
+            "Trenutna cijena": "price",
+            "Očekivani ROI (%)": "expected_change_pct",
+        }
+    )
+    render_market_grid(grid, cols_per_row=6)
+    with st.expander("Tablični pregled ove stranice", expanded=False):
+        scanner_table(page_rows, height=min(360, 48 + 36 * len(page_rows)))
+
+
 def render_scanner(history: pd.DataFrame, market: pd.DataFrame, model) -> None:
     st.subheader("🤖 AI Scanner")
     st.caption(
@@ -1151,25 +1429,21 @@ def render_scanner(history: pd.DataFrame, market: pd.DataFrame, model) -> None:
         "(jučer, −3d, −7d, 7-dnevni prosjek)."
     )
 
+    f1, f2, f3, f4, f5 = st.columns([1.4, 1.2, 1, 1, 0.9])
+    query = f1.text_input("Pretraži", placeholder="Ime…", key="scanner_query")
     sets = ["Svi setovi"] + sorted(market["set_name"].dropna().unique().tolist())
-    filters = st.columns([1.4, 1, 1])
-    set_filter = filters[0].selectbox("Set", sets, key="scanner_set")
-    min_growth = filters[1].number_input(
-        "Min. rast za TOP prilike (%)",
+    set_filter = f2.selectbox("Set", sets, key="scanner_set")
+    rarities = ["Sve"] + sorted(market["rarity"].dropna().unique().tolist())
+    rarity_filter = f3.selectbox("Rijetkost", rarities, key="scanner_rarity")
+    min_growth = f4.number_input(
+        "Min. rast TOP (%)",
         min_value=0.0,
         max_value=100.0,
         value=float(SCANNER_GROWTH_FLOOR),
         step=1.0,
         key="scanner_min_growth",
     )
-    max_rows = filters[2].number_input(
-        "Max. redova po sekciji",
-        min_value=5,
-        max_value=100,
-        value=25,
-        step=5,
-        key="scanner_max_rows",
-    )
+    page_size = int(f5.selectbox("Po stranici", [12, 24, 48], index=1, key="scanner_page_size"))
 
     with st.spinner("Skeniram sve karte XGBoost modelom..."):
         scan = build_ai_scan(history, market, model)
@@ -1178,50 +1452,63 @@ def render_scanner(history: pd.DataFrame, market: pd.DataFrame, model) -> None:
         st.warning("Nema dovoljno povijesti za AI sken. Provjeri price_history.")
         return
 
-    scoped = scan if set_filter == "Svi setovi" else scan.loc[scan["Set"] == set_filter]
+    # Dopuni rarity iz market tablica za filter/grid.
+    if "Rijetkost" not in scan.columns and "rarity" in market.columns:
+        scan = scan.merge(
+            market[["id", "rarity"]].rename(columns={"rarity": "Rijetkost"}),
+            on="id",
+            how="left",
+        )
+
+    scoped = scan
+    if set_filter != "Svi setovi":
+        scoped = scoped.loc[scoped["Set"] == set_filter]
+    if rarity_filter != "Sve" and "Rijetkost" in scoped.columns:
+        scoped = scoped.loc[scoped["Rijetkost"] == rarity_filter]
+    if query.strip():
+        q = query.strip()
+        scoped = scoped.loc[scoped["Naziv"].astype(str).str.contains(q, case=False, na=False)]
+
     if scoped.empty:
-        st.warning(f"Nema karata za set {set_filter}.")
+        st.warning("Nema karata za odabrane filtere.")
         return
 
     opportunities = (
         scoped.loc[scoped["Očekivani ROI (%)"] >= float(min_growth)]
         .sort_values("Očekivani ROI (%)", ascending=False)
-        .head(int(max_rows))
         .reset_index(drop=True)
     )
-    warnings = (
+    warnings_df = (
         scoped.loc[scoped["Očekivani ROI (%)"] < 0]
         .sort_values("Očekivani ROI (%)", ascending=True)
-        .head(int(max_rows))
         .reset_index(drop=True)
     )
 
     k1, k2, k3 = st.columns(3)
-    k1.metric("Skenirano karata", len(scoped))
+    k1.metric("Skenirano / filtrirano", len(scoped))
     k2.metric("TOP prilike", len(opportunities), delta=f"≥ {min_growth:.0f}%")
-    k3.metric("Upozorenja za pad", len(warnings))
+    k3.metric("Upozorenja za pad", len(warnings_df))
 
     st.markdown(
-        f'<div class="scanner-title">🔥 TOP AI PRILIKE '
-        f'(rast ≥ {min_growth:.0f}%)</div>',
+        f'<div class="scanner-title">🔥 TOP AI PRILIKE (rast ≥ {min_growth:.0f}%)</div>',
         unsafe_allow_html=True,
     )
     if opportunities.empty:
         st.info(
             f"Nema karata s očekivanim rastom iznad {min_growth:.0f}% "
-            "za odabrani set. Spusti prag filtera."
+            "za odabrani filter. Spusti prag."
         )
     else:
-        scanner_table(opportunities)
+        _scanner_page_block("scan_top", opportunities, page_size)
 
     st.markdown(
         '<div class="scanner-title">⚠️ AI UPOZORENJA ZA PAD</div>',
         unsafe_allow_html=True,
     )
-    if warnings.empty:
+    if warnings_df.empty:
         st.success("Nema karata s predviđenim padom za odabrani filter.")
     else:
-        scanner_table(warnings)
+        _scanner_page_block("scan_warn", warnings_df, page_size)
 
 
 def render_portfolio(history: pd.DataFrame, market: pd.DataFrame, model) -> None:
