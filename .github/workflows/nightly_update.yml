@@ -8,6 +8,15 @@ on:
     # 03:00 UTC svake noći
     - cron: "0 3 * * *"
   workflow_dispatch:
+    inputs:
+      refresh_catalog:
+        description: "Refresh curated catalog (151, Evolving Skies, Crown Zenith, Base, Hidden Fates · $5+)"
+        type: boolean
+        default: true
+      card_limit:
+        description: "PokéWallet live sync limit (100, or all)"
+        type: string
+        default: "all"
 
 jobs:
   nightly-update:
@@ -96,9 +105,10 @@ jobs:
       - name: Run nightly_update.py
         env:
           PYTHONUNBUFFERED: "1"
-          # Ručni Run workflow: bez punog kataloga (brže). Schedule (cron): puni katalog.
-          NIGHTLY_SKIP_CATALOG: ${{ github.event_name == 'workflow_dispatch' && '1' || '0' }}
-          NIGHTLY_CARD_LIMIT: "100"
+          # Schedule: always refresh catalog. Manual: honor refresh_catalog checkbox (default on).
+          NIGHTLY_SKIP_CATALOG: ${{ github.event_name == 'workflow_dispatch' && inputs.refresh_catalog == false && '1' || '0' }}
+          # Manual default "all" so Streamlit sees every $5+ card (synthetic history fills gaps).
+          NIGHTLY_CARD_LIMIT: ${{ github.event_name == 'workflow_dispatch' && inputs.card_limit || 'all' }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
           TCG_API_KEY: ${{ secrets.TCG_API_KEY }}
