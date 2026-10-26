@@ -112,10 +112,24 @@ AUTOMATION_LOG = PROJECT_ROOT / "automation.log"
 
 DEFAULT_SET_NAME = "Scarlet & Violet"
 DEFAULT_SET_ID = "sv1"
+# Curated market catalog (pokemontcg.io set IDs). Prefer this over full eras —
+# full SV+SWSH is 40+ sets and regularly times out / 500s mid-nightly.
+CATALOG_SETS: tuple[tuple[str, str], ...] = (
+    ("sv3pt5", "151"),
+    ("swsh7", "Evolving Skies"),
+    ("swsh12pt5", "Crown Zenith"),
+    ("base1", "Base"),
+    ("sm115", "Hidden Fates"),
+)
+# Keep for optional full-era pulls / fetch_sets_for_series default.
 CATALOG_SERIES = (
     "Scarlet & Violet",
     "Sword & Shield",
+    "Sun & Moon",
+    "Base",
 )
+# Only keep cards with a spot market price at or above this (USD).
+CATALOG_MIN_PRICE = 5.0
 PAGE_SIZE = 100
 RATE_LIMIT_CARDS_PER_MINUTE = 100
 RATE_LIMIT_SLEEP_SECONDS = 65

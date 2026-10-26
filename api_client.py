@@ -33,27 +33,39 @@ _last_tcg_request_at = 0.0
 LOG = logging.getLogger("tcg.nightly")
 
 
+def _as_positive_price(value: Any) -> float | None:
+    try:
+        price = float(value)
+    except (TypeError, ValueError):
+        return None
+    return price if price > 0 else None
+
+
 def _extract_market_price(card: dict[str, Any]) -> float | None:
-    """Uzima prvu dostupnu cijenu: TCGPlayer holofoil market, zatim Cardmarket."""
+    """Najbolja dostupna spot cijena (USD): max TCGPlayer market po varijantama, inače Cardmarket."""
+    found: list[float] = []
     tcgplayer = card.get("tcgplayer") or {}
-    prices = tcgplayer.get("prices") or {}
-    holofoil = prices.get("holofoil") or {}
-    holofoil_market = holofoil.get("market")
-    if holofoil_market is not None:
-        try:
-            return float(holofoil_market)
-        except (TypeError, ValueError):
-            pass
+    prices = tcgplayer.get("prices")
+    variants = prices.values() if isinstance(prices, dict) else []
+    for variant in variants:
+        if not isinstance(variant, dict):
+            continue
+        for key in ("market", "mid", "directLow", "low"):
+            price = _as_positive_price(variant.get(key))
+            if price is not None:
+                found.append(price)
+                break
+
+    if found:
+        return max(found)
 
     cardmarket = card.get("cardmarket") or {}
-    cm_prices = cardmarket.get("prices") or {}
-    average_sell = cm_prices.get("averageSellPrice")
-    if average_sell is not None:
-        try:
-            return float(average_sell)
-        except (TypeError, ValueError):
-            pass
-
+    cm_prices = cardmarket.get("prices")
+    if isinstance(cm_prices, dict):
+        for key in ("averageSellPrice", "trendPrice", "avg30"):
+            price = _as_positive_price(cm_prices.get(key))
+            if price is not None:
+                return price
     return None
 
 
@@ -284,7 +296,12 @@ def fetch_cards(
     targets: list[tuple[str, str]] = []
 
     if set_ids:
-        targets = [(sid, sid) for sid in set_ids]
+        targets = []
+        for item in set_ids:
+            if isinstance(item, (tuple, list)) and len(item) >= 2:
+                targets.append((str(item[0]), str(item[1])))
+            else:
+                targets.append((str(item), str(item)))
     elif series_names is not None:
         catalog = fetch_sets_for_series(series_names)
         targets = [(str(item["id"]), str(item.get("name") or item["id"])) for item in catalog]
@@ -349,10 +366,18 @@ def pokemontcg_image_url(card_id: str) -> str | None:
     return f"https://images.pokemontcg.io/{set_code}/{number}.png"
 
 
-def clean_cards(raw_cards: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Normalizira API odgovor u retke spremne za tablicu cards."""
+def clean_cards(
+    raw_cards: list[dict[str, Any]],
+    *,
+    min_price: float | None = None,
+) -> list[dict[str, Any]]:
+    """Normalizira API odgovor u retke spremne za tablicu cards.
+
+    Ako je `min_price` zadan, odbacuje karte bez cijene ili ispod praga (USD).
+    """
     cleaned: list[dict[str, Any]] = []
     skipped = 0
+    below_min = 0
 
     for card in raw_cards:
         card_id = card.get("id")
@@ -367,20 +392,27 @@ def clean_cards(raw_cards: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if not image_url:
             image_url = pokemontcg_image_url(str(card_id))
 
+        market_price = _extract_market_price(card)
+        if min_price is not None and (market_price is None or market_price < float(min_price)):
+            below_min += 1
+            continue
+
         cleaned.append(
             {
                 "id": str(card_id),
                 "name": name,
                 "supertype": card.get("supertype"),
                 "rarity": card.get("rarity"),
-                "set_name": set_info.get("name"),
-                "market_price": _extract_market_price(card),
+                "set_name": set_info.get("name") or set_info.get("id"),
+                "market_price": market_price,
                 "image_url": image_url,
             }
         )
 
     if skipped:
         print(f"Preskočeno {skipped} karata bez ID-a.")
+    if below_min:
+        print(f"Preskočeno {below_min} karata ispod ${float(min_price):.2f} (ili bez cijene).")
     print(f"Očišćeno {len(cleaned)} karata.")
     return cleaned
 

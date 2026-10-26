@@ -77,12 +77,17 @@ def _report_error(phase: str, exc: BaseException) -> None:
 
 def refresh_card_catalog() -> int:
     from api_client import clean_cards, fetch_cards
-    from config import CATALOG_SERIES
+    from config import CATALOG_MIN_PRICE, CATALOG_SETS
     from main import save_cards
 
-    LOG.info("Korak 1/3: osvježavam katalog karata (%s)...", ", ".join(CATALOG_SERIES))
-    raw = fetch_cards(series_names=CATALOG_SERIES, paginate=True)
-    cleaned = clean_cards(raw)
+    labels = ", ".join(f"{name} ({sid})" for sid, name in CATALOG_SETS)
+    LOG.info(
+        "Korak 1/3: osvježavam katalog karata [%s], min $%.2f...",
+        labels,
+        CATALOG_MIN_PRICE,
+    )
+    raw = fetch_cards(set_ids=list(CATALOG_SETS), paginate=True)
+    cleaned = clean_cards(raw, min_price=CATALOG_MIN_PRICE)
     saved = save_cards(cleaned)
     LOG.info("Katalog: %s očišćenih karata, %s spremljenih/ažuriranih u Supabase.", len(cleaned), saved)
     return saved
