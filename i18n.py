@@ -67,7 +67,9 @@ _TEXT: dict[str, dict[str, str]] = {
         "add_card": "Dodaj kartu",
         "card": "Karta",
         "quantity": "Količina",
-        "purchase_price": "Nabavna cijena (USD)",
+        "purchase_price": "Nabavna cijena ({code})",
+        "price_range": "Cijena ({code})",
+        "yaxis_price": "Cijena ({code})",
         "add_to_portfolio": "Dodaj u portfelj",
         "portfolio_empty": "Portfelj je prazan. Odaberi kartu, količinu i nabavnu cijenu.",
         "added_to_portfolio": "{name} je dodan u portfelj.",
@@ -79,7 +81,8 @@ _TEXT: dict[str, dict[str, str]] = {
         "outlook_up": "AI predviđa da će vrijednost vašeg portfelja idući tjedan porasti za {pct:.1f}%.",
         "outlook_down": "AI predviđa da će vrijednost vašeg portfelja idući tjedan pasti za {pct:.1f}%.",
         "outlook_flat": "AI predviđa da će vrijednost vašeg portfelja idući tjedan ostati približno ista.",
-        "outlook_caption": "Sada ${current:.2f} → ${week:.2f} za {days} dana. Tjedan je sedam uzastopnih prognoza sljedećeg dana istim XGBoost modelom.",
+        "outlook_caption": "Sada {current} → {week} za {days} dana. Tjedan je sedam uzastopnih prognoza sljedećeg dana istim XGBoost modelom.",
+        "fx_rate": "Tečaj: 1 USD = {rate:.4f} EUR",
         "scanner_title": "🤖 AI Scanner",
         "scanner_caption": "XGBoost pregled svih karata · cilj za {days} dana iz lagova (jučer, −3d, −7d, 7-dnevni prosjek).",
         "min_growth_top": "Min. rast TOP (%)",
@@ -109,7 +112,6 @@ _TEXT: dict[str, dict[str, str]] = {
         "rolling_7d": "7-dnevni prosjek",
         "chart_close": "Zatvaranje",
         "chart_ai": "AI — sljedeći dan",
-        "yaxis_price": "Cijena (USD)",
         "col_name": "Naziv",
         "col_current": "Trenutna cijena",
         "col_ai_target": "AI Ciljna cijena",
@@ -175,7 +177,9 @@ _TEXT: dict[str, dict[str, str]] = {
         "add_card": "Add card",
         "card": "Card",
         "quantity": "Quantity",
-        "purchase_price": "Purchase price (USD)",
+        "purchase_price": "Purchase price ({code})",
+        "price_range": "Price ({code})",
+        "yaxis_price": "Price ({code})",
         "add_to_portfolio": "Add to portfolio",
         "portfolio_empty": "Portfolio is empty. Pick a card, quantity and purchase price.",
         "added_to_portfolio": "{name} was added to the portfolio.",
@@ -187,7 +191,8 @@ _TEXT: dict[str, dict[str, str]] = {
         "outlook_up": "AI expects your portfolio value to rise by {pct:.1f}% next week.",
         "outlook_down": "AI expects your portfolio value to fall by {pct:.1f}% next week.",
         "outlook_flat": "AI expects your portfolio value to stay roughly flat next week.",
-        "outlook_caption": "Now ${current:.2f} → ${week:.2f} in {days} days. The week is seven recursive next-day XGBoost forecasts.",
+        "outlook_caption": "Now {current} → {week} in {days} days. The week is seven recursive next-day XGBoost forecasts.",
+        "fx_rate": "FX: 1 USD = {rate:.4f} EUR",
         "scanner_title": "🤖 AI Scanner",
         "scanner_caption": "XGBoost scan of all cards · {days}-day target from lags (yesterday, −3d, −7d, 7-day average).",
         "min_growth_top": "Min. TOP growth (%)",
@@ -217,7 +222,6 @@ _TEXT: dict[str, dict[str, str]] = {
         "rolling_7d": "7-day average",
         "chart_close": "Close",
         "chart_ai": "AI — next day",
-        "yaxis_price": "Price (USD)",
         "col_name": "Name",
         "col_current": "Current price",
         "col_ai_target": "AI target price",
@@ -279,31 +283,34 @@ def _set_lang(lang: str) -> None:
     st.rerun()
 
 
-def render_language_toggle() -> None:
-    """Gumb HR | EN u gornjem desnom kutu."""
+def render_language_toggle_buttons() -> None:
+    """Samo HR | EN gumbi (bez vanjskog layouta)."""
     if "lang" not in st.session_state:
         st.session_state["lang"] = LANG_HR
+    current = get_lang()
+    c_hr, c_en = st.columns(2)
+    with c_hr:
+        if st.button(
+            "HR",
+            key="lang_hr_btn",
+            type="primary" if current == LANG_HR else "secondary",
+            use_container_width=True,
+        ):
+            if current != LANG_HR:
+                _set_lang(LANG_HR)
+    with c_en:
+        if st.button(
+            "EN",
+            key="lang_en_btn",
+            type="primary" if current == LANG_EN else "secondary",
+            use_container_width=True,
+        ):
+            if current != LANG_EN:
+                _set_lang(LANG_EN)
 
-    # Poravnaj desno: široki spacer + uski toggle
+
+def render_language_toggle() -> None:
+    """Gumb HR | EN u gornjem desnom kutu."""
     _, box = st.columns([5.2, 1.0])
     with box:
-        current = get_lang()
-        c_hr, c_en = st.columns(2)
-        with c_hr:
-            if st.button(
-                "HR",
-                key="lang_hr_btn",
-                type="primary" if current == LANG_HR else "secondary",
-                use_container_width=True,
-            ):
-                if current != LANG_HR:
-                    _set_lang(LANG_HR)
-        with c_en:
-            if st.button(
-                "EN",
-                key="lang_en_btn",
-                type="primary" if current == LANG_EN else "secondary",
-                use_container_width=True,
-            ):
-                if current != LANG_EN:
-                    _set_lang(LANG_EN)
+        render_language_toggle_buttons()

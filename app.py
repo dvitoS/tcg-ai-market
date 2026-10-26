@@ -52,6 +52,18 @@ from database import (
     load_portfolio_lots as fetch_portfolio_lots,
 )
 from generate_history import ensure_price_history
+from currency import (
+    currency_code,
+    currency_symbol,
+    from_display,
+    money,
+    money_delta,
+    money_signed,
+    number_format_pattern,
+    render_locale_toggles,
+    to_display,
+    usd_to_eur_rate,
+)
 from i18n import (
     FILTER_ALL,
     FILTER_ALL_SETS,
@@ -59,7 +71,6 @@ from i18n import (
     PNL_DOWN,
     PNL_TOP,
     PNL_UP,
-    render_language_toggle,
     signal_label,
     t,
 )
@@ -595,10 +606,14 @@ def price_chart(series: pd.DataFrame, predicted: float, name: str) -> go.Figure:
     next_day = last_day + pd.Timedelta(days=1)
     last_price = float(series["price"].iloc[-1])
     signal = trading_signal(last_price, predicted)
-    price_low = min(float(series["price"].min()), predicted, last_price)
-    price_high = max(float(series["price"].max()), predicted, last_price)
+    y_hist = series["price"].astype(float).map(to_display)
+    y_last = to_display(last_price)
+    y_pred = to_display(predicted)
+    price_low = min(float(y_hist.min()), y_pred, y_last)
+    price_high = max(float(y_hist.max()), y_pred, y_last)
     pad = max((price_high - price_low) * 0.18, price_low * 0.01)
     forecast_color = {"KUPI": "#22c55e", "PRODAJ": "#f87171", "DRŽI": "#fbbf24"}[signal]
+    money_hover = f"{currency_symbol()}%{{y:.4f}}"
 
     close_label = t("chart_close")
     ai_label = t("chart_ai")
@@ -606,29 +621,29 @@ def price_chart(series: pd.DataFrame, predicted: float, name: str) -> go.Figure:
     fig.add_trace(
         go.Scatter(
             x=series["date"],
-            y=series["price"],
+            y=y_hist,
             mode="lines",
             name=close_label,
             line=dict(color="#38bdf8", width=2.4),
-            hovertemplate=f"%{{x|%d.%m.%Y}}<br>$%{{y:.4f}}<extra>{close_label}</extra>",
+            hovertemplate=f"%{{x|%d.%m.%Y}}<br>{money_hover}<extra>{close_label}</extra>",
         )
     )
     fig.add_trace(
         go.Scatter(
             x=[last_day, next_day],
-            y=[last_price, predicted],
+            y=[y_last, y_pred],
             mode="lines+markers",
             name=ai_label,
             line=dict(color=forecast_color, width=2.5, dash="dash"),
             marker=dict(size=9, symbol="diamond", color=forecast_color),
-            hovertemplate="%{x|%d.%m.%Y}<br>$%{y:.4f}<extra>AI</extra>",
+            hovertemplate=f"%{{x|%d.%m.%Y}}<br>{money_hover}<extra>AI</extra>",
         )
     )
     fig.update_layout(
         template="plotly_dark",
         title=t("chart_title", name=name),
         xaxis_title=t("xaxis_date"),
-        yaxis_title=t("yaxis_price"),
+        yaxis_title=t("yaxis_price", code=currency_code()),
         height=480,
         margin=dict(l=16, r=16, t=64, b=16),
         paper_bgcolor="rgba(0,0,0,0)",
@@ -643,7 +658,7 @@ def price_chart(series: pd.DataFrame, predicted: float, name: str) -> go.Figure:
         yaxis=dict(
             gridcolor="#1e293b",
             showgrid=True,
-            tickprefix="$",
+            tickprefix=currency_symbol(),
             range=[price_low - pad, price_high + pad],
         ),
     )
@@ -657,11 +672,6 @@ def chip_row(items: list[tuple[str, str]], css_class: str) -> None:
         for label, value in items
     )
     st.markdown(f'<div class="{css_class}">{cells}</div>', unsafe_allow_html=True)
-
-
-def signed_dollars(amount: float) -> str:
-    sign = "+" if amount > 0 else "-" if amount < 0 else ""
-    return f"{sign}${abs(amount):.2f}"
 
 
 def is_holo_eligible(rarity: str | None, *, is_top_ai: bool = False) -> bool:
@@ -719,8 +729,8 @@ def portfolio_card_html(row) -> str:
       <div class="pokemon-card-labels">
         <div class="pokemon-card-name">{name}</div>
         <div class="pokemon-card-meta">{qty_txt}</div>
-        <div class="pokemon-card-value">${float(row.market_value):.2f}</div>
-        <div class="pokemon-card-pnl {tone}">{signed_dollars(pnl)} / {pnl_pct:+.1f}%</div>
+        <div class="pokemon-card-value">{escape(money(float(row.market_value)))}</div>
+        <div class="pokemon-card-pnl {tone}">{escape(money_signed(pnl))} / {pnl_pct:+.1f}%</div>
       </div>
     </div>
     """
@@ -894,6 +904,51 @@ def inject_pokemon_card_fx() -> None:
     )
 
 
+def price_bounds(series: pd.Series, *, fallback_hi: float = 100.0) -> tuple[float, float]:
+    """Zaokruženi min/max za slider; jamči lo < hi."""
+    values = pd.to_numeric(series, errors="coerce").dropna()
+    if values.empty:
+        return 0.0, float(fallback_hi)
+    lo = float(np.floor(values.min() * 100) / 100)
+    hi = float(np.ceil(values.max() * 100) / 100)
+    if hi <= lo:
+        hi = lo + 1.0
+    return max(0.0, lo), hi
+
+
+def render_price_slider(key: str, series: pd.Series) -> tuple[float, float]:
+    """Range slider u display valuti. Vraća (min, max) u USD za filtriranje."""
+    lo_usd, hi_usd = price_bounds(series)
+    lo = to_display(lo_usd)
+    hi = to_display(hi_usd)
+    if hi <= lo:
+        hi = lo + 1.0
+    span = hi - lo
+    step = 0.01 if span <= 20 else 0.5 if span <= 200 else 1.0
+    selected = st.slider(
+        t("price_range", code=currency_code()),
+        min_value=float(lo),
+        max_value=float(hi),
+        value=(float(lo), float(hi)),
+        step=float(step),
+        format=number_format_pattern(digits=2),
+        key=key,
+    )
+    return from_display(selected[0]), from_display(selected[1])
+
+
+def apply_price_range(
+    frame: pd.DataFrame,
+    column: str,
+    price_min: float,
+    price_max: float,
+) -> pd.DataFrame:
+    if column not in frame.columns or frame.empty:
+        return frame
+    prices = pd.to_numeric(frame[column], errors="coerce")
+    return frame.loc[prices.between(price_min, price_max, inclusive="both")].copy()
+
+
 def filter_portfolio_gallery(
     view: pd.DataFrame,
     *,
@@ -901,6 +956,8 @@ def filter_portfolio_gallery(
     rarity: str,
     pnl_filter: str,
     sort_by: str,
+    price_min: float | None = None,
+    price_max: float | None = None,
 ) -> pd.DataFrame:
     frame = view.copy()
     if query.strip():
@@ -917,6 +974,8 @@ def filter_portfolio_gallery(
     elif pnl_filter == PNL_TOP:
         if "is_top_ai" in frame.columns:
             frame = frame.loc[frame["is_top_ai"].astype(bool)]
+    if price_min is not None and price_max is not None:
+        frame = apply_price_range(frame, "current_price", price_min, price_max)
 
     sort_map = {
         "name": ("name", True),
@@ -977,6 +1036,8 @@ def render_portfolio_gallery(view: pd.DataFrame) -> None:
         format_func=lambda k: sort_labels[k],
         key="gallery_sort",
     )
+    price_col = "current_price" if "current_price" in view.columns else "market_value"
+    price_min, price_max = render_price_slider("gallery_price", view[price_col])
 
     filtered = filter_portfolio_gallery(
         view,
@@ -984,6 +1045,8 @@ def render_portfolio_gallery(view: pd.DataFrame) -> None:
         rarity=rarity_filter,
         pnl_filter=pnl_filter,
         sort_by=sort_by,
+        price_min=price_min,
+        price_max=price_max,
     )
     st.caption(t("shown_of", n=len(filtered), total=len(view)))
 
@@ -1060,10 +1123,10 @@ def portfolio_view(lots: pd.DataFrame, market: pd.DataFrame, history: pd.DataFra
 
 def render_portfolio_kpis(value: float, invested: float, pnl: float, pnl_pct: float) -> None:
     tone = "pnl-up" if pnl > 0 else "pnl-down" if pnl < 0 else ""
-    pnl_text = f"{signed_dollars(pnl)} / {pnl_pct:+.1f}%"
+    pnl_text = f"{money_signed(pnl)} / {pnl_pct:+.1f}%"
     cells = [
-        (t("kpi_value"), f"${value:.2f}", ""),
-        (t("kpi_invested"), f"${invested:.2f}", ""),
+        (t("kpi_value"), money(value), ""),
+        (t("kpi_invested"), money(invested), ""),
         (t("kpi_pnl"), pnl_text, tone),
     ]
     html = "".join(
@@ -1091,8 +1154,8 @@ def render_week_outlook(current_value: float, week_value: float) -> None:
     st.caption(
         t(
             "outlook_caption",
-            current=current_value,
-            week=week_value,
+            current=money(current_value),
+            week=money(week_value),
             days=FORECAST_DAYS,
         )
     )
@@ -1128,7 +1191,7 @@ def market_tile_html(row) -> str:
            onerror="this.style.opacity='0.25';" />
       <div class="market-tile-name">{name}</div>
       <div class="market-tile-meta">{set_name} · {rarity}</div>
-      <div class="market-tile-price">${float(price):.2f} · {escape(change_txt)}</div>
+      <div class="market-tile-price">{escape(money(float(price)))} · {escape(change_txt)}</div>
       {signal_html}
     </div>
     """
@@ -1142,6 +1205,8 @@ def filter_market_frame(
     rarity: str,
     signal: str,
     sort_by: str,
+    price_min: float | None = None,
+    price_max: float | None = None,
 ) -> pd.DataFrame:
     frame = market.copy()
     if query.strip():
@@ -1156,6 +1221,8 @@ def filter_market_frame(
         frame = frame.loc[frame["rarity"] == rarity]
     if signal != FILTER_ALL and "signal" in frame.columns:
         frame = frame.loc[frame["signal"] == signal]
+    if price_min is not None and price_max is not None:
+        frame = apply_price_range(frame, "price", price_min, price_max)
 
     sort_map = {
         "name": ("name", True),
@@ -1251,15 +1318,15 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
             [
                 (t("set"), str(card["set_name"])),
                 (t("rarity"), str(card["rarity"])),
-                (t("closing"), f"${last_price:.4f}"),
+                (t("closing"), money(last_price, digits=4)),
                 (t("day_change"), f"{day_change_pct:+.2f}%"),
             ],
             "detail-row",
         )
         chip_row(
             [
-                ("60d min", f"${float(series['price'].min()):.4f}"),
-                ("60d max", f"${float(series['price'].max()):.4f}"),
+                ("60d min", money(float(series["price"].min()), digits=4)),
+                ("60d max", money(float(series["price"].max()), digits=4)),
                 (t("change_60d"), f"{period_change_pct:+.1f}%"),
             ],
             "stat-row",
@@ -1270,8 +1337,8 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
         st.subheader(t("ai_prediction"))
         st.metric(
             t("price_on", date=next_day),
-            f"${predicted:.4f}",
-            delta=f"{predicted - last_price:+.4f} USD ({change_pct:+.2f}%)",
+            money(predicted, digits=4),
+            delta=f"{money_delta(predicted - last_price)} ({change_pct:+.2f}%)",
         )
         st.markdown(
             f'<div class="{SIGNAL_CLASS[signal]}">{signal_label(signal)}'
@@ -1293,8 +1360,8 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
                         str(card["id"]),
                         str(card.get("supertype", "")),
                         str(len(series)),
-                        f"${float(lags['price_lag_1']):.4f}",
-                        f"${float(lags['rolling_mean_7']):.4f}",
+                        money(float(lags["price_lag_1"]), digits=4),
+                        money(float(lags["rolling_mean_7"]), digits=4),
                     ],
                 }
             ),
@@ -1349,6 +1416,7 @@ def render_market(history: pd.DataFrame, market: pd.DataFrame, model) -> None:
         format_func=lambda k: sort_labels[k],
         key="market_sort",
     )
+    price_min, price_max = render_price_slider("market_price", market["price"])
 
     filtered = filter_market_frame(
         market,
@@ -1357,9 +1425,13 @@ def render_market(history: pd.DataFrame, market: pd.DataFrame, model) -> None:
         rarity=rarity_filter,
         signal=signal_filter,
         sort_by=sort_by,
+        price_min=price_min,
+        price_max=price_max,
     )
 
-    filter_fingerprint = f"{query}|{set_filter}|{rarity_filter}|{signal_filter}|{sort_by}"
+    filter_fingerprint = (
+        f"{query}|{set_filter}|{rarity_filter}|{signal_filter}|{sort_by}|{price_min}|{price_max}"
+    )
     if st.session_state.get("market_filter_fp") != filter_fingerprint:
         st.session_state["market_filter_fp"] = filter_fingerprint
         st.session_state["market_page"] = 1
@@ -1386,7 +1458,9 @@ def render_market(history: pd.DataFrame, market: pd.DataFrame, model) -> None:
     if filtered.empty:
         return
     labels = {
-        row.id: f"{row.name} · {row.id} · ${float(row.price):.2f} · {signal_label(row.signal)}"
+        row.id: (
+            f"{row.name} · {row.id} · {money(float(row.price))} · {signal_label(row.signal)}"
+        )
         for row in filtered.itertuples(index=False)
     }
     default_id = st.session_state.get("market_selected_id")
@@ -1448,7 +1522,10 @@ def build_ai_scan(history: pd.DataFrame, market: pd.DataFrame, _model) -> pd.Dat
 
 def scanner_table(frame: pd.DataFrame, height: int = 320) -> None:
     cols = [c for c in ["Naziv", "Set", "Rijetkost", "Trenutna cijena", "AI Ciljna cijena", "Očekivani ROI (%)"] if c in frame.columns]
-    display = frame[cols]
+    display = frame[cols].copy()
+    for price_col in ("Trenutna cijena", "AI Ciljna cijena"):
+        if price_col in display.columns:
+            display[price_col] = pd.to_numeric(display[price_col], errors="coerce").map(to_display)
     st.dataframe(
         display,
         hide_index=True,
@@ -1458,8 +1535,14 @@ def scanner_table(frame: pd.DataFrame, height: int = 320) -> None:
             "Naziv": st.column_config.TextColumn(t("col_name"), width="medium"),
             "Set": st.column_config.TextColumn(t("set"), width="medium"),
             "Rijetkost": st.column_config.TextColumn(t("rarity"), width="small"),
-            "Trenutna cijena": st.column_config.NumberColumn(t("col_current"), format="$%.4f"),
-            "AI Ciljna cijena": st.column_config.NumberColumn(t("col_ai_target"), format="$%.4f"),
+            "Trenutna cijena": st.column_config.NumberColumn(
+                t("col_current"),
+                format=number_format_pattern(digits=4),
+            ),
+            "AI Ciljna cijena": st.column_config.NumberColumn(
+                t("col_ai_target"),
+                format=number_format_pattern(digits=4),
+            ),
             "Očekivani ROI (%)": st.column_config.NumberColumn(t("col_roi"), format="%+.2f%%"),
         },
     )
@@ -1525,6 +1608,8 @@ def render_scanner(history: pd.DataFrame, market: pd.DataFrame, model) -> None:
         key="scanner_min_growth",
     )
     page_size = int(f5.selectbox(t("per_page"), [12, 24, 48], index=1, key="scanner_page_size"))
+    # Bounds from market quotes so the slider is available before the scan finishes.
+    price_min, price_max = render_price_slider("scanner_price", market["price"])
 
     with st.spinner(t("scanning")):
         scan = build_ai_scan(history, market, model)
@@ -1549,6 +1634,7 @@ def render_scanner(history: pd.DataFrame, market: pd.DataFrame, model) -> None:
     if query.strip():
         q = query.strip()
         scoped = scoped.loc[scoped["Naziv"].astype(str).str.contains(q, case=False, na=False)]
+    scoped = apply_price_range(scoped, "Trenutna cijena", price_min, price_max)
 
     if scoped.empty:
         st.warning(t("no_cards_filters"))
@@ -1592,7 +1678,7 @@ def render_scanner(history: pd.DataFrame, market: pd.DataFrame, model) -> None:
 def render_portfolio(history: pd.DataFrame, market: pd.DataFrame, model) -> None:
     st.subheader(t("add_card"))
     labels = {
-        row.id: f"{row.name}  ·  {row.id}  ·  ${row.price:.2f}"
+        row.id: f"{row.name}  ·  {row.id}  ·  {money(float(row.price))}"
         for row in market.sort_values("name").itertuples(index=False)
     }
     with st.form("add_portfolio", clear_on_submit=True):
@@ -1603,18 +1689,18 @@ def render_portfolio(history: pd.DataFrame, market: pd.DataFrame, model) -> None
             format_func=lambda item: labels[item],
         )
         qty = quantity.number_input(t("quantity"), min_value=1, step=1, value=1)
-        cost = purchase_price.number_input(
-            t("purchase_price"),
+        cost_display = purchase_price.number_input(
+            t("purchase_price", code=currency_code()),
             min_value=0.0001,
             step=0.01,
-            value=0.10,
+            value=float(to_display(0.10)),
             format="%.4f",
         )
         submitted = st.form_submit_button(t("add_to_portfolio"), type="primary")
 
     if submitted:
         try:
-            add_portfolio_position(str(card_id), int(qty), float(cost))
+            add_portfolio_position(str(card_id), int(qty), float(from_display(cost_display)))
         except ValueError as exc:
             st.error(str(exc))
         else:
@@ -1645,9 +1731,10 @@ def render_portfolio(history: pd.DataFrame, market: pd.DataFrame, model) -> None
 
 def main() -> None:
     st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
-    render_language_toggle()
+    render_locale_toggles()
     st.title(t("app_title"))
     st.caption(t("app_caption"))
+    st.caption(t("fx_rate", rate=usd_to_eur_rate()))
 
     from config import get_supabase_credentials
 
