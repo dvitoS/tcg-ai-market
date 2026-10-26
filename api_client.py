@@ -14,6 +14,7 @@ from dotenv import load_dotenv
 from config import (
     API_REQUEST_DELAY_SECONDS,
     AUTOMATION_LOG,
+    CATALOG_HTTP_MAX_ATTEMPTS,
     CATALOG_SERIES,
     DEFAULT_SET_ID,
     DEFAULT_SET_NAME,
@@ -21,6 +22,7 @@ from config import (
     MAX_RETRIES,
     PAGE_SIZE,
     POKEMON_TCG_API_URL,
+    POKEMON_TCG_MAX_PAGE_SIZE,
     POKEMON_TCG_SETS_URL,
     PRICE_HISTORY_DAYS,
     RATE_LIMIT_RETRY_SLEEP_SECONDS,
@@ -101,12 +103,11 @@ def _pokemon_get(
     *,
     progress: str | None = None,
 ) -> dict[str, Any]:
-    """GET na pokemontcg.io. 429 → 90 s pauza + retry; 5xx → kratki retry."""
+    """GET na pokemontcg.io. 429 → 90 s; 5xx → eksponencijalni backoff (API je često nestabilan)."""
     headers = {"Accept": "application/json"}
     last_error: Exception | None = None
     response = None
-    # Više pokušaja: 5xx + posebni 429 retry-evi unutar iste petlje.
-    max_attempts = max(MAX_RETRIES, 8)
+    max_attempts = max(MAX_RETRIES, CATALOG_HTTP_MAX_ATTEMPTS)
 
     for attempt in range(1, max_attempts + 1):
         if progress:
@@ -127,9 +128,16 @@ def _pokemon_get(
                 sleep(RATE_LIMIT_RETRY_SLEEP_SECONDS)
                 continue
             if response.status_code >= 500:
-                print(f"API je vratio {response.status_code} (pokušaj {attempt}/{max_attempts}).")
-                last_error = requests.HTTPError(response=response)
-                sleep(attempt)
+                wait = min(90, 8 * attempt)
+                print(
+                    f"API je vratio {response.status_code} (pokušaj {attempt}/{max_attempts}). "
+                    f"Čekam {wait}s..."
+                )
+                last_error = requests.HTTPError(
+                    f"{response.status_code} Server Error for url: {response.url}",
+                    response=response,
+                )
+                sleep(wait)
                 continue
             try:
                 response.raise_for_status()
@@ -144,7 +152,7 @@ def _pokemon_get(
                     continue
                 last_error = exc
                 print(f"HTTP greška ({response.status_code}): {exc}")
-                sleep(attempt)
+                sleep(min(30, 3 * attempt))
                 continue
             return response.json()
         except requests.exceptions.HTTPError as exc:
@@ -159,19 +167,22 @@ def _pokemon_get(
                 continue
             last_error = exc
             print(f"HTTP greška pri dohvatu (pokušaj {attempt}/{max_attempts}): {exc}")
-            sleep(attempt)
+            sleep(min(30, 3 * attempt))
         except requests.RequestException as exc:
             last_error = exc
             print(f"Greška pri dohvatu (pokušaj {attempt}/{max_attempts}): {exc}")
-            sleep(attempt)
+            sleep(min(30, 3 * attempt))
 
     if response is not None and response.status_code == 429:
         raise requests.exceptions.HTTPError(
             f"Rate limit 429 nakon {max_attempts} pokušaja.",
             response=response,
         )
-    if response is not None:
-        response.raise_for_status()
+    if response is not None and response.status_code >= 400:
+        raise requests.exceptions.HTTPError(
+            f"{response.status_code} Server Error for url: {response.url}",
+            response=response,
+        )
     if last_error:
         raise last_error
     raise RuntimeError("Dohvat s Pokémon TCG API-ja nije uspio.")
@@ -182,7 +193,7 @@ def fetch_sets_for_series(series_names: list[str] | tuple[str, ...] | None = Non
     names = list(series_names or CATALOG_SERIES)
     collected: list[dict[str, Any]] = []
     seen: set[str] = set()
-    page_size = min(PAGE_SIZE, 100)
+    page_size = min(PAGE_SIZE, POKEMON_TCG_MAX_PAGE_SIZE)
 
     for series in names:
         print(f"Dohvaćam popis setova za seriju '{series}'...")
@@ -234,9 +245,9 @@ def fetch_cards_for_set(
     set_name: str | None = None,
     page_size: int = PAGE_SIZE,
 ) -> list[dict[str, Any]]:
-    """Povlači SVE karte jednog seta kroz paginaciju (max 100 / zahtjev + 65 s pauze)."""
+    """Povlači SVE karte jednog seta kroz paginaciju (max 250 / zahtjev + 65 s pauze)."""
     label = set_name or set_id
-    page_size = min(int(page_size), 100)
+    page_size = min(int(page_size), POKEMON_TCG_MAX_PAGE_SIZE)
     print(f"Dohvaćam karte iz seta '{label}' ({set_id}), pageSize={page_size}...")
     cards: list[dict[str, Any]] = []
     page = 1
@@ -244,16 +255,33 @@ def fetch_cards_for_set(
 
     while True:
         print(f"  [napredak] set '{label}' · stranica {page}...")
-        payload = _pokemon_get(
-            POKEMON_TCG_API_URL,
-            {
-                "q": f"set.id:{set_id}",
-                "page": page,
-                "pageSize": page_size,
-                "orderBy": "number",
-            },
-            progress=f"cards '{label}' page {page}",
-        )
+        # orderBy ponekad okida 500 na pokemontcg.io — prvo s orderBy, fallback bez.
+        try:
+            payload = _pokemon_get(
+                POKEMON_TCG_API_URL,
+                {
+                    "q": f"set.id:{set_id}",
+                    "page": page,
+                    "pageSize": page_size,
+                    "orderBy": "number",
+                },
+                progress=f"cards '{label}' page {page}",
+            )
+        except (requests.HTTPError, requests.RequestException, RuntimeError) as primary_exc:
+            print(
+                f"  [fallback] set '{label}' page {page} bez orderBy "
+                f"nakon greške: {primary_exc}"
+            )
+            sleep(RATE_LIMIT_SLEEP_SECONDS)
+            payload = _pokemon_get(
+                POKEMON_TCG_API_URL,
+                {
+                    "q": f"set.id:{set_id}",
+                    "page": page,
+                    "pageSize": page_size,
+                },
+                progress=f"cards '{label}' page {page} (no orderBy)",
+            )
         batch = payload.get("data") or []
         if total_count is None:
             total_count = int(payload.get("totalCount") or 0)
@@ -290,9 +318,9 @@ def fetch_cards(
     - Bez `set_ids` / `series_names`: jedan set (`set_id`), s paginacijom ako je `paginate`.
     - S `series_names`: prvo dohvaća sve setove tih era, zatim sve karte.
     - S `set_ids`: samo navedeni setovi.
-    Rate limit: pageSize ≤ 100, zatim sleep 65 s između punih stranica.
+    Po setu: greška jednog seta ne prekida ostale (djelomični katalog).
     """
-    page_size = min(int(page_size), 100)
+    page_size = min(int(page_size), POKEMON_TCG_MAX_PAGE_SIZE)
     targets: list[tuple[str, str]] = []
 
     if set_ids:
@@ -335,24 +363,60 @@ def fetch_cards(
     )
     all_cards: list[dict[str, Any]] = []
     seen: set[str] = set()
-    for index, (sid, label) in enumerate(targets, start=1):
-        print(f"[{index}/{len(targets)}] set '{label}' ({sid})")
-        set_cards = fetch_cards_for_set(sid, set_name=label, page_size=page_size)
+    failed: list[tuple[str, str, str]] = []
+
+    def _ingest(set_cards: list[dict[str, Any]]) -> None:
         for card in set_cards:
             card_id = str(card.get("id") or "")
             if not card_id or card_id in seen:
                 continue
             seen.add(card_id)
             all_cards.append(card)
-        # Pauza između setova ako slijedi još jedan (izbjegni rafal).
-        if index < len(targets) and set_cards:
+
+    for index, (sid, label) in enumerate(targets, start=1):
+        print(f"[{index}/{len(targets)}] set '{label}' ({sid})")
+        try:
+            set_cards = fetch_cards_for_set(sid, set_name=label, page_size=page_size)
+            _ingest(set_cards)
+        except Exception as exc:
+            msg = f"{type(exc).__name__}: {exc}"
+            failed.append((sid, label, msg))
+            _append_automation_log(
+                f"Set '{label}' ({sid}) nije učitan — nastavljam s ostalima. {msg}",
+                level="WARNING",
+            )
+            set_cards = []
+        if index < len(targets):
             print(
                 f"  [napredak] set {index}/{len(targets)} gotov. "
                 f"Pauza {RATE_LIMIT_SLEEP_SECONDS}s prije sljedećeg seta..."
             )
             sleep(RATE_LIMIT_SLEEP_SECONDS)
 
+    # Jedan ponovni prolaz za setove koji su pali (API 500 često nestane).
+    if failed:
+        print(f"Ponavljam {len(failed)} neuspjelih setova...")
+        sleep(RATE_LIMIT_SLEEP_SECONDS)
+        still_failed: list[tuple[str, str, str]] = []
+        for sid, label, _prev in failed:
+            try:
+                set_cards = fetch_cards_for_set(sid, set_name=label, page_size=page_size)
+                _ingest(set_cards)
+                print(f"  retry OK: '{label}' ({sid}) → {len(set_cards)} karata")
+            except Exception as exc:
+                msg = f"{type(exc).__name__}: {exc}"
+                still_failed.append((sid, label, msg))
+                _append_automation_log(
+                    f"Retry set '{label}' ({sid}) i dalje neuspješan. {msg}",
+                    level="WARNING",
+                )
+            sleep(RATE_LIMIT_SLEEP_SECONDS)
+        failed = still_failed
+
     print(f"Ukupno dohvaćeno {len(all_cards)} jedinstvenih karata.")
+    if failed:
+        names = ", ".join(f"{label} ({sid})" for sid, label, _ in failed)
+        print(f"[WARNING] Setovi bez kompletnog dohvata: {names}")
     return all_cards
 
 

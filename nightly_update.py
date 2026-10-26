@@ -87,7 +87,17 @@ def refresh_card_catalog() -> int:
         CATALOG_MIN_PRICE,
     )
     raw = fetch_cards(set_ids=list(CATALOG_SETS), paginate=True)
+    if not raw:
+        raise RuntimeError(
+            "Katalog: nijedan set nije vraćen s pokemontcg.io "
+            "(svi setovi pale ili prazan odgovor)."
+        )
     cleaned = clean_cards(raw, min_price=CATALOG_MIN_PRICE)
+    if not cleaned:
+        raise RuntimeError(
+            f"Katalog: {len(raw)} sirovih karata, ali 0 nakon filtera "
+            f"min ${CATALOG_MIN_PRICE:.2f}."
+        )
     saved = save_cards(cleaned)
     LOG.info("Katalog: %s očišćenih karata, %s spremljenih/ažuriranih u Supabase.", len(cleaned), saved)
     return saved
