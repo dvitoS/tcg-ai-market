@@ -96,8 +96,18 @@ jobs:
       - name: Run nightly_update.py
         env:
           PYTHONUNBUFFERED: "1"
+          # Ručni Run workflow: bez punog kataloga (brže). Schedule (cron): puni katalog.
+          NIGHTLY_SKIP_CATALOG: ${{ github.event_name == 'workflow_dispatch' && '1' || '0' }}
           NIGHTLY_CARD_LIMIT: "100"
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
           TCG_API_KEY: ${{ secrets.TCG_API_KEY }}
         run: python nightly_update.py
+
+      - name: Upload automation.log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-automation-log
+          path: automation.log
+          if-no-files-found: ignore

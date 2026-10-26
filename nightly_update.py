@@ -54,9 +54,25 @@ def setup_logging(log_path: Path) -> None:
     LOG.addHandler(console)
 
     sys.stdout = _TeeStream(sys.__stdout__, LOG, logging.INFO)
-    # Na GitHub Actionsu ne diraj stderr — traceback mora ići čisto u log.
     if not os.environ.get("GITHUB_ACTIONS"):
         sys.stderr = _TeeStream(sys.__stderr__, LOG, logging.ERROR)
+
+
+def _env_flag(name: str) -> bool:
+    return os.environ.get(name, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _report_error(phase: str, exc: BaseException) -> None:
+    msg = f"{phase}: {type(exc).__name__}: {exc}"
+    print(f"Nightly phase FAILED — {msg}", file=sys.__stderr__)
+    traceback.print_exc(file=sys.__stderr__)
+    # GitHub Actions annotation (vidljivo u Summary / Annotations).
+    safe = str(exc).replace("\n", " ").replace("%", "%25")[:180]
+    print(f"::error title={phase}::{type(exc).__name__}: {safe}", file=sys.__stderr__)
+    try:
+        LOG.exception("Faza '%s' nije uspjela: %s", phase, exc)
+    except Exception:
+        pass
 
 
 def refresh_card_catalog() -> int:
@@ -74,7 +90,7 @@ def refresh_card_catalog() -> int:
 
 def refresh_price_history() -> dict[str, int]:
     from config import _secret
-    from generate_history import ensure_price_history
+    from generate_history import ensure_price_history, generate_price_history
     from sync_live_data import sync_live_price_history
 
     LOG.info("Korak 2/3: sinkroniziram price_history...")
@@ -82,23 +98,26 @@ def refresh_price_history() -> dict[str, int]:
     if not tcg_key:
         LOG.warning("TCG_API_KEY nije postavljen — koristim lokalni ensure_price_history().")
         ensure_price_history()
+        # Dopuni nove karte bez povijesti (ako tablica već nije prazna).
+        generate_price_history(replace=False)
         return {"updated": 0, "skipped": 0, "saved": 0, "total_history": 0}
 
-    # NIGHTLY_CARD_LIMIT=100 za brži test; prazno/None = sve karte.
     raw_limit = os.environ.get("NIGHTLY_CARD_LIMIT", "").strip()
-    limit: int | None
     if raw_limit.lower() in {"", "all", "none"}:
-        limit = None
+        limit: int | None = None
     else:
         limit = int(raw_limit)
     LOG.info("Sync limit: %s", "sve karte" if limit is None else f"top {limit}")
     stats = sync_live_price_history(limit=limit)
+    # Nakon ograničenog live synca, sintetički popuni karte koje još nemaju history.
+    filled = generate_price_history(replace=False)
     LOG.info(
-        "Povijest: updated=%s skipped=%s saved=%s total_history=%s",
+        "Povijest: updated=%s skipped=%s saved=%s total_history=%s synthetic_new=%s",
         stats["updated"],
         stats["skipped"],
         stats["saved"],
         stats["total_history"],
+        filled,
     )
     return stats
 
@@ -119,42 +138,72 @@ def retrain_ai() -> dict[str, float | int]:
 
 
 def run_nightly() -> int:
-    """Glavna noćna logika — sve greške idu u terminal (GitHub Actions log)."""
-    from config import PROJECT_ROOT
-    from database import init_db
+    """Faze su izolirane — katalog može pasti, sync/retrain i dalje idu."""
+    from config import PROJECT_ROOT, get_supabase_credentials
+    from database import ensure_seed_database, init_db
     from main import print_summary
 
     started = datetime.now()
+    LOG.info("=== Nightly update start (%s) ===", started.isoformat(timespec="seconds"))
+    LOG.info("Radni direktorij: %s", PROJECT_ROOT)
+    LOG.info("GITHUB_ACTIONS=%s", os.environ.get("GITHUB_ACTIONS", ""))
+
+    url, key = get_supabase_credentials()
+    LOG.info("Supabase URL host: %s", url)
+    LOG.info("Supabase key: len=%s prefix=%s", len(key), (key[:8] + "…") if key else "(empty)")
+
     try:
-        from config import get_supabase_credentials
-        from database import ensure_seed_database
-
-        LOG.info("=== Nightly update start (%s) ===", started.isoformat(timespec="seconds"))
-        LOG.info("Radni direktorij: %s", PROJECT_ROOT)
-        LOG.info("GITHUB_ACTIONS=%s", os.environ.get("GITHUB_ACTIONS", ""))
-        url, key = get_supabase_credentials()
-        LOG.info("Supabase URL host: %s", url)
-        LOG.info("Supabase key: len=%s prefix=%s", len(key), (key[:8] + "…") if key else "(empty)")
-
         init_db()
         if ensure_seed_database():
             LOG.info("Seed uvezen u prazan Supabase.")
-        refresh_card_catalog()
-        refresh_price_history()
-        retrain_ai()
-        print_summary()
-
-        elapsed = (datetime.now() - started).total_seconds()
-        LOG.info("=== Nightly update gotov za %.1f s ===", elapsed)
-        return 0
-    except Exception as e:
-        print(f"Nightly update FAILED: {type(e).__name__}: {e}", file=sys.__stderr__)
-        traceback.print_exc(file=sys.__stderr__)
-        try:
-            LOG.exception("Nightly update nije uspio: %s", e)
-        except Exception:
-            pass
+    except Exception as exc:
+        _report_error("init_db", exc)
         return 1
+
+    failures: list[str] = []
+
+    if _env_flag("NIGHTLY_SKIP_CATALOG"):
+        LOG.info("Korak 1/3: PRESKOČEN (NIGHTLY_SKIP_CATALOG=1).")
+    else:
+        try:
+            refresh_card_catalog()
+        except Exception as exc:
+            _report_error("refresh_card_catalog", exc)
+            failures.append("catalog")
+            LOG.warning("Nastavljam s postojećim kartama u bazi.")
+
+    try:
+        refresh_price_history()
+    except Exception as exc:
+        _report_error("refresh_price_history", exc)
+        failures.append("history")
+
+    try:
+        retrain_ai()
+    except Exception as exc:
+        _report_error("retrain_ai", exc)
+        failures.append("retrain")
+
+    try:
+        print_summary()
+    except Exception as exc:
+        _report_error("print_summary", exc)
+
+    elapsed = (datetime.now() - started).total_seconds()
+    if failures:
+        print(
+            f"Nightly update FAILED after {elapsed:.1f}s — failed phases: {', '.join(failures)}",
+            file=sys.__stderr__,
+        )
+        print(
+            f"::error title=Nightly update::Failed phases: {', '.join(failures)}",
+            file=sys.__stderr__,
+        )
+        LOG.error("Nightly gotov s greškama (%s) za %.1f s", failures, elapsed)
+        return 1
+
+    LOG.info("=== Nightly update gotov za %.1f s ===", elapsed)
+    return 0
 
 
 def main() -> int:
@@ -166,6 +215,7 @@ def main() -> int:
     except Exception as e:
         print(f"Nightly bootstrap FAILED: {type(e).__name__}: {e}", file=sys.__stderr__)
         traceback.print_exc(file=sys.__stderr__)
+        print(f"::error title=Nightly bootstrap::{type(e).__name__}: {e}", file=sys.__stderr__)
         return 1
 
 
