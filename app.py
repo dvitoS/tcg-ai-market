@@ -60,9 +60,8 @@ from currency import (
     money_delta,
     money_signed,
     number_format_pattern,
-    render_locale_toggles,
+    render_currency_bar,
     to_display,
-    usd_to_eur_rate,
 )
 from i18n import (
     FILTER_ALL,
@@ -71,6 +70,7 @@ from i18n import (
     PNL_DOWN,
     PNL_TOP,
     PNL_UP,
+    render_language_toggle,
     signal_label,
     t,
 )
@@ -917,24 +917,94 @@ def price_bounds(series: pd.Series, *, fallback_hi: float = 100.0) -> tuple[floa
 
 
 def render_price_slider(key: str, series: pd.Series) -> tuple[float, float]:
-    """Range slider u display valuti. Vraća (min, max) u USD za filtriranje."""
+    """Uski slider (~33%) + ručni min/max. Vraća (min, max) u USD."""
     lo_usd, hi_usd = price_bounds(series)
-    lo = to_display(lo_usd)
-    hi = to_display(hi_usd)
-    if hi <= lo:
-        hi = lo + 1.0
-    span = hi - lo
+    bound_lo = float(to_display(lo_usd))
+    bound_hi = float(to_display(hi_usd))
+    if bound_hi <= bound_lo:
+        bound_hi = bound_lo + 1.0
+    span = bound_hi - bound_lo
     step = 0.01 if span <= 20 else 0.5 if span <= 200 else 1.0
-    selected = st.slider(
-        t("price_range", code=currency_code()),
-        min_value=float(lo),
-        max_value=float(hi),
-        value=(float(lo), float(hi)),
-        step=float(step),
-        format=number_format_pattern(digits=2),
-        key=key,
-    )
-    return from_display(selected[0]), from_display(selected[1])
+
+    range_key = f"{key}_slider"
+    lo_key = f"{key}_lo"
+    hi_key = f"{key}_hi"
+
+    def _clamp_pair(low: float, high: float) -> tuple[float, float]:
+        low = min(max(float(low), bound_lo), bound_hi)
+        high = min(max(float(high), bound_lo), bound_hi)
+        if low > high:
+            low, high = high, low
+        return low, high
+
+    if range_key not in st.session_state:
+        st.session_state[range_key] = (bound_lo, bound_hi)
+    low, high = _clamp_pair(*st.session_state[range_key])
+    st.session_state[range_key] = (low, high)
+    # Number inputs prate isti raspon (postavi prije widgeta).
+    st.session_state[lo_key] = low
+    st.session_state[hi_key] = high
+
+    def _sync_from_slider() -> None:
+        pair = st.session_state[range_key]
+        low_v, high_v = _clamp_pair(pair[0], pair[1])
+        st.session_state[range_key] = (low_v, high_v)
+        st.session_state[lo_key] = low_v
+        st.session_state[hi_key] = high_v
+
+    def _sync_from_min() -> None:
+        low_v, high_v = _clamp_pair(st.session_state[lo_key], st.session_state[hi_key])
+        if low_v > high_v:
+            high_v = low_v
+        st.session_state[range_key] = (low_v, high_v)
+        st.session_state[lo_key] = low_v
+        st.session_state[hi_key] = high_v
+
+    def _sync_from_max() -> None:
+        low_v, high_v = _clamp_pair(st.session_state[lo_key], st.session_state[hi_key])
+        if high_v < low_v:
+            low_v = high_v
+        st.session_state[range_key] = (low_v, high_v)
+        st.session_state[lo_key] = low_v
+        st.session_state[hi_key] = high_v
+
+    st.caption(t("price_range", code=currency_code()))
+    # ~33% + min + max (+ praznina)
+    c_slider, c_min, c_max, _ = st.columns([2, 1, 1, 2])
+    with c_slider:
+        st.slider(
+            t("price_range", code=currency_code()),
+            min_value=bound_lo,
+            max_value=bound_hi,
+            step=float(step),
+            format=number_format_pattern(digits=2),
+            key=range_key,
+            label_visibility="collapsed",
+            on_change=_sync_from_slider,
+        )
+    with c_min:
+        st.number_input(
+            t("price_min"),
+            min_value=bound_lo,
+            max_value=bound_hi,
+            step=float(step),
+            format="%.2f",
+            key=lo_key,
+            on_change=_sync_from_min,
+        )
+    with c_max:
+        st.number_input(
+            t("price_max"),
+            min_value=bound_lo,
+            max_value=bound_hi,
+            step=float(step),
+            format="%.2f",
+            key=hi_key,
+            on_change=_sync_from_max,
+        )
+
+    low, high = st.session_state[range_key]
+    return from_display(float(low)), from_display(float(high))
 
 
 def apply_price_range(
@@ -1731,10 +1801,10 @@ def render_portfolio(history: pd.DataFrame, market: pd.DataFrame, model) -> None
 
 def main() -> None:
     st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
-    render_locale_toggles()
+    render_language_toggle()
     st.title(t("app_title"))
     st.caption(t("app_caption"))
-    st.caption(t("fx_rate", rate=usd_to_eur_rate()))
+    render_currency_bar()
 
     from config import get_supabase_credentials
 

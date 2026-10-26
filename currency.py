@@ -11,7 +11,7 @@ CURRENCY_EUR = "eur"
 # Fallback ako API nije dostupan.
 _FALLBACK_USD_EUR = 0.92
 
-_CURRENCY_WIDGET_KEYS = (
+_CURRENCY_WIDGET_PREFIXES = (
     "market_price",
     "gallery_price",
     "scanner_price",
@@ -98,15 +98,21 @@ def number_format_pattern(*, digits: int = 2) -> str:
     return f"{symbol}%.{digits}f"
 
 
+def _clear_price_filter_state() -> None:
+    suffixes = ("", "_lo", "_hi", "_slider")
+    for prefix in _CURRENCY_WIDGET_PREFIXES:
+        for suffix in suffixes:
+            st.session_state.pop(f"{prefix}{suffix}", None)
+
+
 def _set_currency(currency: str) -> None:
     st.session_state["currency"] = currency
-    for key in _CURRENCY_WIDGET_KEYS:
-        st.session_state.pop(key, None)
+    _clear_price_filter_state()
     st.rerun()
 
 
 def render_currency_toggle() -> None:
-    """Gumbi USD | EUR (uz jezik)."""
+    """Gumbi USD | EUR."""
     if "currency" not in st.session_state:
         st.session_state["currency"] = CURRENCY_USD
 
@@ -134,19 +140,15 @@ def render_currency_toggle() -> None:
                 _set_currency(CURRENCY_EUR)
 
 
-def render_locale_toggles() -> None:
-    """HR|EN + USD|EUR u gornjem desnom kutu."""
-    from i18n import render_language_toggle_buttons
+def render_currency_bar() -> None:
+    """USD|EUR + tečaj ispod naslova (ne uz jezik)."""
+    from i18n import t
 
-    if "lang" not in st.session_state:
-        st.session_state["lang"] = "hr"
     if "currency" not in st.session_state:
         st.session_state["currency"] = CURRENCY_USD
 
-    _, box = st.columns([4.2, 1.8])
-    with box:
-        lang_col, cur_col = st.columns(2)
-        with lang_col:
-            render_language_toggle_buttons()
-        with cur_col:
-            render_currency_toggle()
+    left, mid, _ = st.columns([1.1, 2.4, 4.5])
+    with left:
+        render_currency_toggle()
+    with mid:
+        st.caption(t("fx_rate", rate=usd_to_eur_rate()))
