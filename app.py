@@ -630,68 +630,89 @@ CUSTOM_CSS = """
         color: #cbd5e1 !important;
     }
 
-    /* AI detail — TCG Forecast-inspired */
+    /* AI detail — desktop TCG Forecast: lijevo karta/AI, desno graf */
     .detail-hero {
-        display: grid;
-        grid-template-columns: 180px 1fr;
-        gap: 20px;
-        align-items: start;
+        display: block;
+        text-align: center;
         background: rgba(16, 24, 40, 0.72);
         border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 16px;
-        padding: 18px;
-        margin: 8px 0 16px;
+        padding: 18px 16px 16px;
+        margin: 0 0 12px;
     }
     .detail-hero img {
-        width: 100%;
-        max-width: 180px;
+        display: block;
+        width: 78%;
+        max-width: 240px;
+        margin: 0 auto 14px;
         border-radius: 4.35% / 3%;
-        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
     }
     .detail-hero-title {
-        font-size: 1.75rem;
+        font-size: 1.45rem;
         font-weight: 800;
         color: #f8fafc !important;
         margin: 0 0 6px;
-        line-height: 1.15;
+        line-height: 1.2;
+        text-align: left;
     }
     .detail-hero-meta {
         color: #94a3b8 !important;
-        font-size: 0.92rem;
-        margin: 0 0 14px;
+        font-size: 0.86rem;
+        margin: 0 0 12px;
+        text-align: left;
     }
     .detail-hero-price {
-        font-size: 2rem;
+        font-size: 1.85rem;
         font-weight: 800;
         color: #f8fafc !important;
         margin: 0;
+        text-align: left;
+    }
+    .detail-hero-delta {
+        text-align: left;
+        margin-top: 4px;
+        font-size: 0.95rem;
     }
     .detail-hero-delta.up { color: #4ade80 !important; font-weight: 700; }
     .detail-hero-delta.down { color: #f87171 !important; font-weight: 700; }
     .detail-hero-delta.flat { color: #94a3b8 !important; font-weight: 700; }
+    .detail-ai-panel {
+        background: rgba(16, 24, 40, 0.72);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: 14px 14px 10px;
+        margin: 0 0 12px;
+    }
+    .detail-ai-panel h3 {
+        margin: 0 0 10px !important;
+        font-size: 1.05rem !important;
+        color: #f8fafc !important;
+    }
     .compare-panel {
         background: rgba(16, 24, 40, 0.72);
         border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 16px;
-        padding: 16px 18px 8px;
-        margin: 0 0 16px;
+        padding: 18px 20px 12px;
+        margin: 0;
+        min-height: 560px;
     }
     .compare-panel h3 {
         margin: 0 0 4px !important;
-        font-size: 1.15rem !important;
+        font-size: 1.25rem !important;
         color: #f8fafc !important;
     }
     .compare-panel .compare-caption {
         color: #94a3b8 !important;
         font-size: 0.85rem;
-        margin: 0 0 12px;
+        margin: 0 0 14px;
     }
     .source-card {
         background: rgba(10, 14, 24, 0.85);
         border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 12px;
         padding: 12px 14px;
-        margin-top: 8px;
+        margin-top: 10px;
     }
     .source-card .src-title {
         font-weight: 700;
@@ -708,10 +729,6 @@ CUSTOM_CSS = """
         font-weight: 800;
         color: #f8fafc !important;
         margin: 8px 0 0;
-    }
-    @media (max-width: 700px) {
-        .detail-hero { grid-template-columns: 1fr; }
-        .detail-hero img { max-width: 160px; margin: 0 auto; }
     }
 </style>
 """
@@ -1806,112 +1823,32 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
     delta_cls = "up" if day_change_pct > 0.05 else "down" if day_change_pct < -0.05 else "flat"
     image = escape(card_image_for_id(str(card["id"])), quote=True)
 
-    st.markdown(
-        f"""
-        <div class="detail-hero">
-          <img src="{image}" alt="{escape(str(card['name']))}"
-               onerror="this.style.opacity='0.25';" />
-          <div>
-            <div class="detail-hero-title">{escape(str(card['name']))}</div>
-            <div class="detail-hero-meta">{escape(str(card['set_name']))}
- · {escape(str(card['rarity']))}
- · {escape(str(card['id']))}</div>
-            <div class="detail-hero-price">{escape(money(last_price))}</div>
-            <div class="detail-hero-delta {delta_cls}">{day_change_pct:+.2f}% · {escape(signal_label(signal))}</div>
-          </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    # Desktop: ~1/3 karta+AI | ~2/3 compare graf (kao TCG Forecast).
+    left, right = st.columns([1.05, 2.15], gap="large")
 
-    chip_row(
-        [
-            ("60d min", money(float(market_series["price"].min()), digits=4)),
-            ("60d max", money(float(market_series["price"].max()), digits=4)),
-            (t("closing"), money(last_price, digits=4)),
-            (t("day_change"), f"{day_change_pct:+.2f}%"),
-        ],
-        "stat-row",
-    )
-
-    st.markdown('<div class="compare-panel">', unsafe_allow_html=True)
-    st.markdown(f"### {t('compare_history')}")
-    st.markdown(
-        f'<p class="compare-caption">{escape(t("compare_history_caption"))}</p>',
-        unsafe_allow_html=True,
-    )
-
-    r1, r2 = st.columns([1.2, 1.6])
-    with r1:
-        st.caption(t("chart_range"))
-        range_key = render_pill_toggle(
-            [("1m", "1M"), ("3m", "3M"), ("all", t("chart_range_all"))],
-            state_key=f"detail_range_{card_id}",
-            default="1m",
+    with left:
+        st.markdown(
+            f"""
+            <div class="detail-hero">
+              <img src="{image}" alt="{escape(str(card['name']))}"
+                   onerror="this.style.opacity='0.25';" />
+              <div class="detail-hero-title">{escape(str(card['name']))}</div>
+              <div class="detail-hero-meta">{escape(str(card['set_name']))} · {escape(str(card['rarity']))} · {escape(str(card['id']))}</div>
+              <div class="detail-hero-price">{escape(money(last_price))}</div>
+              <div class="detail-hero-delta {delta_cls}">{day_change_pct:+.2f}% · {escape(signal_label(signal))}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
-    with r2:
-        st.caption(t("price_source"))
-        source_key = render_pill_toggle(
-            [("tcgplayer", "TCGplayer"), ("justtcg", "JustTCG")],
-            state_key=f"detail_source_{card_id}",
-            default="justtcg" if justtcg_api_key() else "tcgplayer",
+        chip_row(
+            [
+                ("60d min", money(float(market_series["price"].min()), digits=4)),
+                ("60d max", money(float(market_series["price"].max()), digits=4)),
+            ],
+            "stat-row",
         )
-
-    just_series = pd.DataFrame(columns=["date", "price"])
-    if source_key == "justtcg":
-        if tcgplayer_id and justtcg_api_key():
-            with st.spinner(t("loading_justtcg")):
-                just_series = load_justtcg_series(tcgplayer_id)
-        chart_series = clip_series_range(just_series, range_key)
-        source_label = "JustTCG"
-        line_color = "#60a5fa"
-        available = not chart_series.empty
-        latest_src = float(chart_series["price"].iloc[-1]) if available else None
-        meta_note = t("source_nm_usd")
-        if not justtcg_api_key():
-            st.info(t("justtcg_key_missing"))
-        elif not tcgplayer_id:
-            st.info(t("justtcg_no_product_id"))
-        elif not available:
-            st.info(t("source_unavailable"))
-    else:
-        chart_series = clip_series_range(market_series, range_key)
-        source_label = "TCGplayer"
-        line_color = "#f87171"
-        available = not chart_series.empty
-        latest_src = float(chart_series["price"].iloc[-1]) if available else None
-        meta_note = t("source_market_db")
-
-    st.plotly_chart(
-        price_chart(
-            chart_series,
-            predicted if source_key == "tcgplayer" else None,
-            str(card["name"]),
-            source_label=source_label,
-            show_ai=(source_key == "tcgplayer"),
-            line_color=line_color,
-        ),
-        width="stretch",
-    )
-
-    src_price_html = (
-        f'<div class="src-price">{escape(money(latest_src))}</div>' if latest_src is not None else ""
-    )
-    st.markdown(
-        f"""
-        <div class="source-card">
-          <div class="src-title">{escape(t('source_label', name=source_label))}</div>
-          <p class="src-meta">{escape(meta_note)} · {len(chart_series)} {escape(t('points_series').lower())}</p>
-          {src_price_html}
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    st.markdown(f"### {t('ai_prediction')}")
-    a1, a2 = st.columns([1.1, 1], gap="large")
-    with a1:
+        st.markdown('<div class="detail-ai-panel">', unsafe_allow_html=True)
+        st.markdown(f"### {t('ai_prediction')}")
         st.metric(
             t("price_on", date=next_day),
             money(predicted, digits=4),
@@ -1923,20 +1860,15 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
             unsafe_allow_html=True,
         )
         st.caption(t("ai_caption", band=HOLD_BAND * 100))
-    with a2:
         st.dataframe(
             pd.DataFrame(
                 {
                     t("field"): [
-                        "ID",
-                        "Supertype",
                         t("points_series"),
                         t("price_yesterday"),
                         t("rolling_7d"),
                     ],
                     t("value"): [
-                        str(card["id"]),
-                        str(card.get("supertype", "")),
                         str(len(market_series)),
                         money(float(lags["price_lag_1"]), digits=4),
                         money(float(lags["rolling_mean_7"]), digits=4),
@@ -1946,6 +1878,86 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
             hide_index=True,
             width="stretch",
         )
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    with right:
+        st.markdown('<div class="compare-panel">', unsafe_allow_html=True)
+        st.markdown(f"### {t('compare_history')}")
+        st.markdown(
+            f'<p class="compare-caption">{escape(t("compare_history_caption"))}</p>',
+            unsafe_allow_html=True,
+        )
+
+        r1, r2 = st.columns([1.1, 1.5])
+        with r1:
+            st.caption(t("chart_range"))
+            range_key = render_pill_toggle(
+                [("1m", "1M"), ("3m", "3M"), ("all", t("chart_range_all"))],
+                state_key=f"detail_range_{card_id}",
+                default="1m",
+            )
+        with r2:
+            st.caption(t("price_source"))
+            source_key = render_pill_toggle(
+                [("tcgplayer", "TCGplayer"), ("justtcg", "JustTCG")],
+                state_key=f"detail_source_{card_id}",
+                default="justtcg" if justtcg_api_key() else "tcgplayer",
+            )
+
+        just_series = pd.DataFrame(columns=["date", "price"])
+        if source_key == "justtcg":
+            if tcgplayer_id and justtcg_api_key():
+                with st.spinner(t("loading_justtcg")):
+                    just_series = load_justtcg_series(tcgplayer_id)
+            chart_series = clip_series_range(just_series, range_key)
+            source_label = "JustTCG"
+            line_color = "#60a5fa"
+            available = not chart_series.empty
+            latest_src = float(chart_series["price"].iloc[-1]) if available else None
+            meta_note = t("source_nm_usd")
+            if not justtcg_api_key():
+                st.info(t("justtcg_key_missing"))
+            elif not tcgplayer_id:
+                st.info(t("justtcg_no_product_id"))
+            elif not available:
+                st.info(t("source_unavailable"))
+        else:
+            chart_series = clip_series_range(market_series, range_key)
+            source_label = "TCGplayer"
+            line_color = "#f87171"
+            available = not chart_series.empty
+            latest_src = float(chart_series["price"].iloc[-1]) if available else None
+            meta_note = t("source_market_db")
+
+        st.plotly_chart(
+            price_chart(
+                chart_series,
+                predicted if source_key == "tcgplayer" else None,
+                str(card["name"]),
+                source_label=source_label,
+                show_ai=(source_key == "tcgplayer"),
+                line_color=line_color,
+            ),
+            width="stretch",
+        )
+
+        src_price_html = (
+            f'<div class="src-price">{escape(money(latest_src))}</div>'
+            if latest_src is not None
+            else ""
+        )
+        st.markdown(
+            f"""
+            <div class="source-card">
+              <div class="src-title">{escape(t('source_label', name=source_label))}</div>
+              <p class="src-meta">{escape(meta_note)} · {len(chart_series)} {escape(t('points_series').lower())}</p>
+              {src_price_html}
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.markdown("</div>", unsafe_allow_html=True)
+
 
 
 def explore_card_html(row) -> str:
