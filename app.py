@@ -60,7 +60,6 @@ from currency import (
     money_delta,
     money_signed,
     number_format_pattern,
-    render_currency_bar,
     to_display,
 )
 from i18n import (
@@ -70,7 +69,6 @@ from i18n import (
     PNL_DOWN,
     PNL_TOP,
     PNL_UP,
-    render_language_toggle,
     signal_label,
     t,
 )
@@ -507,7 +505,174 @@ CUSTOM_CSS = """
     @media (max-width: 1100px) {
         .detail-row, .stat-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
+
+    /* ——— Explore (Collectr-inspired) ——— */
+    /* Collectr desktop navbar — brand lijevo, linkovi horizontalno */
+    .nav-brand-left {
+        font-family: Georgia, "Times New Roman", Times, serif;
+        font-size: 1.35rem;
+        font-weight: 700;
+        letter-spacing: 0.22em;
+        color: #fafafa !important;
+        line-height: 1.05;
+        padding-top: 0.35rem;
+        text-transform: uppercase;
+        user-select: none;
+        white-space: nowrap;
+    }
+    .nav-brand-left span {
+        display: block;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 0.55rem;
+        font-weight: 500;
+        letter-spacing: 0.26em;
+        text-transform: uppercase;
+        color: #a1a1aa !important;
+        margin-top: 3px;
+    }
+    header[data-testid="stHeader"] {
+        background: #0a0a0a !important;
+    }
+    .explore-search-wrap {
+        background: #141414;
+        border: 1px solid #2a2a2a;
+        border-radius: 14px;
+        padding: 18px 20px 14px;
+        margin: 6px 0 14px;
+    }
+    .explore-search-wrap h3 {
+        margin: 0 0 10px !important;
+        font-size: 1.15rem !important;
+        font-weight: 700 !important;
+        color: #f8fafc !important;
+    }
+    .explore-filter-panel {
+        background: #141414;
+        border: 1px solid #2a2a2a;
+        border-radius: 14px;
+        padding: 14px 14px 8px;
+        margin-top: 4px;
+    }
+    .explore-filter-panel h4 {
+        margin: 0 0 10px !important;
+        font-size: 0.95rem !important;
+        font-weight: 700 !important;
+        color: #f8fafc !important;
+    }
+    .explore-filter-label {
+        font-size: 0.78rem;
+        font-weight: 650;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #94a3b8 !important;
+        margin: 12px 0 6px;
+    }
+    a.explore-card-link {
+        display: block;
+        text-decoration: none !important;
+        color: inherit !important;
+        cursor: pointer;
+    }
+    a.explore-card-link:hover { text-decoration: none !important; }
+    .explore-card {
+        background: rgba(26, 26, 26, 0.18);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 12px;
+        padding: 13px 10px 14px;
+        text-align: center;
+        height: 100%;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: border-color 0.15s ease, transform 0.15s ease, background 0.15s ease;
+    }
+    a.explore-card-link:hover .explore-card {
+        border-color: rgba(255, 255, 255, 0.14);
+        background: rgba(26, 26, 26, 0.28);
+        transform: translateY(-2px);
+    }
+    .explore-card:hover {
+        border-color: rgba(255, 255, 255, 0.14);
+        background: rgba(26, 26, 26, 0.28);
+        transform: translateY(-2px);
+    }
+    .explore-card img {
+        display: block;
+        width: 72%;
+        max-width: 140px;
+        margin: 0 auto 10px;
+        height: auto;
+        border-radius: 4.35% / 3%;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    }
+    .explore-card-name {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #f8fafc !important;
+        line-height: 1.3;
+        margin: 0 0 4px;
+        min-height: 2.4em;
+    }
+    .explore-card-meta {
+        font-size: 0.65rem;
+        color: #94a3b8 !important;
+        margin: 0 0 9px;
+        line-height: 1.35;
+    }
+    .explore-card-price {
+        font-size: 0.93rem;
+        font-weight: 700;
+        color: #f8fafc !important;
+        margin: 0;
+    }
+    .explore-card-change {
+        font-size: 0.7rem;
+        font-weight: 650;
+        margin-top: 4px;
+    }
+    .explore-card-change.up { color: #4ade80 !important; }
+    .explore-card-change.down { color: #f87171 !important; }
+    .explore-card-change.flat { color: #94a3b8 !important; }
+    .explore-sort-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 4px 0 12px;
+        font-size: 0.9rem;
+        color: #cbd5e1 !important;
+    }
 </style>
+"""
+
+EXPLORE_BATCH = 24
+
+EXPLORE_INFINITE_SCROLL_JS = """
+(function () {
+  const doc = window.parent.document;
+  if (doc.documentElement.dataset.exploreScrollBound === "1") return;
+  doc.documentElement.dataset.exploreScrollBound = "1";
+  let busy = false;
+  function loadMoreLabel(text) {
+    const t = (text || "").trim().toLowerCase();
+    return t.includes("load more") || t.includes("učitaj još") || t.includes("ucitaj jos");
+  }
+  function nearBottom() {
+    const el = doc.scrollingElement || doc.documentElement;
+    return el.scrollTop + window.parent.innerHeight > el.scrollHeight - 520;
+  }
+  function tryClick() {
+    if (busy || !nearBottom()) return;
+    const buttons = Array.from(doc.querySelectorAll("button"));
+    const btn = buttons.find((b) => loadMoreLabel(b.innerText) && !b.disabled);
+    if (!btn) return;
+    busy = true;
+    btn.click();
+    setTimeout(function () { busy = false; }, 900);
+  }
+  window.parent.addEventListener("scroll", function () {
+    clearTimeout(window.parent.__exploreScrollT);
+    window.parent.__exploreScrollT = setTimeout(tryClick, 180);
+  }, true);
+})();
 """
 
 
@@ -1466,7 +1631,396 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
         )
 
 
+def explore_card_html(row) -> str:
+    """Collectr-stil tile: slika, ime, set/raritet, cijena, AI %. Klik → AI detalj."""
+    from urllib.parse import quote
+
+    card_id = str(getattr(row, "id", ""))
+    name = escape(str(getattr(row, "name", "")))
+    set_name = escape(str(getattr(row, "set_name", "") or ""))
+    rarity = escape(str(getattr(row, "rarity", "") or ""))
+    price = float(getattr(row, "price", 0.0) or 0.0)
+    change = getattr(row, "expected_change_pct", None)
+    image = escape(card_image_for_id(card_id), quote=True)
+    href = f"?nav=market&card={quote(card_id, safe='')}"
+    if change is not None and pd.notna(change):
+        change_f = float(change)
+        cls = "up" if change_f > 0.05 else "down" if change_f < -0.05 else "flat"
+        arrow = "▲" if change_f > 0.05 else "▼" if change_f < -0.05 else "●"
+        change_html = (
+            f'<div class="explore-card-change {cls}">'
+            f"{arrow} {change_f:+.2f}%</div>"
+        )
+    else:
+        change_html = '<div class="explore-card-change flat">—</div>'
+    meta = " · ".join(part for part in (set_name, rarity) if part)
+    return f"""
+    <a class="explore-card-link" href="{escape(href, quote=True)}" target="_parent"
+       title="{escape(t('show_ai'))}">
+      <div class="explore-card">
+        <img src="{image}" alt="{name}" loading="lazy"
+             onerror="this.style.opacity='0.25';" />
+        <div class="explore-card-name">{name}</div>
+        <div class="explore-card-meta">{meta}</div>
+        <div class="explore-card-price">{escape(money(price))}</div>
+        {change_html}
+      </div>
+    </a>
+    """
+
+
+def apply_nav_query_params() -> None:
+    """Deep-link s Explore kartice: ?nav=market&card=sv3-123 → AI detalj."""
+    qp = st.query_params
+    card = qp.get("card")
+    nav = qp.get("nav")
+    if card is None and nav is None:
+        return
+    if card is not None:
+        st.session_state["market_selected_id"] = str(card)
+        st.session_state["nav_page"] = str(nav or "market")
+        st.session_state["market_detail_only"] = True
+    elif nav is not None:
+        st.session_state["nav_page"] = str(nav)
+    st.query_params.clear()
+
+
+def render_navbar() -> str:
+    """Collectr desktop navbar: brand | horizontalni linkovi | jezik + valuta."""
+    from currency import CURRENCY_EUR, CURRENCY_USD, get_currency, _set_currency
+    from i18n import LANG_EN, LANG_HR, _set_lang, get_lang
+
+    if "nav_page" not in st.session_state:
+        st.session_state["nav_page"] = "explore"
+    # Makni stari mobile-drawer state ako je ostao.
+    st.session_state.pop("nav_menu_open", None)
+
+    pages = [
+        ("explore", t("nav_explore")),
+        ("market", t("nav_market")),
+        ("portfolio", t("nav_portfolio")),
+        ("scanner", t("nav_scanner")),
+    ]
+
+    cur = get_currency()
+    lang = get_lang()
+    symbol = "$" if cur == CURRENCY_USD else "€"
+    code = "USD" if cur == CURRENCY_USD else "EUR"
+
+    # brand | 4 linka | spacer | HR EN | currency
+    brand, *nav_cols, _gap, lang_hr, lang_en, cur_btn = st.columns(
+        [1.35, 1.0, 1.15, 1.0, 1.05, 1.4, 0.55, 0.55, 0.95],
+        vertical_alignment="center",
+    )
+    with brand:
+        st.markdown(
+            f'<div class="nav-brand-left">TCG AI'
+            f'<span>{escape(t("brand_tagline"))}</span></div>',
+            unsafe_allow_html=True,
+        )
+    for col, (key, label) in zip(nav_cols, pages, strict=True):
+        with col:
+            active = st.session_state["nav_page"] == key
+            if st.button(
+                label,
+                key=f"nav_{key}",
+                type="primary" if active else "secondary",
+                use_container_width=True,
+            ):
+                if st.session_state["nav_page"] != key:
+                    st.session_state["nav_page"] = key
+                    st.rerun()
+    with lang_hr:
+        if st.button(
+            "HR",
+            key="nav_lang_hr",
+            type="primary" if lang == LANG_HR else "secondary",
+            use_container_width=True,
+        ):
+            if lang != LANG_HR:
+                _set_lang(LANG_HR)
+    with lang_en:
+        if st.button(
+            "EN",
+            key="nav_lang_en",
+            type="primary" if lang == LANG_EN else "secondary",
+            use_container_width=True,
+        ):
+            if lang != LANG_EN:
+                _set_lang(LANG_EN)
+    with cur_btn:
+        if st.button(
+            f"{symbol} {code}",
+            key="nav_currency_pill",
+            use_container_width=True,
+            help="USD / EUR",
+        ):
+            _set_currency(CURRENCY_EUR if cur == CURRENCY_USD else CURRENCY_USD)
+
+    st.markdown(
+        "<hr style='border:none;border-top:1px solid #1f1f1f;margin:4px 0 14px;' />",
+        unsafe_allow_html=True,
+    )
+    return str(st.session_state["nav_page"])
+
+
+def _reset_explore_price_keys() -> None:
+    """Označi reset; stvarne granice se primijene u render_explore_price_box (prije widgeta)."""
+    st.session_state["explore_price_do_reset"] = True
+
+
+def render_explore_price_box(series: pd.Series) -> tuple[float, float]:
+    """Kompaktan price range box za lijevi filter panel (min/max + slider)."""
+    lo_usd, hi_usd = price_bounds(series)
+    bound_lo = float(to_display(lo_usd))
+    bound_hi = float(to_display(hi_usd))
+    if bound_hi <= bound_lo:
+        bound_hi = bound_lo + 1.0
+    span = bound_hi - bound_lo
+    step = 0.01 if span <= 20 else 0.5 if span <= 200 else 1.0
+
+    range_key = "explore_price_slider"
+    lo_key = "explore_price_lo"
+    hi_key = "explore_price_hi"
+
+    def _clamp(low: float, high: float) -> tuple[float, float]:
+        low = min(max(float(low), bound_lo), bound_hi)
+        high = min(max(float(high), bound_lo), bound_hi)
+        if low > high:
+            low, high = high, low
+        return low, high
+
+    # Reset / missing keys — postavi PRIJE widgeta (nikad pop tijekom on_change).
+    if st.session_state.pop("explore_price_do_reset", False) or range_key not in st.session_state:
+        st.session_state[range_key] = (bound_lo, bound_hi)
+        st.session_state[lo_key] = bound_lo
+        st.session_state[hi_key] = bound_hi
+
+    raw = st.session_state.get(range_key, (bound_lo, bound_hi))
+    try:
+        low, high = _clamp(float(raw[0]), float(raw[1]))
+    except (TypeError, ValueError, IndexError, KeyError):
+        low, high = bound_lo, bound_hi
+    st.session_state[range_key] = (low, high)
+    st.session_state[lo_key] = low
+    st.session_state[hi_key] = high
+
+    def _from_slider() -> None:
+        raw_pair = st.session_state.get(range_key)
+        if raw_pair is None:
+            return
+        try:
+            pair = _clamp(float(raw_pair[0]), float(raw_pair[1]))
+        except (TypeError, ValueError, IndexError, KeyError):
+            return
+        st.session_state[range_key] = pair
+        st.session_state[lo_key] = pair[0]
+        st.session_state[hi_key] = pair[1]
+
+    def _from_min() -> None:
+        low_v = st.session_state.get(lo_key, bound_lo)
+        high_v = st.session_state.get(hi_key, bound_hi)
+        try:
+            low_v, high_v = _clamp(float(low_v), float(high_v))
+        except (TypeError, ValueError):
+            return
+        if low_v > high_v:
+            high_v = low_v
+        st.session_state[range_key] = (low_v, high_v)
+        st.session_state[lo_key] = low_v
+        st.session_state[hi_key] = high_v
+
+    def _from_max() -> None:
+        low_v = st.session_state.get(lo_key, bound_lo)
+        high_v = st.session_state.get(hi_key, bound_hi)
+        try:
+            low_v, high_v = _clamp(float(low_v), float(high_v))
+        except (TypeError, ValueError):
+            return
+        if high_v < low_v:
+            low_v = high_v
+        st.session_state[range_key] = (low_v, high_v)
+        st.session_state[lo_key] = low_v
+        st.session_state[hi_key] = high_v
+
+    st.slider(
+        t("explore_price_box"),
+        min_value=bound_lo,
+        max_value=bound_hi,
+        step=float(step),
+        format=number_format_pattern(digits=2),
+        key=range_key,
+        label_visibility="collapsed",
+        on_change=_from_slider,
+    )
+    c1, c2 = st.columns(2)
+    with c1:
+        st.number_input(
+            t("price_min"),
+            min_value=bound_lo,
+            max_value=bound_hi,
+            step=float(step),
+            format="%.2f",
+            key=lo_key,
+            on_change=_from_min,
+        )
+    with c2:
+        st.number_input(
+            t("price_max"),
+            min_value=bound_lo,
+            max_value=bound_hi,
+            step=float(step),
+            format="%.2f",
+            key=hi_key,
+            on_change=_from_max,
+        )
+    low, high = st.session_state.get(range_key, (bound_lo, bound_hi))
+    return from_display(float(low)), from_display(float(high))
+
+
+def render_explore_grid(rows: pd.DataFrame, cols_per_row: int = 4) -> None:
+    items = list(rows.itertuples(index=False))
+    if not items:
+        st.info(t("explore_empty"))
+        return
+    for start in range(0, len(items), cols_per_row):
+        chunk = items[start : start + cols_per_row]
+        cols = st.columns(cols_per_row)
+        for col, row in zip(cols, chunk, strict=False):
+            with col:
+                st.markdown(explore_card_html(row), unsafe_allow_html=True)
+
+
+def render_explore(market: pd.DataFrame) -> None:
+    """Početna Explore stranica — Collectr layout: search, sort, lijevi filteri, infinite grid."""
+    s1, s2, s3 = st.columns([4.2, 1.0, 0.9])
+    with s1:
+        query = st.text_input(
+            t("search"),
+            placeholder=t("explore_search_ph"),
+            key="explore_query",
+            label_visibility="collapsed",
+        )
+    with s2:
+        st.button(
+            t("explore_search_btn"),
+            key="explore_go_btn",
+            type="primary",
+            use_container_width=True,
+        )
+    with s3:
+        if st.button(t("explore_clear"), key="explore_clear_btn", use_container_width=True):
+            st.session_state["explore_query"] = ""
+            _reset_explore_price_keys()
+            st.session_state["explore_shown"] = EXPLORE_BATCH
+            st.rerun()
+
+    sort_options = ["name", "price_desc", "price_asc", "exp_desc", "exp_asc"]
+    sort_labels = {
+        "name": t("sort_name"),
+        "price_desc": t("sort_price_desc"),
+        "price_asc": t("sort_price_asc"),
+        "exp_desc": t("sort_exp_desc"),
+        "exp_asc": t("sort_exp_asc"),
+    }
+    sort_col, _ = st.columns([1.4, 3.6])
+    with sort_col:
+        sort_by = st.selectbox(
+            t("explore_sort_by"),
+            sort_options,
+            format_func=lambda k: sort_labels[k],
+            key="explore_sort",
+        )
+
+    left, right = st.columns([1.05, 3.2], gap="large")
+    with left:
+        st.markdown(
+            f'<div class="explore-filter-panel"><h4>{escape(t("explore_filters"))}</h4>',
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            f'<div class="explore-filter-label">{escape(t("explore_category"))}</div>',
+            unsafe_allow_html=True,
+        )
+        # Widget key mora biti drugačiji od i18n ključa — inače Streamlit zna pokazati raw key.
+        st.checkbox(
+            t("explore_cat_pokemon"),
+            value=True,
+            disabled=True,
+            key="exp_pokemon_cb",
+        )
+        st.markdown(
+            f'<div class="explore-filter-label">{escape(t("explore_price_box"))} ({escape(currency_code())})</div>',
+            unsafe_allow_html=True,
+        )
+        price_min, price_max = render_explore_price_box(market["price"])
+        if st.button(t("explore_reset"), key="explore_reset_filters", use_container_width=True):
+            _reset_explore_price_keys()
+            st.session_state["explore_query"] = ""
+            st.session_state["explore_shown"] = EXPLORE_BATCH
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    filtered = filter_market_frame(
+        market,
+        query=query or "",
+        set_name=FILTER_ALL_SETS,
+        rarity=FILTER_ALL,
+        signal=FILTER_ALL,
+        sort_by=sort_by,
+        price_min=price_min,
+        price_max=price_max,
+    )
+
+    fingerprint = f"{query}|{sort_by}|{price_min}|{price_max}"
+    if st.session_state.get("explore_filter_fp") != fingerprint:
+        st.session_state["explore_filter_fp"] = fingerprint
+        st.session_state["explore_shown"] = EXPLORE_BATCH
+    if "explore_shown" not in st.session_state:
+        st.session_state["explore_shown"] = EXPLORE_BATCH
+
+    shown_n = min(int(st.session_state["explore_shown"]), len(filtered))
+    page_rows = filtered.iloc[:shown_n]
+
+    with right:
+        st.caption(t("explore_results", n=len(filtered)))
+        if filtered.empty:
+            st.warning(t("explore_empty"))
+        else:
+            render_explore_grid(page_rows, cols_per_row=5)
+            if shown_n < len(filtered):
+                if st.button(
+                    t("explore_load_more"),
+                    key="explore_load_more",
+                    use_container_width=True,
+                ):
+                    st.session_state["explore_shown"] = shown_n + EXPLORE_BATCH
+                    st.rerun()
+                components.html(
+                    f"<script>{EXPLORE_INFINITE_SCROLL_JS}</script>",
+                    height=1,
+                    width=1,
+                )
+            else:
+                st.caption(t("explore_end"))
+
+
 def render_market(history: pd.DataFrame, market: pd.DataFrame, model) -> None:
+    selected_id = st.session_state.get("market_selected_id")
+    market_ids = set(market["id"].astype(str))
+    if (
+        st.session_state.get("market_detail_only")
+        and selected_id is not None
+        and str(selected_id) in market_ids
+    ):
+        if st.button(t("back_explore"), key="market_back_explore"):
+            st.session_state["market_detail_only"] = False
+            st.session_state["nav_page"] = "explore"
+            st.rerun()
+        st.markdown(f"##### {t('detail_ai')}")
+        render_market_detail(history, market, model, str(selected_id))
+        return
+
     st.subheader(t("market_title"))
     counts = market["signal"].value_counts() if "signal" in market.columns else {}
     m1, m2, m3, m4 = st.columns(4)
@@ -1821,10 +2375,8 @@ def render_portfolio(history: pd.DataFrame, market: pd.DataFrame, model) -> None
 
 def main() -> None:
     st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
-    render_language_toggle()
-    st.title(t("app_title"))
-    st.caption(t("app_caption"))
-    render_currency_bar()
+    apply_nav_query_params()
+    page = render_navbar()
 
     from config import get_supabase_credentials
 
@@ -1878,12 +2430,13 @@ Ključeve: Supabase → **Project Settings → API**
         st.error(t("no_price_history"))
         return
 
-    tab1, tab2, tab3 = st.tabs([t("tab_market"), t("tab_portfolio"), t("tab_scanner")])
-    with tab1:
+    if page == "explore":
+        render_explore(market)
+    elif page == "market":
         render_market(history, market, model)
-    with tab2:
+    elif page == "portfolio":
         render_portfolio(history, market, model)
-    with tab3:
+    else:
         render_scanner(history, market, model)
 
 

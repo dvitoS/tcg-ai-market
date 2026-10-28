@@ -15,6 +15,7 @@ _CURRENCY_WIDGET_PREFIXES = (
     "market_price",
     "gallery_price",
     "scanner_price",
+    "explore_price",
 )
 
 
