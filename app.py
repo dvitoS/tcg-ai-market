@@ -687,35 +687,38 @@ CUSTOM_CSS = """
     .detail-hero-delta.up { color: #4ade80 !important; font-weight: 700; }
     .detail-hero-delta.down { color: #f87171 !important; font-weight: 700; }
     .detail-hero-delta.flat { color: #94a3b8 !important; font-weight: 700; }
-    .detail-ai-panel {
+    .detail-ai-head {
         background: rgba(16, 24, 40, 0.72);
         border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 16px;
-        padding: 14px 14px 10px;
-        margin: 0 0 12px;
+        border-bottom: none;
+        border-radius: 16px 16px 0 0;
+        padding: 14px 14px 0;
+        margin: 0;
     }
-    .detail-ai-panel h3 {
-        margin: 0 0 10px !important;
+    .detail-ai-head h3 {
+        margin: 0 0 8px !important;
         font-size: 1.05rem !important;
         color: #f8fafc !important;
     }
-    .compare-panel {
+    .compare-head {
         background: rgba(16, 24, 40, 0.72);
         border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 16px;
-        padding: 18px 20px 12px;
+        border-bottom: none;
+        border-radius: 16px 16px 0 0;
+        padding: 14px 18px 0;
         margin: 0;
-        min-height: 560px;
     }
-    .compare-panel h3 {
+    .compare-head h3 {
         margin: 0 0 4px !important;
         font-size: 1.25rem !important;
         color: #f8fafc !important;
+        line-height: 1.3;
     }
-    .compare-panel .compare-caption {
+    .compare-head .compare-caption {
         color: #94a3b8 !important;
         font-size: 0.85rem;
-        margin: 0 0 14px;
+        margin: 0 0 10px;
+        line-height: 1.4;
     }
     .source-card {
         background: rgba(10, 14, 24, 0.85);
@@ -1859,8 +1862,10 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
             ],
             "stat-row",
         )
-        st.markdown('<div class="detail-ai-panel">', unsafe_allow_html=True)
-        st.markdown(f"### {t('ai_prediction')}")
+        st.markdown(
+            f'<div class="detail-ai-head"><h3>{escape(t("ai_prediction"))}</h3></div>',
+            unsafe_allow_html=True,
+        )
         st.metric(
             t("price_on", date=next_day),
             money(predicted, digits=4),
@@ -1890,13 +1895,15 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
             hide_index=True,
             width="stretch",
         )
-        st.markdown("</div>", unsafe_allow_html=True)
 
     with right:
-        st.markdown('<div class="compare-panel">', unsafe_allow_html=True)
-        st.markdown(f"### {t('compare_history')}")
         st.markdown(
-            f'<p class="compare-caption">{escape(t("compare_history_caption"))}</p>',
+            f"""
+            <div class="compare-head">
+              <h3>{escape(t("compare_history"))}</h3>
+              <p class="compare-caption">{escape(t("compare_history_caption"))}</p>
+            </div>
+            """,
             unsafe_allow_html=True,
         )
 
@@ -1968,7 +1975,6 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
             """,
             unsafe_allow_html=True,
         )
-        st.markdown("</div>", unsafe_allow_html=True)
 
 
 
