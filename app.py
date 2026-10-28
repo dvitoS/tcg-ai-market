@@ -646,15 +646,32 @@ CUSTOM_CSS = """
         font-weight: 700 !important;
         color: #f8fafc !important;
     }
-    .explore-filter-panel {
-        background: #141414;
-        border: 1px solid #2a2a2a;
-        border-radius: 14px;
-        padding: 14px 14px 8px;
-        margin-top: 4px;
+    /* Filters boxed under "Filteri" — don't stretch / don't paint over grid */
+    div[data-testid="stHorizontalBlock"]:has(.explore-filter-head) {
+        align-items: flex-start !important;
+        background: transparent !important;
     }
-    .explore-filter-panel h4 {
-        margin: 0 0 10px !important;
+    div[data-testid="stColumn"]:has(.explore-filter-head) {
+        align-self: flex-start !important;
+        height: auto !important;
+        background: transparent !important;
+    }
+    div[data-testid="stColumn"]:has(.explore-card) {
+        background: transparent !important;
+    }
+    div[data-testid="stVerticalBlock"]:has(.explore-card) {
+        background: transparent !important;
+    }
+    div[data-testid="stVerticalBlockBorderWrapper"]:has(.explore-filter-head) {
+        background: #141414 !important;
+        border: 1px solid #2a2a2a !important;
+        border-radius: 14px !important;
+        padding: 4px 2px 6px !important;
+        height: fit-content !important;
+        overflow: visible !important;
+    }
+    .explore-filter-head h4 {
+        margin: 2px 0 8px !important;
         font-size: 0.95rem !important;
         font-weight: 700 !important;
         color: #f8fafc !important;
@@ -665,17 +682,15 @@ CUSTOM_CSS = """
         letter-spacing: 0.04em;
         text-transform: uppercase;
         color: #94a3b8 !important;
-        margin: 12px 0 6px;
+        margin: 10px 0 6px;
     }
     .explore-card {
-        background: rgba(26, 26, 26, 0.18);
-        border: 1px solid rgba(255, 255, 255, 0.06);
+        background: transparent;
+        border: 1px solid transparent;
         border-radius: 12px;
         padding: 13px 10px 14px;
         text-align: center;
         height: 100%;
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
         transition: border-color 0.15s ease, transform 0.15s ease, background 0.15s ease;
         pointer-events: none;
     }
@@ -717,8 +732,8 @@ CUSTOM_CSS = """
     .explore-card-change.down { color: #f87171 !important; }
     .explore-card-change.flat { color: #94a3b8 !important; }
     div[data-testid="stColumn"]:has(.explore-card):hover .explore-card {
-        border-color: rgba(255, 255, 255, 0.14);
-        background: rgba(26, 26, 26, 0.28);
+        border-color: rgba(255, 255, 255, 0.10);
+        background: rgba(255, 255, 255, 0.04);
         transform: translateY(-2px);
     }
     .explore-sort-row {
@@ -2396,32 +2411,38 @@ def render_explore(market: pd.DataFrame) -> None:
 
     left, right = st.columns([1.05, 3.2], gap="large")
     with left:
-        st.markdown(
-            f'<div class="explore-filter-panel"><h4>{escape(t("explore_filters"))}</h4>',
-            unsafe_allow_html=True,
-        )
-        st.markdown(
-            f'<div class="explore-filter-label">{escape(t("explore_category"))}</div>',
-            unsafe_allow_html=True,
-        )
-        # Widget key mora biti drugačiji od i18n ključa — inače Streamlit zna pokazati raw key.
-        st.checkbox(
-            t("explore_cat_pokemon"),
-            value=True,
-            disabled=True,
-            key="exp_pokemon_cb",
-        )
-        st.markdown(
-            f'<div class="explore-filter-label">{escape(t("explore_price_box"))} ({escape(currency_code())})</div>',
-            unsafe_allow_html=True,
-        )
-        price_min, price_max = render_explore_price_box(market["price"])
-        if st.button(t("explore_reset"), key="explore_reset_filters", use_container_width=True):
-            _reset_explore_price_keys()
-            st.session_state["explore_query"] = ""
-            st.session_state["explore_shown"] = EXPLORE_BATCH
-            st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
+        with st.container(border=True):
+            st.markdown(
+                f'<div class="explore-filter-head">'
+                f"<h4>{escape(t('explore_filters'))}</h4></div>",
+                unsafe_allow_html=True,
+            )
+            st.markdown(
+                f'<div class="explore-filter-label">{escape(t("explore_category"))}</div>',
+                unsafe_allow_html=True,
+            )
+            # Widget key mora biti drugačiji od i18n ključa — inače Streamlit zna pokazati raw key.
+            st.checkbox(
+                t("explore_cat_pokemon"),
+                value=True,
+                disabled=True,
+                key="exp_pokemon_cb",
+            )
+            st.markdown(
+                f'<div class="explore-filter-label">{escape(t("explore_price_box"))}'
+                f" ({escape(currency_code())})</div>",
+                unsafe_allow_html=True,
+            )
+            price_min, price_max = render_explore_price_box(market["price"])
+            if st.button(
+                t("explore_reset"),
+                key="explore_reset_filters",
+                use_container_width=True,
+            ):
+                _reset_explore_price_keys()
+                st.session_state["explore_query"] = ""
+                st.session_state["explore_shown"] = EXPLORE_BATCH
+                st.rerun()
 
     filtered = filter_market_frame(
         market,
