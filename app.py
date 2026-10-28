@@ -535,17 +535,32 @@ CUSTOM_CSS = """
         margin-top: 4px;
         opacity: 0.85;
     }
+    /* Sticky shell — navbar glued into app header */
+    div[data-testid="stVerticalBlock"] div:has(div.nav-sticky-anchor) {
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        background: rgba(7, 11, 20, 0.92);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+        padding: 0.45rem 0.35rem 0.55rem;
+        margin: 0 0 0.85rem;
+    }
+    .nav-sticky-anchor {
+        height: 0;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+    }
     /* Navbar row: brand + links + lang/currency */
     div[data-testid="stHorizontalBlock"]:has(.nav-brand-left) {
         gap: 0.35rem !important;
-        padding: 0.2rem 0.15rem 0.65rem;
-        margin: 0 0 0.35rem;
-        border-bottom: 1px solid rgba(148, 163, 184, 0.12);
-        background: linear-gradient(
-            180deg,
-            rgba(255, 255, 255, 0.035) 0%,
-            rgba(255, 255, 255, 0) 100%
-        );
+        padding: 0;
+        margin: 0;
+        border: none;
+        background: transparent;
         align-items: center !important;
     }
     div[data-testid="stHorizontalBlock"]:has(.nav-brand-left) button {
@@ -623,8 +638,19 @@ CUSTOM_CSS = """
         color: #e0f2fe !important;
         box-shadow: none !important;
     }
-    header[data-testid="stHeader"] {
-        background: #0a0a0a !important;
+    header[data-testid="stHeader"],
+    header.stAppHeader {
+        background: rgba(7, 11, 20, 0.92) !important;
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border-bottom: none !important;
+    }
+    div[data-testid="stDecoration"] {
+        display: none !important;
+    }
+    .stMainBlockContainer.block-container,
+    .block-container {
+        padding-top: 0.75rem !important;
     }
     .explore-search-wrap {
         background: #141414;
@@ -2131,7 +2157,7 @@ def apply_nav_query_params() -> None:
 
 
 def render_navbar() -> str:
-    """Collectr desktop navbar: brand | horizontalni linkovi | jezik + valuta."""
+    """Desktop navbar glued into sticky app header."""
     from currency import CURRENCY_EUR, CURRENCY_USD, get_currency, _set_currency
     from i18n import LANG_EN, LANG_HR, _set_lang, get_lang
 
@@ -2152,56 +2178,61 @@ def render_navbar() -> str:
     symbol = "$" if cur == CURRENCY_USD else "€"
     code = "USD" if cur == CURRENCY_USD else "EUR"
 
-    # brand | 4 linka | spacer | HR EN | currency
-    brand, *nav_cols, _gap, lang_hr, lang_en, cur_btn = st.columns(
-        [1.25, 0.95, 1.1, 0.9, 1.0, 1.7, 0.48, 0.48, 0.62],
-        vertical_alignment="center",
-        gap="small",
-    )
-    with brand:
+    with st.container():
         st.markdown(
-            f'<div class="nav-brand-left">TCG AI'
-            f'<span>{escape(t("brand_tagline"))}</span></div>',
+            '<div class="nav-sticky-anchor" aria-hidden="true"></div>',
             unsafe_allow_html=True,
         )
-    for col, (key, label) in zip(nav_cols, pages, strict=True):
-        with col:
-            active = st.session_state["nav_page"] == key
+        # brand | 4 linka | spacer | HR EN | currency
+        brand, *nav_cols, _gap, lang_hr, lang_en, cur_btn = st.columns(
+            [1.25, 0.95, 1.1, 0.9, 1.0, 1.7, 0.48, 0.48, 0.62],
+            vertical_alignment="center",
+            gap="small",
+        )
+        with brand:
+            st.markdown(
+                f'<div class="nav-brand-left">TCG AI'
+                f'<span>{escape(t("brand_tagline"))}</span></div>',
+                unsafe_allow_html=True,
+            )
+        for col, (key, label) in zip(nav_cols, pages, strict=True):
+            with col:
+                active = st.session_state["nav_page"] == key
+                if st.button(
+                    label,
+                    key=f"nav_{key}",
+                    type="primary" if active else "secondary",
+                    use_container_width=True,
+                ):
+                    if st.session_state["nav_page"] != key:
+                        st.session_state["nav_page"] = key
+                        st.rerun()
+        with lang_hr:
             if st.button(
-                label,
-                key=f"nav_{key}",
-                type="primary" if active else "secondary",
+                "HR",
+                key="nav_lang_hr",
+                type="primary" if lang == LANG_HR else "secondary",
                 use_container_width=True,
             ):
-                if st.session_state["nav_page"] != key:
-                    st.session_state["nav_page"] = key
-                    st.rerun()
-    with lang_hr:
-        if st.button(
-            "HR",
-            key="nav_lang_hr",
-            type="primary" if lang == LANG_HR else "secondary",
-            use_container_width=True,
-        ):
-            if lang != LANG_HR:
-                _set_lang(LANG_HR)
-    with lang_en:
-        if st.button(
-            "EN",
-            key="nav_lang_en",
-            type="primary" if lang == LANG_EN else "secondary",
-            use_container_width=True,
-        ):
-            if lang != LANG_EN:
-                _set_lang(LANG_EN)
-    with cur_btn:
-        if st.button(
-            f"{symbol}{code}",
-            key="nav_currency_pill",
-            use_container_width=True,
-            help="USD / EUR",
-        ):
-            _set_currency(CURRENCY_EUR if cur == CURRENCY_USD else CURRENCY_USD)
+                if lang != LANG_HR:
+                    _set_lang(LANG_HR)
+        with lang_en:
+            if st.button(
+                "EN",
+                key="nav_lang_en",
+                type="primary" if lang == LANG_EN else "secondary",
+                use_container_width=True,
+            ):
+                if lang != LANG_EN:
+                    _set_lang(LANG_EN)
+        with cur_btn:
+            if st.button(
+                f"{symbol}{code}",
+                key="nav_currency_pill",
+                use_container_width=True,
+                help="USD / EUR",
+            ):
+                _set_currency(CURRENCY_EUR if cur == CURRENCY_USD else CURRENCY_USD)
 
     return str(st.session_state["nav_page"])
 
