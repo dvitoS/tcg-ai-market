@@ -702,23 +702,25 @@ CUSTOM_CSS = """
     }
     .compare-head {
         background: rgba(16, 24, 40, 0.72);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-bottom: none;
-        border-radius: 16px 16px 0 0;
-        padding: 14px 18px 0;
-        margin: 0;
+        border: 1px solid rgba(255, 255, 255, 0.10);
+        border-radius: 16px;
+        padding: 16px 20px;
+        margin: 0 0 8px;
+        text-align: center;
     }
     .compare-head h3 {
-        margin: 0 0 4px !important;
+        margin: 0 0 6px !important;
         font-size: 1.25rem !important;
         color: #f8fafc !important;
         line-height: 1.3;
+        text-align: center;
     }
     .compare-head .compare-caption {
         color: #94a3b8 !important;
         font-size: 0.85rem;
-        margin: 0 0 10px;
-        line-height: 1.4;
+        margin: 0;
+        line-height: 1.45;
+        text-align: center;
     }
     .source-card {
         background: rgba(10, 14, 24, 0.85);
