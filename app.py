@@ -506,29 +506,122 @@ CUSTOM_CSS = """
         .detail-row, .stat-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
 
-    /* ——— Explore (Collectr-inspired) ——— */
-    /* Collectr desktop navbar — brand lijevo, linkovi horizontalno */
+    /* ——— Desktop navbar ——— */
     .nav-brand-left {
         font-family: Georgia, "Times New Roman", Times, serif;
-        font-size: 1.35rem;
+        font-size: 1.2rem;
         font-weight: 700;
-        letter-spacing: 0.22em;
-        color: #fafafa !important;
+        letter-spacing: 0.18em;
+        color: #f8fafc !important;
         line-height: 1.05;
-        padding-top: 0.35rem;
+        padding: 0.15rem 0;
         text-transform: uppercase;
         user-select: none;
         white-space: nowrap;
+        transition: opacity 0.2s ease, letter-spacing 0.25s ease;
+    }
+    .nav-brand-left:hover {
+        opacity: 0.92;
+        letter-spacing: 0.22em;
     }
     .nav-brand-left span {
         display: block;
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-        font-size: 0.55rem;
-        font-weight: 500;
-        letter-spacing: 0.26em;
+        font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 0.5rem;
+        font-weight: 550;
+        letter-spacing: 0.28em;
         text-transform: uppercase;
-        color: #a1a1aa !important;
-        margin-top: 3px;
+        color: #7dd3fc !important;
+        margin-top: 4px;
+        opacity: 0.85;
+    }
+    /* Navbar row: brand + links + lang/currency */
+    div[data-testid="stHorizontalBlock"]:has(.nav-brand-left) {
+        gap: 0.35rem !important;
+        padding: 0.2rem 0.15rem 0.65rem;
+        margin: 0 0 0.35rem;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+        background: linear-gradient(
+            180deg,
+            rgba(255, 255, 255, 0.035) 0%,
+            rgba(255, 255, 255, 0) 100%
+        );
+        align-items: center !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(.nav-brand-left) button {
+        border-radius: 999px !important;
+        font-size: 0.78rem !important;
+        font-weight: 600 !important;
+        letter-spacing: 0.02em !important;
+        padding: 0.32rem 0.65rem !important;
+        min-height: 2rem !important;
+        height: 2rem !important;
+        line-height: 1 !important;
+        border: 1px solid rgba(255, 255, 255, 0.10) !important;
+        background: rgba(15, 23, 42, 0.35) !important;
+        color: #cbd5e1 !important;
+        box-shadow: none !important;
+        transition:
+            transform 0.18s ease,
+            border-color 0.18s ease,
+            background 0.18s ease,
+            color 0.18s ease,
+            box-shadow 0.18s ease !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(.nav-brand-left) button p {
+        font-size: inherit !important;
+        font-weight: inherit !important;
+        color: inherit !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(.nav-brand-left) button:hover {
+        transform: translateY(-1px);
+        border-color: rgba(56, 189, 248, 0.5) !important;
+        background: rgba(56, 189, 248, 0.10) !important;
+        color: #f8fafc !important;
+        box-shadow: 0 6px 16px rgba(14, 165, 233, 0.14) !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(.nav-brand-left) button:active {
+        transform: translateY(0);
+    }
+    div[data-testid="stHorizontalBlock"]:has(.nav-brand-left)
+        button[kind="primary"],
+    div[data-testid="stHorizontalBlock"]:has(.nav-brand-left)
+        button[data-testid="baseButton-primary"] {
+        background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%) !important;
+        border-color: transparent !important;
+        color: #06101c !important;
+        box-shadow: 0 2px 14px rgba(14, 165, 233, 0.38) !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(.nav-brand-left)
+        button[kind="primary"]:hover,
+    div[data-testid="stHorizontalBlock"]:has(.nav-brand-left)
+        button[data-testid="baseButton-primary"]:hover {
+        background: linear-gradient(135deg, #0ea5e9 0%, #7dd3fc 100%) !important;
+        box-shadow: 0 6px 18px rgba(14, 165, 233, 0.42) !important;
+        color: #06101c !important;
+    }
+    /* Compact language + currency controls (last 3 columns) */
+    div[data-testid="stHorizontalBlock"]:has(.nav-brand-left)
+        > div[data-testid="stColumn"]:nth-last-child(-n + 3) button {
+        font-size: 0.68rem !important;
+        font-weight: 650 !important;
+        letter-spacing: 0.04em !important;
+        padding: 0.18rem 0.42rem !important;
+        min-height: 1.55rem !important;
+        height: 1.55rem !important;
+        background: rgba(255, 255, 255, 0.03) !important;
+        border-color: rgba(255, 255, 255, 0.08) !important;
+    }
+    div[data-testid="stHorizontalBlock"]:has(.nav-brand-left)
+        > div[data-testid="stColumn"]:nth-last-child(-n + 3)
+        button[kind="primary"],
+    div[data-testid="stHorizontalBlock"]:has(.nav-brand-left)
+        > div[data-testid="stColumn"]:nth-last-child(-n + 3)
+        button[data-testid="baseButton-primary"] {
+        background: rgba(56, 189, 248, 0.18) !important;
+        border-color: rgba(56, 189, 248, 0.45) !important;
+        color: #e0f2fe !important;
+        box-shadow: none !important;
     }
     header[data-testid="stHeader"] {
         background: #0a0a0a !important;
@@ -2061,8 +2154,9 @@ def render_navbar() -> str:
 
     # brand | 4 linka | spacer | HR EN | currency
     brand, *nav_cols, _gap, lang_hr, lang_en, cur_btn = st.columns(
-        [1.35, 1.0, 1.15, 1.0, 1.05, 1.4, 0.55, 0.55, 0.95],
+        [1.25, 0.95, 1.1, 0.9, 1.0, 1.7, 0.48, 0.48, 0.62],
         vertical_alignment="center",
+        gap="small",
     )
     with brand:
         st.markdown(
@@ -2102,17 +2196,13 @@ def render_navbar() -> str:
                 _set_lang(LANG_EN)
     with cur_btn:
         if st.button(
-            f"{symbol} {code}",
+            f"{symbol}{code}",
             key="nav_currency_pill",
             use_container_width=True,
             help="USD / EUR",
         ):
             _set_currency(CURRENCY_EUR if cur == CURRENCY_USD else CURRENCY_USD)
 
-    st.markdown(
-        "<hr style='border:none;border-top:1px solid #1f1f1f;margin:4px 0 14px;' />",
-        unsafe_allow_html=True,
-    )
     return str(st.session_state["nav_page"])
 
 
