@@ -567,13 +567,6 @@ CUSTOM_CSS = """
         color: #94a3b8 !important;
         margin: 12px 0 6px;
     }
-    a.explore-card-link {
-        display: block;
-        text-decoration: none !important;
-        color: inherit !important;
-        cursor: pointer;
-    }
-    a.explore-card-link:hover { text-decoration: none !important; }
     .explore-card {
         background: rgba(26, 26, 26, 0.18);
         border: 1px solid rgba(255, 255, 255, 0.06);
@@ -584,16 +577,30 @@ CUSTOM_CSS = """
         backdrop-filter: blur(8px);
         -webkit-backdrop-filter: blur(8px);
         transition: border-color 0.15s ease, transform 0.15s ease, background 0.15s ease;
+        pointer-events: none;
     }
-    a.explore-card-link:hover .explore-card {
-        border-color: rgba(255, 255, 255, 0.14);
-        background: rgba(26, 26, 26, 0.28);
-        transform: translateY(-2px);
+    /* Transparent hit-target button overlays the card (Streamlit Cloud safe). */
+    div[data-testid="stColumn"]:has(.explore-card) div.stButton {
+        margin-top: -15.5rem;
+        margin-bottom: 0.35rem;
+        position: relative;
+        z-index: 3;
     }
-    .explore-card:hover {
-        border-color: rgba(255, 255, 255, 0.14);
-        background: rgba(26, 26, 26, 0.28);
-        transform: translateY(-2px);
+    div[data-testid="stColumn"]:has(.explore-card) div.stButton > button {
+        background: transparent !important;
+        border: 2px solid transparent !important;
+        box-shadow: none !important;
+        color: transparent !important;
+        min-height: 15rem;
+        cursor: pointer !important;
+    }
+    div[data-testid="stColumn"]:has(.explore-card) div.stButton > button:hover {
+        border-color: rgba(56, 189, 248, 0.4) !important;
+        background: rgba(56, 189, 248, 0.07) !important;
+    }
+    div[data-testid="stColumn"]:has(.explore-card) div.stButton > button p,
+    div[data-testid="stColumn"]:has(.explore-card) div.stButton > button span {
+        color: transparent !important;
     }
     .explore-card img {
         display: block;
@@ -1632,17 +1639,14 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
 
 
 def explore_card_html(row) -> str:
-    """Collectr-stil tile: slika, ime, set/raritet, cijena, AI %. Klik → AI detalj."""
-    from urllib.parse import quote
-
-    card_id = str(getattr(row, "id", ""))
+    """Collectr-stil tile: slika, ime, set/raritet, cijena, AI %."""
     name = escape(str(getattr(row, "name", "")))
     set_name = escape(str(getattr(row, "set_name", "") or ""))
     rarity = escape(str(getattr(row, "rarity", "") or ""))
     price = float(getattr(row, "price", 0.0) or 0.0)
     change = getattr(row, "expected_change_pct", None)
+    card_id = str(getattr(row, "id", ""))
     image = escape(card_image_for_id(card_id), quote=True)
-    href = f"?nav=market&card={quote(card_id, safe='')}"
     if change is not None and pd.notna(change):
         change_f = float(change)
         cls = "up" if change_f > 0.05 else "down" if change_f < -0.05 else "flat"
@@ -1655,31 +1659,35 @@ def explore_card_html(row) -> str:
         change_html = '<div class="explore-card-change flat">—</div>'
     meta = " · ".join(part for part in (set_name, rarity) if part)
     return f"""
-    <a class="explore-card-link" href="{escape(href, quote=True)}" target="_parent"
-       title="{escape(t('show_ai'))}">
-      <div class="explore-card">
-        <img src="{image}" alt="{name}" loading="lazy"
-             onerror="this.style.opacity='0.25';" />
-        <div class="explore-card-name">{name}</div>
-        <div class="explore-card-meta">{meta}</div>
-        <div class="explore-card-price">{escape(money(price))}</div>
-        {change_html}
-      </div>
-    </a>
+    <div class="explore-card">
+      <img src="{image}" alt="{name}" loading="lazy"
+           onerror="this.style.opacity='0.25';" />
+      <div class="explore-card-name">{name}</div>
+      <div class="explore-card-meta">{meta}</div>
+      <div class="explore-card-price">{escape(money(price))}</div>
+      {change_html}
+    </div>
     """
 
 
+def select_explore_card(card_id: str) -> None:
+    """Streamlit on_click — radi i lokalno i na Cloud (za razliku od HTML <a>)."""
+    st.session_state["market_selected_id"] = str(card_id)
+    st.session_state["nav_page"] = "market"
+    st.session_state["market_detail_only"] = True
+
+
 def apply_nav_query_params() -> None:
-    """Deep-link s Explore kartice: ?nav=market&card=sv3-123 → AI detalj."""
+    """Opcionalni deep-link: ?nav=market&card=sv3-123."""
     qp = st.query_params
     card = qp.get("card")
     nav = qp.get("nav")
     if card is None and nav is None:
         return
     if card is not None:
-        st.session_state["market_selected_id"] = str(card)
-        st.session_state["nav_page"] = str(nav or "market")
-        st.session_state["market_detail_only"] = True
+        select_explore_card(str(card))
+        if nav is not None:
+            st.session_state["nav_page"] = str(nav)
     elif nav is not None:
         st.session_state["nav_page"] = str(nav)
     st.query_params.clear()
@@ -1888,7 +1896,17 @@ def render_explore_grid(rows: pd.DataFrame, cols_per_row: int = 4) -> None:
         cols = st.columns(cols_per_row)
         for col, row in zip(cols, chunk, strict=False):
             with col:
+                card_id = str(row.id)
                 st.markdown(explore_card_html(row), unsafe_allow_html=True)
+                # Transparent overlay button (CSS) — Cloud ne hvata HTML <a> klikove.
+                st.button(
+                    "·",
+                    key=f"explore_open_{card_id}",
+                    use_container_width=True,
+                    help=t("click_card_ai"),
+                    on_click=select_explore_card,
+                    args=(card_id,),
+                )
 
 
 def render_explore(market: pd.DataFrame) -> None:
