@@ -567,40 +567,39 @@ CUSTOM_CSS = """
         color: #94a3b8 !important;
         margin: 12px 0 6px;
     }
-    .explore-card-top {
+    .explore-card {
         background: rgba(26, 26, 26, 0.18);
         border: 1px solid rgba(255, 255, 255, 0.06);
-        border-bottom: none;
-        border-radius: 12px 12px 0 0;
-        padding: 13px 10px 4px;
+        border-radius: 12px;
+        padding: 13px 10px 14px;
         text-align: center;
+        height: 100%;
         backdrop-filter: blur(8px);
         -webkit-backdrop-filter: blur(8px);
+        transition: border-color 0.15s ease, transform 0.15s ease, background 0.15s ease;
+        pointer-events: none;
     }
-    .explore-card-bottom {
-        background: rgba(26, 26, 26, 0.18);
-        border: 1px solid rgba(255, 255, 255, 0.06);
-        border-top: none;
-        border-radius: 0 0 12px 12px;
-        padding: 0 10px 12px;
-        text-align: center;
-        margin-bottom: 6px;
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-    }
-    .explore-card-top img {
+    .explore-card img {
         display: block;
         width: 72%;
         max-width: 140px;
-        margin: 0 auto 4px;
+        margin: 0 auto 10px;
         height: auto;
         border-radius: 4.35% / 3%;
         box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
     }
+    .explore-card-name {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #f8fafc !important;
+        line-height: 1.3;
+        margin: 0 0 4px;
+        min-height: 2.4em;
+    }
     .explore-card-meta {
         font-size: 0.65rem;
         color: #94a3b8 !important;
-        margin: 0 0 6px;
+        margin: 0 0 9px;
         line-height: 1.35;
     }
     .explore-card-price {
@@ -613,35 +612,15 @@ CUSTOM_CSS = """
         font-size: 0.7rem;
         font-weight: 650;
         margin-top: 4px;
-        margin-bottom: 2px;
-    }
-    /* Ime kartice = tertiary gumb između slike i cijene. */
-    div[data-testid="stColumn"]:has(.explore-card-top) div.stButton {
-        margin-top: -0.35rem;
-        margin-bottom: -0.35rem;
-    }
-    div[data-testid="stColumn"]:has(.explore-card-top) div.stButton > button {
-        background: rgba(26, 26, 26, 0.18) !important;
-        border: none !important;
-        border-left: 1px solid rgba(255, 255, 255, 0.06) !important;
-        border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
-        border-radius: 0 !important;
-        box-shadow: none !important;
-        color: #f8fafc !important;
-        font-size: 0.8rem !important;
-        font-weight: 700 !important;
-        line-height: 1.3 !important;
-        min-height: 2.4em !important;
-        padding: 4px 8px 8px !important;
-        white-space: normal !important;
-    }
-    div[data-testid="stColumn"]:has(.explore-card-top) div.stButton > button:hover {
-        color: #38bdf8 !important;
-        background: rgba(26, 26, 26, 0.28) !important;
     }
     .explore-card-change.up { color: #4ade80 !important; }
     .explore-card-change.down { color: #f87171 !important; }
     .explore-card-change.flat { color: #94a3b8 !important; }
+    div[data-testid="stColumn"]:has(.explore-card):hover .explore-card {
+        border-color: rgba(255, 255, 255, 0.14);
+        background: rgba(26, 26, 26, 0.28);
+        transform: translateY(-2px);
+    }
     .explore-sort-row {
         display: flex;
         align-items: center;
@@ -682,6 +661,54 @@ EXPLORE_INFINITE_SCROLL_JS = """
     clearTimeout(window.parent.__exploreScrollT);
     window.parent.__exploreScrollT = setTimeout(tryClick, 180);
   }, true);
+})();
+"""
+
+# Overlay + sakrij Streamlit gumb preko cijele Explore kartice (radi na Cloud).
+EXPLORE_CARD_HIT_JS = """
+(function () {
+  const doc = window.parent.document;
+  function styleHitTargets() {
+    doc.querySelectorAll('[data-testid="stColumn"]').forEach(function (col) {
+      const card = col.querySelector('.explore-card');
+      if (!card) return;
+      const wrap = col.querySelector('[data-testid="stButton"], div.stButton');
+      if (!wrap) return;
+      const btn = wrap.querySelector('button');
+      if (!btn) return;
+      const h = Math.max(card.offsetHeight || 0, 200);
+      wrap.style.marginTop = (-h) + 'px';
+      wrap.style.marginBottom = '0.4rem';
+      wrap.style.height = h + 'px';
+      wrap.style.position = 'relative';
+      wrap.style.zIndex = '6';
+      wrap.style.overflow = 'hidden';
+      btn.style.opacity = '0';
+      btn.style.background = 'transparent';
+      btn.style.border = 'none';
+      btn.style.boxShadow = 'none';
+      btn.style.width = '100%';
+      btn.style.height = h + 'px';
+      btn.style.minHeight = h + 'px';
+      btn.style.padding = '0';
+      btn.style.cursor = 'pointer';
+      btn.setAttribute('aria-label', 'Open card');
+      btn.querySelectorAll('p, span, div').forEach(function (el) {
+        el.style.display = 'none';
+      });
+    });
+  }
+  styleHitTargets();
+  clearTimeout(window.parent.__exploreHitT);
+  window.parent.__exploreHitT = setTimeout(styleHitTargets, 120);
+  setTimeout(styleHitTargets, 400);
+  if (!window.parent.__exploreHitObs) {
+    window.parent.__exploreHitObs = new MutationObserver(function () {
+      clearTimeout(window.parent.__exploreHitT);
+      window.parent.__exploreHitT = setTimeout(styleHitTargets, 80);
+    });
+    window.parent.__exploreHitObs.observe(doc.body, { childList: true, subtree: true });
+  }
 })();
 """
 
@@ -1641,25 +1668,15 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
         )
 
 
-def explore_card_image_html(row) -> str:
-    """Gornji dio kartice (slika) — ime ide kao Streamlit gumb između."""
+def explore_card_html(row) -> str:
+    """Cijela Collectr kartica (klik hvata nevidljivi Streamlit gumb + JS)."""
     name = escape(str(getattr(row, "name", "")))
-    card_id = str(getattr(row, "id", ""))
-    image = escape(card_image_for_id(card_id), quote=True)
-    return f"""
-    <div class="explore-card explore-card-top">
-      <img src="{image}" alt="{name}" loading="lazy"
-           onerror="this.style.opacity='0.25';" />
-    </div>
-    """
-
-
-def explore_card_footer_html(row) -> str:
-    """Donji dio kartice: set/raritet, cijena, AI %."""
     set_name = escape(str(getattr(row, "set_name", "") or ""))
     rarity = escape(str(getattr(row, "rarity", "") or ""))
     price = float(getattr(row, "price", 0.0) or 0.0)
     change = getattr(row, "expected_change_pct", None)
+    card_id = str(getattr(row, "id", ""))
+    image = escape(card_image_for_id(card_id), quote=True)
     if change is not None and pd.notna(change):
         change_f = float(change)
         cls = "up" if change_f > 0.05 else "down" if change_f < -0.05 else "flat"
@@ -1672,7 +1689,10 @@ def explore_card_footer_html(row) -> str:
         change_html = '<div class="explore-card-change flat">—</div>'
     meta = " · ".join(part for part in (set_name, rarity) if part)
     return f"""
-    <div class="explore-card explore-card-bottom">
+    <div class="explore-card">
+      <img src="{image}" alt="{name}" loading="lazy"
+           onerror="this.style.opacity='0.25';" />
+      <div class="explore-card-name">{name}</div>
       <div class="explore-card-meta">{meta}</div>
       <div class="explore-card-price">{escape(money(price))}</div>
       {change_html}
@@ -1907,18 +1927,21 @@ def render_explore_grid(rows: pd.DataFrame, cols_per_row: int = 4) -> None:
         for col, row in zip(cols, chunk, strict=False):
             with col:
                 card_id = str(row.id)
-                name = str(getattr(row, "name", card_id) or card_id)
-                st.markdown(explore_card_image_html(row), unsafe_allow_html=True)
+                st.markdown(explore_card_html(row), unsafe_allow_html=True)
+                # Label se sakrije JS-om; hit-target prekriva cijelu karticu.
                 st.button(
-                    name[:42],
+                    "card",
                     key=f"explore_open_{card_id}",
                     use_container_width=True,
-                    type="tertiary",
                     help=t("click_card_ai"),
                     on_click=select_explore_card,
                     args=(card_id,),
                 )
-                st.markdown(explore_card_footer_html(row), unsafe_allow_html=True)
+    components.html(
+        f"<script>{EXPLORE_CARD_HIT_JS}</script>",
+        height=0,
+        width=0,
+    )
 
 
 def render_explore(market: pd.DataFrame) -> None:
