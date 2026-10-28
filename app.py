@@ -173,8 +173,15 @@ CUSTOM_CSS = """
     }
     .market-tile {
         text-align: center;
-        padding: 0;
+        padding: 6px 4px 8px;
         margin: 0;
+        border-radius: 10px;
+        border: 2px solid transparent;
+        transition: border-color 0.15s ease, background 0.15s ease;
+    }
+    .market-tile.is-selected {
+        border-color: #38bdf8;
+        background: rgba(56, 189, 248, 0.08);
     }
     .market-tile img {
         display: block;
@@ -1234,7 +1241,7 @@ def card_image_for_id(card_id: str) -> str:
     return pokemontcg_image_url(str(card_id)) or ""
 
 
-def market_tile_html(row) -> str:
+def market_tile_html(row, *, selected: bool = False) -> str:
     """Jedan tile u market/scanner gridu."""
     card_id = str(getattr(row, "id", getattr(row, "card_id", "")))
     name = escape(str(getattr(row, "name", getattr(row, "Naziv", ""))))
@@ -1255,8 +1262,9 @@ def market_tile_html(row) -> str:
         if signal
         else f'<span class="market-tile-meta">{escape(change_txt)}</span>'
     )
+    selected_cls = " is-selected" if selected else ""
     return f"""
-    <div class="market-tile">
+    <div class="market-tile{selected_cls}">
       <img src="{image}" alt="{name}" loading="lazy"
            onerror="this.style.opacity='0.25';" />
       <div class="market-tile-name">{name}</div>
@@ -1340,17 +1348,35 @@ def render_pager(prefix: str, page: int, pages: int, total: int, page_size: int)
     return int(st.session_state.get(f"{prefix}_page", page))
 
 
-def render_market_grid(page_rows: pd.DataFrame, cols_per_row: int = 6) -> None:
+def render_market_grid(
+    page_rows: pd.DataFrame,
+    cols_per_row: int = 6,
+    *,
+    selection_key: str | None = None,
+) -> None:
     rows = list(page_rows.itertuples(index=False))
     if not rows:
         st.info(t("no_cards_display"))
         return
+    selected_id = str(st.session_state.get(selection_key) or "") if selection_key else ""
     for start in range(0, len(rows), cols_per_row):
         chunk = rows[start : start + cols_per_row]
         cols = st.columns(cols_per_row)
         for col, row in zip(cols, chunk, strict=False):
             with col:
-                st.markdown(market_tile_html(row), unsafe_allow_html=True)
+                card_id = str(getattr(row, "id", getattr(row, "card_id", "")))
+                is_selected = bool(selection_key) and card_id == selected_id
+                st.markdown(market_tile_html(row, selected=is_selected), unsafe_allow_html=True)
+                if selection_key:
+                    if st.button(
+                        t("show_ai"),
+                        key=f"{selection_key}_pick_{card_id}",
+                        type="primary" if is_selected else "secondary",
+                        use_container_width=True,
+                        help=t("click_card_ai"),
+                    ):
+                        st.session_state[selection_key] = card_id
+                        st.rerun()
 
 
 def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, card_id: str) -> None:
@@ -1521,29 +1547,23 @@ def render_market(history: pd.DataFrame, market: pd.DataFrame, model) -> None:
     if filtered.empty:
         st.warning(t("no_cards_filters"))
     else:
-        render_market_grid(page_rows)
+        render_market_grid(page_rows, selection_key="market_selected_id")
 
     st.divider()
     st.markdown(f"##### {t('detail_ai')}")
     if filtered.empty:
         return
-    labels = {
-        row.id: (
-            f"{row.name} · {row.id} · {money(float(row.price))} · {signal_label(row.signal)}"
-        )
-        for row in filtered.itertuples(index=False)
-    }
-    default_id = st.session_state.get("market_selected_id")
-    options = list(labels.keys())
-    index = options.index(default_id) if default_id in options else 0
-    selected_id = st.selectbox(
-        t("pick_card_chart"),
-        options=options,
-        index=index,
-        format_func=lambda card_id: labels[card_id],
-        key="market_detail_select",
-    )
-    st.session_state["market_selected_id"] = selected_id
+
+    filtered_ids = set(filtered["id"].astype(str))
+    selected_id = st.session_state.get("market_selected_id")
+    if selected_id is not None and str(selected_id) not in filtered_ids:
+        selected_id = None
+        st.session_state.pop("market_selected_id", None)
+
+    if not selected_id:
+        st.info(t("click_card_ai"))
+        return
+
     render_market_detail(history, market, model, str(selected_id))
 
 @st.cache_data(show_spinner=False)
