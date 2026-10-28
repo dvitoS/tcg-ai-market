@@ -689,16 +689,18 @@ CUSTOM_CSS = """
     .detail-hero-delta.flat { color: #94a3b8 !important; font-weight: 700; }
     .detail-ai-head {
         background: rgba(16, 24, 40, 0.72);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-bottom: none;
-        border-radius: 16px 16px 0 0;
-        padding: 14px 14px 0;
-        margin: 0;
+        border: 1px solid rgba(255, 255, 255, 0.10);
+        border-radius: 16px;
+        padding: 14px 16px;
+        margin: 0 0 8px;
+        text-align: center;
     }
     .detail-ai-head h3 {
-        margin: 0 0 8px !important;
+        margin: 0 !important;
         font-size: 1.05rem !important;
         color: #f8fafc !important;
+        text-align: center;
+        line-height: 1.3;
     }
     .compare-head {
         background: rgba(16, 24, 40, 0.72);
