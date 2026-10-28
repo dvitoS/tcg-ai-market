@@ -506,82 +506,67 @@ CUSTOM_CSS = """
         .detail-row, .stat-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
 
-    /* ——— Desktop navbar ——— */
+    /* ——— Collectr-style desktop navbar ——— */
     .nav-brand-left {
         font-family: Georgia, "Times New Roman", Times, serif;
-        font-size: 1.2rem;
+        font-size: 1.15rem;
         font-weight: 700;
-        letter-spacing: 0.18em;
-        color: #f8fafc !important;
+        letter-spacing: 0.2em;
+        color: #fafafa !important;
         line-height: 1.05;
-        padding: 0.15rem 0;
+        padding: 0;
         text-transform: uppercase;
         user-select: none;
         white-space: nowrap;
-        transition: opacity 0.2s ease, letter-spacing 0.25s ease;
-    }
-    .nav-brand-left:hover {
-        opacity: 0.92;
-        letter-spacing: 0.22em;
     }
     .nav-brand-left span {
         display: block;
-        font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-        font-size: 0.5rem;
-        font-weight: 550;
+        font-family: Lato, "Segoe UI", system-ui, sans-serif;
+        font-size: 0.48rem;
+        font-weight: 600;
         letter-spacing: 0.28em;
         text-transform: uppercase;
-        color: #7dd3fc !important;
-        margin-top: 4px;
-        opacity: 0.85;
+        color: #a1a1aa !important;
+        margin-top: 3px;
     }
-    /* Sticky shell — navbar glued into app header */
-    div[data-testid="stVerticalBlock"] div:has(div.nav-sticky-anchor) {
-        position: sticky;
-        top: 0;
-        z-index: 1000;
-        background: rgba(7, 11, 20, 0.92);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border-bottom: 1px solid rgba(148, 163, 184, 0.14);
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
-        padding: 0.45rem 0.35rem 0.55rem;
-        margin: 0 0 0.85rem;
-    }
-    .nav-sticky-anchor {
-        height: 0;
-        margin: 0;
-        padding: 0;
-        overflow: hidden;
-    }
-    /* Navbar row: brand + links + lang/currency */
+    /* Single sticky row — Collectr header */
     div[data-testid="stHorizontalBlock"]:has(.nav-brand-left) {
-        gap: 0.35rem !important;
-        padding: 0;
-        margin: 0;
-        border: none;
-        background: transparent;
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 1000 !important;
+        gap: 0.25rem !important;
+        flex-wrap: nowrap !important;
         align-items: center !important;
+        min-height: 3.75rem;
+        max-height: 4.5rem;
+        padding: 0.35rem 0.15rem;
+        margin: 0 0 0.75rem;
+        background: rgba(10, 10, 10, 0.92) !important;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     }
+    div[data-testid="stHorizontalBlock"]:has(.nav-brand-left)
+        > div[data-testid="stColumn"] {
+        flex: 1 1 0 !important;
+        min-width: 0 !important;
+    }
+    /* Ghost text links (not pills) */
     div[data-testid="stHorizontalBlock"]:has(.nav-brand-left) button {
-        border-radius: 999px !important;
-        font-size: 0.78rem !important;
+        border-radius: 8px !important;
+        font-family: Lato, "Segoe UI", system-ui, sans-serif !important;
+        font-size: 0.92rem !important;
         font-weight: 600 !important;
-        letter-spacing: 0.02em !important;
-        padding: 0.32rem 0.65rem !important;
-        min-height: 2rem !important;
-        height: 2rem !important;
+        letter-spacing: 0 !important;
+        padding: 0.45rem 0.55rem !important;
+        min-height: 2.25rem !important;
+        height: 2.25rem !important;
         line-height: 1 !important;
-        border: 1px solid rgba(255, 255, 255, 0.10) !important;
-        background: rgba(15, 23, 42, 0.35) !important;
-        color: #cbd5e1 !important;
+        border: none !important;
+        background: transparent !important;
+        color: rgba(250, 250, 250, 0.78) !important;
         box-shadow: none !important;
-        transition:
-            transform 0.18s ease,
-            border-color 0.18s ease,
-            background 0.18s ease,
-            color 0.18s ease,
-            box-shadow 0.18s ease !important;
+        transition: color 0.15s ease, background 0.15s ease !important;
     }
     div[data-testid="stHorizontalBlock"]:has(.nav-brand-left) button p {
         font-size: inherit !important;
@@ -589,43 +574,42 @@ CUSTOM_CSS = """
         color: inherit !important;
     }
     div[data-testid="stHorizontalBlock"]:has(.nav-brand-left) button:hover {
-        transform: translateY(-1px);
-        border-color: rgba(56, 189, 248, 0.5) !important;
-        background: rgba(56, 189, 248, 0.10) !important;
-        color: #f8fafc !important;
-        box-shadow: 0 6px 16px rgba(14, 165, 233, 0.14) !important;
-    }
-    div[data-testid="stHorizontalBlock"]:has(.nav-brand-left) button:active {
-        transform: translateY(0);
+        background: rgba(255, 255, 255, 0.06) !important;
+        color: #fafafa !important;
+        border: none !important;
+        box-shadow: none !important;
+        transform: none !important;
     }
     div[data-testid="stHorizontalBlock"]:has(.nav-brand-left)
         button[kind="primary"],
     div[data-testid="stHorizontalBlock"]:has(.nav-brand-left)
         button[data-testid="baseButton-primary"] {
-        background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%) !important;
-        border-color: transparent !important;
-        color: #06101c !important;
-        box-shadow: 0 2px 14px rgba(14, 165, 233, 0.38) !important;
+        background: transparent !important;
+        border: none !important;
+        color: #2dd4bf !important;
+        box-shadow: none !important;
     }
     div[data-testid="stHorizontalBlock"]:has(.nav-brand-left)
         button[kind="primary"]:hover,
     div[data-testid="stHorizontalBlock"]:has(.nav-brand-left)
         button[data-testid="baseButton-primary"]:hover {
-        background: linear-gradient(135deg, #0ea5e9 0%, #7dd3fc 100%) !important;
-        box-shadow: 0 6px 18px rgba(14, 165, 233, 0.42) !important;
-        color: #06101c !important;
+        background: rgba(45, 212, 191, 0.08) !important;
+        color: #5eead4 !important;
+        box-shadow: none !important;
     }
-    /* Compact language + currency controls (last 3 columns) */
+    /* Compact lang + currency on the right */
     div[data-testid="stHorizontalBlock"]:has(.nav-brand-left)
         > div[data-testid="stColumn"]:nth-last-child(-n + 3) button {
-        font-size: 0.68rem !important;
-        font-weight: 650 !important;
+        font-size: 0.75rem !important;
+        font-weight: 600 !important;
         letter-spacing: 0.04em !important;
-        padding: 0.18rem 0.42rem !important;
-        min-height: 1.55rem !important;
-        height: 1.55rem !important;
-        background: rgba(255, 255, 255, 0.03) !important;
-        border-color: rgba(255, 255, 255, 0.08) !important;
+        padding: 0.3rem 0.45rem !important;
+        min-height: 1.85rem !important;
+        height: 1.85rem !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        border-radius: 8px !important;
+        background: transparent !important;
+        color: rgba(250, 250, 250, 0.85) !important;
     }
     div[data-testid="stHorizontalBlock"]:has(.nav-brand-left)
         > div[data-testid="stColumn"]:nth-last-child(-n + 3)
@@ -633,16 +617,15 @@ CUSTOM_CSS = """
     div[data-testid="stHorizontalBlock"]:has(.nav-brand-left)
         > div[data-testid="stColumn"]:nth-last-child(-n + 3)
         button[data-testid="baseButton-primary"] {
-        background: rgba(56, 189, 248, 0.18) !important;
-        border-color: rgba(56, 189, 248, 0.45) !important;
-        color: #e0f2fe !important;
-        box-shadow: none !important;
+        border-color: rgba(45, 212, 191, 0.45) !important;
+        color: #5eead4 !important;
+        background: rgba(45, 212, 191, 0.08) !important;
     }
     header[data-testid="stHeader"],
     header.stAppHeader {
-        background: rgba(7, 11, 20, 0.92) !important;
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
+        background: rgba(10, 10, 10, 0.85) !important;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
         border-bottom: none !important;
     }
     div[data-testid="stDecoration"] {
@@ -650,7 +633,7 @@ CUSTOM_CSS = """
     }
     .stMainBlockContainer.block-container,
     .block-container {
-        padding-top: 0.75rem !important;
+        padding-top: 0.5rem !important;
     }
     .explore-search-wrap {
         background: #141414;
@@ -2157,13 +2140,12 @@ def apply_nav_query_params() -> None:
 
 
 def render_navbar() -> str:
-    """Desktop navbar glued into sticky app header."""
+    """Collectr-style sticky header: brand | text links | lang + currency."""
     from currency import CURRENCY_EUR, CURRENCY_USD, get_currency, _set_currency
     from i18n import LANG_EN, LANG_HR, _set_lang, get_lang
 
     if "nav_page" not in st.session_state:
         st.session_state["nav_page"] = "explore"
-    # Makni stari mobile-drawer state ako je ostao.
     st.session_state.pop("nav_menu_open", None)
 
     pages = [
@@ -2175,64 +2157,58 @@ def render_navbar() -> str:
 
     cur = get_currency()
     lang = get_lang()
-    symbol = "$" if cur == CURRENCY_USD else "€"
     code = "USD" if cur == CURRENCY_USD else "EUR"
 
-    with st.container():
+    # brand | 4 links | spacer | HR EN | currency
+    brand, *nav_cols, _gap, lang_hr, lang_en, cur_btn = st.columns(
+        [1.35, 0.95, 1.15, 0.95, 1.05, 1.8, 0.45, 0.45, 0.7],
+        vertical_alignment="center",
+        gap="small",
+    )
+    with brand:
         st.markdown(
-            '<div class="nav-sticky-anchor" aria-hidden="true"></div>',
+            f'<div class="nav-brand-left">TCG AI'
+            f'<span>{escape(t("brand_tagline"))}</span></div>',
             unsafe_allow_html=True,
         )
-        # brand | 4 linka | spacer | HR EN | currency
-        brand, *nav_cols, _gap, lang_hr, lang_en, cur_btn = st.columns(
-            [1.25, 0.95, 1.1, 0.9, 1.0, 1.7, 0.48, 0.48, 0.62],
-            vertical_alignment="center",
-            gap="small",
-        )
-        with brand:
-            st.markdown(
-                f'<div class="nav-brand-left">TCG AI'
-                f'<span>{escape(t("brand_tagline"))}</span></div>',
-                unsafe_allow_html=True,
-            )
-        for col, (key, label) in zip(nav_cols, pages, strict=True):
-            with col:
-                active = st.session_state["nav_page"] == key
-                if st.button(
-                    label,
-                    key=f"nav_{key}",
-                    type="primary" if active else "secondary",
-                    use_container_width=True,
-                ):
-                    if st.session_state["nav_page"] != key:
-                        st.session_state["nav_page"] = key
-                        st.rerun()
-        with lang_hr:
+    for col, (key, label) in zip(nav_cols, pages, strict=True):
+        with col:
+            active = st.session_state["nav_page"] == key
             if st.button(
-                "HR",
-                key="nav_lang_hr",
-                type="primary" if lang == LANG_HR else "secondary",
+                label,
+                key=f"nav_{key}",
+                type="primary" if active else "secondary",
                 use_container_width=True,
             ):
-                if lang != LANG_HR:
-                    _set_lang(LANG_HR)
-        with lang_en:
-            if st.button(
-                "EN",
-                key="nav_lang_en",
-                type="primary" if lang == LANG_EN else "secondary",
-                use_container_width=True,
-            ):
-                if lang != LANG_EN:
-                    _set_lang(LANG_EN)
-        with cur_btn:
-            if st.button(
-                f"{symbol}{code}",
-                key="nav_currency_pill",
-                use_container_width=True,
-                help="USD / EUR",
-            ):
-                _set_currency(CURRENCY_EUR if cur == CURRENCY_USD else CURRENCY_USD)
+                if st.session_state["nav_page"] != key:
+                    st.session_state["nav_page"] = key
+                    st.rerun()
+    with lang_hr:
+        if st.button(
+            "HR",
+            key="nav_lang_hr",
+            type="primary" if lang == LANG_HR else "secondary",
+            use_container_width=True,
+        ):
+            if lang != LANG_HR:
+                _set_lang(LANG_HR)
+    with lang_en:
+        if st.button(
+            "EN",
+            key="nav_lang_en",
+            type="primary" if lang == LANG_EN else "secondary",
+            use_container_width=True,
+        ):
+            if lang != LANG_EN:
+                _set_lang(LANG_EN)
+    with cur_btn:
+        if st.button(
+            code,
+            key="nav_currency_pill",
+            use_container_width=True,
+            help="USD / EUR",
+        ):
+            _set_currency(CURRENCY_EUR if cur == CURRENCY_USD else CURRENCY_USD)
 
     return str(st.session_state["nav_page"])
 
