@@ -579,7 +579,7 @@ CUSTOM_CSS = """
         transition: border-color 0.15s ease, transform 0.15s ease, background 0.15s ease;
         pointer-events: none;
     }
-    /* Transparent hit-target button overlays the card (Streamlit Cloud safe). */
+    /* Nevidljivi hit-target preko kartice — bez tipke / točke / bordera. */
     div[data-testid="stColumn"]:has(.explore-card) div.stButton {
         margin-top: -15.5rem;
         margin-bottom: 0.35rem;
@@ -588,19 +588,31 @@ CUSTOM_CSS = """
     }
     div[data-testid="stColumn"]:has(.explore-card) div.stButton > button {
         background: transparent !important;
-        border: 2px solid transparent !important;
+        background-color: transparent !important;
+        border: none !important;
+        border-width: 0 !important;
         box-shadow: none !important;
+        outline: none !important;
         color: transparent !important;
         min-height: 15rem;
+        padding: 0 !important;
         cursor: pointer !important;
+        opacity: 0 !important;
     }
-    div[data-testid="stColumn"]:has(.explore-card) div.stButton > button:hover {
-        border-color: rgba(56, 189, 248, 0.4) !important;
-        background: rgba(56, 189, 248, 0.07) !important;
+    div[data-testid="stColumn"]:has(.explore-card) div.stButton > button:hover,
+    div[data-testid="stColumn"]:has(.explore-card) div.stButton > button:focus,
+    div[data-testid="stColumn"]:has(.explore-card) div.stButton > button:active {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        outline: none !important;
+        opacity: 0 !important;
     }
-    div[data-testid="stColumn"]:has(.explore-card) div.stButton > button p,
-    div[data-testid="stColumn"]:has(.explore-card) div.stButton > button span {
-        color: transparent !important;
+    /* Hover feedback na samoj kartici ispod hit-targeta */
+    div[data-testid="stColumn"]:has(.explore-card):hover .explore-card {
+        border-color: rgba(255, 255, 255, 0.14);
+        background: rgba(26, 26, 26, 0.28);
+        transform: translateY(-2px);
     }
     .explore-card img {
         display: block;
@@ -1898,9 +1910,9 @@ def render_explore_grid(rows: pd.DataFrame, cols_per_row: int = 4) -> None:
             with col:
                 card_id = str(row.id)
                 st.markdown(explore_card_html(row), unsafe_allow_html=True)
-                # Transparent overlay button (CSS) — Cloud ne hvata HTML <a> klikove.
+                # Nevidljivi hit-target (CSS opacity:0) — Cloud-safe klik na karticu.
                 st.button(
-                    "·",
+                    "open",
                     key=f"explore_open_{card_id}",
                     use_container_width=True,
                     help=t("click_card_ai"),
