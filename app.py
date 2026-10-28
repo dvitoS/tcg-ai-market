@@ -629,6 +629,90 @@ CUSTOM_CSS = """
         font-size: 0.9rem;
         color: #cbd5e1 !important;
     }
+
+    /* AI detail — TCG Forecast-inspired */
+    .detail-hero {
+        display: grid;
+        grid-template-columns: 180px 1fr;
+        gap: 20px;
+        align-items: start;
+        background: rgba(16, 24, 40, 0.72);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: 18px;
+        margin: 8px 0 16px;
+    }
+    .detail-hero img {
+        width: 100%;
+        max-width: 180px;
+        border-radius: 4.35% / 3%;
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+    }
+    .detail-hero-title {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: #f8fafc !important;
+        margin: 0 0 6px;
+        line-height: 1.15;
+    }
+    .detail-hero-meta {
+        color: #94a3b8 !important;
+        font-size: 0.92rem;
+        margin: 0 0 14px;
+    }
+    .detail-hero-price {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #f8fafc !important;
+        margin: 0;
+    }
+    .detail-hero-delta.up { color: #4ade80 !important; font-weight: 700; }
+    .detail-hero-delta.down { color: #f87171 !important; font-weight: 700; }
+    .detail-hero-delta.flat { color: #94a3b8 !important; font-weight: 700; }
+    .compare-panel {
+        background: rgba(16, 24, 40, 0.72);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: 16px 18px 8px;
+        margin: 0 0 16px;
+    }
+    .compare-panel h3 {
+        margin: 0 0 4px !important;
+        font-size: 1.15rem !important;
+        color: #f8fafc !important;
+    }
+    .compare-panel .compare-caption {
+        color: #94a3b8 !important;
+        font-size: 0.85rem;
+        margin: 0 0 12px;
+    }
+    .source-card {
+        background: rgba(10, 14, 24, 0.85);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 12px 14px;
+        margin-top: 8px;
+    }
+    .source-card .src-title {
+        font-weight: 700;
+        color: #e2e8f0 !important;
+        margin: 0 0 4px;
+    }
+    .source-card .src-meta {
+        color: #94a3b8 !important;
+        font-size: 0.8rem;
+        margin: 0;
+    }
+    .source-card .src-price {
+        font-size: 1.35rem;
+        font-weight: 800;
+        color: #f8fafc !important;
+        margin: 8px 0 0;
+    }
+    @media (max-width: 700px) {
+        .detail-hero { grid-template-columns: 1fr; }
+        .detail-hero img { max-width: 160px; margin: 0 auto; }
+    }
 </style>
 """
 
@@ -810,22 +894,43 @@ def forecast_price_in_days(
     return prices[-1]
 
 
-def price_chart(series: pd.DataFrame, predicted: float, name: str) -> go.Figure:
+def price_chart(
+    series: pd.DataFrame,
+    predicted: float | None,
+    name: str,
+    *,
+    source_label: str | None = None,
+    show_ai: bool = True,
+    line_color: str = "#38bdf8",
+) -> go.Figure:
+    if series.empty:
+        fig = go.Figure()
+        fig.update_layout(
+            template="plotly_dark",
+            title=name,
+            height=360,
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(11,18,32,0.65)",
+            annotations=[
+                dict(
+                    text=t("source_unavailable"),
+                    xref="paper",
+                    yref="paper",
+                    x=0.5,
+                    y=0.5,
+                    showarrow=False,
+                    font=dict(color="#94a3b8", size=14),
+                )
+            ],
+        )
+        return fig
+
     last_day = pd.Timestamp(series["date"].iloc[-1])
-    next_day = last_day + pd.Timedelta(days=1)
     last_price = float(series["price"].iloc[-1])
-    signal = trading_signal(last_price, predicted)
     y_hist = series["price"].astype(float).map(to_display)
-    y_last = to_display(last_price)
-    y_pred = to_display(predicted)
-    price_low = min(float(y_hist.min()), y_pred, y_last)
-    price_high = max(float(y_hist.max()), y_pred, y_last)
-    pad = max((price_high - price_low) * 0.18, price_low * 0.01)
-    forecast_color = {"KUPI": "#22c55e", "PRODAJ": "#f87171", "DRŽI": "#fbbf24"}[signal]
+    close_label = source_label or t("chart_close")
     money_hover = f"{currency_symbol()}%{{y:.4f}}"
 
-    close_label = t("chart_close")
-    ai_label = t("chart_ai")
     fig = go.Figure()
     fig.add_trace(
         go.Scatter(
@@ -833,34 +938,48 @@ def price_chart(series: pd.DataFrame, predicted: float, name: str) -> go.Figure:
             y=y_hist,
             mode="lines",
             name=close_label,
-            line=dict(color="#38bdf8", width=2.4),
+            line=dict(color=line_color, width=2.4),
             hovertemplate=f"%{{x|%d.%m.%Y}}<br>{money_hover}<extra>{close_label}</extra>",
         )
     )
-    fig.add_trace(
-        go.Scatter(
-            x=[last_day, next_day],
-            y=[y_last, y_pred],
-            mode="lines+markers",
-            name=ai_label,
-            line=dict(color=forecast_color, width=2.5, dash="dash"),
-            marker=dict(size=9, symbol="diamond", color=forecast_color),
-            hovertemplate=f"%{{x|%d.%m.%Y}}<br>{money_hover}<extra>AI</extra>",
+
+    y_values = [float(y_hist.min()), float(y_hist.max())]
+    if show_ai and predicted is not None:
+        next_day = last_day + pd.Timedelta(days=1)
+        y_last = to_display(last_price)
+        y_pred = to_display(predicted)
+        signal = trading_signal(last_price, predicted)
+        forecast_color = {"KUPI": "#22c55e", "PRODAJ": "#f87171", "DRŽI": "#fbbf24"}[signal]
+        ai_label = t("chart_ai")
+        fig.add_trace(
+            go.Scatter(
+                x=[last_day, next_day],
+                y=[y_last, y_pred],
+                mode="lines+markers",
+                name=ai_label,
+                line=dict(color=forecast_color, width=2.5, dash="dash"),
+                marker=dict(size=9, symbol="diamond", color=forecast_color),
+                hovertemplate=f"%{{x|%d.%m.%Y}}<br>{money_hover}<extra>AI</extra>",
+            )
         )
-    )
+        y_values.extend([y_last, y_pred])
+
+    price_low = min(y_values)
+    price_high = max(y_values)
+    pad = max((price_high - price_low) * 0.18, abs(price_low) * 0.01, 0.01)
     fig.update_layout(
         template="plotly_dark",
-        title=t("chart_title", name=name),
+        title=None,
         xaxis_title=t("xaxis_date"),
         yaxis_title=t("yaxis_price", code=currency_code()),
-        height=480,
-        margin=dict(l=16, r=16, t=64, b=16),
+        height=420,
+        margin=dict(l=16, r=16, t=24, b=16),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(11,18,32,0.65)",
         legend=dict(orientation="h", yanchor="bottom", y=1.02),
         hovermode="x unified",
         xaxis=dict(
-            rangeslider=dict(visible=True, bgcolor="#0d1626", thickness=0.06),
+            rangeslider=dict(visible=False),
             gridcolor="#1e293b",
             showgrid=True,
         ),
@@ -1581,18 +1700,91 @@ def render_market_grid(
                         st.rerun()
 
 
+def render_pill_toggle(options: list[tuple[str, str]], *, state_key: str, default: str) -> str:
+    """Segmentirani gumbi (TCG Forecast stil). options: [(value, label), ...]."""
+    if state_key not in st.session_state:
+        st.session_state[state_key] = default
+    current = st.session_state[state_key]
+    cols = st.columns(len(options))
+    for col, (value, label) in zip(cols, options, strict=True):
+        with col:
+            active = current == value
+            if st.button(
+                label,
+                key=f"{state_key}_btn_{value}",
+                type="primary" if active else "secondary",
+                use_container_width=True,
+            ):
+                if not active:
+                    st.session_state[state_key] = value
+                    st.rerun()
+    return str(st.session_state[state_key])
+
+
+def clip_series_range(series: pd.DataFrame, range_key: str) -> pd.DataFrame:
+    if series.empty or "date" not in series.columns:
+        return series
+    frame = series.copy()
+    frame["date"] = pd.to_datetime(frame["date"])
+    end = frame["date"].max()
+    days = {"1m": 30, "3m": 90}.get(range_key)
+    if days is None:
+        return frame.sort_values("date").reset_index(drop=True)
+    start = end - pd.Timedelta(days=days)
+    return frame.loc[frame["date"] >= start].sort_values("date").reset_index(drop=True)
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def load_justtcg_series(tcgplayer_id: str) -> pd.DataFrame:
+    """Live JustTCG NM history za product id (cache 1h)."""
+    from justtcg_client import (
+        batch_by_tcgplayer_ids,
+        history_points_from_variant,
+        justtcg_api_key,
+        pick_nm_variant,
+    )
+
+    if not tcgplayer_id or not justtcg_api_key():
+        return pd.DataFrame(columns=["date", "price"])
+    try:
+        rows = batch_by_tcgplayer_ids([str(tcgplayer_id)])
+    except Exception:
+        return pd.DataFrame(columns=["date", "price"])
+    if not rows:
+        return pd.DataFrame(columns=["date", "price"])
+    variant = pick_nm_variant(list(rows[0].get("variants") or []))
+    points = history_points_from_variant(variant)
+    if not points:
+        return pd.DataFrame(columns=["date", "price"])
+    frame = pd.DataFrame(points)
+    frame["date"] = pd.to_datetime(frame["date"])
+    frame["price"] = frame["price"].astype(float)
+    return frame.sort_values("date").reset_index(drop=True)
+
+
 def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, card_id: str) -> None:
+    from database import get_card
+    from justtcg_client import justtcg_api_key
+
     card = market.loc[market["id"] == card_id].iloc[0]
-    series = card_history(history, str(card["id"]))
-    if series.empty:
+    db_card = get_card(str(card_id))
+    tcgplayer_id = None
+    if db_card is not None and db_card.tcgplayer_id:
+        tcgplayer_id = str(db_card.tcgplayer_id)
+
+    market_series = card_history(history, str(card["id"]))
+    if market_series.empty:
         st.error(t("no_history_card"))
         return
 
-    last_price = float(series["price"].iloc[-1])
-    previous_price = float(series["price"].iloc[-2]) if len(series) > 1 else last_price
+    # AI uvijek na market/DB seriji (trenutni model).
+    last_price = float(market_series["price"].iloc[-1])
+    previous_price = (
+        float(market_series["price"].iloc[-2]) if len(market_series) > 1 else last_price
+    )
     predicted = predict_next_close(
         model,
-        series,
+        market_series,
         float(card["rarity_encoded"]),
         float(card["supertype_encoded"]),
     )
@@ -1600,39 +1792,126 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
         st.warning(t("short_series"))
         predicted = float(card["predicted_price"])
     change_pct = (predicted - last_price) / last_price * 100.0
-    lags = lag_features_for_last_day(series) or {
+    lags = lag_features_for_last_day(market_series) or {
         "price_lag_1": float(card.get("price_lag_1", last_price)),
         "rolling_mean_7": float(card.get("rolling_mean_7", last_price)),
     }
-    day_change_pct = (last_price - previous_price) / previous_price * 100.0 if previous_price else 0.0
-    period_change_pct = (last_price / float(series["price"].iloc[0]) - 1.0) * 100.0
+    day_change_pct = (
+        (last_price - previous_price) / previous_price * 100.0 if previous_price else 0.0
+    )
     signal = trading_signal(last_price, predicted)
-    next_day = (pd.Timestamp(series["date"].iloc[-1]) + pd.Timedelta(days=1)).strftime("%d.%m.%Y")
+    next_day = (pd.Timestamp(market_series["date"].iloc[-1]) + pd.Timedelta(days=1)).strftime(
+        "%d.%m.%Y"
+    )
+    delta_cls = "up" if day_change_pct > 0.05 else "down" if day_change_pct < -0.05 else "flat"
+    image = escape(card_image_for_id(str(card["id"])), quote=True)
 
-    left, right = st.columns([1.2, 0.8], gap="large")
-    with left:
-        st.subheader(str(card["name"]))
-        chip_row(
-            [
-                (t("set"), str(card["set_name"])),
-                (t("rarity"), str(card["rarity"])),
-                (t("closing"), money(last_price, digits=4)),
-                (t("day_change"), f"{day_change_pct:+.2f}%"),
-            ],
-            "detail-row",
-        )
-        chip_row(
-            [
-                ("60d min", money(float(series["price"].min()), digits=4)),
-                ("60d max", money(float(series["price"].max()), digits=4)),
-                (t("change_60d"), f"{period_change_pct:+.1f}%"),
-            ],
-            "stat-row",
-        )
-        st.plotly_chart(price_chart(series, predicted, str(card["name"])), width="stretch")
+    st.markdown(
+        f"""
+        <div class="detail-hero">
+          <img src="{image}" alt="{escape(str(card['name']))}"
+               onerror="this.style.opacity='0.25';" />
+          <div>
+            <div class="detail-hero-title">{escape(str(card['name']))}</div>
+            <div class="detail-hero-meta">{escape(str(card['set_name']))}
+ · {escape(str(card['rarity']))}
+ · {escape(str(card['id']))}</div>
+            <div class="detail-hero-price">{escape(money(last_price))}</div>
+            <div class="detail-hero-delta {delta_cls}">{day_change_pct:+.2f}% · {escape(signal_label(signal))}</div>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    with right:
-        st.subheader(t("ai_prediction"))
+    chip_row(
+        [
+            ("60d min", money(float(market_series["price"].min()), digits=4)),
+            ("60d max", money(float(market_series["price"].max()), digits=4)),
+            (t("closing"), money(last_price, digits=4)),
+            (t("day_change"), f"{day_change_pct:+.2f}%"),
+        ],
+        "stat-row",
+    )
+
+    st.markdown('<div class="compare-panel">', unsafe_allow_html=True)
+    st.markdown(f"### {t('compare_history')}")
+    st.markdown(
+        f'<p class="compare-caption">{escape(t("compare_history_caption"))}</p>',
+        unsafe_allow_html=True,
+    )
+
+    r1, r2 = st.columns([1.2, 1.6])
+    with r1:
+        st.caption(t("chart_range"))
+        range_key = render_pill_toggle(
+            [("1m", "1M"), ("3m", "3M"), ("all", t("chart_range_all"))],
+            state_key=f"detail_range_{card_id}",
+            default="1m",
+        )
+    with r2:
+        st.caption(t("price_source"))
+        source_key = render_pill_toggle(
+            [("tcgplayer", "TCGplayer"), ("justtcg", "JustTCG")],
+            state_key=f"detail_source_{card_id}",
+            default="justtcg" if justtcg_api_key() else "tcgplayer",
+        )
+
+    just_series = pd.DataFrame(columns=["date", "price"])
+    if source_key == "justtcg":
+        if tcgplayer_id and justtcg_api_key():
+            with st.spinner(t("loading_justtcg")):
+                just_series = load_justtcg_series(tcgplayer_id)
+        chart_series = clip_series_range(just_series, range_key)
+        source_label = "JustTCG"
+        line_color = "#60a5fa"
+        available = not chart_series.empty
+        latest_src = float(chart_series["price"].iloc[-1]) if available else None
+        meta_note = t("source_nm_usd")
+        if not justtcg_api_key():
+            st.info(t("justtcg_key_missing"))
+        elif not tcgplayer_id:
+            st.info(t("justtcg_no_product_id"))
+        elif not available:
+            st.info(t("source_unavailable"))
+    else:
+        chart_series = clip_series_range(market_series, range_key)
+        source_label = "TCGplayer"
+        line_color = "#f87171"
+        available = not chart_series.empty
+        latest_src = float(chart_series["price"].iloc[-1]) if available else None
+        meta_note = t("source_market_db")
+
+    st.plotly_chart(
+        price_chart(
+            chart_series,
+            predicted if source_key == "tcgplayer" else None,
+            str(card["name"]),
+            source_label=source_label,
+            show_ai=(source_key == "tcgplayer"),
+            line_color=line_color,
+        ),
+        width="stretch",
+    )
+
+    src_price_html = (
+        f'<div class="src-price">{escape(money(latest_src))}</div>' if latest_src is not None else ""
+    )
+    st.markdown(
+        f"""
+        <div class="source-card">
+          <div class="src-title">{escape(t('source_label', name=source_label))}</div>
+          <p class="src-meta">{escape(meta_note)} · {len(chart_series)} {escape(t('points_series').lower())}</p>
+          {src_price_html}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown(f"### {t('ai_prediction')}")
+    a1, a2 = st.columns([1.1, 1], gap="large")
+    with a1:
         st.metric(
             t("price_on", date=next_day),
             money(predicted, digits=4),
@@ -1644,6 +1923,7 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
             unsafe_allow_html=True,
         )
         st.caption(t("ai_caption", band=HOLD_BAND * 100))
+    with a2:
         st.dataframe(
             pd.DataFrame(
                 {
@@ -1657,7 +1937,7 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
                     t("value"): [
                         str(card["id"]),
                         str(card.get("supertype", "")),
-                        str(len(series)),
+                        str(len(market_series)),
                         money(float(lags["price_lag_1"]), digits=4),
                         money(float(lags["rolling_mean_7"]), digits=4),
                     ],
@@ -2070,7 +2350,6 @@ def render_market(history: pd.DataFrame, market: pd.DataFrame, model) -> None:
             st.session_state["market_detail_only"] = False
             st.session_state["nav_page"] = "explore"
             st.rerun()
-        st.markdown(f"##### {t('detail_ai')}")
         render_market_detail(history, market, model, str(selected_id))
         return
 
