@@ -630,40 +630,50 @@ CUSTOM_CSS = """
         color: #cbd5e1 !important;
     }
 
-    /* AI detail — desktop TCG Forecast: lijevo karta/AI, desno graf */
+    /* AI detail — desktop: slika lijevo, ime/cijena desno (bez overflowa) */
     .detail-hero {
-        display: block;
-        text-align: center;
+        display: grid;
+        grid-template-columns: 110px minmax(0, 1fr);
+        gap: 14px;
+        align-items: start;
         background: rgba(16, 24, 40, 0.72);
         border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 16px;
-        padding: 18px 16px 16px;
+        padding: 14px;
         margin: 0 0 12px;
+        overflow: hidden;
     }
     .detail-hero img {
         display: block;
-        width: 78%;
-        max-width: 240px;
-        margin: 0 auto 14px;
+        width: 110px;
+        max-width: 110px;
+        height: auto;
+        margin: 0;
         border-radius: 4.35% / 3%;
-        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+        object-fit: contain;
+    }
+    .detail-hero-copy {
+        min-width: 0;
+        overflow-wrap: anywhere;
     }
     .detail-hero-title {
-        font-size: 1.45rem;
+        font-size: 1.2rem;
         font-weight: 800;
         color: #f8fafc !important;
         margin: 0 0 6px;
-        line-height: 1.2;
+        line-height: 1.25;
         text-align: left;
     }
     .detail-hero-meta {
         color: #94a3b8 !important;
-        font-size: 0.86rem;
-        margin: 0 0 12px;
+        font-size: 0.8rem;
+        margin: 0 0 10px;
         text-align: left;
+        line-height: 1.35;
     }
     .detail-hero-price {
-        font-size: 1.85rem;
+        font-size: 1.45rem;
         font-weight: 800;
         color: #f8fafc !important;
         margin: 0;
@@ -672,7 +682,7 @@ CUSTOM_CSS = """
     .detail-hero-delta {
         text-align: left;
         margin-top: 4px;
-        font-size: 0.95rem;
+        font-size: 0.88rem;
     }
     .detail-hero-delta.up { color: #4ade80 !important; font-weight: 700; }
     .detail-hero-delta.down { color: #f87171 !important; font-weight: 700; }
@@ -1832,10 +1842,12 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
             <div class="detail-hero">
               <img src="{image}" alt="{escape(str(card['name']))}"
                    onerror="this.style.opacity='0.25';" />
-              <div class="detail-hero-title">{escape(str(card['name']))}</div>
-              <div class="detail-hero-meta">{escape(str(card['set_name']))} · {escape(str(card['rarity']))} · {escape(str(card['id']))}</div>
-              <div class="detail-hero-price">{escape(money(last_price))}</div>
-              <div class="detail-hero-delta {delta_cls}">{day_change_pct:+.2f}% · {escape(signal_label(signal))}</div>
+              <div class="detail-hero-copy">
+                <div class="detail-hero-title">{escape(str(card['name']))}</div>
+                <div class="detail-hero-meta">{escape(str(card['set_name']))} · {escape(str(card['rarity']))} · {escape(str(card['id']))}</div>
+                <div class="detail-hero-price">{escape(money(last_price))}</div>
+                <div class="detail-hero-delta {delta_cls}">{day_change_pct:+.2f}% · {escape(signal_label(signal))}</div>
+              </div>
             </div>
             """,
             unsafe_allow_html=True,
