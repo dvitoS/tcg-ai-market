@@ -534,13 +534,12 @@ CUSTOM_CSS = """
         position: sticky !important;
         top: 0 !important;
         z-index: 1000 !important;
-        gap: 0.25rem !important;
+        gap: 0.55rem !important;
         flex-wrap: nowrap !important;
         align-items: center !important;
-        min-height: 3.75rem;
-        max-height: 4.5rem;
-        padding: 0.35rem 0.15rem;
-        margin: 0 0 0.75rem;
+        min-height: 3.5rem;
+        padding: 0.65rem 0.35rem 0.7rem;
+        margin: 0.85rem 0 1rem;
         background: rgba(10, 10, 10, 0.92) !important;
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
@@ -548,19 +547,18 @@ CUSTOM_CSS = """
     }
     div[data-testid="stHorizontalBlock"]:has(.nav-brand-left)
         > div[data-testid="stColumn"] {
-        flex: 1 1 0 !important;
         min-width: 0 !important;
     }
     /* Ghost text links (not pills) */
     div[data-testid="stHorizontalBlock"]:has(.nav-brand-left) button {
         border-radius: 8px !important;
         font-family: Lato, "Segoe UI", system-ui, sans-serif !important;
-        font-size: 0.92rem !important;
+        font-size: 0.9rem !important;
         font-weight: 600 !important;
         letter-spacing: 0 !important;
-        padding: 0.45rem 0.55rem !important;
-        min-height: 2.25rem !important;
-        height: 2.25rem !important;
+        padding: 0.4rem 0.7rem !important;
+        min-height: 2.15rem !important;
+        height: 2.15rem !important;
         line-height: 1 !important;
         border: none !important;
         background: transparent !important;
@@ -633,7 +631,7 @@ CUSTOM_CSS = """
     }
     .stMainBlockContainer.block-container,
     .block-container {
-        padding-top: 0.5rem !important;
+        padding-top: 1.15rem !important;
     }
     .explore-search-wrap {
         background: #141414;
@@ -2161,9 +2159,9 @@ def render_navbar() -> str:
 
     # brand | 4 links | spacer | HR EN | currency
     brand, *nav_cols, _gap, lang_hr, lang_en, cur_btn = st.columns(
-        [1.35, 0.95, 1.15, 0.95, 1.05, 1.8, 0.45, 0.45, 0.7],
+        [1.45, 0.9, 1.1, 0.9, 1.0, 2.4, 0.5, 0.5, 0.7],
         vertical_alignment="center",
-        gap="small",
+        gap="medium",
     )
     with brand:
         st.markdown(
