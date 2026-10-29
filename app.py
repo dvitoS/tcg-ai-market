@@ -2217,27 +2217,49 @@ def explore_card_html(row) -> str:
     """
 
 
+def _query_param_value(raw) -> str | None:
+    if raw is None:
+        return None
+    if isinstance(raw, (list, tuple)):
+        return str(raw[0]) if raw else None
+    text = str(raw).strip()
+    return text or None
+
+
+def set_nav_query_params(*, page: str, card_id: str | None = None) -> None:
+    """Drži deep-link u URL-u da refresh ne vrati na Explore."""
+    desired: dict[str, str] = {"nav": str(page)}
+    if card_id:
+        desired["card"] = str(card_id)
+    current_nav = _query_param_value(st.query_params.get("nav"))
+    current_card = _query_param_value(st.query_params.get("card"))
+    if current_nav == desired.get("nav") and current_card == desired.get("card"):
+        return
+    if current_nav == desired.get("nav") and desired.get("card") is None and current_card is None:
+        return
+    st.query_params.from_dict(desired)
+
+
 def select_explore_card(card_id: str) -> None:
     """Streamlit on_click — radi i lokalno i na Cloud (za razliku od HTML <a>)."""
     st.session_state["market_selected_id"] = str(card_id)
     st.session_state["nav_page"] = "market"
     st.session_state["market_detail_only"] = True
+    set_nav_query_params(page="market", card_id=str(card_id))
 
 
 def apply_nav_query_params() -> None:
-    """Opcionalni deep-link: ?nav=market&card=sv3-123."""
-    qp = st.query_params
-    card = qp.get("card")
-    nav = qp.get("nav")
+    """Deep-link: ?nav=market&card=sv3-123 (ostaje u URL-u nakon loada)."""
+    card = _query_param_value(st.query_params.get("card"))
+    nav = _query_param_value(st.query_params.get("nav"))
     if card is None and nav is None:
         return
     if card is not None:
-        select_explore_card(str(card))
-        if nav is not None:
-            st.session_state["nav_page"] = str(nav)
+        st.session_state["market_selected_id"] = card
+        st.session_state["market_detail_only"] = True
+        st.session_state["nav_page"] = nav or "market"
     elif nav is not None:
-        st.session_state["nav_page"] = str(nav)
-    st.query_params.clear()
+        st.session_state["nav_page"] = nav
 
 
 def render_navbar() -> str:
@@ -2282,6 +2304,9 @@ def render_navbar() -> str:
             ):
                 if st.session_state["nav_page"] != key:
                     st.session_state["nav_page"] = key
+                    if key != "market":
+                        st.session_state["market_detail_only"] = False
+                    set_nav_query_params(page=key)
                     st.rerun()
     with lang_hr:
         if st.button(
@@ -2585,8 +2610,11 @@ def render_market(history: pd.DataFrame, market: pd.DataFrame, model) -> None:
     ):
         if st.button(t("back_explore"), key="market_back_explore"):
             st.session_state["market_detail_only"] = False
+            st.session_state.pop("market_selected_id", None)
             st.session_state["nav_page"] = "explore"
+            set_nav_query_params(page="explore")
             st.rerun()
+        set_nav_query_params(page="market", card_id=str(selected_id))
         render_market_detail(history, market, model, str(selected_id))
         return
 
