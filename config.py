@@ -92,6 +92,45 @@ def get_supabase_credentials() -> tuple[str, str]:
     return url, key
 
 
+def get_justtcg_api_key() -> str:
+    """Svježi JustTCG key: ponovno učitaj .env, zatim OS / Streamlit Secrets."""
+    load_dotenv(ENV_PATH, override=False)
+    if not os.environ.get("GITHUB_ACTIONS"):
+        load_dotenv(PROJECT_ROOT / "tcg.env.txt", override=False)
+
+    candidates = (
+        _secret("JUSTTCG_API_KEY"),
+        os.getenv("JUSTTCG_API_KEY", ""),
+        _from_streamlit_secrets("JUSTTCG_API_KEY"),
+    )
+    # Nested / alternativna imena u Secrets
+    try:
+        import streamlit as st
+
+        secrets = st.secrets
+        for path in (
+            ("JUSTTCG_API_KEY",),
+            ("justtcg", "api_key"),
+            ("justtcg", "JUSTTCG_API_KEY"),
+            ("api", "justtcg_api_key"),
+        ):
+            try:
+                cur = secrets
+                for part in path:
+                    cur = cur[part]
+                candidates = (*candidates, str(cur))
+            except Exception:
+                continue
+    except Exception:
+        pass
+
+    for raw in candidates:
+        cleaned = _clean_secret_value(str(raw or ""))
+        if cleaned:
+            return cleaned
+    return ""
+
+
 # Javna dokumentacija: https://pokemontcg.io
 POKEMON_TCG_API_URL = "https://api.pokemontcg.io/v2/cards"
 POKEMON_TCG_SETS_URL = "https://api.pokemontcg.io/v2/sets"

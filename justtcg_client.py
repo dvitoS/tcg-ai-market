@@ -27,7 +27,13 @@ class JustTCGRateLimitError(requests.HTTPError):
 
 
 def justtcg_api_key() -> str:
-    return (_secret("JUSTTCG_API_KEY") or JUSTTCG_API_KEY or "").strip()
+    """Uvijek svježe — ne oslanjaj se na stale JUSTTCG_API_KEY konstantu."""
+    try:
+        from config import get_justtcg_api_key
+
+        return get_justtcg_api_key()
+    except Exception:
+        return (_secret("JUSTTCG_API_KEY") or JUSTTCG_API_KEY or "").strip()
 
 
 def _headers() -> dict[str, str]:

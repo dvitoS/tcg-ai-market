@@ -2110,10 +2110,9 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
         just_series = pd.DataFrame(columns=["date", "price"])
         justtcg_error: str | None = None
         used_db_fallback = False
+        has_justtcg_key = bool(justtcg_api_key())
         if source_key == "justtcg":
-            if not justtcg_api_key():
-                st.info(t("justtcg_key_missing"))
-            else:
+            if has_justtcg_key:
                 with st.spinner(t("loading_justtcg")):
                     try:
                         just_series, resolved_tcp = load_justtcg_series(
@@ -2127,10 +2126,10 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
                     except Exception as exc:
                         justtcg_error = str(exc)
                         just_series = pd.DataFrame(columns=["date", "price"])
-                # Live prazan → pokaži spremljenu NM/market seriju umjesto 0 točaka.
-                if just_series.empty and not market_series.empty:
-                    just_series = market_series[["date", "price"]].copy()
-                    used_db_fallback = True
+            # Live prazan / nema key → spremljena serija umjesto praznog grafa.
+            if just_series.empty and not market_series.empty:
+                just_series = market_series[["date", "price"]].copy()
+                used_db_fallback = True
             chart_series = clip_series_range(just_series, range_key)
             source_label = "JustTCG"
             line_color = "#60a5fa"
@@ -2141,11 +2140,13 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
                 if used_db_fallback
                 else t("source_nm_usd")
             )
+            if not has_justtcg_key:
+                st.info(t("justtcg_key_missing"))
             if justtcg_error:
                 st.warning(t("justtcg_fetch_error", error=justtcg_error[:180]))
-            elif justtcg_api_key() and not available:
+            elif has_justtcg_key and not available:
                 st.info(t("source_unavailable"))
-            elif used_db_fallback:
+            elif used_db_fallback and has_justtcg_key:
                 st.caption(t("justtcg_using_saved"))
         else:
             chart_series = clip_series_range(market_series, range_key)
