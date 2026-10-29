@@ -1923,6 +1923,16 @@ def resolve_tcgplayer_id(card_id: str) -> str | None:
         return None
 
 
+def _justtcg_module():
+    """Učitaj justtcg_client; reload ako Streamlit drži stale modul bez novih funkcija."""
+    import importlib
+    import justtcg_client as jtcg
+
+    if not hasattr(jtcg, "nm_history_for_card"):
+        jtcg = importlib.reload(jtcg)
+    return jtcg
+
+
 def load_justtcg_series(
     *,
     tcgplayer_id: str | None,
@@ -1931,26 +1941,34 @@ def load_justtcg_series(
     set_name: str,
 ) -> tuple[pd.DataFrame, str | None]:
     """Live JustTCG NM history. Cacheira samo uspješan non-empty rezultat (session)."""
-    from justtcg_client import justtcg_api_key, nm_history_for_card, normalize_card_number
-
-    if not justtcg_api_key():
+    jtcg = _justtcg_module()
+    if not jtcg.justtcg_api_key():
         return pd.DataFrame(columns=["date", "price"]), tcgplayer_id
 
     number = ""
     if "-" in str(card_id):
-        number = normalize_card_number(str(card_id).rsplit("-", 1)[-1])
+        number = jtcg.normalize_card_number(str(card_id).rsplit("-", 1)[-1])
 
     cache_key = f"justtcg_series::{card_id}::{tcgplayer_id or ''}::{number}"
     cached = st.session_state.get(cache_key)
     if isinstance(cached, pd.DataFrame) and not cached.empty:
         return cached.copy(), tcgplayer_id
 
-    points, resolved = nm_history_for_card(
-        tcgplayer_id=tcgplayer_id,
-        name=name,
-        number=number or None,
-        set_name=set_name or None,
-    )
+    nm_history_for_card = getattr(jtcg, "nm_history_for_card", None)
+    if not callable(nm_history_for_card):
+        # Fallback: samo product-id path ako reload nije uhvatio novu funkciju.
+        points: list = []
+        resolved = tcgplayer_id
+        if tcgplayer_id and hasattr(jtcg, "nm_history_for_tcgplayer_id"):
+            points = jtcg.nm_history_for_tcgplayer_id(str(tcgplayer_id))
+    else:
+        points, resolved = nm_history_for_card(
+            tcgplayer_id=tcgplayer_id,
+            name=name,
+            number=number or None,
+            set_name=set_name or None,
+        )
+
     if not points:
         return pd.DataFrame(columns=["date", "price"]), resolved or tcgplayer_id
 
@@ -1963,7 +1981,7 @@ def load_justtcg_series(
 
 
 def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, card_id: str) -> None:
-    from justtcg_client import justtcg_api_key
+    justtcg_api_key = _justtcg_module().justtcg_api_key
 
     card = market.loc[market["id"] == card_id].iloc[0]
     tcgplayer_id = resolve_tcgplayer_id(str(card_id))
