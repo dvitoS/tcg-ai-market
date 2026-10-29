@@ -1885,8 +1885,12 @@ def clip_series_range(series: pd.DataFrame, range_key: str) -> pd.DataFrame:
 
 def resolve_tcgplayer_id(card_id: str) -> str | None:
     """DB → pokemontcg.io URL/productId; spremi u cards ako nedostaje."""
-    from database import get_card, update_card_tcgplayer_id
+    import database as db_mod
     from justtcg_client import extract_tcgplayer_product_id
+
+    get_card = db_mod.get_card
+    # Streamlit ponekad drži stari database modul — getattr izbjegava ImportError.
+    update_tcp = getattr(db_mod, "update_card_tcgplayer_id", None)
 
     db_card = get_card(str(card_id))
     if db_card is not None and db_card.tcgplayer_id:
@@ -1909,9 +1913,9 @@ def resolve_tcgplayer_id(card_id: str) -> str | None:
             return None
         payload = response.json() if response.content else {}
         product_id = extract_tcgplayer_product_id(payload.get("data") or {})
-        if product_id:
+        if product_id and callable(update_tcp):
             try:
-                update_card_tcgplayer_id(str(card_id), product_id)
+                update_tcp(str(card_id), product_id)
             except Exception:
                 pass
         return product_id
