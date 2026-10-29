@@ -36,6 +36,11 @@ def _from_streamlit_secrets(name: str) -> str:
         "SUPABASE_DB_URL": ("supabase", "db_url"),
         "TCG_API_KEY": ("tcg", "api_key"),
         "JUSTTCG_API_KEY": ("justtcg", "api_key"),
+        "EBAY_APP_ID": ("ebay", "app_id"),
+        "EBAY_CERT_ID": ("ebay", "cert_id"),
+        "EBAY_DEV_ID": ("ebay", "dev_id"),
+        "EBAY_OAUTH_TOKEN": ("ebay", "oauth_token"),
+        "EBAY_MARKETPLACE_ID": ("ebay", "marketplace_id"),
     }
     section_key = nested_map.get(name)
     if not section_key:
@@ -129,6 +134,27 @@ def get_justtcg_api_key() -> str:
         if cleaned:
             return cleaned
     return ""
+
+
+def get_ebay_credentials() -> tuple[str, str, str, str]:
+    """Svježi eBay Production keyset + opcioni OAuth token.
+
+    Returns:
+        (app_id, cert_id, dev_id, oauth_token)
+    """
+    load_dotenv(ENV_PATH, override=False)
+    if not os.environ.get("GITHUB_ACTIONS"):
+        load_dotenv(PROJECT_ROOT / "tcg.env.txt", override=False)
+
+    app_id = _clean_secret_value(_secret("EBAY_APP_ID") or _secret("EBAY_CLIENT_ID"))
+    cert_id = _clean_secret_value(_secret("EBAY_CERT_ID") or _secret("EBAY_CLIENT_SECRET"))
+    dev_id = _clean_secret_value(_secret("EBAY_DEV_ID"))
+    oauth = _clean_secret_value(
+        _secret("EBAY_OAUTH_TOKEN")
+        or _secret("EBAY_USER_TOKEN")
+        or _secret("EBAY_ACCESS_TOKEN")
+    )
+    return app_id, cert_id, dev_id, oauth
 
 
 # Javna dokumentacija: https://pokemontcg.io

@@ -862,6 +862,60 @@ CUSTOM_CSS = """
         color: #f8fafc !important;
         margin: 8px 0 0;
     }
+    .ebay-block {
+        margin-top: 1.5rem;
+        padding-top: 0.25rem;
+    }
+    .ebay-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 10px;
+    }
+    .ebay-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        gap: 10px 14px;
+        align-items: center;
+        padding: 10px 12px;
+        background: rgba(10, 14, 24, 0.85);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 10px;
+    }
+    .ebay-row .ebay-title {
+        color: #e2e8f0 !important;
+        font-size: 0.9rem;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+    }
+    .ebay-row .ebay-meta {
+        color: #94a3b8 !important;
+        font-size: 0.75rem;
+        margin-top: 2px;
+    }
+    .ebay-row .ebay-price {
+        color: #f8fafc !important;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+    .ebay-row a.ebay-link {
+        color: #93c5fd !important;
+        font-weight: 600;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+    .ebay-row a.ebay-link:hover { text-decoration: underline; }
+    @media (max-width: 720px) {
+        .ebay-row {
+            grid-template-columns: minmax(0, 1fr) auto;
+            grid-template-areas:
+                "title title"
+                "price link";
+        }
+        .ebay-row .ebay-title { grid-area: title; }
+        .ebay-row .ebay-price { grid-area: price; }
+        .ebay-row a.ebay-link { grid-area: link; }
+    }
 </style>
 """
 
@@ -1933,6 +1987,48 @@ def _justtcg_module():
     return jtcg
 
 
+def _ebay_module():
+    import ebay_client as ebay
+
+    return ebay
+
+
+def load_ebay_listings(
+    *,
+    card_id: str,
+    name: str,
+    set_name: str,
+) -> tuple[list[dict], str | None]:
+    """Live eBay Browse listings. Cacheira uspješan rezultat u session."""
+    ebay = _ebay_module()
+    if not ebay.ebay_configured():
+        return [], None
+
+    number = ""
+    if "-" in str(card_id):
+        number = str(card_id).rsplit("-", 1)[-1].lstrip("0") or str(card_id).rsplit("-", 1)[-1]
+
+    cache_key = f"ebay_listings::{card_id}"
+    cached = st.session_state.get(cache_key)
+    # Samo non-empty cache — prazan rezultat ne smije zauvijek sakriti oglase.
+    if isinstance(cached, list) and cached:
+        return cached, None
+
+    try:
+        rows = ebay.listings_for_card(
+            name=name,
+            set_name=set_name or None,
+            number=number or None,
+            limit=8,
+        )
+    except Exception as exc:
+        return [], str(exc)
+
+    if rows:
+        st.session_state[cache_key] = rows
+    return rows, None
+
+
 def load_justtcg_series(
     *,
     tcgplayer_id: str | None,
@@ -2184,6 +2280,70 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
             unsafe_allow_html=True,
         )
 
+    # eBay Browse — full-width ispod hero/graf layouta (ne utisnuto u desni stupac).
+    ebay = _ebay_module()
+    st.markdown(
+        f"""
+        <div class="ebay-block">
+          <div class="compare-head">
+            <h3>{escape(t("ebay_listings"))}</h3>
+            <p class="compare-caption">{escape(t("ebay_listings_caption"))}</p>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    if not ebay.ebay_configured():
+        st.info(t("ebay_key_missing"))
+    else:
+        with st.spinner(t("ebay_loading")):
+            ebay_rows, ebay_error = load_ebay_listings(
+                card_id=str(card_id),
+                name=str(card["name"]),
+                set_name=str(card.get("set_name") or ""),
+            )
+        if ebay_error:
+            st.warning(t("ebay_fetch_error", error=ebay_error[:220]))
+        elif not ebay_rows:
+            st.info(t("ebay_no_results"))
+        else:
+            priced = [r for r in ebay_rows if r.get("price") is not None]
+            if priced:
+                lowest = min(float(r["price"]) for r in priced)
+                st.caption(
+                    t(
+                        "ebay_from_price",
+                        price=money(lowest),
+                        n=len(ebay_rows),
+                    )
+                )
+            rows_html: list[str] = []
+            for r in ebay_rows:
+                title = escape((r.get("title") or "")[:100])
+                condition = escape(str(r.get("condition") or "—"))
+                price_txt = (
+                    escape(money(float(r["price"])))
+                    if r.get("price") is not None
+                    else "—"
+                )
+                url = str(r.get("url") or "").strip()
+                link = (
+                    f'<a class="ebay-link" href="{escape(url, quote=True)}" '
+                    f'target="_blank" rel="noopener noreferrer">eBay ↗</a>'
+                    if url.startswith("http")
+                    else '<span class="ebay-meta">—</span>'
+                )
+                rows_html.append(
+                    f'<div class="ebay-row">'
+                    f'<div><div class="ebay-title">{title}</div>'
+                    f'<div class="ebay-meta">{condition}</div></div>'
+                    f'<div class="ebay-price">{price_txt}</div>'
+                    f"{link}</div>"
+                )
+            st.markdown(
+                f'<div class="ebay-list">{"".join(rows_html)}</div>',
+                unsafe_allow_html=True,
+            )
 
 
 def explore_card_html(row) -> str:
