@@ -137,12 +137,26 @@ def variant_price_usd(variant: dict[str, Any] | None) -> float | None:
     return None
 
 
+def _history_list_from_variant(variant: dict[str, Any]) -> list[Any]:
+    for key in (
+        "priceHistory",
+        "price_history",
+        "priceHistory30d",
+        "price_history_30d",
+        "priceHistory90d",
+    ):
+        raw = variant.get(key)
+        if isinstance(raw, list) and raw:
+            return raw
+    return []
+
+
 def history_points_from_variant(variant: dict[str, Any] | None) -> list[dict[str, Any]]:
     """JustTCG priceHistory [{p,t}] → [{date, price}] (USD)."""
     if not variant:
         return []
     points: list[dict[str, Any]] = []
-    history = variant.get("priceHistory") or variant.get("price_history") or []
+    history = _history_list_from_variant(variant)
     for item in history:
         if not isinstance(item, dict):
             continue
@@ -155,6 +169,9 @@ def history_points_from_variant(variant: dict[str, Any] | None) -> list[dict[str
             continue
         if price_f <= 0:
             continue
+        # Sekunde ili milisekunde.
+        if ts_i > 10_000_000_000:
+            ts_i //= 1000
         day = datetime.fromtimestamp(ts_i, tz=timezone.utc).date()
         points.append({"date": day, "price": round(price_f, 4)})
 
@@ -169,6 +186,39 @@ def history_points_from_variant(variant: dict[str, Any] | None) -> list[dict[str
     for point in sorted(points, key=lambda p: p["date"]):
         by_date[point["date"]] = float(point["price"])
     return [{"date": day, "price": price} for day, price in sorted(by_date.items())]
+
+
+def fetch_card_by_tcgplayer_id(tcgplayer_id: str) -> dict[str, Any] | None:
+    """Jedna karta po TCGplayer product id (POST batch, fallback GET)."""
+    tid = str(tcgplayer_id or "").strip()
+    if not tid:
+        return None
+
+    rows = batch_by_tcgplayer_ids([tid])
+    if rows:
+        return rows[0]
+
+    payload = _get(
+        "/cards",
+        {
+            "tcgplayerId": tid,
+            "condition": "NM",
+            "include_price_history": "true",
+            "priceHistoryDuration": JUSTTCG_HISTORY_DURATION,
+            "limit": 5,
+        },
+    )
+    rows = list(payload.get("data") or [])
+    return rows[0] if rows else None
+
+
+def nm_history_for_tcgplayer_id(tcgplayer_id: str) -> list[dict[str, Any]]:
+    """NM price history points za product id (može biti samo spot ako API nema history)."""
+    card = fetch_card_by_tcgplayer_id(tcgplayer_id)
+    if not card:
+        return []
+    variant = pick_nm_variant(list(card.get("variants") or []))
+    return history_points_from_variant(variant)
 
 
 def list_pokemon_sets() -> list[dict[str, Any]]:

@@ -315,6 +315,14 @@ def update_card_market_price(card_id: str, market_price: float, *, tcgplayer_id:
     client.table("cards").update(payload).eq("id", card_id).execute()
 
 
+def update_card_tcgplayer_id(card_id: str, tcgplayer_id: str) -> None:
+    """Spremi TCGplayer product id (za JustTCG live history)."""
+    if not tcgplayer_id or not cards_have_tcgplayer_id_column():
+        return
+    client = get_supabase()
+    client.table("cards").update({"tcgplayer_id": str(tcgplayer_id)}).eq("id", card_id).execute()
+
+
 def replace_card_history(card_id: str, points: list[dict[str, Any]]) -> int:
     if not points:
         return 0

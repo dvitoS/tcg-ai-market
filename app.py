@@ -1883,26 +1883,50 @@ def clip_series_range(series: pd.DataFrame, range_key: str) -> pd.DataFrame:
     return frame.loc[frame["date"] >= start].sort_values("date").reset_index(drop=True)
 
 
-@st.cache_data(ttl=3600, show_spinner=False)
+def resolve_tcgplayer_id(card_id: str) -> str | None:
+    """DB → pokemontcg.io URL/productId; spremi u cards ako nedostaje."""
+    from database import get_card, update_card_tcgplayer_id
+    from justtcg_client import extract_tcgplayer_product_id
+
+    db_card = get_card(str(card_id))
+    if db_card is not None and db_card.tcgplayer_id:
+        return str(db_card.tcgplayer_id)
+
+    try:
+        import requests
+
+        from config import POKEMON_TCG_API_URL, TCG_API_KEY
+
+        headers = {"Accept": "application/json"}
+        if TCG_API_KEY:
+            headers["X-Api-Key"] = str(TCG_API_KEY)
+        response = requests.get(
+            f"{POKEMON_TCG_API_URL.rstrip('/')}/{card_id}",
+            headers=headers,
+            timeout=25,
+        )
+        if response.status_code != 200:
+            return None
+        payload = response.json() if response.content else {}
+        product_id = extract_tcgplayer_product_id(payload.get("data") or {})
+        if product_id:
+            try:
+                update_card_tcgplayer_id(str(card_id), product_id)
+            except Exception:
+                pass
+        return product_id
+    except Exception:
+        return None
+
+
+@st.cache_data(ttl=1800, show_spinner=False)
 def load_justtcg_series(tcgplayer_id: str) -> pd.DataFrame:
-    """Live JustTCG NM history za product id (cache 1h)."""
-    from justtcg_client import (
-        batch_by_tcgplayer_ids,
-        history_points_from_variant,
-        justtcg_api_key,
-        pick_nm_variant,
-    )
+    """Live JustTCG NM history za product id (cache 30 min, samo uspjeh)."""
+    from justtcg_client import justtcg_api_key, nm_history_for_tcgplayer_id
 
     if not tcgplayer_id or not justtcg_api_key():
         return pd.DataFrame(columns=["date", "price"])
-    try:
-        rows = batch_by_tcgplayer_ids([str(tcgplayer_id)])
-    except Exception:
-        return pd.DataFrame(columns=["date", "price"])
-    if not rows:
-        return pd.DataFrame(columns=["date", "price"])
-    variant = pick_nm_variant(list(rows[0].get("variants") or []))
-    points = history_points_from_variant(variant)
+    points = nm_history_for_tcgplayer_id(str(tcgplayer_id))
     if not points:
         return pd.DataFrame(columns=["date", "price"])
     frame = pd.DataFrame(points)
@@ -1912,14 +1936,10 @@ def load_justtcg_series(tcgplayer_id: str) -> pd.DataFrame:
 
 
 def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, card_id: str) -> None:
-    from database import get_card
     from justtcg_client import justtcg_api_key
 
     card = market.loc[market["id"] == card_id].iloc[0]
-    db_card = get_card(str(card_id))
-    tcgplayer_id = None
-    if db_card is not None and db_card.tcgplayer_id:
-        tcgplayer_id = str(db_card.tcgplayer_id)
+    tcgplayer_id = resolve_tcgplayer_id(str(card_id))
 
     market_series = card_history(history, str(card["id"]))
     if market_series.empty:
@@ -2043,21 +2063,28 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
             )
 
         just_series = pd.DataFrame(columns=["date", "price"])
+        justtcg_error: str | None = None
         if source_key == "justtcg":
-            if tcgplayer_id and justtcg_api_key():
+            if not justtcg_api_key():
+                st.info(t("justtcg_key_missing"))
+            elif not tcgplayer_id:
+                st.info(t("justtcg_no_product_id"))
+            else:
                 with st.spinner(t("loading_justtcg")):
-                    just_series = load_justtcg_series(tcgplayer_id)
+                    try:
+                        just_series = load_justtcg_series(tcgplayer_id)
+                    except Exception as exc:
+                        justtcg_error = str(exc)
+                        just_series = pd.DataFrame(columns=["date", "price"])
             chart_series = clip_series_range(just_series, range_key)
             source_label = "JustTCG"
             line_color = "#60a5fa"
             available = not chart_series.empty
             latest_src = float(chart_series["price"].iloc[-1]) if available else None
             meta_note = t("source_nm_usd")
-            if not justtcg_api_key():
-                st.info(t("justtcg_key_missing"))
-            elif not tcgplayer_id:
-                st.info(t("justtcg_no_product_id"))
-            elif not available:
+            if justtcg_error:
+                st.warning(t("justtcg_fetch_error", error=justtcg_error[:180]))
+            elif justtcg_api_key() and tcgplayer_id and not available:
                 st.info(t("source_unavailable"))
         else:
             chart_series = clip_series_range(market_series, range_key)
@@ -2163,7 +2190,6 @@ def render_navbar() -> str:
 
     pages = [
         ("explore", t("nav_explore")),
-        ("market", t("nav_market")),
         ("portfolio", t("nav_portfolio")),
         ("scanner", t("nav_scanner")),
     ]
@@ -2172,9 +2198,9 @@ def render_navbar() -> str:
     lang = get_lang()
     code = "USD" if cur == CURRENCY_USD else "EUR"
 
-    # brand | 4 links | spacer | HR EN | currency
+    # brand | 3 links | spacer | HR EN | currency
     brand, *nav_cols, _gap, lang_hr, lang_en, cur_btn = st.columns(
-        [1.45, 0.9, 1.1, 0.9, 1.0, 2.4, 0.5, 0.5, 0.7],
+        [1.45, 0.95, 0.95, 1.05, 2.8, 0.5, 0.5, 0.7],
         vertical_alignment="center",
         gap="medium",
     )
