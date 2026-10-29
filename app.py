@@ -874,13 +874,28 @@ CUSTOM_CSS = """
     }
     .ebay-row {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) auto auto;
-        gap: 10px 14px;
+        grid-template-columns: 40px minmax(0, 1fr) auto auto;
+        gap: 10px 12px;
         align-items: center;
         padding: 10px 12px;
         background: rgba(10, 14, 24, 0.85);
         border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 10px;
+        min-height: 0;
+    }
+    .ebay-row .ebay-thumb {
+        width: 40px;
+        height: 40px;
+        border-radius: 6px;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.06);
+        flex-shrink: 0;
+    }
+    .ebay-row .ebay-thumb img {
+        width: 40px;
+        height: 40px;
+        object-fit: cover;
+        display: block;
     }
     .ebay-row .ebay-title {
         color: #e2e8f0 !important;
@@ -907,12 +922,13 @@ CUSTOM_CSS = """
     .ebay-row a.ebay-link:hover { text-decoration: underline; }
     @media (max-width: 720px) {
         .ebay-row {
-            grid-template-columns: minmax(0, 1fr) auto;
+            grid-template-columns: 40px minmax(0, 1fr) auto;
             grid-template-areas:
-                "title title"
-                "price link";
+                "thumb title title"
+                "thumb price link";
         }
-        .ebay-row .ebay-title { grid-area: title; }
+        .ebay-row .ebay-thumb { grid-area: thumb; }
+        .ebay-row .ebay-copy { grid-area: title; }
         .ebay-row .ebay-price { grid-area: price; }
         .ebay-row a.ebay-link { grid-area: link; }
     }
@@ -2076,6 +2092,58 @@ def load_justtcg_series(
     return frame, resolved or tcgplayer_id
 
 
+def load_psa10_series(
+    *,
+    tcgplayer_id: str | None,
+    card_id: str,
+    name: str,
+    set_name: str,
+) -> tuple[pd.DataFrame, str | None, dict]:
+    """Live JustTCG v2 PSA 10. Cacheira non-empty rezultat + stats."""
+    jtcg = _justtcg_module()
+    empty = pd.DataFrame(columns=["date", "price"])
+    if not jtcg.justtcg_api_key():
+        return empty, tcgplayer_id, {}
+
+    number = ""
+    if "-" in str(card_id):
+        number = jtcg.normalize_card_number(str(card_id).rsplit("-", 1)[-1])
+
+    cache_key = f"psa10_series::{card_id}::{tcgplayer_id or ''}::{number}"
+    cached = st.session_state.get(cache_key)
+    if isinstance(cached, dict) and isinstance(cached.get("frame"), pd.DataFrame):
+        frame = cached["frame"]
+        if not frame.empty:
+            return frame.copy(), cached.get("resolved") or tcgplayer_id, dict(cached.get("stats") or {})
+
+    psa10_history_for_card = getattr(jtcg, "psa10_history_for_card", None)
+    if not callable(psa10_history_for_card):
+        jtcg = importlib.reload(jtcg)
+        psa10_history_for_card = getattr(jtcg, "psa10_history_for_card", None)
+    if not callable(psa10_history_for_card):
+        return empty, tcgplayer_id, {}
+
+    points, resolved, stats = psa10_history_for_card(
+        tcgplayer_id=tcgplayer_id,
+        name=name,
+        number=number or None,
+        set_name=set_name or None,
+    )
+    if not points:
+        return empty, resolved or tcgplayer_id, stats or {}
+
+    frame = pd.DataFrame(points)
+    frame["date"] = pd.to_datetime(frame["date"])
+    frame["price"] = frame["price"].astype(float)
+    frame = frame.sort_values("date").reset_index(drop=True)
+    st.session_state[cache_key] = {
+        "frame": frame.copy(),
+        "resolved": resolved or tcgplayer_id,
+        "stats": dict(stats or {}),
+    }
+    return frame, resolved or tcgplayer_id, stats or {}
+
+
 def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, card_id: str) -> None:
     justtcg_api_key = _justtcg_module().justtcg_api_key
 
@@ -2198,7 +2266,11 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
         with r2:
             st.caption(t("price_source"))
             source_key = render_pill_toggle(
-                [("tcgplayer", "TCGplayer"), ("justtcg", "JustTCG")],
+                [
+                    ("tcgplayer", "TCGplayer"),
+                    ("justtcg", "JustTCG NM"),
+                    ("psa10", "PSA 10"),
+                ],
                 state_key=f"detail_source_{card_id}",
                 default="justtcg" if justtcg_api_key() else "tcgplayer",
             )
@@ -2206,6 +2278,7 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
         just_series = pd.DataFrame(columns=["date", "price"])
         justtcg_error: str | None = None
         used_db_fallback = False
+        psa10_stats: dict = {}
         has_justtcg_key = bool(justtcg_api_key())
         if source_key == "justtcg":
             if has_justtcg_key:
@@ -2227,7 +2300,7 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
                 just_series = market_series[["date", "price"]].copy()
                 used_db_fallback = True
             chart_series = clip_series_range(just_series, range_key)
-            source_label = "JustTCG"
+            source_label = "JustTCG NM"
             line_color = "#60a5fa"
             available = not chart_series.empty
             latest_src = float(chart_series["price"].iloc[-1]) if available else None
@@ -2244,6 +2317,46 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
                 st.info(t("source_unavailable"))
             elif used_db_fallback and has_justtcg_key:
                 st.caption(t("justtcg_using_saved"))
+        elif source_key == "psa10":
+            psa10_error: str | None = None
+            psa_series = pd.DataFrame(columns=["date", "price"])
+            if has_justtcg_key:
+                with st.spinner(t("loading_psa10")):
+                    try:
+                        psa_series, resolved_tcp, psa10_stats = load_psa10_series(
+                            tcgplayer_id=tcgplayer_id,
+                            card_id=str(card_id),
+                            name=str(card["name"]),
+                            set_name=str(card.get("set_name") or ""),
+                        )
+                        if resolved_tcp and not tcgplayer_id:
+                            tcgplayer_id = resolved_tcp
+                    except Exception as exc:
+                        psa10_error = str(exc)
+                        psa_series = pd.DataFrame(columns=["date", "price"])
+                        psa10_stats = {}
+            chart_series = clip_series_range(psa_series, range_key)
+            source_label = "JustTCG PSA 10"
+            line_color = "#c4b5fd"
+            available = not chart_series.empty
+            latest_src = float(chart_series["price"].iloc[-1]) if available else None
+            has_hist = bool(psa10_stats.get("has_history_series"))
+            if has_hist:
+                meta_note = t("source_psa10_usd")
+            else:
+                meta_note = t(
+                    "source_psa10_spot_only",
+                    period=str(psa10_stats.get("period_key") or "—"),
+                    sales=str(psa10_stats.get("sales_count") if psa10_stats.get("sales_count") is not None else "—"),
+                )
+            if not has_justtcg_key:
+                st.info(t("justtcg_key_missing"))
+            if psa10_error:
+                st.warning(t("psa10_fetch_error", error=psa10_error[:180]))
+            elif has_justtcg_key and not available:
+                st.info(t("psa10_unpriced"))
+            elif has_justtcg_key and available and not has_hist:
+                st.caption(meta_note)
         else:
             chart_series = clip_series_range(market_series, range_key)
             source_label = "TCGplayer"
@@ -2328,6 +2441,15 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
                     else "—"
                 )
                 url = str(r.get("url") or "").strip()
+                img = str(r.get("image") or "").strip()
+                if img.startswith("http"):
+                    thumb = (
+                        f'<div class="ebay-thumb"><img src="{escape(img, quote=True)}" '
+                        f'alt="" loading="lazy" referrerpolicy="no-referrer" '
+                        f'onerror="this.parentElement.style.opacity=\'0.35\'" /></div>'
+                    )
+                else:
+                    thumb = '<div class="ebay-thumb" aria-hidden="true"></div>'
                 link = (
                     f'<a class="ebay-link" href="{escape(url, quote=True)}" '
                     f'target="_blank" rel="noopener noreferrer">eBay ↗</a>'
@@ -2335,8 +2457,8 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
                     else '<span class="ebay-meta">—</span>'
                 )
                 rows_html.append(
-                    f'<div class="ebay-row">'
-                    f'<div><div class="ebay-title">{title}</div>'
+                    f'<div class="ebay-row">{thumb}'
+                    f'<div class="ebay-copy"><div class="ebay-title">{title}</div>'
                     f'<div class="ebay-meta">{condition}</div></div>'
                     f'<div class="ebay-price">{price_txt}</div>'
                     f"{link}</div>"
