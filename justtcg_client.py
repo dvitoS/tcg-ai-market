@@ -221,6 +221,66 @@ def nm_history_for_tcgplayer_id(tcgplayer_id: str) -> list[dict[str, Any]]:
     return history_points_from_variant(variant)
 
 
+def search_pokemon_card(
+    *,
+    name: str,
+    number: str | None = None,
+    set_name: str | None = None,
+) -> dict[str, Any] | None:
+    """Pronađi JustTCG kartu po imenu (+ broj/set ako postoji)."""
+    query = " ".join(part for part in (name, number) if part).strip()
+    if not query:
+        return None
+    params: dict[str, Any] = {
+        "game": "pokemon",
+        "q": query,
+        "condition": "NM",
+        "include_price_history": "true",
+        "priceHistoryDuration": JUSTTCG_HISTORY_DURATION,
+        "limit": 20,
+    }
+    if set_name:
+        params["q"] = f"{query} {set_name}".strip()
+    payload = _get("/cards", params)
+    rows = list(payload.get("data") or [])
+    if not rows:
+        return None
+
+    wanted_number = normalize_card_number(number) if number else ""
+    if wanted_number:
+        for row in rows:
+            if normalize_card_number(str(row.get("number") or "")) == wanted_number:
+                return row
+    wanted_name = (name or "").strip().lower()
+    exact = next(
+        (r for r in rows if str(r.get("name") or "").strip().lower() == wanted_name),
+        None,
+    )
+    return exact or rows[0]
+
+
+def nm_history_for_card(
+    *,
+    tcgplayer_id: str | None = None,
+    name: str | None = None,
+    number: str | None = None,
+    set_name: str | None = None,
+) -> tuple[list[dict[str, Any]], str | None]:
+    """Vrati (points, resolved_tcgplayer_id). Probaj product id, zatim search."""
+    resolved: str | None = str(tcgplayer_id).strip() if tcgplayer_id else None
+    if resolved:
+        points = nm_history_for_tcgplayer_id(resolved)
+        if points:
+            return points, resolved
+
+    card = search_pokemon_card(name=str(name or ""), number=number, set_name=set_name)
+    if not card:
+        return [], resolved
+    resolved = str(card.get("tcgplayerId") or resolved or "") or resolved
+    variant = pick_nm_variant(list(card.get("variants") or []))
+    return history_points_from_variant(variant), resolved
+
+
 def list_pokemon_sets() -> list[dict[str, Any]]:
     payload = _get("/sets", {"game": "pokemon"})
     return list(payload.get("data") or [])
