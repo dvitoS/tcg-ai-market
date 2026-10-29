@@ -2295,6 +2295,7 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
     )
     if not ebay.ebay_configured():
         st.info(t("ebay_key_missing"))
+        st.caption(t("ebay_key_missing_hint"))
     else:
         with st.spinner(t("ebay_loading")):
             ebay_rows, ebay_error = load_ebay_listings(

@@ -139,21 +139,66 @@ def get_justtcg_api_key() -> str:
 def get_ebay_credentials() -> tuple[str, str, str, str]:
     """Svježi eBay Production keyset + opcioni OAuth token.
 
+    Čita .env datoteku direktno (dotenv_values) + OS + Streamlit Secrets,
+    da lokalni long-running Streamlit i Cloud Secrets oba rade.
+
     Returns:
         (app_id, cert_id, dev_id, oauth_token)
     """
+    from dotenv import dotenv_values
+
     load_dotenv(ENV_PATH, override=False)
     if not os.environ.get("GITHUB_ACTIONS"):
         load_dotenv(PROJECT_ROOT / "tcg.env.txt", override=False)
 
-    app_id = _clean_secret_value(_secret("EBAY_APP_ID") or _secret("EBAY_CLIENT_ID"))
-    cert_id = _clean_secret_value(_secret("EBAY_CERT_ID") or _secret("EBAY_CLIENT_SECRET"))
-    dev_id = _clean_secret_value(_secret("EBAY_DEV_ID"))
-    oauth = _clean_secret_value(
-        _secret("EBAY_OAUTH_TOKEN")
-        or _secret("EBAY_USER_TOKEN")
-        or _secret("EBAY_ACCESS_TOKEN")
-    )
+    file_vals: dict = {}
+    try:
+        file_vals = dict(dotenv_values(ENV_PATH) or {})
+        if not os.environ.get("GITHUB_ACTIONS"):
+            file_vals.update(
+                {k: v for k, v in (dotenv_values(PROJECT_ROOT / "tcg.env.txt") or {}).items() if v}
+            )
+    except Exception:
+        file_vals = {}
+
+    def _pick(*names: str) -> str:
+        for name in names:
+            for raw in (
+                file_vals.get(name),
+                _secret(name),
+                os.getenv(name, ""),
+                _from_streamlit_secrets(name),
+            ):
+                cleaned = _clean_secret_value(str(raw or ""))
+                if cleaned:
+                    return cleaned
+        # Nested Streamlit [ebay] bez mapiranog aliasa
+        try:
+            import streamlit as st
+
+            section = st.secrets.get("ebay", {})
+            aliases = {
+                "EBAY_APP_ID": ("app_id", "APP_ID", "client_id", "CLIENT_ID"),
+                "EBAY_CERT_ID": ("cert_id", "CERT_ID", "client_secret", "CLIENT_SECRET"),
+                "EBAY_DEV_ID": ("dev_id", "DEV_ID"),
+                "EBAY_OAUTH_TOKEN": ("oauth_token", "OAUTH_TOKEN", "access_token", "token"),
+            }
+            for name in names:
+                for key in aliases.get(name, ()):
+                    try:
+                        cleaned = _clean_secret_value(str(section.get(key) or ""))
+                        if cleaned:
+                            return cleaned
+                    except Exception:
+                        continue
+        except Exception:
+            pass
+        return ""
+
+    app_id = _pick("EBAY_APP_ID", "EBAY_CLIENT_ID")
+    cert_id = _pick("EBAY_CERT_ID", "EBAY_CLIENT_SECRET")
+    dev_id = _pick("EBAY_DEV_ID")
+    oauth = _pick("EBAY_OAUTH_TOKEN", "EBAY_USER_TOKEN", "EBAY_ACCESS_TOKEN")
     return app_id, cert_id, dev_id, oauth
 
 
