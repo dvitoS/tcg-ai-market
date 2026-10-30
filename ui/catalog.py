@@ -18,7 +18,6 @@ from ui.common import (
     render_price_slider,
 )
 from ui.detail import render_market_detail
-from ui.skeletons import render_catalog_skeleton
 from ui.tiles import explore_card_html, market_tile_html
 
 
@@ -415,7 +414,6 @@ def render_explore(market: pd.DataFrame, history: pd.DataFrame | None = None, mo
         st.caption(t("explore_results", n=len(filtered)))
         if filtered.empty:
             st.warning(t("explore_empty"))
-            render_catalog_skeleton(n=8)
         else:
             if mode == "signals":
                 prev_pick = st.session_state.get("_catalog_prev_pick")

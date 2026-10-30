@@ -281,6 +281,8 @@ def sold_comps_for_card(
                 "url": str(item.get("itemWebUrl") or item.get("itemHref") or ""),
                 "sold_date": str(item.get("soldDate") or item.get("lastSoldDate") or ""),
                 "image": str((item.get("image") or {}).get("imageUrl") or ""),
+                "comp_source": "sold",
+                "is_sold": True,
             }
         )
     return rows, None

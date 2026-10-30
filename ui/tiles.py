@@ -30,11 +30,21 @@ def market_tile_html(row, *, selected: bool = False) -> str:
         change = getattr(row, "Expected ROI (%)", None)
     image = escape(card_image_for_id(card_id), quote=True)
     change_txt = f"{float(change):+.1f}%" if change is not None and pd.notna(change) else "—"
-    signal_html = (
-        f'<span class="market-tile-signal {escape(signal_label(signal))}">{escape(signal_label(signal))}</span>'
-        if signal
-        else f'<span class="market-tile-meta">{escape(change_txt)}</span>'
-    )
+    conf_ok = getattr(row, "confidence_ok", True)
+    if conf_ok is None or (isinstance(conf_ok, float) and pd.isna(conf_ok)):
+        conf_ok = True
+    conf_ok = bool(conf_ok)
+    if signal and conf_ok:
+        signal_html = (
+            f'<span class="market-tile-signal {escape(signal_label(signal))}">'
+            f"{escape(signal_label(signal))}</span>"
+        )
+    elif signal and not conf_ok:
+        signal_html = (
+            f'<span class="market-tile-meta low-conf">{escape(signal_label("HOLD"))} · low data</span>'
+        )
+    else:
+        signal_html = f'<span class="market-tile-meta">{escape(change_txt)}</span>'
     selected_cls = " is-selected" if selected else ""
     return f"""
     <div class="market-tile{selected_cls}">

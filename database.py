@@ -92,31 +92,57 @@ def get_user_supabase():
     try:
         import streamlit as st
 
-        from auth import SESSION_ACCESS_KEY, SESSION_REFRESH_KEY
+        from auth import SESSION_ACCESS_KEY, SESSION_REFRESH_KEY, refresh_session
         from config import _clean_secret_value, get_supabase_auth_credentials
     except Exception:
         return None
 
     url, anon = get_supabase_auth_credentials()
-    access = str(st.session_state.get(SESSION_ACCESS_KEY) or "").strip()
-    refresh = str(st.session_state.get(SESSION_REFRESH_KEY) or "").strip()
-    if not url or not anon or not access:
-        return None
     # Prefer true anon key for RLS; if only service role is configured, skip.
     has_anon = bool(_clean_secret_value(_secret("SUPABASE_ANON_KEY")))
-    if not has_anon:
+    if not url or not anon or not has_anon:
+        return None
+    refresh_session()
+    access = str(st.session_state.get(SESSION_ACCESS_KEY) or "").strip()
+    refresh = str(st.session_state.get(SESSION_REFRESH_KEY) or "").strip()
+    if not access:
         return None
     try:
         _, create_client = _supabase_api()
         client = create_client(url, anon)
+        # refresh_token is required by gotrue set_session
         client.auth.set_session(access, refresh or access)
+        # Touch auth so a bad token fails here instead of later on PostgREST.
+        client.auth.get_user(access)
         return client
-    except Exception:
+    except Exception as exc:
+        import logging
+
+        logging.getLogger("tcg.database").warning("get_user_supabase failed: %s", exc)
         return None
 
 
 def _user_or_service_client():
     return get_user_supabase() or get_supabase()
+
+
+def user_data_client_mode() -> str:
+    """How portfolio/watchlist will be queried: jwt | missing_anon | missing_token | service_fallback | anonymous."""
+    try:
+        import auth as auth_mod
+        from config import _clean_secret_value
+    except Exception:
+        return "anonymous"
+    if not auth_mod.is_authenticated():
+        return "anonymous"
+    has_anon = bool(_clean_secret_value(_secret("SUPABASE_ANON_KEY")))
+    if not has_anon:
+        return "missing_anon"
+    if not auth_mod.has_jwt_tokens():
+        return "missing_token"
+    if get_user_supabase() is not None:
+        return "jwt"
+    return "service_fallback"
 
 
 def _chunked(rows: list[dict[str, Any]], size: int = 500):

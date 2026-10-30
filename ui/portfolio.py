@@ -24,6 +24,7 @@ from database import (
 from i18n import FILTER_ALL, PNL_ALL, PNL_DOWN, PNL_TOP, PNL_UP, t
 from services.forecast import card_history, forecast_price_in_days
 from trading_signals import FORECAST_DAYS, SCANNER_GROWTH_FLOOR
+from ui.common import apply_price_range, render_price_slider
 
 HOLO_RARITY_KEYWORDS = ("rare", "holo", "secret", "ultra")
 
@@ -354,7 +355,10 @@ def render_portfolio_gallery(view: pd.DataFrame) -> None:
         key="gallery_sort",
     )
     price_col = "current_price" if "current_price" in view.columns else "market_value"
-    price_min, price_max = render_price_slider("gallery_price", view[price_col])
+    # Local import: Streamlit hot-reload can keep stale gallery fn without module-level imports.
+    from ui.common import render_price_slider as _render_price_slider
+
+    price_min, price_max = _render_price_slider("gallery_price", view[price_col])
 
     filtered = filter_portfolio_gallery(
         view,
@@ -526,43 +530,188 @@ def render_watchlist_section(market: pd.DataFrame) -> None:
                 remove_watchlist_card(str(row.card_id), user_id=uid)
                 st.rerun()
 
-def render_portfolio_performance(view: pd.DataFrame) -> None:
-    """Simple value vs cost bars for open lots."""
+def _parse_lot_date(value) -> pd.Timestamp | None:
+    if value is None or (isinstance(value, float) and np.isnan(value)):
+        return None
+    ts = pd.to_datetime(value, errors="coerce")
+    if pd.isna(ts):
+        return None
+    return pd.Timestamp(ts).normalize()
+
+
+def portfolio_timeseries(
+    lots: pd.DataFrame,
+    history: pd.DataFrame,
+    *,
+    max_days: int = 120,
+) -> pd.DataFrame:
+    """Daily invested cost basis vs mark-to-market value for held lots."""
+    if lots is None or lots.empty or history is None or history.empty:
+        return pd.DataFrame(columns=["date", "invested", "market_value"])
+
+    hist = history.copy()
+    hist["date"] = pd.to_datetime(hist["date"], errors="coerce")
+    hist = hist.dropna(subset=["date", "card_id", "price"])
+    hist["card_id"] = hist["card_id"].astype(str)
+    hist["price"] = pd.to_numeric(hist["price"], errors="coerce")
+    hist = hist.dropna(subset=["price"])
+    if hist.empty:
+        return pd.DataFrame(columns=["date", "invested", "market_value"])
+
+    price_wide = (
+        hist.sort_values("date")
+        .pivot_table(index="date", columns="card_id", values="price", aggfunc="last")
+        .sort_index()
+        .ffill()
+    )
+
+    lot_rows: list[dict] = []
+    for row in lots.itertuples(index=False):
+        start = _parse_lot_date(getattr(row, "purchase_date", None))
+        if start is None:
+            continue
+        status = str(getattr(row, "status", "open") or "open").lower()
+        end = _parse_lot_date(getattr(row, "sale_date", None)) if status == "sold" else None
+        if status == "sold" and end is None:
+            continue
+        lot_rows.append(
+            {
+                "card_id": str(row.card_id),
+                "qty": float(row.quantity or 0),
+                "cost": float(row.purchase_price or 0),
+                "start": start,
+                "end": end,
+            }
+        )
+    if not lot_rows:
+        return pd.DataFrame(columns=["date", "invested", "market_value"])
+
+    start_date = min(r["start"] for r in lot_rows)
+    end_date = pd.Timestamp.today().normalize()
+    # Align to available history window.
+    hist_start = pd.Timestamp(price_wide.index.min()).normalize()
+    hist_end = pd.Timestamp(price_wide.index.max()).normalize()
+    start_date = max(start_date, hist_start)
+    end_date = min(end_date, hist_end)
+    if end_date < start_date:
+        return pd.DataFrame(columns=["date", "invested", "market_value"])
+
+    all_days = pd.date_range(start_date, end_date, freq="D")
+    if len(all_days) > max_days:
+        all_days = all_days[-max_days:]
+
+    # Reindex prices onto daily calendar.
+    price_daily = price_wide.reindex(price_wide.index.union(all_days)).sort_index().ffill()
+    price_daily = price_daily.reindex(all_days)
+
+    invested_vals: list[float] = []
+    value_vals: list[float] = []
+    for day in all_days:
+        invested = 0.0
+        value = 0.0
+        for lot in lot_rows:
+            if lot["start"] > day:
+                continue
+            if lot["end"] is not None and day > lot["end"]:
+                continue
+            invested += lot["qty"] * lot["cost"]
+            px = price_daily.at[day, lot["card_id"]] if lot["card_id"] in price_daily.columns else np.nan
+            if px is not None and not pd.isna(px):
+                value += lot["qty"] * float(px)
+            else:
+                value += lot["qty"] * lot["cost"]
+        invested_vals.append(invested)
+        value_vals.append(value)
+
+    return pd.DataFrame(
+        {
+            "date": all_days,
+            "invested": invested_vals,
+            "market_value": value_vals,
+        }
+    )
+
+
+def render_portfolio_performance(
+    view: pd.DataFrame,
+    *,
+    lots: pd.DataFrame | None = None,
+    history: pd.DataFrame | None = None,
+) -> None:
+    """Time-series value vs cost, plus snapshot bars for open lots."""
+    st.markdown(f"##### {t('portfolio_perf')}")
+
+    series = portfolio_timeseries(lots if lots is not None else view, history if history is not None else pd.DataFrame())
+    if not series.empty and len(series) >= 2:
+        st.caption(t("portfolio_perf_time"))
+        fig_ts = go.Figure()
+        fig_ts.add_trace(
+            go.Scatter(
+                name=t("kpi_invested"),
+                x=series["date"],
+                y=series["invested"].map(to_display),
+                mode="lines",
+                line=dict(color="#64748b", width=2),
+            )
+        )
+        fig_ts.add_trace(
+            go.Scatter(
+                name=t("kpi_value"),
+                x=series["date"],
+                y=series["market_value"].map(to_display),
+                mode="lines",
+                line=dict(color="#38bdf8", width=2.5),
+                fill="tonexty",
+                fillcolor="rgba(56,189,248,0.12)",
+            )
+        )
+        fig_ts.update_layout(
+            template="plotly_dark",
+            height=300,
+            margin=dict(l=8, r=8, t=8, b=8),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(11,18,32,0.35)",
+            legend=dict(orientation="h", y=1.12),
+            yaxis=dict(tickprefix=currency_symbol()),
+            xaxis=dict(showgrid=False),
+        )
+        st.plotly_chart(fig_ts, width="stretch", config={"displayModeBar": False})
+
     open_view = view
     if "status" in view.columns:
         open_view = view.loc[view["status"].astype(str).str.lower() != "sold"]
     if open_view.empty:
         return
-    st.markdown(f"##### {t('portfolio_perf')}")
-    fig = go.Figure()
-    names = open_view["name"].astype(str).tolist()
-    fig.add_trace(
-        go.Bar(
-            name=t("kpi_invested"),
-            x=names,
-            y=open_view["invested"].astype(float).map(to_display),
-            marker_color="#64748b",
+    with st.expander(t("portfolio_perf_bars"), expanded=False):
+        fig = go.Figure()
+        names = open_view["name"].astype(str).tolist()
+        fig.add_trace(
+            go.Bar(
+                name=t("kpi_invested"),
+                x=names,
+                y=open_view["invested"].astype(float).map(to_display),
+                marker_color="#64748b",
+            )
         )
-    )
-    fig.add_trace(
-        go.Bar(
-            name=t("kpi_value"),
-            x=names,
-            y=open_view["market_value"].astype(float).map(to_display),
-            marker_color="#38bdf8",
+        fig.add_trace(
+            go.Bar(
+                name=t("kpi_value"),
+                x=names,
+                y=open_view["market_value"].astype(float).map(to_display),
+                marker_color="#38bdf8",
+            )
         )
-    )
-    fig.update_layout(
-        template="plotly_dark",
-        barmode="group",
-        height=320,
-        margin=dict(l=8, r=8, t=8, b=8),
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(11,18,32,0.35)",
-        legend=dict(orientation="h", y=1.12),
-        yaxis=dict(tickprefix=currency_symbol()),
-    )
-    st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+        fig.update_layout(
+            template="plotly_dark",
+            barmode="group",
+            height=320,
+            margin=dict(l=8, r=8, t=8, b=8),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(11,18,32,0.35)",
+            legend=dict(orientation="h", y=1.12),
+            yaxis=dict(tickprefix=currency_symbol()),
+        )
+        st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
 
 def render_portfolio(history: pd.DataFrame, market: pd.DataFrame, model) -> None:
     st.subheader(t("add_card"))
@@ -677,7 +826,7 @@ def render_portfolio(history: pd.DataFrame, market: pd.DataFrame, model) -> None
     )
     if not view.empty:
         render_week_outlook(value, float(view["week_value"].sum()))
-        render_portfolio_performance(view)
+        render_portfolio_performance(view, lots=lots, history=history)
         render_portfolio_gallery(view)
 
     # Edit / sell open lots

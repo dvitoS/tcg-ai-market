@@ -55,6 +55,11 @@ def render_login_gate() -> bool:
     if auth_mod.is_authenticated():
         return True
 
+    from config import _clean_secret_value, _secret
+
+    if not _clean_secret_value(_secret("SUPABASE_ANON_KEY")):
+        st.info(t("auth_anon_hint"))
+
     st.markdown(
         f"""
         <div class="compare-head" style="max-width:420px;margin:2.5rem auto 1rem;">

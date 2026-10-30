@@ -36,24 +36,57 @@ def is_authenticated() -> bool:
     return current_user() is not None
 
 
+def _session_tokens(session: Any | None) -> tuple[str, str]:
+    if session is None:
+        return "", ""
+    if isinstance(session, dict):
+        access = str(session.get("access_token") or "").strip()
+        refresh = str(session.get("refresh_token") or "").strip()
+        return access, refresh
+    access = str(getattr(session, "access_token", "") or "").strip()
+    refresh = str(getattr(session, "refresh_token", "") or "").strip()
+    return access, refresh
+
+
 def _store_session(user: Any, session: Any | None = None) -> None:
     payload = {
         "id": str(getattr(user, "id", "") or ""),
         "email": str(getattr(user, "email", "") or ""),
     }
     st.session_state[SESSION_USER_KEY] = payload
-    if session is not None:
-        access = getattr(session, "access_token", None)
-        refresh = getattr(session, "refresh_token", None)
-        if access:
-            st.session_state[SESSION_ACCESS_KEY] = access
-        if refresh:
-            st.session_state[SESSION_REFRESH_KEY] = refresh
+    access, refresh = _session_tokens(session)
+    if access:
+        st.session_state[SESSION_ACCESS_KEY] = access
+    if refresh:
+        st.session_state[SESSION_REFRESH_KEY] = refresh
+
+
+def has_jwt_tokens() -> bool:
+    return bool(str(st.session_state.get(SESSION_ACCESS_KEY) or "").strip())
 
 
 def clear_session() -> None:
     for key in (SESSION_USER_KEY, SESSION_ACCESS_KEY, SESSION_REFRESH_KEY):
         st.session_state.pop(key, None)
+
+
+def refresh_session() -> bool:
+    """Refresh access token when possible. Returns True if session is usable."""
+    refresh = str(st.session_state.get(SESSION_REFRESH_KEY) or "").strip()
+    if not refresh:
+        return bool(st.session_state.get(SESSION_ACCESS_KEY))
+    try:
+        client = _auth_client()
+        response = client.auth.refresh_session(refresh)
+        user = getattr(response, "user", None)
+        session = getattr(response, "session", None)
+        if user is None or session is None:
+            return bool(st.session_state.get(SESSION_ACCESS_KEY))
+        _store_session(user, session)
+        return True
+    except Exception as exc:
+        LOG.warning("refresh_session failed: %s", exc)
+        return bool(st.session_state.get(SESSION_ACCESS_KEY))
 
 
 def sign_in(email: str, password: str) -> dict[str, Any]:
@@ -69,6 +102,12 @@ def sign_in(email: str, password: str) -> dict[str, Any]:
     if user is None:
         raise RuntimeError("Sign-in failed. Check email/password.")
     _store_session(user, session)
+    if not has_jwt_tokens():
+        clear_session()
+        raise RuntimeError(
+            "Sign-in returned no access token. Check SUPABASE_ANON_KEY "
+            "(Project Settings → API → anon public) and try again."
+        )
     return current_user() or {}
 
 

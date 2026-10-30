@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
-from typing import Any
 
 import pandas as pd
 import streamlit as st
+
+from i18n import signal_label, t
+
+LOG = logging.getLogger("tcg.alerts")
 
 
 @dataclass
@@ -53,6 +57,14 @@ def collect_watchlist_alerts(
         q = quotes.loc[card_id]
         if isinstance(q, pd.DataFrame):
             q = q.iloc[0]
+        conf_ok = True
+        if hasattr(q, "get"):
+            conf_ok = q.get("confidence_ok", True)
+        else:
+            conf_ok = getattr(q, "confidence_ok", True)
+        if conf_ok is not None and not (isinstance(conf_ok, float) and pd.isna(conf_ok)):
+            if not bool(conf_ok):
+                continue
         exp = q.get("expected_change_pct") if hasattr(q, "get") else getattr(q, "expected_change_pct", None)
         if exp is None or pd.isna(exp):
             continue
@@ -83,9 +95,12 @@ def render_watchlist_alerts(alerts: list[WatchAlert], *, money_fmt) -> None:
         return
     for alert in alerts[:5]:
         tone = "success" if alert.expected_pct >= 0 else "warning"
-        label = (
-            f"Watchlist · {alert.name}: {alert.expected_pct:+.1f}% expected"
-            f" ({alert.signal or '—'}) · {money_fmt(alert.price)}"
+        label = t(
+            "alert_watch_body",
+            name=alert.name,
+            pct=alert.expected_pct,
+            signal=signal_label(alert.signal) if alert.signal else "—",
+            price=money_fmt(alert.price),
         )
         cols = st.columns([6, 1])
         with cols[0]:
@@ -94,6 +109,33 @@ def render_watchlist_alerts(alerts: list[WatchAlert], *, money_fmt) -> None:
             else:
                 st.warning(label)
         with cols[1]:
-            if st.button("Dismiss", key=f"dismiss_watch_{alert.card_id}", use_container_width=True):
+            if st.button(
+                t("alert_dismiss"),
+                key=f"dismiss_watch_{alert.card_id}",
+                use_container_width=True,
+            ):
                 dismiss_watch_alert(alert.card_id)
                 st.rerun()
+
+
+def safe_collect_and_render_alerts(
+    market: pd.DataFrame,
+    *,
+    user_id: str,
+    threshold_pct: float,
+    money_fmt,
+) -> None:
+    """Load watchlist + render alerts; log failures instead of silent pass."""
+    if not user_id:
+        return
+    try:
+        from database import load_watchlist
+
+        watch_rows = load_watchlist(user_id=user_id)
+        alerts = collect_watchlist_alerts(market, watch_rows, threshold_pct=threshold_pct)
+        if alerts:
+            st.caption(t("alert_watch_caption", pct=threshold_pct))
+            render_watchlist_alerts(alerts, money_fmt=money_fmt)
+    except Exception as exc:
+        LOG.warning("watchlist alerts failed: %s", exc)
+        st.caption(t("watchlist_alerts_error"))

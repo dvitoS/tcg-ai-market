@@ -128,7 +128,8 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
             f'<div class="detail-ai-head"><h3>{escape(t("ai_prediction"))}</h3></div>',
             unsafe_allow_html=True,
         )
-        confidence = series_confidence(points=len(market_series), used_db_fallback=False)
+        used_fb = bool(st.session_state.get(f"_db_fb::{card_id}", False))
+        confidence = series_confidence(points=len(market_series), used_db_fallback=used_fb)
         st.markdown(
             f'<div class="ai-move-label">{escape(t("ai_expected_move"))}</div>'
             f'<div class="ai-move-value">{change_pct:+.2f}%</div>',
@@ -295,6 +296,7 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
                 overlays.append((db_clip, "TCGplayer", "#f87171"))
                 badges.append(f'<span class="source-badge db">{escape(t("badge_db"))}</span>')
             if not just_clip.empty:
+                st.session_state[f"_db_fb::{card_id}"] = bool(used_db_fallback)
                 if used_db_fallback:
                     record_justtcg_event("fallback")
                     badges.append(
@@ -345,6 +347,7 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
             meta_note = (
                 t("source_nm_db_fallback") if used_db_fallback else t("source_nm_usd")
             )
+            st.session_state[f"_db_fb::{card_id}"] = bool(used_db_fallback)
             badges.append(
                 f'<span class="source-badge {"saved" if used_db_fallback else "live"}">'
                 f'{escape(t("badge_saved") if used_db_fallback else t("badge_live"))}</span>'
@@ -537,13 +540,19 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
             name=str(card["name"]),
             set_name=str(card.get("set_name") or ""),
         )
+        is_sold_comps = bool(sold_stats.get("is_sold", 1.0))
         if sold_hint and not sold_rows:
             st.caption(t("ebay_sold_unavailable", hint=sold_hint))
         elif sold_rows:
+            if not is_sold_comps:
+                st.info(t("ebay_sold_active_fallback"))
+                if sold_hint:
+                    st.caption(sold_hint[:220])
             if sold_stats.get("n"):
+                stats_key = "ebay_active_stats" if not is_sold_comps else "ebay_sold_stats"
                 st.caption(
                     t(
-                        "ebay_sold_stats",
+                        stats_key,
                         n=int(sold_stats["n"]),
                         lo=money(float(sold_stats["min"])) if sold_stats.get("min") is not None else "—",
                         mid=money(float(sold_stats["median"])) if sold_stats.get("median") is not None else "—",
@@ -558,12 +567,24 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
                     if r.get("price") is not None
                     else "—"
                 )
-                sold_date = escape(str(r.get("sold_date") or "—"))
+                if r.get("comp_source") == "active" or r.get("is_sold") is False:
+                    meta = escape(t("ebay_active_not_sold"))
+                    if r.get("condition"):
+                        meta = f"{escape(str(r.get('condition')))} · {meta}"
+                else:
+                    meta = escape(str(r.get("sold_date") or "—"))
+                url = str(r.get("url") or "").strip()
+                link = (
+                    f'<a class="ebay-link" href="{escape(url, quote=True)}" '
+                    f'target="_blank" rel="noopener noreferrer">eBay ↗</a>'
+                    if url.startswith("http")
+                    else ""
+                )
                 sold_html.append(
                     f'<div class="ebay-row"><div class="ebay-copy">'
                     f'<div class="ebay-title">{title}</div>'
-                    f'<div class="ebay-meta">{sold_date}</div></div>'
-                    f'<div class="ebay-price">{price_txt}</div></div>'
+                    f'<div class="ebay-meta">{meta}</div></div>'
+                    f'<div class="ebay-price">{price_txt}</div>{link}</div>'
                 )
             st.markdown(
                 f'<div class="ebay-list">{"".join(sold_html)}</div>',
