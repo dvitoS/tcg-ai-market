@@ -25,6 +25,19 @@ LOG = logging.getLogger("tcg.justtcg")
 JUSTTCG_API_V2_BASE_URL = "https://api.justtcg.com/v2"
 JUSTTCG_PSA10_HISTORY_INCLUDE = "periods.30d,periods.90d,periods.1y,price_history.90d"
 
+# In-process response cache — skip delay on identical GETs within one app session.
+_GET_CACHE: dict[str, dict[str, Any]] = {}
+_GET_CACHE_MAX = 128
+
+
+def _cache_key(base: str, path: str, params: dict[str, Any] | None) -> str:
+    items = tuple(sorted((params or {}).items()))
+    return f"{base}|{path}|{items}"
+
+
+def clear_justtcg_cache() -> None:
+    _GET_CACHE.clear()
+
 
 class JustTCGRateLimitError(requests.HTTPError):
     """429 ili mjesečni/dnevni limit."""
@@ -55,8 +68,13 @@ def _get(
     *,
     base_url: str | None = None,
 ) -> dict[str, Any]:
-    sleep(JUSTTCG_REQUEST_DELAY_SECONDS)
     root = (base_url or JUSTTCG_API_BASE_URL).rstrip("/")
+    key = _cache_key(root, path, params)
+    cached = _GET_CACHE.get(key)
+    if cached is not None:
+        return cached
+
+    sleep(JUSTTCG_REQUEST_DELAY_SECONDS)
     url = f"{root}{path}"
     response = requests.get(url, params=params or {}, headers=_headers(), timeout=45)
     if response.status_code == 429:
@@ -68,7 +86,12 @@ def _get(
         if response.status_code == 429:
             raise JustTCGRateLimitError(response=response)
     response.raise_for_status()
-    return response.json()
+    payload = response.json()
+    if len(_GET_CACHE) >= _GET_CACHE_MAX:
+        # Drop an arbitrary old entry (insertion order).
+        _GET_CACHE.pop(next(iter(_GET_CACHE)), None)
+    _GET_CACHE[key] = payload
+    return payload
 
 
 def _get_v2(path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:

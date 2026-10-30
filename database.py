@@ -429,41 +429,61 @@ def load_cards_frame() -> pd.DataFrame:
     return pd.DataFrame(fetch_all("cards", "*"))
 
 
-def load_portfolio_lots(*, user_id: str) -> pd.DataFrame:
+def load_portfolio_lots(*, user_id: str, include_sold: bool = True) -> pd.DataFrame:
     """Load portfolio lots for one authenticated user only."""
     uid = str(user_id or "").strip()
+    empty_cols = [
+        "id",
+        "user_id",
+        "card_id",
+        "quantity",
+        "purchase_price",
+        "purchase_date",
+        "condition",
+        "grade",
+        "status",
+        "sale_price",
+        "sale_date",
+        "name",
+        "rarity",
+        "market_price",
+        "image_url",
+    ]
     if not uid:
-        return pd.DataFrame(
-            columns=[
-                "id",
-                "user_id",
-                "card_id",
-                "quantity",
-                "purchase_price",
-                "purchase_date",
-                "name",
-                "rarity",
-                "market_price",
-                "image_url",
-            ]
-        )
+        return pd.DataFrame(columns=empty_cols)
 
     client = get_supabase()
     rows: list[dict[str, Any]] = []
     start = 0
     columns = (
         "id,user_id,card_id,quantity,purchase_price,purchase_date,"
+        "condition,grade,status,sale_price,sale_date,"
         "cards(name,rarity,market_price,image_url)"
     )
     while True:
-        response = (
+        query = (
             client.table("portfolio")
             .select(columns)
             .eq("user_id", uid)
             .order("id")
             .range(start, start + PAGE - 1)
-            .execute()
         )
+        try:
+            response = query.execute()
+        except Exception:
+            # Older schema without condition/status columns.
+            columns = (
+                "id,user_id,card_id,quantity,purchase_price,purchase_date,"
+                "cards(name,rarity,market_price,image_url)"
+            )
+            response = (
+                client.table("portfolio")
+                .select(columns)
+                .eq("user_id", uid)
+                .order("id")
+                .range(start, start + PAGE - 1)
+                .execute()
+            )
         batch = list(response.data or [])
         rows.extend(batch)
         if len(batch) < PAGE:
@@ -473,6 +493,9 @@ def load_portfolio_lots(*, user_id: str) -> pd.DataFrame:
     flat: list[dict[str, Any]] = []
     for row in rows:
         card = row.get("cards") or {}
+        status = str(row.get("status") or "open").lower()
+        if not include_sold and status == "sold":
+            continue
         flat.append(
             {
                 "id": row.get("id"),
@@ -481,6 +504,11 @@ def load_portfolio_lots(*, user_id: str) -> pd.DataFrame:
                 "quantity": row.get("quantity"),
                 "purchase_price": row.get("purchase_price"),
                 "purchase_date": row.get("purchase_date"),
+                "condition": row.get("condition") or "NM",
+                "grade": row.get("grade") or "",
+                "status": status,
+                "sale_price": row.get("sale_price"),
+                "sale_date": row.get("sale_date"),
                 "name": card.get("name"),
                 "rarity": card.get("rarity"),
                 "market_price": card.get("market_price"),
@@ -497,6 +525,8 @@ def add_portfolio_position(
     *,
     user_id: str,
     purchase_date: str | None = None,
+    condition: str = "NM",
+    grade: str | None = None,
 ) -> None:
     uid = str(user_id or "").strip()
     if not uid:
@@ -506,15 +536,100 @@ def add_portfolio_position(
     if float(purchase_price) <= 0:
         raise ValueError("Purchase price must be greater than zero.")
     client = get_supabase()
-    client.table("portfolio").insert(
-        {
-            "user_id": uid,
-            "card_id": card_id,
-            "quantity": int(quantity),
-            "purchase_price": float(purchase_price),
-            "purchase_date": purchase_date or date.today().isoformat(),
-        }
-    ).execute()
+    payload: dict[str, Any] = {
+        "user_id": uid,
+        "card_id": card_id,
+        "quantity": int(quantity),
+        "purchase_price": float(purchase_price),
+        "purchase_date": purchase_date or date.today().isoformat(),
+        "condition": (condition or "NM").strip() or "NM",
+        "status": "open",
+    }
+    if grade:
+        payload["grade"] = str(grade).strip()
+    try:
+        client.table("portfolio").insert(payload).execute()
+    except Exception:
+        # Fallback for DBs that have not run the condition/status migration yet.
+        client.table("portfolio").insert(
+            {
+                "user_id": uid,
+                "card_id": card_id,
+                "quantity": int(quantity),
+                "purchase_price": float(purchase_price),
+                "purchase_date": purchase_date or date.today().isoformat(),
+            }
+        ).execute()
+
+
+def update_portfolio_position(
+    entry_id: int,
+    *,
+    user_id: str,
+    quantity: int | None = None,
+    purchase_price: float | None = None,
+    purchase_date: str | None = None,
+    condition: str | None = None,
+    grade: str | None = None,
+) -> bool:
+    uid = str(user_id or "").strip()
+    if not uid:
+        return False
+    payload: dict[str, Any] = {}
+    if quantity is not None:
+        if int(quantity) < 1:
+            raise ValueError("Quantity must be at least 1.")
+        payload["quantity"] = int(quantity)
+    if purchase_price is not None:
+        if float(purchase_price) <= 0:
+            raise ValueError("Purchase price must be greater than zero.")
+        payload["purchase_price"] = float(purchase_price)
+    if purchase_date is not None:
+        payload["purchase_date"] = str(purchase_date)
+    if condition is not None:
+        payload["condition"] = str(condition).strip() or "NM"
+    if grade is not None:
+        payload["grade"] = str(grade).strip()
+    if not payload:
+        return False
+    client = get_supabase()
+    response = (
+        client.table("portfolio")
+        .update(payload)
+        .eq("id", int(entry_id))
+        .eq("user_id", uid)
+        .execute()
+    )
+    return bool(response.data)
+
+
+def sell_portfolio_position(
+    entry_id: int,
+    *,
+    user_id: str,
+    sale_price: float,
+    sale_date: str | None = None,
+) -> bool:
+    uid = str(user_id or "").strip()
+    if not uid:
+        return False
+    if float(sale_price) <= 0:
+        raise ValueError("Sale price must be greater than zero.")
+    client = get_supabase()
+    response = (
+        client.table("portfolio")
+        .update(
+            {
+                "status": "sold",
+                "sale_price": float(sale_price),
+                "sale_date": sale_date or date.today().isoformat(),
+            }
+        )
+        .eq("id", int(entry_id))
+        .eq("user_id", uid)
+        .execute()
+    )
+    return bool(response.data)
 
 
 def delete_portfolio_position(entry_id: int, *, user_id: str) -> bool:
@@ -530,6 +645,87 @@ def delete_portfolio_position(entry_id: int, *, user_id: str) -> bool:
         .eq("user_id", uid)
         .execute()
     )
+    return bool(response.data)
+
+
+def load_watchlist(*, user_id: str) -> pd.DataFrame:
+    uid = str(user_id or "").strip()
+    empty = pd.DataFrame(
+        columns=["id", "user_id", "card_id", "created_at", "name", "rarity", "market_price", "image_url"]
+    )
+    if not uid:
+        return empty
+    client = get_supabase()
+    try:
+        response = (
+            client.table("watchlist")
+            .select("id,user_id,card_id,created_at,cards(name,rarity,market_price,image_url)")
+            .eq("user_id", uid)
+            .order("id", desc=True)
+            .execute()
+        )
+    except Exception:
+        return empty
+    flat: list[dict[str, Any]] = []
+    for row in list(response.data or []):
+        card = row.get("cards") or {}
+        flat.append(
+            {
+                "id": row.get("id"),
+                "user_id": row.get("user_id"),
+                "card_id": row.get("card_id"),
+                "created_at": row.get("created_at"),
+                "name": card.get("name"),
+                "rarity": card.get("rarity"),
+                "market_price": card.get("market_price"),
+                "image_url": card.get("image_url"),
+            }
+        )
+    return pd.DataFrame(flat)
+
+
+def add_watchlist_card(card_id: str, *, user_id: str) -> None:
+    uid = str(user_id or "").strip()
+    if not uid:
+        raise ValueError("Sign in required for watchlist.")
+    client = get_supabase()
+    client.table("watchlist").upsert(
+        {"user_id": uid, "card_id": str(card_id)},
+        on_conflict="user_id,card_id",
+    ).execute()
+
+
+def remove_watchlist_card(card_id: str, *, user_id: str) -> bool:
+    uid = str(user_id or "").strip()
+    if not uid:
+        return False
+    client = get_supabase()
+    response = (
+        client.table("watchlist")
+        .delete()
+        .eq("user_id", uid)
+        .eq("card_id", str(card_id))
+        .execute()
+    )
+    return bool(response.data)
+
+
+def is_on_watchlist(card_id: str, *, user_id: str) -> bool:
+    uid = str(user_id or "").strip()
+    if not uid:
+        return False
+    client = get_supabase()
+    try:
+        response = (
+            client.table("watchlist")
+            .select("id")
+            .eq("user_id", uid)
+            .eq("card_id", str(card_id))
+            .limit(1)
+            .execute()
+        )
+    except Exception:
+        return False
     return bool(response.data)
 
 

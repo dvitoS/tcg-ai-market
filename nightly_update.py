@@ -216,6 +216,25 @@ def run_nightly() -> int:
         _report_error("refresh_price_history", exc)
         failures.append("history")
 
+    # Optional: resolve missing cards.tcgplayer_id (rate-limited JustTCG searches).
+    if _env_flag("NIGHTLY_BACKFILL_TCP"):
+        try:
+            from backfill_tcgplayer_ids import backfill_tcgplayer_ids
+
+            limit_raw = os.environ.get("NIGHTLY_BACKFILL_TCP_LIMIT", "40").strip()
+            limit = int(limit_raw) if limit_raw.isdigit() else 40
+            stats = backfill_tcgplayer_ids(limit=limit, only_missing=True)
+            LOG.info(
+                "tcgplayer_id backfill scanned=%s updated=%s skipped=%s failed=%s",
+                stats["scanned"],
+                stats["updated"],
+                stats["skipped"],
+                stats["failed"],
+            )
+        except Exception as exc:
+            _report_error("backfill_tcgplayer_ids", exc)
+            failures.append("tcp_backfill")
+
     try:
         retrain_ai()
     except Exception as exc:

@@ -44,12 +44,24 @@ from ai_xgboost import (
     train_xgboost,
 )
 from api_client import pokemontcg_image_url
+from ai_insights import (
+    backtest_summary,
+    explain_features,
+    scanner_backtest,
+    series_confidence,
+)
 from database import (
     add_portfolio_position,
+    add_watchlist_card,
     delete_portfolio_position,
     ensure_seed_database,
     init_db,
+    is_on_watchlist,
     load_portfolio_lots as fetch_portfolio_lots,
+    load_watchlist,
+    remove_watchlist_card,
+    sell_portfolio_position,
+    update_portfolio_position,
 )
 from generate_history import ensure_price_history
 from currency import (
@@ -103,14 +115,92 @@ HOLO_RARITY_KEYWORDS = ("rare", "holo", "secret", "ultra")
 
 CUSTOM_CSS = """
 <style>
-    .stApp { background: radial-gradient(circle at top left, #132238 0%, #0b1220 45%, #070b14 100%); }
-    h1, h2, h3, p, label, span, div { color: #e8eef8 !important; }
-    [data-testid="stSidebar"] { background: #0d1626; border-right: 1px solid #1f334d; }
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap');
+    :root {
+        --bg0: #070b14;
+        --bg1: #0b1220;
+        --bg2: #132238;
+        --panel: #132033;
+        --border: #24364d;
+        --text: #e8eef8;
+        --muted: #94a3b8;
+        --accent: #38bdf8;
+        --accent-2: #60a5fa;
+        --buy: #22c55e;
+        --sell: #f87171;
+        --hold: #fbbf24;
+        --radius: 14px;
+        --font-ui: "DM Sans", "Segoe UI", system-ui, sans-serif;
+        --font-display: "Fraunces", Georgia, serif;
+    }
+    .stApp {
+        background: radial-gradient(circle at top left, var(--bg2) 0%, var(--bg1) 45%, var(--bg0) 100%);
+        font-family: var(--font-ui);
+    }
+    h1, h2, h3, p, label, span, div { color: var(--text) !important; }
+    [data-testid="stSidebar"] { background: #0d1626; border-right: 1px solid var(--border); }
     [data-testid="stMetric"] {
-        background: #132033;
-        border: 1px solid #24364d;
-        border-radius: 14px;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
         padding: 12px 16px;
+    }
+    .source-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 6px 0 10px;
+    }
+    .source-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: rgba(19, 32, 51, 0.9);
+        font-size: 0.75rem;
+        font-weight: 650;
+        letter-spacing: 0.02em;
+        color: var(--muted) !important;
+    }
+    .source-badge.live { border-color: rgba(56, 189, 248, 0.55); color: #7dd3fc !important; }
+    .source-badge.saved { border-color: rgba(251, 191, 36, 0.45); color: #fde68a !important; }
+    .source-badge.spot { border-color: rgba(196, 181, 253, 0.45); color: #ddd6fe !important; }
+    .source-badge.db { border-color: rgba(248, 113, 113, 0.45); color: #fecaca !important; }
+    .ai-explain {
+        margin-top: 10px;
+        padding: 12px 14px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: rgba(15, 23, 42, 0.65);
+        font-size: 0.88rem;
+        line-height: 1.45;
+    }
+    .ai-explain .ai-conf { color: var(--muted) !important; margin-bottom: 6px; font-weight: 650; }
+    .ai-move-label {
+        font-size: 0.8rem;
+        opacity: 0.75;
+        margin-bottom: 4px;
+    }
+    .ai-move-value {
+        font-size: 1.35rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        margin-bottom: 10px;
+    }
+    .catalog-hero-search { margin-bottom: 0.35rem; }
+    .market-tile, .explore-card {
+        transition: transform 0.18s ease, border-color 0.15s ease, background 0.15s ease;
+    }
+    .market-tile:hover, div[data-testid="stColumn"]:has(.explore-card):hover .explore-card {
+        transform: translateY(-2px) scale(1.01);
+    }
+    @media (max-width: 768px) {
+        .market-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 12px 10px; }
+        .detail-hero { flex-direction: column; }
+        .nav-brand-left { letter-spacing: 0.12em; font-size: 1rem; }
+        .pokemon-card-transformer { --card-w: 150px; }
     }
     .signal-buy, .signal-sell, .signal-hold {
         font-size: 1.55rem;
@@ -517,7 +607,7 @@ CUSTOM_CSS = """
 
     /* ——— Collectr-style desktop navbar ——— */
     .nav-brand-left {
-        font-family: Georgia, "Times New Roman", Times, serif;
+        font-family: var(--font-display), Georgia, serif;
         font-size: 1.15rem;
         font-weight: 700;
         letter-spacing: 0.2em;
@@ -530,7 +620,7 @@ CUSTOM_CSS = """
     }
     .nav-brand-left span {
         display: block;
-        font-family: Lato, "Segoe UI", system-ui, sans-serif;
+        font-family: var(--font-ui), system-ui, sans-serif;
         font-size: 0.48rem;
         font-weight: 600;
         letter-spacing: 0.28em;
@@ -561,7 +651,7 @@ CUSTOM_CSS = """
     /* Ghost text links (not pills) */
     div[data-testid="stHorizontalBlock"]:has(.nav-brand-left) button {
         border-radius: 8px !important;
-        font-family: Lato, "Segoe UI", system-ui, sans-serif !important;
+        font-family: var(--font-ui), system-ui, sans-serif !important;
         font-size: 0.9rem !important;
         font-weight: 600 !important;
         letter-spacing: 0 !important;
@@ -1187,8 +1277,15 @@ def price_chart(
     source_label: str | None = None,
     show_ai: bool = True,
     line_color: str = "#38bdf8",
+    overlays: list[tuple[pd.DataFrame, str, str]] | None = None,
 ) -> go.Figure:
-    if series.empty:
+    """Primary series + optional overlays [(frame, label, color), ...]."""
+    overlay_rows = [
+        (frame, label, color)
+        for frame, label, color in (overlays or [])
+        if isinstance(frame, pd.DataFrame) and not frame.empty
+    ]
+    if series.empty and not overlay_rows:
         fig = go.Figure()
         fig.update_layout(
             template="plotly_dark",
@@ -1210,40 +1307,60 @@ def price_chart(
         )
         return fig
 
-    last_day = pd.Timestamp(series["date"].iloc[-1])
-    last_price = float(series["price"].iloc[-1])
-    y_hist = series["price"].astype(float).map(to_display)
+    primary = series if not series.empty else overlay_rows[0][0]
+    last_day = pd.Timestamp(primary["date"].iloc[-1])
+    last_price = float(primary["price"].iloc[-1])
+    y_hist = primary["price"].astype(float).map(to_display)
     close_label = source_label or t("chart_close")
     money_hover = f"{currency_symbol()}%{{y:.4f}}"
     fill_color = _hex_to_rgba(line_color, 0.22)
-    y_values = [float(y_hist.min()), float(y_hist.max())]
+    y_values = [float(y_hist.min()), float(y_hist.max())] if len(y_hist) else []
     # Soft band under the line (not from $0 — keeps the chart readable).
-    band_floor = float(y_hist.min()) - max((float(y_hist.max()) - float(y_hist.min())) * 0.08, 0.01)
+    if len(y_hist):
+        band_floor = float(y_hist.min()) - max((float(y_hist.max()) - float(y_hist.min())) * 0.08, 0.01)
+    else:
+        band_floor = 0.0
 
     fig = go.Figure()
-    fig.add_trace(
-        go.Scatter(
-            x=series["date"],
-            y=[band_floor] * len(series),
-            mode="lines",
-            line=dict(width=0, color="rgba(0,0,0,0)"),
-            hoverinfo="skip",
-            showlegend=False,
+    if not series.empty:
+        fig.add_trace(
+            go.Scatter(
+                x=series["date"],
+                y=[band_floor] * len(series),
+                mode="lines",
+                line=dict(width=0, color="rgba(0,0,0,0)"),
+                hoverinfo="skip",
+                showlegend=False,
+            )
         )
-    )
-    fig.add_trace(
-        go.Scatter(
-            x=series["date"],
-            y=y_hist,
-            mode="lines",
-            name=close_label,
-            line=dict(color=line_color, width=2.8, shape="linear"),
-            fill="tonexty",
-            fillcolor=fill_color,
-            hovertemplate=f"%{{x|%d.%m.%Y}}<br>{money_hover}<extra>{close_label}</extra>",
+        fig.add_trace(
+            go.Scatter(
+                x=series["date"],
+                y=y_hist,
+                mode="lines",
+                name=close_label,
+                line=dict(color=line_color, width=2.8, shape="linear"),
+                fill="tonexty",
+                fillcolor=fill_color,
+                hovertemplate=f"%{{x|%d.%m.%Y}}<br>{money_hover}<extra>{close_label}</extra>",
+            )
         )
-    )
-    if show_ai and predicted is not None:
+    for frame, label, color in overlay_rows:
+        if not series.empty and label == close_label:
+            continue
+        y_over = frame["price"].astype(float).map(to_display)
+        y_values.extend([float(y_over.min()), float(y_over.max())])
+        fig.add_trace(
+            go.Scatter(
+                x=frame["date"],
+                y=y_over,
+                mode="lines",
+                name=label,
+                line=dict(color=color, width=2.2, shape="linear"),
+                hovertemplate=f"%{{x|%d.%m.%Y}}<br>{money_hover}<extra>{label}</extra>",
+            )
+        )
+    if show_ai and predicted is not None and not primary.empty:
         next_day = last_day + pd.Timedelta(days=1)
         y_last = to_display(last_price)
         y_pred = to_display(predicted)
@@ -1263,6 +1380,8 @@ def price_chart(
         )
         y_values.extend([y_last, y_pred])
 
+    if not y_values:
+        y_values = [0.0, 1.0]
     price_low = min(y_values)
     price_high = max(y_values)
     pad = max((price_high - price_low) * 0.18, abs(price_low) * 0.01, 0.01)
@@ -2531,35 +2650,64 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
             f'<div class="detail-ai-head"><h3>{escape(t("ai_prediction"))}</h3></div>',
             unsafe_allow_html=True,
         )
+        confidence = series_confidence(points=len(market_series), used_db_fallback=False)
+        st.markdown(
+            f'<div class="ai-move-label">{escape(t("ai_expected_move"))}</div>'
+            f'<div class="ai-move-value">{change_pct:+.2f}%</div>',
+            unsafe_allow_html=True,
+        )
         st.metric(
             t("price_on", date=next_day),
             money(predicted, digits=4),
             delta=f"{money_delta(predicted - last_price)} ({change_pct:+.2f}%)",
         )
+        if confidence["ok"]:
+            st.markdown(
+                f'<div class="{SIGNAL_CLASS[signal]}">{signal_label(signal)}</div>',
+                unsafe_allow_html=True,
+            )
+        else:
+            st.info(t("ai_low_confidence"))
+        st.caption(t("ai_caption", band=HOLD_BAND * 100))
+        explain_rows = explain_features(
+            lags=lags,
+            last_price=last_price,
+            predicted=float(predicted),
+            hold_band=HOLD_BAND,
+            horizon_days=1,
+        )
+        explain_html = "".join(
+            f"<div><strong>{escape(k)}</strong>: {escape(v)}</div>" for k, v in explain_rows
+        )
         st.markdown(
-            f'<div class="{SIGNAL_CLASS[signal]}">{signal_label(signal)}'
-            f'<div class="signal-pct">{change_pct:+.2f}%</div></div>',
+            f'<div class="ai-explain"><div class="ai-conf">'
+            f'{escape(t("ai_confidence", level=confidence["level"]))}'
+            f" — {escape(str(confidence['reason']))}</div>"
+            f"<div><strong>{escape(t('ai_explain_title'))}</strong></div>"
+            f"{explain_html}</div>",
             unsafe_allow_html=True,
         )
-        st.caption(t("ai_caption", band=HOLD_BAND * 100))
-        st.dataframe(
-            pd.DataFrame(
-                {
-                    t("field"): [
-                        t("points_series"),
-                        t("price_yesterday"),
-                        t("rolling_7d"),
-                    ],
-                    t("value"): [
-                        str(len(market_series)),
-                        money(float(lags["price_lag_1"]), digits=4),
-                        money(float(lags["rolling_mean_7"]), digits=4),
-                    ],
-                }
-            ),
-            hide_index=True,
-            width="stretch",
-        )
+        try:
+            uid = _current_user_id()
+            watching = is_on_watchlist(str(card_id), user_id=uid)
+            w_label = t("watchlist_remove") if watching else t("watchlist_add")
+            if st.button(w_label, key=f"watch_{card_id}", use_container_width=True):
+                try:
+                    if watching:
+                        remove_watchlist_card(str(card_id), user_id=uid)
+                        st.session_state["portfolio_notice"] = t("watchlist_removed")
+                    else:
+                        add_watchlist_card(str(card_id), user_id=uid)
+                        st.session_state["portfolio_notice"] = t("watchlist_added")
+                except Exception as exc:
+                    if "watchlist" in str(exc).lower() or "pgrst" in str(exc).lower():
+                        st.warning(t("watchlist_missing_table"))
+                    else:
+                        st.warning(str(exc)[:180])
+                else:
+                    st.rerun()
+        except Exception:
+            pass
 
     with right:
         st.markdown(
@@ -2584,47 +2732,131 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
             st.caption(t("price_source"))
             source_key = render_pill_toggle(
                 [
+                    ("compare", t("chart_compare_all")),
                     ("tcgplayer", "TCGplayer"),
                     ("justtcg", "JustTCG NM"),
                     ("psa10", "PSA 10"),
                 ],
                 state_key=f"detail_source_{card_id}",
-                default="justtcg" if justtcg_api_key() else "tcgplayer",
+                default="compare" if justtcg_api_key() else "tcgplayer",
             )
 
         just_series = pd.DataFrame(columns=["date", "price"])
         justtcg_error: str | None = None
         used_db_fallback = False
         psa10_stats: dict = {}
+        psa10_error: str | None = None
+        psa_series = pd.DataFrame(columns=["date", "price"])
         has_justtcg_key = bool(justtcg_api_key())
-        if source_key == "justtcg":
-            if has_justtcg_key:
-                with st.spinner(t("loading_justtcg")):
-                    try:
-                        just_series, resolved_tcp = load_justtcg_series(
-                            tcgplayer_id=tcgplayer_id,
-                            card_id=str(card_id),
-                            name=str(card["name"]),
-                            set_name=str(card.get("set_name") or ""),
-                        )
-                        if resolved_tcp and not tcgplayer_id:
-                            tcgplayer_id = resolved_tcp
-                    except Exception as exc:
-                        justtcg_error = str(exc)
-                        just_series = pd.DataFrame(columns=["date", "price"])
-            # Live prazan / nema key → spremljena serija umjesto praznog grafa.
+        need_just = source_key in {"justtcg", "compare"}
+        need_psa = source_key in {"psa10", "compare"}
+
+        if need_just and has_justtcg_key:
+            with st.spinner(t("loading_justtcg")):
+                try:
+                    just_series, resolved_tcp = load_justtcg_series(
+                        tcgplayer_id=tcgplayer_id,
+                        card_id=str(card_id),
+                        name=str(card["name"]),
+                        set_name=str(card.get("set_name") or ""),
+                    )
+                    if resolved_tcp and not tcgplayer_id:
+                        tcgplayer_id = resolved_tcp
+                except Exception as exc:
+                    justtcg_error = str(exc)
+                    just_series = pd.DataFrame(columns=["date", "price"])
             if just_series.empty and not market_series.empty:
                 just_series = market_series[["date", "price"]].copy()
                 used_db_fallback = True
+
+        if need_psa and has_justtcg_key:
+            with st.spinner(t("loading_psa10")):
+                try:
+                    psa_series, resolved_tcp, psa10_stats = load_psa10_series(
+                        tcgplayer_id=tcgplayer_id,
+                        card_id=str(card_id),
+                        name=str(card["name"]),
+                        set_name=str(card.get("set_name") or ""),
+                    )
+                    if resolved_tcp and not tcgplayer_id:
+                        tcgplayer_id = resolved_tcp
+                except Exception as exc:
+                    psa10_error = str(exc)
+                    psa_series = pd.DataFrame(columns=["date", "price"])
+                    psa10_stats = {}
+
+        badges: list[str] = []
+        overlays: list[tuple[pd.DataFrame, str, str]] = []
+        chart_series = pd.DataFrame(columns=["date", "price"])
+        source_label = "TCGplayer"
+        line_color = "#f87171"
+        latest_src: float | None = None
+        meta_note = t("source_market_db")
+        available = False
+        if source_key == "compare":
+            db_clip = clip_series_range(market_series, range_key)
+            just_clip = clip_series_range(just_series, range_key) if not just_series.empty else just_series
+            psa_clip = clip_series_range(psa_series, range_key) if not psa_series.empty else psa_series
+            chart_series = just_clip if not just_clip.empty else db_clip
+            source_label = t("chart_overlay")
+            line_color = "#60a5fa"
+            overlays = []
+            if not db_clip.empty:
+                overlays.append((db_clip, "TCGplayer", "#f87171"))
+                badges.append(f'<span class="source-badge db">{escape(t("badge_db"))}</span>')
+            if not just_clip.empty:
+                if used_db_fallback:
+                    badges.append(
+                        f'<span class="source-badge saved">{escape(t("badge_saved"))}</span>'
+                    )
+                else:
+                    badges.append(
+                        f'<span class="source-badge live">{escape(t("badge_live"))}</span>'
+                    )
+                if chart_series is just_clip:
+                    source_label = "JustTCG NM"
+                else:
+                    overlays.append((just_clip, "JustTCG NM", "#60a5fa"))
+            if not psa_clip.empty:
+                overlays.append((psa_clip, "PSA 10", "#c4b5fd"))
+                has_hist = bool(psa10_stats.get("has_history_series"))
+                badges.append(
+                    f'<span class="source-badge {"spot" if not has_hist else "live"}">'
+                    f'{escape(t("badge_spot") if not has_hist else "PSA 10")}</span>'
+                )
+            # Primary already JustTCG — avoid duplicating in overlays when it is primary.
+            overlays = [
+                (fr, lab, col)
+                for fr, lab, col in overlays
+                if not (lab == "JustTCG NM" and source_label == "JustTCG NM")
+            ]
+            available = not chart_series.empty or bool(overlays)
+            latest_src = (
+                float(chart_series["price"].iloc[-1])
+                if not chart_series.empty
+                else (
+                    float(overlays[0][0]["price"].iloc[-1]) if overlays else None
+                )
+            )
+            meta_note = t("chart_overlay")
+            if not has_justtcg_key:
+                st.info(t("justtcg_key_missing"))
+            if justtcg_error:
+                st.warning(t("justtcg_fetch_error", error=justtcg_error[:180]))
+            if psa10_error:
+                st.warning(t("psa10_fetch_error", error=psa10_error[:180]))
+        elif source_key == "justtcg":
             chart_series = clip_series_range(just_series, range_key)
             source_label = "JustTCG NM"
             line_color = "#60a5fa"
             available = not chart_series.empty
             latest_src = float(chart_series["price"].iloc[-1]) if available else None
             meta_note = (
-                t("source_nm_db_fallback")
-                if used_db_fallback
-                else t("source_nm_usd")
+                t("source_nm_db_fallback") if used_db_fallback else t("source_nm_usd")
+            )
+            badges.append(
+                f'<span class="source-badge {"saved" if used_db_fallback else "live"}">'
+                f'{escape(t("badge_saved") if used_db_fallback else t("badge_live"))}</span>'
             )
             if not has_justtcg_key:
                 st.info(t("justtcg_key_missing"))
@@ -2634,40 +2866,7 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
                 st.info(t("source_unavailable"))
             elif used_db_fallback and has_justtcg_key:
                 st.caption(t("justtcg_using_saved"))
-                try:
-                    import database as db_mod
-
-                    has_tcp_col = getattr(db_mod, "cards_have_tcgplayer_id_column", None)
-                    # Re-probe: user may have just run ALTER while Streamlit stayed up.
-                    missing_col = callable(has_tcp_col) and not has_tcp_col(force=True)
-                    if missing_col:
-                        st.caption(t("justtcg_tcp_column_hint"))
-                        st.code(
-                            "alter table public.cards "
-                            "add column if not exists tcgplayer_id text;\n"
-                            "notify pgrst, 'reload schema';",
-                            language="sql",
-                        )
-                except Exception:
-                    pass
         elif source_key == "psa10":
-            psa10_error: str | None = None
-            psa_series = pd.DataFrame(columns=["date", "price"])
-            if has_justtcg_key:
-                with st.spinner(t("loading_psa10")):
-                    try:
-                        psa_series, resolved_tcp, psa10_stats = load_psa10_series(
-                            tcgplayer_id=tcgplayer_id,
-                            card_id=str(card_id),
-                            name=str(card["name"]),
-                            set_name=str(card.get("set_name") or ""),
-                        )
-                        if resolved_tcp and not tcgplayer_id:
-                            tcgplayer_id = resolved_tcp
-                    except Exception as exc:
-                        psa10_error = str(exc)
-                        psa_series = pd.DataFrame(columns=["date", "price"])
-                        psa10_stats = {}
             chart_series = clip_series_range(psa_series, range_key)
             source_label = "JustTCG PSA 10"
             line_color = "#c4b5fd"
@@ -2676,11 +2875,19 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
             has_hist = bool(psa10_stats.get("has_history_series"))
             if has_hist:
                 meta_note = t("source_psa10_usd")
+                badges.append(f'<span class="source-badge live">PSA 10</span>')
             else:
                 meta_note = t(
                     "source_psa10_spot_only",
                     period=str(psa10_stats.get("period_key") or "—"),
-                    sales=str(psa10_stats.get("sales_count") if psa10_stats.get("sales_count") is not None else "—"),
+                    sales=str(
+                        psa10_stats.get("sales_count")
+                        if psa10_stats.get("sales_count") is not None
+                        else "—"
+                    ),
+                )
+                badges.append(
+                    f'<span class="source-badge spot">{escape(t("badge_spot"))}</span>'
                 )
             if not has_justtcg_key:
                 st.info(t("justtcg_key_missing"))
@@ -2697,6 +2904,13 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
             available = not chart_series.empty
             latest_src = float(chart_series["price"].iloc[-1]) if available else None
             meta_note = t("source_market_db")
+            badges.append(f'<span class="source-badge db">{escape(t("badge_db"))}</span>')
+
+        if badges:
+            st.markdown(
+                f'<div class="source-badges">{"".join(badges)}</div>',
+                unsafe_allow_html=True,
+            )
 
         counter_id = f"chart-price-{card_id}-{source_key}"
         if latest_src is not None:
@@ -2707,12 +2921,13 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
             )
         st.plotly_chart(
             price_chart(
-                chart_series,
-                predicted if source_key == "tcgplayer" else None,
+                chart_series if isinstance(chart_series, pd.DataFrame) else pd.DataFrame(),
+                predicted if source_key in {"tcgplayer", "compare"} else None,
                 str(card["name"]),
                 source_label=source_label,
-                show_ai=(source_key == "tcgplayer"),
+                show_ai=(source_key in {"tcgplayer", "compare"}),
                 line_color=line_color,
+                overlays=overlays if source_key == "compare" else None,
             ),
             width="stretch",
             key=f"detail_chart_{card_id}_{source_key}_{range_key}",
@@ -2721,11 +2936,12 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
         if latest_src is not None:
             inject_chart_hover_counter(counter_id)
 
+        pts = len(chart_series) if isinstance(chart_series, pd.DataFrame) else 0
         st.markdown(
             f"""
             <div class="source-card">
               <div class="src-title">{escape(t('source_label', name=source_label))}</div>
-              <p class="src-meta">{escape(meta_note)} · {len(chart_series)} {escape(t('points_series').lower())}</p>
+              <p class="src-meta">{escape(meta_note)} · {pts} {escape(t('points_series').lower())}</p>
             </div>
             """,
             unsafe_allow_html=True,
@@ -2806,6 +3022,54 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
                 unsafe_allow_html=True,
             )
 
+    # Sold comps (Insights) — soft fallback when gated.
+    st.markdown(
+        f"""
+        <div class="ebay-block">
+          <div class="compare-head">
+            <h3>{escape(t("ebay_sold_title"))}</h3>
+            <p class="compare-caption">{escape(t("ebay_sold_caption"))}</p>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    if ebay.ebay_configured() and hasattr(ebay, "sold_comps_for_card"):
+        number = ""
+        if "-" in str(card_id):
+            number = str(card_id).rsplit("-", 1)[-1]
+        try:
+            sold_rows, sold_hint = ebay.sold_comps_for_card(
+                name=str(card["name"]),
+                set_name=str(card.get("set_name") or "") or None,
+                number=number or None,
+                limit=6,
+            )
+        except Exception as exc:
+            sold_rows, sold_hint = [], str(exc)[:180]
+        if sold_hint and not sold_rows:
+            st.caption(t("ebay_sold_unavailable", hint=sold_hint))
+        elif sold_rows:
+            sold_html = []
+            for r in sold_rows:
+                title = escape((r.get("title") or "")[:90])
+                price_txt = (
+                    escape(money(float(r["price"])))
+                    if r.get("price") is not None
+                    else "—"
+                )
+                sold_date = escape(str(r.get("sold_date") or "—"))
+                sold_html.append(
+                    f'<div class="ebay-row"><div class="ebay-copy">'
+                    f'<div class="ebay-title">{title}</div>'
+                    f'<div class="ebay-meta">{sold_date}</div></div>'
+                    f'<div class="ebay-price">{price_txt}</div></div>'
+                )
+            st.markdown(
+                f'<div class="ebay-list">{"".join(sold_html)}</div>',
+                unsafe_allow_html=True,
+            )
+
 
 def explore_card_html(row) -> str:
     """Cijela Collectr kartica (klik hvata nevidljivi Streamlit gumb + JS)."""
@@ -2863,23 +3127,28 @@ def set_nav_query_params(*, page: str, card_id: str | None = None) -> None:
 
 
 def select_explore_card(card_id: str) -> None:
-    """Streamlit on_click — radi i lokalno i na Cloud (za razliku od HTML <a>)."""
+    """Streamlit on_click — detail-first inside Catalog."""
     st.session_state["market_selected_id"] = str(card_id)
-    st.session_state["nav_page"] = "market"
+    st.session_state["nav_page"] = "explore"
     st.session_state["market_detail_only"] = True
-    set_nav_query_params(page="market", card_id=str(card_id))
+    set_nav_query_params(page="explore", card_id=str(card_id))
 
 
 def apply_nav_query_params() -> None:
-    """Deep-link: ?nav=market&card=sv3-123 (ostaje u URL-u nakon loada)."""
+    """Deep-link: ?nav=explore&card=sv3-123 (ostaje u URL-u nakon loada)."""
     card = _query_param_value(st.query_params.get("card"))
     nav = _query_param_value(st.query_params.get("nav"))
     if card is None and nav is None:
         return
+    if nav == "market":
+        # Legacy Market URL → Catalog (browse/signals merged).
+        nav = "explore"
+        if st.session_state.get("catalog_mode") is None:
+            st.session_state["catalog_mode"] = "signals"
     if card is not None:
         st.session_state["market_selected_id"] = card
         st.session_state["market_detail_only"] = True
-        st.session_state["nav_page"] = nav or "market"
+        st.session_state["nav_page"] = nav or "explore"
     elif nav is not None:
         st.session_state["nav_page"] = nav
 
@@ -3154,8 +3423,34 @@ def render_explore_grid(rows: pd.DataFrame, cols_per_row: int = 4) -> None:
     )
 
 
-def render_explore(market: pd.DataFrame) -> None:
-    """Početna Explore stranica — Collectr layout: search, sort, lijevi filteri, infinite grid."""
+def render_explore(market: pd.DataFrame, history: pd.DataFrame | None = None, model=None) -> None:
+    """Catalog: Browse + AI signals modes, detail-first card view."""
+    selected_id = st.session_state.get("market_selected_id")
+    market_ids = set(market["id"].astype(str))
+    if (
+        history is not None
+        and model is not None
+        and st.session_state.get("market_detail_only")
+        and selected_id is not None
+        and str(selected_id) in market_ids
+    ):
+        if st.button(t("back_explore"), key="catalog_back"):
+            st.session_state["market_detail_only"] = False
+            st.session_state.pop("market_selected_id", None)
+            st.session_state.pop("_catalog_prev_pick", None)
+            set_nav_query_params(page="explore")
+            st.rerun()
+        set_nav_query_params(page="explore", card_id=str(selected_id))
+        render_market_detail(history, market, model, str(selected_id))
+        return
+
+    st.markdown('<div class="catalog-hero-search"></div>', unsafe_allow_html=True)
+    mode = render_pill_toggle(
+        [("browse", t("catalog_browse")), ("signals", t("catalog_signals"))],
+        state_key="catalog_mode",
+        default="browse",
+    )
+
     s1, s2, s3 = st.columns([4.2, 1.0, 0.9])
     with s1:
         query = st.text_input(
@@ -3178,6 +3473,14 @@ def render_explore(market: pd.DataFrame) -> None:
             st.session_state["explore_shown"] = EXPLORE_BATCH
             st.rerun()
 
+    if mode == "signals":
+        counts = market["signal"].value_counts() if "signal" in market.columns else {}
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric(t("cards"), len(market))
+        m2.metric(signal_label("BUY"), int(counts.get("BUY", 0)))
+        m3.metric(signal_label("HOLD"), int(counts.get("HOLD", 0)))
+        m4.metric(signal_label("SELL"), int(counts.get("SELL", 0)))
+
     sort_options = ["name", "price_desc", "price_asc", "exp_desc", "exp_asc"]
     sort_labels = {
         "name": t("sort_name"),
@@ -3186,7 +3489,7 @@ def render_explore(market: pd.DataFrame) -> None:
         "exp_desc": t("sort_exp_desc"),
         "exp_asc": t("sort_exp_asc"),
     }
-    sort_col, _ = st.columns([1.4, 3.6])
+    sort_col, signal_col = st.columns([1.4, 1.4])
     with sort_col:
         sort_by = st.selectbox(
             t("explore_sort_by"),
@@ -3194,6 +3497,16 @@ def render_explore(market: pd.DataFrame) -> None:
             format_func=lambda k: sort_labels[k],
             key="explore_sort",
         )
+    signal_filter = FILTER_ALL
+    with signal_col:
+        if mode == "signals":
+            signal_options = [FILTER_ALL, "BUY", "SELL", "HOLD"]
+            signal_filter = st.selectbox(
+                t("signal"),
+                signal_options,
+                format_func=lambda s: t("all") if s == FILTER_ALL else signal_label(s),
+                key="catalog_signal",
+            )
 
     left, right = st.columns([1.05, 3.2], gap="large")
     with left:
@@ -3207,12 +3520,25 @@ def render_explore(market: pd.DataFrame) -> None:
                 f'<div class="explore-filter-label">{escape(t("explore_category"))}</div>',
                 unsafe_allow_html=True,
             )
-            # Widget key mora biti drugačiji od i18n ključa — inače Streamlit zna pokazati raw key.
             st.checkbox(
                 t("explore_cat_pokemon"),
                 value=True,
                 disabled=True,
                 key="exp_pokemon_cb",
+            )
+            sets = [FILTER_ALL_SETS] + sorted(market["set_name"].dropna().unique().tolist())
+            set_filter = st.selectbox(
+                t("set"),
+                sets,
+                format_func=lambda s: t("all_sets") if s == FILTER_ALL_SETS else s,
+                key="catalog_set",
+            )
+            rarities = [FILTER_ALL] + sorted(market["rarity"].dropna().unique().tolist())
+            rarity_filter = st.selectbox(
+                t("rarity"),
+                rarities,
+                format_func=lambda r: t("all") if r == FILTER_ALL else r,
+                key="catalog_rarity",
             )
             st.markdown(
                 f'<div class="explore-filter-label">{escape(t("explore_price_box"))}'
@@ -3233,15 +3559,15 @@ def render_explore(market: pd.DataFrame) -> None:
     filtered = filter_market_frame(
         market,
         query=query or "",
-        set_name=FILTER_ALL_SETS,
-        rarity=FILTER_ALL,
-        signal=FILTER_ALL,
+        set_name=set_filter,
+        rarity=rarity_filter,
+        signal=signal_filter,
         sort_by=sort_by,
         price_min=price_min,
         price_max=price_max,
     )
 
-    fingerprint = f"{query}|{sort_by}|{price_min}|{price_max}"
+    fingerprint = f"{mode}|{query}|{sort_by}|{signal_filter}|{set_filter}|{rarity_filter}|{price_min}|{price_max}"
     if st.session_state.get("explore_filter_fp") != fingerprint:
         st.session_state["explore_filter_fp"] = fingerprint
         st.session_state["explore_shown"] = EXPLORE_BATCH
@@ -3256,7 +3582,22 @@ def render_explore(market: pd.DataFrame) -> None:
         if filtered.empty:
             st.warning(t("explore_empty"))
         else:
-            render_explore_grid(page_rows, cols_per_row=5)
+            if mode == "signals":
+                prev_pick = st.session_state.get("_catalog_prev_pick")
+                render_market_grid(page_rows, selection_key="market_selected_id", cols_per_row=5)
+                picked = st.session_state.get("market_selected_id")
+                # Open detail only when the user just picked a new card.
+                if (
+                    picked
+                    and str(picked) != str(prev_pick or "")
+                    and str(picked) in set(page_rows["id"].astype(str))
+                ):
+                    st.session_state["_catalog_prev_pick"] = str(picked)
+                    st.session_state["market_detail_only"] = True
+                    set_nav_query_params(page="explore", card_id=str(picked))
+                    st.rerun()
+            else:
+                render_explore_grid(page_rows, cols_per_row=5)
             if shown_n < len(filtered):
                 if st.button(
                     t("explore_load_more"),
@@ -3275,121 +3616,16 @@ def render_explore(market: pd.DataFrame) -> None:
 
 
 def render_market(history: pd.DataFrame, market: pd.DataFrame, model) -> None:
-    selected_id = st.session_state.get("market_selected_id")
-    market_ids = set(market["id"].astype(str))
-    if (
-        st.session_state.get("market_detail_only")
-        and selected_id is not None
-        and str(selected_id) in market_ids
-    ):
-        if st.button(t("back_explore"), key="market_back_explore"):
-            st.session_state["market_detail_only"] = False
-            st.session_state.pop("market_selected_id", None)
-            st.session_state["nav_page"] = "explore"
-            set_nav_query_params(page="explore")
-            st.rerun()
-        set_nav_query_params(page="market", card_id=str(selected_id))
-        render_market_detail(history, market, model, str(selected_id))
-        return
-
-    st.subheader(t("market_title"))
-    counts = market["signal"].value_counts() if "signal" in market.columns else {}
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric(t("cards"), len(market))
-    m2.metric(signal_label("BUY"), int(counts.get("BUY", 0)))
-    m3.metric(signal_label("HOLD"), int(counts.get("HOLD", 0)))
-    m4.metric(signal_label("SELL"), int(counts.get("SELL", 0)))
-
-    f1, f2, f3, f4, f5 = st.columns([1.6, 1.2, 1, 1, 1])
-    query = f1.text_input(t("search"), placeholder=t("search_ph"), key="market_query")
-    sets = [FILTER_ALL_SETS] + sorted(market["set_name"].dropna().unique().tolist())
-    set_filter = f2.selectbox(
-        t("set"),
-        sets,
-        format_func=lambda s: t("all_sets") if s == FILTER_ALL_SETS else s,
-        key="market_set",
+    """Legacy Market tab → Catalog AI signals + detail."""
+    st.session_state["nav_page"] = "explore"
+    st.session_state["catalog_mode"] = "signals"
+    set_nav_query_params(
+        page="explore",
+        card_id=str(st.session_state["market_selected_id"])
+        if st.session_state.get("market_detail_only") and st.session_state.get("market_selected_id")
+        else None,
     )
-    rarities = [FILTER_ALL] + sorted(market["rarity"].dropna().unique().tolist())
-    rarity_filter = f3.selectbox(
-        t("rarity"),
-        rarities,
-        format_func=lambda r: t("all") if r == FILTER_ALL else r,
-        key="market_rarity",
-    )
-    signal_options = [FILTER_ALL, "BUY", "SELL", "HOLD"]
-    signal_filter = f4.selectbox(
-        t("signal"),
-        signal_options,
-        format_func=lambda s: t("all") if s == FILTER_ALL else signal_label(s),
-        key="market_signal",
-    )
-    sort_options = ["name", "price_desc", "price_asc", "exp_desc", "exp_asc"]
-    sort_labels = {
-        "name": t("sort_name"),
-        "price_desc": t("sort_price_desc"),
-        "price_asc": t("sort_price_asc"),
-        "exp_desc": t("sort_exp_desc"),
-        "exp_asc": t("sort_exp_asc"),
-    }
-    sort_by = f5.selectbox(
-        t("sort"),
-        sort_options,
-        format_func=lambda k: sort_labels[k],
-        key="market_sort",
-    )
-    price_min, price_max = render_price_slider("market_price", market["price"])
-
-    filtered = filter_market_frame(
-        market,
-        query=query,
-        set_name=set_filter,
-        rarity=rarity_filter,
-        signal=signal_filter,
-        sort_by=sort_by,
-        price_min=price_min,
-        price_max=price_max,
-    )
-
-    filter_fingerprint = (
-        f"{query}|{set_filter}|{rarity_filter}|{signal_filter}|{sort_by}|{price_min}|{price_max}"
-    )
-    if st.session_state.get("market_filter_fp") != filter_fingerprint:
-        st.session_state["market_filter_fp"] = filter_fingerprint
-        st.session_state["market_page"] = 1
-
-    p1, p2 = st.columns([1, 3])
-    page_size = int(
-        p1.selectbox(t("per_page"), [12, 24, 48, 96], index=1, key="market_page_size")
-    )
-    p2.caption(t("filtered_of", n=len(filtered), total=len(market)))
-
-    page = int(st.session_state.get("market_page", 1))
-    page_rows, page, pages = paginate_frame(filtered, page, page_size)
-    st.session_state["market_page"] = page
-    render_pager("market", page, pages, len(filtered), page_size)
-
-    st.markdown(f"##### {t('grid_cards')}")
-    if filtered.empty:
-        st.warning(t("no_cards_filters"))
-    else:
-        render_market_grid(page_rows, selection_key="market_selected_id")
-
-    st.divider()
-    st.markdown(f"##### {t('detail_ai')}")
-    if filtered.empty:
-        return
-
-    filtered_ids = set(filtered["id"].astype(str))
-    selected_id = st.session_state.get("market_selected_id")
-    if selected_id is not None and str(selected_id) not in filtered_ids:
-        selected_id = None
-        st.session_state.pop("market_selected_id", None)
-
-    if not selected_id:
-        st.info(t("click_card_ai"))
-        return
-
-    render_market_detail(history, market, model, str(selected_id))
+    render_explore(market, history=history, model=model)
 
 @st.cache_data(show_spinner=False)
 def build_ai_scan(history: pd.DataFrame, market: pd.DataFrame, _model) -> pd.DataFrame:
@@ -3502,6 +3738,43 @@ def render_scanner(history: pd.DataFrame, market: pd.DataFrame, model) -> None:
     st.subheader(t("scanner_title"))
     st.caption(t("scanner_caption", days=FORECAST_DAYS))
 
+    with st.expander(t("backtest_title", days=FORECAST_DAYS), expanded=False):
+        st.caption(t("backtest_caption", pct=SCANNER_GROWTH_FLOOR))
+        bt = scanner_backtest(
+            history,
+            lookback_days=FORECAST_DAYS,
+            growth_floor=float(SCANNER_GROWTH_FLOOR),
+            top_n=15,
+        )
+        if bt.empty:
+            st.info(t("backtest_empty"))
+        else:
+            summary = backtest_summary(bt)
+            b1, b2, b3 = st.columns(3)
+            b1.metric(t("backtest_hit_rate"), f"{summary['hit_rate']:.0f}%")
+            b2.metric(t("backtest_avg"), f"{summary['avg_return']:+.1f}%")
+            b3.metric(t("cards"), int(summary["n"]))
+            st.dataframe(
+                bt.rename(
+                    columns={
+                        "name": t("col_name"),
+                        "trailing_pct": t("col_roi"),
+                        "start_price": t("col_current"),
+                        "end_price": t("col_ai_target"),
+                    }
+                )[
+                    [
+                        t("col_name"),
+                        "set_name",
+                        t("col_roi"),
+                        t("col_current"),
+                        t("col_ai_target"),
+                    ]
+                ],
+                hide_index=True,
+                width="stretch",
+            )
+
     f1, f2, f3, f4, f5 = st.columns([1.4, 1.2, 1, 1, 0.9])
     query = f1.text_input(t("search"), placeholder=t("search_ph_name"), key="scanner_query")
     sets = [FILTER_ALL_SETS] + sorted(market["set_name"].dropna().unique().tolist())
@@ -3594,12 +3867,76 @@ def render_scanner(history: pd.DataFrame, market: pd.DataFrame, model) -> None:
         _scanner_page_block("scan_warn", warnings_df, page_size)
 
 
+def render_watchlist_section(market: pd.DataFrame) -> None:
+    st.markdown(f"##### {t('watchlist_title')}")
+    uid = _current_user_id()
+    try:
+        watch = load_watchlist(user_id=uid)
+    except Exception:
+        st.caption(t("watchlist_missing_table"))
+        return
+    if watch.empty:
+        st.caption(t("watchlist_empty"))
+        return
+    for row in watch.itertuples(index=False):
+        c1, c2, c3 = st.columns([3.2, 1.2, 1])
+        with c1:
+            st.markdown(f"**{escape(str(row.name or row.card_id))}** · {escape(str(row.card_id))}")
+        with c2:
+            price = row.market_price
+            st.caption(money(float(price)) if price is not None else "—")
+        with c3:
+            if st.button(t("watchlist_remove"), key=f"wl_rm_{row.card_id}"):
+                remove_watchlist_card(str(row.card_id), user_id=uid)
+                st.rerun()
+
+
+def render_portfolio_performance(view: pd.DataFrame) -> None:
+    """Simple value vs cost bars for open lots."""
+    open_view = view
+    if "status" in view.columns:
+        open_view = view.loc[view["status"].astype(str).str.lower() != "sold"]
+    if open_view.empty:
+        return
+    st.markdown(f"##### {t('portfolio_perf')}")
+    fig = go.Figure()
+    names = open_view["name"].astype(str).tolist()
+    fig.add_trace(
+        go.Bar(
+            name=t("kpi_invested"),
+            x=names,
+            y=open_view["invested"].astype(float).map(to_display),
+            marker_color="#64748b",
+        )
+    )
+    fig.add_trace(
+        go.Bar(
+            name=t("kpi_value"),
+            x=names,
+            y=open_view["market_value"].astype(float).map(to_display),
+            marker_color="#38bdf8",
+        )
+    )
+    fig.update_layout(
+        template="plotly_dark",
+        barmode="group",
+        height=320,
+        margin=dict(l=8, r=8, t=8, b=8),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(11,18,32,0.35)",
+        legend=dict(orientation="h", y=1.12),
+        yaxis=dict(tickprefix=currency_symbol()),
+    )
+    st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+
+
 def render_portfolio(history: pd.DataFrame, market: pd.DataFrame, model) -> None:
     st.subheader(t("add_card"))
     labels = {
         row.id: f"{row.name}  ·  {row.id}  ·  {money(float(row.price))}"
         for row in market.sort_values("name").itertuples(index=False)
     }
+    conditions = ["NM", "LP", "MP", "HP", "DMG", "PSA 10", "PSA 9", "Other"]
     with st.form("add_portfolio", clear_on_submit=True):
         picked, quantity, purchase_price = st.columns([2, 1, 1])
         card_id = picked.selectbox(
@@ -3615,6 +3952,9 @@ def render_portfolio(history: pd.DataFrame, market: pd.DataFrame, model) -> None
             value=float(to_display(0.10)),
             format="%.4f",
         )
+        cond_col, grade_col = st.columns(2)
+        condition = cond_col.selectbox(t("condition"), conditions, index=0)
+        grade = grade_col.text_input(t("grade"), value="")
         submitted = st.form_submit_button(t("add_to_portfolio"), type="primary")
 
     if submitted:
@@ -3625,6 +3965,8 @@ def render_portfolio(history: pd.DataFrame, market: pd.DataFrame, model) -> None
                 int(qty),
                 float(from_display(cost_display)),
                 user_id=uid,
+                condition=str(condition),
+                grade=str(grade).strip() or None,
             )
         except ValueError as exc:
             st.error(str(exc))
@@ -3652,6 +3994,8 @@ def render_portfolio(history: pd.DataFrame, market: pd.DataFrame, model) -> None
     if notice:
         st.success(notice)
 
+    render_watchlist_section(market)
+
     try:
         lots = load_portfolio_lots()
     except Exception as exc:
@@ -3674,15 +4018,119 @@ def render_portfolio(history: pd.DataFrame, market: pd.DataFrame, model) -> None
         st.info(t("portfolio_empty"))
         return
 
-    view = portfolio_view(lots, market, history, model)
-    value = float(view["market_value"].sum())
-    invested = float(view["invested"].sum())
-    pnl = float(view["pnl"].sum())
-    pnl_pct = pnl / invested * 100.0 if invested else 0.0
-    render_portfolio_kpis(value, invested, pnl, pnl_pct)
-    render_week_outlook(value, float(view["week_value"].sum()))
+    if "status" not in lots.columns:
+        lots["status"] = "open"
+    open_lots = lots.loc[lots["status"].astype(str).str.lower() != "sold"].copy()
+    sold_lots = lots.loc[lots["status"].astype(str).str.lower() == "sold"].copy()
 
-    render_portfolio_gallery(view)
+    view = portfolio_view(open_lots if not open_lots.empty else lots.iloc[0:0], market, history, model)
+    value = float(view["market_value"].sum()) if not view.empty else 0.0
+    invested = float(view["invested"].sum()) if not view.empty else 0.0
+    pnl = float(view["pnl"].sum()) if not view.empty else 0.0
+    pnl_pct = pnl / invested * 100.0 if invested else 0.0
+    realized = 0.0
+    if not sold_lots.empty:
+        for row in sold_lots.itertuples(index=False):
+            sale = float(row.sale_price or 0.0)
+            cost = float(row.purchase_price or 0.0) * float(row.quantity or 0)
+            realized += sale * float(row.quantity or 0) - cost
+    render_portfolio_kpis(value, invested, pnl, pnl_pct)
+    st.markdown(
+        f'<div class="chip"><div class="chip-label">{escape(t("kpi_realized"))}</div>'
+        f'<div class="chip-value {"pnl-up" if realized >= 0 else "pnl-down"}">'
+        f"{escape(money_signed(realized))}</div></div>",
+        unsafe_allow_html=True,
+    )
+    if not view.empty:
+        render_week_outlook(value, float(view["week_value"].sum()))
+        render_portfolio_performance(view)
+        render_portfolio_gallery(view)
+
+    # Edit / sell open lots
+    if not open_lots.empty:
+        st.markdown(f"##### {t('edit_lot')}")
+        lot_labels = {
+            int(r.id): f"#{r.id} · {r.name} · qty {r.quantity} · {r.condition or 'NM'}"
+            for r in open_lots.itertuples(index=False)
+        }
+        edit_id = st.selectbox(
+            t("card"),
+            options=list(lot_labels.keys()),
+            format_func=lambda i: lot_labels[i],
+            key="edit_lot_pick",
+        )
+        row = open_lots.loc[open_lots["id"] == edit_id].iloc[0]
+        uid = _current_user_id()
+        with st.form("edit_portfolio_lot"):
+            e1, e2, e3 = st.columns(3)
+            new_qty = e1.number_input(t("quantity"), min_value=1, value=int(row["quantity"]))
+            new_cost = e2.number_input(
+                t("purchase_price", code=currency_code()),
+                min_value=0.0001,
+                value=float(to_display(float(row["purchase_price"]))),
+                format="%.4f",
+            )
+            new_cond = e3.selectbox(
+                t("condition"),
+                conditions,
+                index=conditions.index(str(row.get("condition") or "NM"))
+                if str(row.get("condition") or "NM") in conditions
+                else 0,
+            )
+            save = st.form_submit_button(t("save_lot"))
+        if save:
+            try:
+                update_portfolio_position(
+                    int(edit_id),
+                    user_id=uid,
+                    quantity=int(new_qty),
+                    purchase_price=float(from_display(new_cost)),
+                    condition=str(new_cond),
+                )
+                st.session_state["portfolio_notice"] = t("lot_updated")
+                st.rerun()
+            except Exception as exc:
+                st.warning(str(exc)[:200])
+        with st.form("sell_portfolio_lot"):
+            sell_price = st.number_input(
+                t("sale_price", code=currency_code()),
+                min_value=0.0001,
+                value=float(to_display(float(row.get("market_price") or row["purchase_price"]))),
+                format="%.4f",
+            )
+            sell = st.form_submit_button(t("sell_lot"))
+        if sell:
+            try:
+                sell_portfolio_position(
+                    int(edit_id),
+                    user_id=uid,
+                    sale_price=float(from_display(sell_price)),
+                )
+                st.session_state["portfolio_notice"] = t("lot_sold")
+                st.rerun()
+            except Exception as exc:
+                st.warning(str(exc)[:200])
+
+    if not sold_lots.empty:
+        st.markdown(f"##### {t('sold_lots')}")
+        st.dataframe(
+            sold_lots[
+                [
+                    c
+                    for c in [
+                        "name",
+                        "quantity",
+                        "purchase_price",
+                        "sale_price",
+                        "sale_date",
+                        "condition",
+                    ]
+                    if c in sold_lots.columns
+                ]
+            ],
+            hide_index=True,
+            width="stretch",
+        )
 
 
 def main() -> None:
@@ -3720,7 +4168,7 @@ def main() -> None:
         return
 
     if page == "explore":
-        render_explore(market)
+        render_explore(market, history=history, model=model)
     elif page == "market":
         render_market(history, market, model)
     elif page == "portfolio":

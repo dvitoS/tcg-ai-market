@@ -221,9 +221,9 @@ TCG_API_KEY = _secret("TCG_API_KEY")
 TCG_API_BASE_URL = "https://api.pokewallet.io"
 JUSTTCG_API_KEY = _secret("JUSTTCG_API_KEY")
 JUSTTCG_API_BASE_URL = "https://api.justtcg.com/v1"
-# Free: 20 / request, 100 / day, 10 / min — drži delay ≥ 6s.
+# Free: 20 / request, 100 / day, 10 / min — delay ≥ 6s; identical GETs use in-process cache.
 JUSTTCG_BATCH_SIZE = 20
-JUSTTCG_REQUEST_DELAY_SECONDS = 6.5
+JUSTTCG_REQUEST_DELAY_SECONDS = 6.0
 JUSTTCG_HISTORY_DURATION = "30d"
 PRICE_HISTORY_DAYS = 60
 API_REQUEST_DELAY_SECONDS = 0.75

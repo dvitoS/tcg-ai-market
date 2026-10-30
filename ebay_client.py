@@ -217,6 +217,75 @@ def listings_for_card(
     )
 
 
+def sold_comps_for_card(
+    *,
+    name: str,
+    set_name: str | None = None,
+    number: str | None = None,
+    limit: int = 8,
+) -> tuple[list[dict[str, Any]], str | None]:
+    """Best-effort sold comps via Marketplace Insights (often gated).
+
+    Returns (rows, error_or_hint). When Insights is unavailable, returns ([], hint)
+    so the UI can show active Browse listings as a soft fallback caption.
+    """
+    q = build_search_query(name=name, set_name=set_name, number=number)
+    if not q or not ebay_configured():
+        return [], "eBay credentials missing."
+
+    token = get_access_token()
+    # Marketplace Insights item sales — requires special API access on most apps.
+    url = "https://api.ebay.com/buy/marketplace_insights/v1_beta/item_sales/search"
+    params: dict[str, Any] = {
+        "q": q,
+        "limit": max(1, min(int(limit), 20)),
+        "category_ids": EBAY_POKEMON_CATEGORY_ID,
+    }
+    try:
+        response = requests.get(
+            url,
+            params=params,
+            headers=_browse_headers(token),
+            timeout=35,
+        )
+    except requests.RequestException as exc:
+        return [], str(exc)[:180]
+
+    if response.status_code in {401, 403, 404}:
+        return (
+            [],
+            "eBay Marketplace Insights is not enabled for this app — showing active listings only.",
+        )
+    if response.status_code >= 400:
+        LOG.warning("eBay Insights %s: %s", response.status_code, response.text[:300])
+        return [], f"eBay Insights HTTP {response.status_code}"
+
+    payload = response.json() if response.content else {}
+    items = payload.get("itemSales") or payload.get("itemSummaries") or []
+    rows: list[dict[str, Any]] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        price_obj = item.get("lastSoldPrice") or item.get("price") or {}
+        try:
+            price = float(price_obj.get("value")) if price_obj.get("value") is not None else None
+        except (TypeError, ValueError):
+            price = None
+        rows.append(
+            {
+                "item_id": str(item.get("itemId") or ""),
+                "title": str(item.get("title") or ""),
+                "price": price,
+                "currency": str(price_obj.get("currency") or "USD"),
+                "condition": str(item.get("condition") or ""),
+                "url": str(item.get("itemWebUrl") or item.get("itemHref") or ""),
+                "sold_date": str(item.get("soldDate") or item.get("lastSoldDate") or ""),
+                "image": str((item.get("image") or {}).get("imageUrl") or ""),
+            }
+        )
+    return rows, None
+
+
 # Reload dotenv helper for Streamlit hot paths (imported by tests/smoke).
 def _reload_env() -> None:
     from dotenv import load_dotenv
