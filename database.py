@@ -7,17 +7,26 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pandas as pd
-from supabase import Client, create_client
 
-from config import (
-    SEED_DATABASE_PATH,
-    _clean_secret_value,
-    _secret,
-    get_supabase_credentials,
-)
+from config import SEED_DATABASE_PATH, _secret, get_supabase_credentials
+
+if TYPE_CHECKING:
+    from supabase import Client
+
+
+def _supabase_api():
+    """Lazy import — keeps module load working if supabase wheels are mid-install."""
+    try:
+        from supabase import Client, create_client
+    except ImportError as exc:
+        raise ImportError(
+            "supabase package missing or broken. "
+            "Add 'supabase' to requirements.txt and reboot the Cloud app."
+        ) from exc
+    return Client, create_client
 
 PAGE = 1000
 
@@ -67,13 +76,14 @@ def _require_supabase_env() -> tuple[str, str]:
 
 
 @lru_cache(maxsize=1)
-def get_supabase() -> Client:
+def get_supabase():
     """Service-role (or configured key) client — catalog/history/sync."""
+    _, create_client = _supabase_api()
     url, key = _require_supabase_env()
     return create_client(url, key)
 
 
-def get_user_supabase() -> Client | None:
+def get_user_supabase():
     """Authed anon client with the signed-in user's JWT (portfolio/watchlist RLS).
 
     Returns None when anon key or session tokens are missing — callers fall back
@@ -83,7 +93,7 @@ def get_user_supabase() -> Client | None:
         import streamlit as st
 
         from auth import SESSION_ACCESS_KEY, SESSION_REFRESH_KEY
-        from config import get_supabase_auth_credentials
+        from config import _clean_secret_value, get_supabase_auth_credentials
     except Exception:
         return None
 
@@ -93,12 +103,11 @@ def get_user_supabase() -> Client | None:
     if not url or not anon or not access:
         return None
     # Prefer true anon key for RLS; if only service role is configured, skip.
-    from config import _secret
-
     has_anon = bool(_clean_secret_value(_secret("SUPABASE_ANON_KEY")))
     if not has_anon:
         return None
     try:
+        _, create_client = _supabase_api()
         client = create_client(url, anon)
         client.auth.set_session(access, refresh or access)
         return client
@@ -106,7 +115,7 @@ def get_user_supabase() -> Client | None:
         return None
 
 
-def _user_or_service_client() -> Client:
+def _user_or_service_client():
     return get_user_supabase() or get_supabase()
 
 
@@ -177,7 +186,7 @@ def _apply_schema_via_postgres(db_url: str) -> None:
             cur.execute(SCHEMA_SQL)
 
 
-def _verify_tables(client: Client) -> None:
+def _verify_tables(client: Any) -> None:
     missing: list[str] = []
     details: list[str] = []
     for name in ("cards", "price_history", "portfolio"):

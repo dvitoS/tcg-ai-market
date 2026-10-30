@@ -8,7 +8,7 @@ import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
 
-from currency import currency_code, from_display, money, to_display
+from currency import currency_code, from_display, money, number_format_pattern, to_display
 from i18n import FILTER_ALL, FILTER_ALL_SETS, signal_label, t
 from ui.common import (
     filter_market_frame,

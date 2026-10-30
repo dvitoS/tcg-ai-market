@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import math
 from html import escape
 
 import pandas as pd
 import streamlit as st
 
-from currency import currency_code, currency_symbol, from_display, money, to_display
+from currency import currency_code, currency_symbol, from_display, money, number_format_pattern, to_display
 from i18n import FILTER_ALL, FILTER_ALL_SETS, t
 from ui.tiles import market_tile_html
 
@@ -24,8 +25,8 @@ def price_bounds(series: pd.Series, *, fallback_hi: float = 100.0) -> tuple[floa
     values = pd.to_numeric(series, errors="coerce").dropna()
     if values.empty:
         return 0.0, float(fallback_hi)
-    lo = float(np.floor(values.min() * 100) / 100)
-    hi = float(np.ceil(values.max() * 100) / 100)
+    lo = float(math.floor(values.min() * 100) / 100)
+    hi = float(math.ceil(values.max() * 100) / 100)
     if hi <= lo:
         hi = lo + 1.0
     return max(0.0, lo), hi

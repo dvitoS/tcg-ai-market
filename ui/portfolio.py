@@ -21,7 +21,7 @@ from database import (
     sell_portfolio_position,
     update_portfolio_position,
 )
-from i18n import PNL_ALL, PNL_DOWN, PNL_TOP, PNL_UP, t
+from i18n import FILTER_ALL, PNL_ALL, PNL_DOWN, PNL_TOP, PNL_UP, t
 from services.forecast import card_history, forecast_price_in_days
 from trading_signals import FORECAST_DAYS, SCANNER_GROWTH_FLOOR
 

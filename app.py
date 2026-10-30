@@ -4,7 +4,7 @@ import importlib
 import subprocess
 import sys
 
-_REQUIRED_PIP = ("plotly", "xgboost", "scikit-learn")
+_REQUIRED_PIP = ("plotly", "xgboost", "scikit-learn", "supabase")
 
 
 def _ensure_runtime_deps() -> None:
@@ -17,7 +17,7 @@ def _ensure_runtime_deps() -> None:
     if not missing:
         return
     subprocess.check_call(
-        [sys.executable, "-m", "pip", "install", "--upgrade", *_REQUIRED_PIP],
+        [sys.executable, "-m", "pip", "install", "--upgrade", *missing],
     )
     importlib.invalidate_caches()
 
@@ -36,8 +36,16 @@ from ai_xgboost import (
     train_xgboost,
 )
 from ai_insights import backtest_summary, scanner_backtest
-from currency import money
-from database import ensure_seed_database, init_db, load_watchlist
+from currency import money, number_format_pattern
+
+try:
+    from database import ensure_seed_database, init_db, load_watchlist
+except ImportError:
+    import traceback
+
+    traceback.print_exc(file=sys.stderr)
+    raise
+
 from generate_history import ensure_price_history
 from services.alerts import collect_watchlist_alerts, render_watchlist_alerts
 from services.forecast import card_history, forecast_price_in_days, predict_next_close
