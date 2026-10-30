@@ -78,13 +78,10 @@ def _get(
     url = f"{root}{path}"
     response = requests.get(url, params=params or {}, headers=_headers(), timeout=45)
     if response.status_code == 429:
-        retry = response.headers.get("Retry-After", "6")
-        wait = float(retry) if str(retry).replace(".", "", 1).isdigit() else 6.0
-        LOG.warning("JustTCG 429 — čekam %.0fs", wait)
-        sleep(wait)
-        response = requests.get(url, params=params or {}, headers=_headers(), timeout=45)
-        if response.status_code == 429:
-            raise JustTCGRateLimitError(response=response)
+        # Do not burn a second request — free-tier retries almost always 429 again.
+        retry = response.headers.get("Retry-After")
+        LOG.warning("JustTCG 429 (Retry-After=%s) — raising", retry or "?")
+        raise JustTCGRateLimitError(response=response)
     response.raise_for_status()
     payload = response.json()
     if len(_GET_CACHE) >= _GET_CACHE_MAX:
@@ -103,13 +100,9 @@ def _post(path: str, payload: Any) -> dict[str, Any]:
     url = f"{JUSTTCG_API_BASE_URL.rstrip('/')}{path}"
     response = requests.post(url, json=payload, headers=_headers(), timeout=60)
     if response.status_code == 429:
-        retry = response.headers.get("Retry-After", "6")
-        wait = float(retry) if str(retry).replace(".", "", 1).isdigit() else 6.0
-        LOG.warning("JustTCG 429 — čekam %.0fs", wait)
-        sleep(wait)
-        response = requests.post(url, json=payload, headers=_headers(), timeout=60)
-        if response.status_code == 429:
-            raise JustTCGRateLimitError(response=response)
+        retry = response.headers.get("Retry-After")
+        LOG.warning("JustTCG 429 (Retry-After=%s) — raising", retry or "?")
+        raise JustTCGRateLimitError(response=response)
     response.raise_for_status()
     return response.json()
 

@@ -17,9 +17,9 @@ def series_confidence(*, points: int, used_db_fallback: bool = False) -> dict[st
         }
     if used_db_fallback:
         return {
-            "level": "medium",
+            "level": "low",
             "ok": True,
-            "reason": "Live JustTCG history was empty; forecast uses saved market history.",
+            "reason": "Live JustTCG NM was empty — forecast uses saved DB history; treat signal cautiously.",
         }
     if points < 20:
         return {

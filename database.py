@@ -12,7 +12,12 @@ from typing import Any
 import pandas as pd
 from supabase import Client, create_client
 
-from config import SEED_DATABASE_PATH, get_supabase_credentials, _secret
+from config import (
+    SEED_DATABASE_PATH,
+    _clean_secret_value,
+    _secret,
+    get_supabase_credentials,
+)
 
 PAGE = 1000
 
@@ -63,8 +68,46 @@ def _require_supabase_env() -> tuple[str, str]:
 
 @lru_cache(maxsize=1)
 def get_supabase() -> Client:
+    """Service-role (or configured key) client — catalog/history/sync."""
     url, key = _require_supabase_env()
     return create_client(url, key)
+
+
+def get_user_supabase() -> Client | None:
+    """Authed anon client with the signed-in user's JWT (portfolio/watchlist RLS).
+
+    Returns None when anon key or session tokens are missing — callers fall back
+    to get_supabase() + explicit user_id filters.
+    """
+    try:
+        import streamlit as st
+
+        from auth import SESSION_ACCESS_KEY, SESSION_REFRESH_KEY
+        from config import get_supabase_auth_credentials
+    except Exception:
+        return None
+
+    url, anon = get_supabase_auth_credentials()
+    access = str(st.session_state.get(SESSION_ACCESS_KEY) or "").strip()
+    refresh = str(st.session_state.get(SESSION_REFRESH_KEY) or "").strip()
+    if not url or not anon or not access:
+        return None
+    # Prefer true anon key for RLS; if only service role is configured, skip.
+    from config import _secret
+
+    has_anon = bool(_clean_secret_value(_secret("SUPABASE_ANON_KEY")))
+    if not has_anon:
+        return None
+    try:
+        client = create_client(url, anon)
+        client.auth.set_session(access, refresh or access)
+        return client
+    except Exception:
+        return None
+
+
+def _user_or_service_client() -> Client:
+    return get_user_supabase() or get_supabase()
 
 
 def _chunked(rows: list[dict[str, Any]], size: int = 500):
@@ -452,7 +495,7 @@ def load_portfolio_lots(*, user_id: str, include_sold: bool = True) -> pd.DataFr
     if not uid:
         return pd.DataFrame(columns=empty_cols)
 
-    client = get_supabase()
+    client = _user_or_service_client()
     rows: list[dict[str, Any]] = []
     start = 0
     columns = (
@@ -535,7 +578,7 @@ def add_portfolio_position(
         raise ValueError("Quantity must be at least 1.")
     if float(purchase_price) <= 0:
         raise ValueError("Purchase price must be greater than zero.")
-    client = get_supabase()
+    client = _user_or_service_client()
     payload: dict[str, Any] = {
         "user_id": uid,
         "card_id": card_id,
@@ -592,7 +635,7 @@ def update_portfolio_position(
         payload["grade"] = str(grade).strip()
     if not payload:
         return False
-    client = get_supabase()
+    client = _user_or_service_client()
     response = (
         client.table("portfolio")
         .update(payload)
@@ -615,7 +658,7 @@ def sell_portfolio_position(
         return False
     if float(sale_price) <= 0:
         raise ValueError("Sale price must be greater than zero.")
-    client = get_supabase()
+    client = _user_or_service_client()
     response = (
         client.table("portfolio")
         .update(
@@ -637,7 +680,7 @@ def delete_portfolio_position(entry_id: int, *, user_id: str) -> bool:
     uid = str(user_id or "").strip()
     if not uid:
         return False
-    client = get_supabase()
+    client = _user_or_service_client()
     response = (
         client.table("portfolio")
         .delete()
@@ -655,7 +698,7 @@ def load_watchlist(*, user_id: str) -> pd.DataFrame:
     )
     if not uid:
         return empty
-    client = get_supabase()
+    client = _user_or_service_client()
     try:
         response = (
             client.table("watchlist")
@@ -688,7 +731,7 @@ def add_watchlist_card(card_id: str, *, user_id: str) -> None:
     uid = str(user_id or "").strip()
     if not uid:
         raise ValueError("Sign in required for watchlist.")
-    client = get_supabase()
+    client = _user_or_service_client()
     client.table("watchlist").upsert(
         {"user_id": uid, "card_id": str(card_id)},
         on_conflict="user_id,card_id",
@@ -699,7 +742,7 @@ def remove_watchlist_card(card_id: str, *, user_id: str) -> bool:
     uid = str(user_id or "").strip()
     if not uid:
         return False
-    client = get_supabase()
+    client = _user_or_service_client()
     response = (
         client.table("watchlist")
         .delete()
@@ -714,7 +757,7 @@ def is_on_watchlist(card_id: str, *, user_id: str) -> bool:
     uid = str(user_id or "").strip()
     if not uid:
         return False
-    client = get_supabase()
+    client = _user_or_service_client()
     try:
         response = (
             client.table("watchlist")

@@ -54,6 +54,7 @@ _TEXT: dict[str, str] = {
         "ebay_sold_title": "eBay sold comps",
         "ebay_sold_caption": "Completed sales when Marketplace Insights is enabled; otherwise active listings only.",
         "ebay_sold_unavailable": "{hint}",
+        "ebay_sold_stats": "{n} sold · min {lo} · median {mid} · max {hi}",
         "condition": "Condition",
         "grade": "Grade (optional)",
         "edit_lot": "Edit lot",
