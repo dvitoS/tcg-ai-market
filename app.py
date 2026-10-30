@@ -62,6 +62,11 @@ from currency import (
     number_format_pattern,
     to_display,
 )
+
+# Streamlit often keeps a stale i18n in sys.modules after edits — force reload.
+import i18n as _i18n_mod
+
+importlib.reload(_i18n_mod)
 from i18n import (
     FILTER_ALL,
     FILTER_ALL_SETS,
@@ -80,12 +85,20 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# Promjena unutar ovog pojasa ostaje DRŽI; izvan njega je KUPI ili PRODAJ.
+# Change within this band stays HOLD; outside it is BUY or SELL.
+# Keep signal codes local so a stale i18n module cannot break imports.
 HOLD_BAND = 0.0035
 FORECAST_DAYS = 7
 SCANNER_GROWTH_FLOOR = 10.0
 MARKET_PAGE_SIZE_DEFAULT = 24
-SIGNAL_CLASS = {"KUPI": "signal-buy", "PRODAJ": "signal-sell", "DRŽI": "signal-hold"}
+SIGNAL_BUY = "BUY"
+SIGNAL_SELL = "SELL"
+SIGNAL_HOLD = "HOLD"
+SIGNAL_CLASS = {
+    SIGNAL_BUY: "signal-buy",
+    SIGNAL_SELL: "signal-sell",
+    SIGNAL_HOLD: "signal-hold",
+}
 HOLO_RARITY_KEYWORDS = ("rare", "holo", "secret", "ultra")
 
 CUSTOM_CSS = """
@@ -216,13 +229,9 @@ CUSTOM_CSS = """
         font-weight: 700;
         letter-spacing: 0.04em;
     }
-    .market-tile-signal.KUPI { background: #14532d; border: 1px solid #22c55e; color: #dcfce7 !important; }
-    .market-tile-signal.PRODAJ { background: #7f1d1d; border: 1px solid #f87171; color: #fee2e2 !important; }
-    .market-tile-signal.DRZI, .market-tile-signal.DRŽI { background: #78350f; border: 1px solid #fbbf24; color: #fef3c7 !important; }
-    div[data-testid="stHorizontalBlock"]:has(button[kind="primary"][key="lang_hr_btn"]),
-    div[data-testid="stHorizontalBlock"]:has(button[kind="secondary"][key="lang_hr_btn"]) {
-        justify-content: flex-end;
-    }
+    .market-tile-signal.BUY, .market-tile-signal.KUPI { background: #14532d; border: 1px solid #22c55e; color: #dcfce7 !important; }
+    .market-tile-signal.SELL, .market-tile-signal.PRODAJ { background: #7f1d1d; border: 1px solid #f87171; color: #fee2e2 !important; }
+    .market-tile-signal.HOLD, .market-tile-signal.DRZI, .market-tile-signal.DRŽI { background: #78350f; border: 1px solid #fbbf24; color: #fef3c7 !important; }
     .pager-bar {
         display: flex;
         align-items: center;
@@ -945,7 +954,7 @@ EXPLORE_INFINITE_SCROLL_JS = """
   let busy = false;
   function loadMoreLabel(text) {
     const t = (text || "").trim().toLowerCase();
-    return t.includes("load more") || t.includes("učitaj još") || t.includes("ucitaj jos");
+    return t.includes("load more");
   }
   function nearBottom() {
     const el = doc.scrollingElement || doc.documentElement;
@@ -1019,10 +1028,10 @@ EXPLORE_CARD_HIT_JS = """
 def trading_signal(current_price: float, predicted_price: float) -> str:
     change = (predicted_price - current_price) / current_price
     if change > HOLD_BAND:
-        return "KUPI"
+        return SIGNAL_BUY
     if change < -HOLD_BAND:
-        return "PRODAJ"
-    return "DRŽI"
+        return SIGNAL_SELL
+    return SIGNAL_HOLD
 
 
 def assign_signals(quotes: pd.DataFrame) -> pd.DataFrame:
@@ -1035,8 +1044,10 @@ def assign_signals(quotes: pd.DataFrame) -> pd.DataFrame:
     return board
 
 
-@st.cache_resource(show_spinner="Učitavam povijest i treniram XGBoost...")
+@st.cache_resource(show_spinner="Loading history and training XGBoost...")
 def load_exchange() -> tuple[pd.DataFrame, pd.DataFrame, object]:
+    from config import CATALOG_MIN_PRICE
+
     init_db()
     if ensure_seed_database():
         # Seed napuni praznu Cloud bazu (tcg_market.db je u .gitignore).
@@ -1050,6 +1061,14 @@ def load_exchange() -> tuple[pd.DataFrame, pd.DataFrame, object]:
     X_train, _X_test, y_train, _y_test = split_features(trainable)
     model = train_xgboost(X_train, y_train)
     quotes = assign_signals(card_forecasts(model, featured))
+    # Drop cards under the catalog floor (USD). Prefer live close, else market_price.
+    spot = pd.to_numeric(quotes.get("price"), errors="coerce")
+    if "market_price" in quotes.columns:
+        spot = spot.fillna(pd.to_numeric(quotes["market_price"], errors="coerce"))
+    quotes = quotes.loc[spot >= float(CATALOG_MIN_PRICE)].copy()
+    keep_ids = set(quotes["id"].astype(str)) if "id" in quotes.columns else set()
+    if keep_ids and "card_id" in history.columns:
+        history = history.loc[history["card_id"].astype(str).isin(keep_ids)].copy()
     return history, quotes.sort_values("name").reset_index(drop=True), model
 
 
@@ -1168,7 +1187,7 @@ def price_chart(
         y_last = to_display(last_price)
         y_pred = to_display(predicted)
         signal = trading_signal(last_price, predicted)
-        forecast_color = {"KUPI": "#22c55e", "PRODAJ": "#f87171", "DRŽI": "#fbbf24"}[signal]
+        forecast_color = {"BUY": "#22c55e", "SELL": "#f87171", "HOLD": "#fbbf24"}[signal]
         ai_label = t("chart_ai")
         fig.add_trace(
             go.Scatter(
@@ -1229,8 +1248,24 @@ def is_holo_eligible(rarity: str | None, *, is_top_ai: bool = False) -> bool:
     return any(keyword in text for keyword in HOLO_RARITY_KEYWORDS)
 
 
+def _current_user_id() -> str:
+    import auth as auth_mod
+
+    user = auth_mod.current_user() or {}
+    return str(user.get("id") or "").strip()
+
+
 def load_portfolio_lots() -> pd.DataFrame:
-    lots = fetch_portfolio_lots()
+    uid = _current_user_id()
+    if not uid:
+        return pd.DataFrame()
+    try:
+        from database import ensure_portfolio_user_id_column
+
+        ensure_portfolio_user_id_column()
+    except Exception:
+        pass
+    lots = fetch_portfolio_lots(user_id=uid)
     if lots.empty:
         return lots
     lots["image_url"] = [
@@ -1294,7 +1329,7 @@ POKEMON_CARD_FX_JS = r"""
     box = doc.createElement('div');
     box.id = 'tcg-card-lightbox';
     box.innerHTML = `
-      <button type="button" class="tcg-lb-close" aria-label="Zatvori">✕</button>
+      <button type="button" class="tcg-lb-close" aria-label="Close">✕</button>
       <div class="tcg-lb-panel">
         <div class="tcg-lb-stage">
           <div class="tcg-lb-transformer">
@@ -1686,7 +1721,8 @@ def render_portfolio_gallery(view: pd.DataFrame) -> None:
                     unsafe_allow_html=True,
                 )
                 if st.button("❌", key=f"del_{entry_id}", help=t("remove", name=row.name)):
-                    if delete_portfolio_position(entry_id):
+                    uid = _current_user_id()
+                    if uid and delete_portfolio_position(entry_id, user_id=uid):
                         st.session_state["portfolio_notice"] = t(
                             "removed_from_portfolio", name=row.name
                         )
@@ -1784,19 +1820,19 @@ def card_image_for_id(card_id: str) -> str:
 def market_tile_html(row, *, selected: bool = False) -> str:
     """Jedan tile u market/scanner gridu."""
     card_id = str(getattr(row, "id", getattr(row, "card_id", "")))
-    name = escape(str(getattr(row, "name", getattr(row, "Naziv", ""))))
+    name = escape(str(getattr(row, "name", getattr(row, "Name", ""))))
     set_name = escape(str(getattr(row, "set_name", getattr(row, "Set", ""))))
-    rarity = escape(str(getattr(row, "rarity", getattr(row, "Rijetkost", "")) or ""))
+    rarity = escape(str(getattr(row, "rarity", getattr(row, "Rarity", "")) or ""))
     signal = str(getattr(row, "signal", "") or "")
     price = getattr(row, "price", None)
     if price is None:
-        price = getattr(row, "Trenutna cijena", 0.0)
+        price = getattr(row, "Current price", 0.0)
     change = getattr(row, "expected_change_pct", None)
     if change is None:
-        change = getattr(row, "Očekivani ROI (%)", None)
+        change = getattr(row, "Expected ROI (%)", None)
     image = escape(card_image_for_id(card_id), quote=True)
     change_txt = f"{float(change):+.1f}%" if change is not None and pd.notna(change) else "—"
-    css_signal = "DRZI" if signal == "DRŽI" else signal
+    css_signal = signal_label(signal)
     signal_html = (
         f'<span class="market-tile-signal {escape(css_signal)}">{escape(signal_label(signal))}</span>'
         if signal
@@ -2546,14 +2582,76 @@ def apply_nav_query_params() -> None:
         st.session_state["nav_page"] = nav
 
 
+def render_login_gate() -> bool:
+    """Email/password form. Returns True when the user is authenticated."""
+    import auth as auth_mod
+
+    if auth_mod.is_authenticated():
+        return True
+
+    st.markdown(
+        f"""
+        <div class="compare-head" style="max-width:420px;margin:2.5rem auto 1rem;">
+          <h3>{escape(t("login_title"))}</h3>
+          <p class="compare-caption">{escape(t("login_caption"))}</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    left, form_col, right = st.columns([1, 1.2, 1])
+    with form_col:
+        email = st.text_input(t("login_email"), key="auth_email")
+        password = st.text_input(
+            t("login_password"),
+            type="password",
+            key="auth_password",
+        )
+        c1, c2 = st.columns(2)
+        with c1:
+            do_signin = st.button(
+                t("login_signin"),
+                type="primary",
+                use_container_width=True,
+                key="auth_signin_btn",
+            )
+        with c2:
+            do_signup = st.button(
+                t("login_signup"),
+                use_container_width=True,
+                key="auth_signup_btn",
+            )
+        if do_signin:
+            try:
+                user = auth_mod.sign_in(email, password)
+                st.success(t("login_success", email=user.get("email") or email))
+                st.rerun()
+            except Exception as exc:
+                st.error(t("login_error", error=str(exc)[:220]))
+        if do_signup:
+            try:
+                user = auth_mod.sign_up(email, password)
+                if user.get("needs_confirmation"):
+                    st.info(t("signup_confirm"))
+                else:
+                    st.success(t("signup_success", email=user.get("email") or email))
+                    st.rerun()
+            except Exception as exc:
+                st.error(t("login_error", error=str(exc)[:220]))
+    return False
+
+
 def render_navbar() -> str:
-    """Collectr-style sticky header: brand | text links | lang + currency."""
+    """Collectr-style sticky header: brand | text links | currency | logout."""
     from currency import CURRENCY_EUR, CURRENCY_USD, get_currency, _set_currency
-    from i18n import LANG_EN, LANG_HR, _set_lang, get_lang
+    import auth as auth_mod
 
     if "nav_page" not in st.session_state:
         st.session_state["nav_page"] = "explore"
     st.session_state.pop("nav_menu_open", None)
+    # Drop leftover language / legacy signal filter state from older builds.
+    st.session_state.pop("lang", None)
+    if st.session_state.get("market_signal") in {"KUPI", "PRODAJ", "DRŽI", "DRZI"}:
+        st.session_state["market_signal"] = signal_label(st.session_state["market_signal"])
 
     pages = [
         ("explore", t("nav_explore")),
@@ -2562,12 +2660,13 @@ def render_navbar() -> str:
     ]
 
     cur = get_currency()
-    lang = get_lang()
     code = "USD" if cur == CURRENCY_USD else "EUR"
+    user = auth_mod.current_user() or {}
+    email = str(user.get("email") or "")
 
-    # brand | 3 links | spacer | HR EN | currency
-    brand, *nav_cols, _gap, lang_hr, lang_en, cur_btn = st.columns(
-        [1.45, 0.95, 0.95, 1.05, 2.8, 0.5, 0.5, 0.7],
+    # brand | 3 links | spacer | email | currency | logout
+    brand, *nav_cols, _gap, email_col, cur_btn, logout_btn = st.columns(
+        [1.35, 0.9, 0.9, 1.0, 2.2, 1.4, 0.65, 0.85],
         vertical_alignment="center",
         gap="medium",
     )
@@ -2592,24 +2691,9 @@ def render_navbar() -> str:
                         st.session_state["market_detail_only"] = False
                     set_nav_query_params(page=key)
                     st.rerun()
-    with lang_hr:
-        if st.button(
-            "HR",
-            key="nav_lang_hr",
-            type="primary" if lang == LANG_HR else "secondary",
-            use_container_width=True,
-        ):
-            if lang != LANG_HR:
-                _set_lang(LANG_HR)
-    with lang_en:
-        if st.button(
-            "EN",
-            key="nav_lang_en",
-            type="primary" if lang == LANG_EN else "secondary",
-            use_container_width=True,
-        ):
-            if lang != LANG_EN:
-                _set_lang(LANG_EN)
+    with email_col:
+        if email:
+            st.caption(t("logged_in_as", email=email))
     with cur_btn:
         if st.button(
             code,
@@ -2618,6 +2702,10 @@ def render_navbar() -> str:
             help="USD / EUR",
         ):
             _set_currency(CURRENCY_EUR if cur == CURRENCY_USD else CURRENCY_USD)
+    with logout_btn:
+        if st.button(t("logout"), key="nav_logout", use_container_width=True):
+            auth_mod.sign_out()
+            st.rerun()
 
     return str(st.session_state["nav_page"])
 
@@ -2906,9 +2994,9 @@ def render_market(history: pd.DataFrame, market: pd.DataFrame, model) -> None:
     counts = market["signal"].value_counts() if "signal" in market.columns else {}
     m1, m2, m3, m4 = st.columns(4)
     m1.metric(t("cards"), len(market))
-    m2.metric(signal_label("KUPI"), int(counts.get("KUPI", 0)))
-    m3.metric(signal_label("DRŽI"), int(counts.get("DRŽI", 0)))
-    m4.metric(signal_label("PRODAJ"), int(counts.get("PRODAJ", 0)))
+    m2.metric(signal_label("BUY"), int(counts.get("BUY", 0)))
+    m3.metric(signal_label("HOLD"), int(counts.get("HOLD", 0)))
+    m4.metric(signal_label("SELL"), int(counts.get("SELL", 0)))
 
     f1, f2, f3, f4, f5 = st.columns([1.6, 1.2, 1, 1, 1])
     query = f1.text_input(t("search"), placeholder=t("search_ph"), key="market_query")
@@ -2926,7 +3014,7 @@ def render_market(history: pd.DataFrame, market: pd.DataFrame, model) -> None:
         format_func=lambda r: t("all") if r == FILTER_ALL else r,
         key="market_rarity",
     )
-    signal_options = [FILTER_ALL, "KUPI", "PRODAJ", "DRŽI"]
+    signal_options = [FILTER_ALL, "BUY", "SELL", "HOLD"]
     signal_filter = f4.selectbox(
         t("signal"),
         signal_options,
@@ -3030,25 +3118,29 @@ def build_ai_scan(history: pd.DataFrame, market: pd.DataFrame, _model) -> pd.Dat
         target = float(week_price)
         rows.append(
             {
-                "Naziv": str(card.name),
+                "Name": str(card.name),
                 "Set": str(card.set_name),
-                "Trenutna cijena": current,
-                "AI Ciljna cijena": target,
-                "Očekivani ROI (%)": (target - current) / current * 100.0,
+                "Current price": current,
+                "AI target price": target,
+                "Expected ROI (%)": (target - current) / current * 100.0,
                 "id": str(card.id),
             }
         )
     if not rows:
         return pd.DataFrame(
-            columns=["Naziv", "Set", "Trenutna cijena", "AI Ciljna cijena", "Očekivani ROI (%)", "id"]
+            columns=["Name", "Set", "Current price", "AI target price", "Expected ROI (%)", "id"]
         )
-    return pd.DataFrame(rows).sort_values("Očekivani ROI (%)", ascending=False).reset_index(drop=True)
+    return pd.DataFrame(rows).sort_values("Expected ROI (%)", ascending=False).reset_index(drop=True)
 
 
 def scanner_table(frame: pd.DataFrame, height: int = 320) -> None:
-    cols = [c for c in ["Naziv", "Set", "Rijetkost", "Trenutna cijena", "AI Ciljna cijena", "Očekivani ROI (%)"] if c in frame.columns]
+    cols = [
+        c
+        for c in ["Name", "Set", "Rarity", "Current price", "AI target price", "Expected ROI (%)"]
+        if c in frame.columns
+    ]
     display = frame[cols].copy()
-    for price_col in ("Trenutna cijena", "AI Ciljna cijena"):
+    for price_col in ("Current price", "AI target price"):
         if price_col in display.columns:
             display[price_col] = pd.to_numeric(display[price_col], errors="coerce").map(to_display)
     st.dataframe(
@@ -3057,18 +3149,18 @@ def scanner_table(frame: pd.DataFrame, height: int = 320) -> None:
         width="stretch",
         height=height,
         column_config={
-            "Naziv": st.column_config.TextColumn(t("col_name"), width="medium"),
+            "Name": st.column_config.TextColumn(t("col_name"), width="medium"),
             "Set": st.column_config.TextColumn(t("set"), width="medium"),
-            "Rijetkost": st.column_config.TextColumn(t("rarity"), width="small"),
-            "Trenutna cijena": st.column_config.NumberColumn(
+            "Rarity": st.column_config.TextColumn(t("rarity"), width="small"),
+            "Current price": st.column_config.NumberColumn(
                 t("col_current"),
                 format=number_format_pattern(digits=4),
             ),
-            "AI Ciljna cijena": st.column_config.NumberColumn(
+            "AI target price": st.column_config.NumberColumn(
                 t("col_ai_target"),
                 format=number_format_pattern(digits=4),
             ),
-            "Očekivani ROI (%)": st.column_config.NumberColumn(t("col_roi"), format="%+.2f%%"),
+            "Expected ROI (%)": st.column_config.NumberColumn(t("col_roi"), format="%+.2f%%"),
         },
     )
 
@@ -3088,15 +3180,15 @@ def _scanner_page_block(prefix: str, frame: pd.DataFrame, page_size: int) -> Non
     st.session_state[f"{prefix}_page"] = page
     render_pager(prefix, page, pages, len(frame), page_size)
 
-    # Grid očekuje name/set_name/price/expected_change_pct
+    # Grid expects name/set_name/price/expected_change_pct
     grid = page_rows.rename(
         columns={
             "id": "id",
-            "Naziv": "name",
+            "Name": "name",
             "Set": "set_name",
-            "Rijetkost": "rarity",
-            "Trenutna cijena": "price",
-            "Očekivani ROI (%)": "expected_change_pct",
+            "Rarity": "rarity",
+            "Current price": "price",
+            "Expected ROI (%)": "expected_change_pct",
         }
     )
     render_market_grid(grid, cols_per_row=6)
@@ -3143,10 +3235,10 @@ def render_scanner(history: pd.DataFrame, market: pd.DataFrame, model) -> None:
         st.warning(t("no_scan_history"))
         return
 
-    # Dopuni rarity iz market tablica za filter/grid.
-    if "Rijetkost" not in scan.columns and "rarity" in market.columns:
+    # Fill rarity from market table for filter/grid.
+    if "Rarity" not in scan.columns and "rarity" in market.columns:
         scan = scan.merge(
-            market[["id", "rarity"]].rename(columns={"rarity": "Rijetkost"}),
+            market[["id", "rarity"]].rename(columns={"rarity": "Rarity"}),
             on="id",
             how="left",
         )
@@ -3154,25 +3246,25 @@ def render_scanner(history: pd.DataFrame, market: pd.DataFrame, model) -> None:
     scoped = scan
     if set_filter != FILTER_ALL_SETS:
         scoped = scoped.loc[scoped["Set"] == set_filter]
-    if rarity_filter != FILTER_ALL and "Rijetkost" in scoped.columns:
-        scoped = scoped.loc[scoped["Rijetkost"] == rarity_filter]
+    if rarity_filter != FILTER_ALL and "Rarity" in scoped.columns:
+        scoped = scoped.loc[scoped["Rarity"] == rarity_filter]
     if query.strip():
         q = query.strip()
-        scoped = scoped.loc[scoped["Naziv"].astype(str).str.contains(q, case=False, na=False)]
-    scoped = apply_price_range(scoped, "Trenutna cijena", price_min, price_max)
+        scoped = scoped.loc[scoped["Name"].astype(str).str.contains(q, case=False, na=False)]
+    scoped = apply_price_range(scoped, "Current price", price_min, price_max)
 
     if scoped.empty:
         st.warning(t("no_cards_filters"))
         return
 
     opportunities = (
-        scoped.loc[scoped["Očekivani ROI (%)"] >= float(min_growth)]
-        .sort_values("Očekivani ROI (%)", ascending=False)
+        scoped.loc[scoped["Expected ROI (%)"] >= float(min_growth)]
+        .sort_values("Expected ROI (%)", ascending=False)
         .reset_index(drop=True)
     )
     warnings_df = (
-        scoped.loc[scoped["Očekivani ROI (%)"] < 0]
-        .sort_values("Očekivani ROI (%)", ascending=True)
+        scoped.loc[scoped["Expected ROI (%)"] < 0]
+        .sort_values("Expected ROI (%)", ascending=True)
         .reset_index(drop=True)
     )
 
@@ -3224,10 +3316,31 @@ def render_portfolio(history: pd.DataFrame, market: pd.DataFrame, model) -> None
         submitted = st.form_submit_button(t("add_to_portfolio"), type="primary")
 
     if submitted:
+        uid = _current_user_id()
         try:
-            add_portfolio_position(str(card_id), int(qty), float(from_display(cost_display)))
+            add_portfolio_position(
+                str(card_id),
+                int(qty),
+                float(from_display(cost_display)),
+                user_id=uid,
+            )
         except ValueError as exc:
             st.error(str(exc))
+        except Exception as exc:
+            message = str(exc)
+            if "user_id" in message.lower():
+                st.error(t("portfolio_user_id_migration"))
+                st.code(
+                    "alter table public.portfolio "
+                    "add column if not exists user_id uuid "
+                    "references auth.users (id) on delete cascade;\n"
+                    "create index if not exists portfolio_user_id_idx "
+                    "on public.portfolio (user_id);\n"
+                    "notify pgrst, 'reload schema';",
+                    language="sql",
+                )
+            else:
+                st.error(message[:220])
         else:
             name = str(market.loc[market["id"] == card_id, "name"].iloc[0])
             st.session_state["portfolio_notice"] = t("added_to_portfolio", name=name)
@@ -3237,7 +3350,23 @@ def render_portfolio(history: pd.DataFrame, market: pd.DataFrame, model) -> None
     if notice:
         st.success(notice)
 
-    lots = load_portfolio_lots()
+    try:
+        lots = load_portfolio_lots()
+    except Exception as exc:
+        message = str(exc)
+        if "user_id" in message.lower():
+            st.error(t("portfolio_user_id_migration"))
+            st.code(
+                "alter table public.portfolio "
+                "add column if not exists user_id uuid "
+                "references auth.users (id) on delete cascade;\n"
+                "create index if not exists portfolio_user_id_idx "
+                "on public.portfolio (user_id);\n"
+                "notify pgrst, 'reload schema';",
+                language="sql",
+            )
+            return
+        raise
     if lots.empty:
         render_portfolio_kpis(0.0, 0.0, 0.0, 0.0)
         st.info(t("portfolio_empty"))
@@ -3257,52 +3386,29 @@ def render_portfolio(history: pd.DataFrame, market: pd.DataFrame, model) -> None
 def main() -> None:
     st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
     apply_nav_query_params()
-    page = render_navbar()
 
     from config import get_supabase_credentials
 
     url, key = get_supabase_credentials()
     if not url or not key:
         st.error(t("missing_supabase"))
-        st.markdown(
-            """
-**Streamlit Cloud → ⋮ Manage app → Settings → Secrets**  
-zalijepi točno ovaj TOML (zamijeni vrijednosti), **Save**, pa **Reboot**:
-
-```toml
-SUPABASE_URL = "https://YOUR_PROJECT.supabase.co"
-SUPABASE_KEY = "YOUR_SERVICE_ROLE_KEY"
-```
-
-Ključeve: Supabase → **Project Settings → API**  
-(`Project URL` + `service_role`).
-
-**Važno:** URL mora biti samo `https://xxxx.supabase.co` —  
-**bez** `/rest/v1` na kraju (inače greška PGRST125).
-"""
-        )
+        st.markdown(t("supabase_secrets_help"))
         return
 
+    if not render_login_gate():
+        return
+
+    page = render_navbar()
 
     try:
         history, market, model = load_exchange()
     except RuntimeError as exc:
         st.error(str(exc))
         message = str(exc).lower()
-        if "tablice" in message or "schema" in message or "cards" in message:
+        if "table" in message or "schema" in message or "cards" in message:
             from database import SCHEMA_SQL
 
-            st.markdown(
-                """
-### Kreiraj tablice u Supabaseu
-1. Otvori [Supabase Dashboard](https://supabase.com/dashboard) → svoj projekt  
-2. Lijevo: **SQL Editor** → **New query**  
-3. Kopiraj SQL ispod → zalijepi → **Run**  
-4. **Table Editor**: moraš vidjeti `cards`, `price_history`, `portfolio`  
-5. Ako app i dalje javlja grešku: **Project Settings → API → Reload schema**  
-6. Streamlit → **Reboot**
-"""
-            )
+            st.markdown(t("supabase_schema_help"))
             st.code(SCHEMA_SQL, language="sql")
         else:
             st.info(t("check_secrets"))

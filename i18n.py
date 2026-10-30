@@ -1,184 +1,11 @@
-"""Jednostavan HR/EN prijevod za Streamlit UI."""
+"""English UI strings for Streamlit."""
 
 from __future__ import annotations
 
 from typing import Any
 
-import streamlit as st
+_TEXT: dict[str, str] = {
 
-LANG_HR = "hr"
-LANG_EN = "en"
-
-_TEXT: dict[str, dict[str, str]] = {
-    LANG_HR: {
-        "lang_hr": "HR",
-        "lang_en": "EN",
-        "app_title": "📈 TCG AI Market Dashboard",
-        "app_caption": "Pokémon TCG burza · portfelj · XGBoost predikcija",
-        "tab_market": "Tržište & AI",
-        "tab_portfolio": "Moj Portfelj",
-        "tab_scanner": "🤖 AI Scanner",
-        "nav_explore": "Explore",
-        "nav_market": "Tržište & AI",
-        "nav_portfolio": "Portfelj",
-        "nav_scanner": "AI Scanner",
-        "explore_find": "Pronađi proizvod",
-        "explore_search_ph": "Pretraži karte, setove…",
-        "explore_search_btn": "Traži",
-        "explore_clear": "Očisti",
-        "explore_sort_by": "Sortiraj:",
-        "explore_filters": "Filteri",
-        "explore_category": "Kategorija",
-        "explore_cat_pokemon": "Pokémon",
-        "explore_price_box": "Raspon cijene",
-        "explore_reset": "Resetiraj",
-        "explore_results": "{n} rezultata",
-        "explore_load_more": "Učitaj još",
-        "explore_end": "Kraj rezultata",
-        "explore_empty": "Nema karata za odabrane filtere.",
-        "brand_tagline": "Collect. Track. Predict.",
-        "search": "Pretraži",
-        "search_ph": "Ime ili ID…",
-        "search_ph_name": "Ime…",
-        "set": "Set",
-        "rarity": "Rijetkost",
-        "signal": "Signal",
-        "sort": "Sortiraj",
-        "all": "Sve",
-        "all_sets": "Svi setovi",
-        "per_page": "Po stranici",
-        "prev": "← Prethodna",
-        "next": "Sljedeća →",
-        "page_of": "Stranica {page} / {pages} · prikaz {start}–{end} od {total}",
-        "filtered_of": "Filtrirano: **{n}** / {total} karata",
-        "shown_of": "Prikazano **{n}** / {total} unosa",
-        "no_cards_filters": "Nema karata za odabrane filtere.",
-        "no_cards_display": "Nema karata za prikaz.",
-        "no_entries_filters": "Nema unosa za odabrane filtere.",
-        "grid_cards": "Grid karata",
-        "detail_ai": "Detalj i AI predikcija",
-        "pick_card_chart": "Odaberi kartu za graf",
-        "click_card_ai": "Klikni kartu u gridu za AI predikciju i graf.",
-        "show_ai": "AI detalj",
-        "back_explore": "← Natrag na Explore",
-        "compare_history": "Usporedi povijest cijena",
-        "compare_history_caption": "Usporedi cijene iz različitih izvora. JustTCG = NM live; PSA 10 = JustTCG graded (v2); TCGplayer = spremljena market povijest.",
-        "chart_range": "Raspon",
-        "chart_range_all": "Sve",
-        "price_source": "Izvor cijene",
-        "source_label": "Izvor: {name}",
-        "source_unavailable": "Ovaj izvor ili točan printing nije dostupan za ovu kartu.",
-        "source_nm_usd": "Near Mint · USD · live",
-        "source_nm_db_fallback": "Near Mint · spremljena JustTCG/market povijest",
-        "source_market_db": "Market povijest (baza)",
-        "source_psa10_usd": "PSA 10 · USD · JustTCG graded (prodaje)",
-        "source_psa10_spot_only": "PSA 10 spot (nema dnevne serije u API-ju još) · {period} sales={sales}",
-        "justtcg_key_missing": "JUSTTCG_API_KEY nije postavljen (Streamlit Secrets ili .env). Prikazujem spremljenu povijest; live JustTCG nije aktivan.",
-        "justtcg_no_product_id": "Nema tcgplayer_id za ovu kartu — pokušaj drugu kartu ili osvježi katalog sync.",
-        "justtcg_fetch_error": "JustTCG greška: {error}",
-        "justtcg_using_saved": "Live JustTCG nije vratio točke — prikazujem spremljenu povijest za ovu kartu.",
-        "loading_justtcg": "Učitavam JustTCG povijest…",
-        "loading_psa10": "Učitavam JustTCG PSA 10…",
-        "psa10_unpriced": "Nema zabilježene PSA 10 prodaje za ovu kartu u JustTCG (cijena još unpriced).",
-        "psa10_fetch_error": "JustTCG PSA 10 greška: {error}",
-        "ebay_listings": "eBay oglasi",
-        "ebay_listings_caption": "Aktivni Browse oglasi (live). Ne sold history — Insights API je zasebno.",
-        "ebay_loading": "Učitavam eBay oglase…",
-        "ebay_key_missing": "eBay ključevi nisu postavljeni (EBAY_APP_ID + EBAY_CERT_ID ili EBAY_OAUTH_TOKEN).",
-        "ebay_key_missing_hint": "Lokalno: dodaj u .env i restartaj Streamlit. Cloud: Settings → Secrets (vidi .streamlit/secrets.toml.example), zatim Reboot.",
-        "ebay_no_results": "Nema aktivnih eBay oglasa za ovu kartu.",
-        "ebay_fetch_error": "eBay greška: {error}",
-        "ebay_col_title": "Naslov",
-        "ebay_col_price": "Cijena",
-        "ebay_col_condition": "Stanje",
-        "ebay_col_link": "Link",
-        "ebay_from_price": "eBay od {price} · {n} oglasa",
-        "ai_prediction": "AI predikcija",
-        "price_on": "Cijena {date}",
-        "ai_caption": "Postotak je očekivana promjena cijene sutra. DRŽI unutar ±{band:.2f}%, inače KUPI ili PRODAJ.",
-        "no_history_card": "Za odabranu kartu nema redaka u price_history.",
-        "short_series": "Niz je kraći od 8 dana, pa lagovi za sutrašnju prognozu još nisu dostupni.",
-        "market_title": "Tržište & AI",
-        "cards": "Karata",
-        "sort_name": "Ime A–Z",
-        "sort_price_desc": "Cijena ↓",
-        "sort_price_asc": "Cijena ↑",
-        "sort_exp_desc": "Očekivano % ↓",
-        "sort_exp_asc": "Očekivano % ↑",
-        "gallery_title": "Galerija kolekcije",
-        "gallery_caption": "Hover: 3D nagib · rijetke/TOP AI: holo-foil · klik: uvećanje + isti 3D nagib · ❌ uklanja unos",
-        "pnl": "P&L",
-        "pnl_all": "Sve",
-        "pnl_up": "U plusu",
-        "pnl_down": "U minusu",
-        "pnl_top_ai": "TOP AI",
-        "sort_value_desc": "Vrijednost ↓",
-        "sort_value_asc": "Vrijednost ↑",
-        "sort_pnl_desc": "P&L ↓",
-        "sort_pnl_asc": "P&L ↑",
-        "sort_qty_desc": "Količina ↓",
-        "remove": "Ukloni {name}",
-        "add_card": "Dodaj kartu",
-        "card": "Karta",
-        "quantity": "Količina",
-        "purchase_price": "Nabavna cijena ({code})",
-        "price_range": "Cijena ({code})",
-        "price_min": "Min",
-        "price_max": "Max",
-        "yaxis_price": "Cijena ({code})",
-        "add_to_portfolio": "Dodaj u portfelj",
-        "portfolio_empty": "Portfelj je prazan. Odaberi kartu, količinu i nabavnu cijenu.",
-        "added_to_portfolio": "{name} je dodan u portfelj.",
-        "removed_from_portfolio": "{name} je uklonjen iz portfelja.",
-        "entry_not_found": "Unos #{id} nije pronađen.",
-        "kpi_value": "Ukupna vrijednost kolekcije",
-        "kpi_invested": "Ukupno uloženo",
-        "kpi_pnl": "Ukupni P&L",
-        "outlook_up": "AI predviđa da će vrijednost vašeg portfelja idući tjedan porasti za {pct:.1f}%.",
-        "outlook_down": "AI predviđa da će vrijednost vašeg portfelja idući tjedan pasti za {pct:.1f}%.",
-        "outlook_flat": "AI predviđa da će vrijednost vašeg portfelja idući tjedan ostati približno ista.",
-        "outlook_caption": "Sada {current} → {week} za {days} dana. Tjedan je sedam uzastopnih prognoza sljedećeg dana istim XGBoost modelom.",
-        "fx_rate": "Tečaj: 1 USD = {rate:.4f} EUR",
-        "scanner_title": "🤖 AI Scanner",
-        "scanner_caption": "XGBoost pregled svih karata · cilj za {days} dana iz lagova (jučer, −3d, −7d, 7-dnevni prosjek).",
-        "min_growth_top": "Min. rast TOP (%)",
-        "no_scan_history": "Nema dovoljno povijesti za AI sken. Provjeri price_history.",
-        "scanned_filtered": "Skenirano / filtrirano",
-        "top_opps": "TOP prilike",
-        "drop_warnings": "Upozorenja za pad",
-        "top_opps_heading": "🔥 TOP AI PRILIKE (rast ≥ {pct:.0f}%)",
-        "no_top_opps": "Nema karata s očekivanim rastom iznad {pct:.0f}% za odabrani filter. Spusti prag.",
-        "drop_heading": "⚠️ AI UPOZORENJA ZA PAD",
-        "no_drop_warnings": "Nema karata s predviđenim padom za odabrani filter.",
-        "table_page": "Tablični pregled ove stranice",
-        "closing": "Zadnje zatvaranje",
-        "day_change": "Dnevna promjena",
-        "field": "Polje",
-        "value": "Vrijednost",
-        "qty_label": "Količina: {n}",
-        "missing_supabase": "Nedostaju Supabase credentials.",
-        "no_price_history": "Nema povijesti cijena. Provjeri seed bazu ili pokreni generate_history.py.",
-        "check_secrets": "Provjeri Secrets i Reboot app.",
-        "click_zoom": "Klikni za uvećanje",
-        "image_unavailable": "slika nedostupna",
-        "scanning": "Skeniram sve karte XGBoost modelom...",
-        "change_60d": "Promjena 60d",
-        "points_series": "Točaka u nizu",
-        "price_yesterday": "Cijena jučer",
-        "rolling_7d": "7-dnevni prosjek",
-        "chart_close": "Zatvaranje",
-        "chart_ai": "AI — sljedeći dan",
-        "col_name": "Naziv",
-        "col_current": "Trenutna cijena",
-        "col_ai_target": "AI Ciljna cijena",
-        "col_roi": "Očekivani ROI (%)",
-        "load_exchange": "Učitavam povijest i treniram XGBoost...",
-        "chart_title": "{name} · povijest cijene",
-        "xaxis_date": "Datum",
-    },
-    LANG_EN: {
-        "lang_hr": "HR",
-        "lang_en": "EN",
         "app_title": "📈 TCG AI Market Dashboard",
         "app_caption": "Pokémon TCG market · portfolio · XGBoost forecasts",
         "tab_market": "Market & AI",
@@ -341,10 +168,43 @@ _TEXT: dict[str, dict[str, str]] = {
         "load_exchange": "Loading history and training XGBoost...",
         "chart_title": "{name} · price history",
         "xaxis_date": "Date",
-    },
+        "supabase_secrets_help": """**Streamlit Cloud → ⋮ Manage app → Settings → Secrets**  
+Paste this TOML (replace the values), **Save**, then **Reboot**:
+
+```toml
+SUPABASE_URL = "https://YOUR_PROJECT.supabase.co"
+SUPABASE_KEY = "YOUR_SERVICE_ROLE_KEY"
+```
+
+Keys: Supabase → **Project Settings → API**  
+(`Project URL` + `service_role`).
+
+**Important:** URL must be only `https://xxxx.supabase.co` —  
+**without** `/rest/v1` at the end (otherwise PGRST125).""",
+        "supabase_schema_help": """### Create tables in Supabase
+1. Open [Supabase Dashboard](https://supabase.com/dashboard) → your project  
+2. Left: **SQL Editor** → **New query**  
+3. Copy the SQL below → paste → **Run**  
+4. **Table Editor**: you should see `cards`, `price_history`, `portfolio`  
+5. If the app still errors: **Project Settings → API → Reload schema**  
+6. Streamlit → **Reboot**""",
+        "login_title": "Sign in",
+        "login_caption": "Use your email and password (Supabase Auth).",
+        "login_email": "Email",
+        "login_password": "Password",
+        "login_signin": "Sign in",
+        "login_signup": "Create account",
+        "login_or": "or",
+        "login_success": "Signed in as {email}",
+        "signup_success": "Account created. You are signed in as {email}.",
+        "signup_confirm": "Account created. Check your email to confirm, then sign in.",
+        "login_error": "Auth error: {error}",
+        "logout": "Log out",
+        "logged_in_as": "{email}",
+        "portfolio_user_id_migration": "Portfolio needs a user_id column. Run this SQL in Supabase SQL Editor, then Reload schema / reboot the app.",
 }
 
-# Stabilni sentineli za filtere (ne ovise o jeziku).
+# Stable filter sentinels (language-independent).
 FILTER_ALL = "__ALL__"
 FILTER_ALL_SETS = "__ALL_SETS__"
 PNL_ALL = "all"
@@ -352,78 +212,37 @@ PNL_UP = "up"
 PNL_DOWN = "down"
 PNL_TOP = "top_ai"
 
-_LANG_WIDGET_KEYS = (
-    "market_sort",
-    "market_signal",
-    "market_set",
-    "market_rarity",
-    "gallery_sort",
-    "gallery_pnl",
-    "gallery_rarity",
-    "scanner_set",
-    "scanner_rarity",
-    "explore_sort",
-)
+# Canonical trading signals (English).
+SIGNAL_BUY = "BUY"
+SIGNAL_SELL = "SELL"
+SIGNAL_HOLD = "HOLD"
 
-# Signali ostaju KUPI/PRODAJ/DRŽI u podacima; UI labela po jeziku.
-SIGNAL_LABELS = {
-    LANG_HR: {"KUPI": "KUPI", "PRODAJ": "PRODAJ", "DRŽI": "DRŽI"},
-    LANG_EN: {"KUPI": "BUY", "PRODAJ": "SELL", "DRŽI": "HOLD"},
+# Legacy Croatian codes still accepted from older session/cache values.
+_SIGNAL_ALIASES = {
+    "KUPI": SIGNAL_BUY,
+    "PRODAJ": SIGNAL_SELL,
+    "DRZI": SIGNAL_HOLD,
+    "DRŽI": SIGNAL_HOLD,
+    SIGNAL_BUY: SIGNAL_BUY,
+    SIGNAL_SELL: SIGNAL_SELL,
+    SIGNAL_HOLD: SIGNAL_HOLD,
 }
 
 
 def get_lang() -> str:
-    lang = st.session_state.get("lang", LANG_HR)
-    return lang if lang in _TEXT else LANG_HR
+    return "en"
 
 
 def t(key: str, **kwargs: Any) -> str:
-    lang = get_lang()
-    template = _TEXT.get(lang, _TEXT[LANG_HR]).get(key) or _TEXT[LANG_HR].get(key) or key
+    template = _TEXT.get(key) or key
     if kwargs:
         return template.format(**kwargs)
     return template
 
 
 def signal_label(signal: str) -> str:
-    return SIGNAL_LABELS.get(get_lang(), SIGNAL_LABELS[LANG_HR]).get(signal, signal)
+    return _SIGNAL_ALIASES.get(str(signal), str(signal))
 
 
-def _set_lang(lang: str) -> None:
-    st.session_state["lang"] = lang
-    for key in _LANG_WIDGET_KEYS:
-        st.session_state.pop(key, None)
-    st.rerun()
-
-
-def render_language_toggle_buttons() -> None:
-    """Samo HR | EN gumbi (bez vanjskog layouta)."""
-    if "lang" not in st.session_state:
-        st.session_state["lang"] = LANG_HR
-    current = get_lang()
-    c_hr, c_en = st.columns(2)
-    with c_hr:
-        if st.button(
-            "HR",
-            key="lang_hr_btn",
-            type="primary" if current == LANG_HR else "secondary",
-            use_container_width=True,
-        ):
-            if current != LANG_HR:
-                _set_lang(LANG_HR)
-    with c_en:
-        if st.button(
-            "EN",
-            key="lang_en_btn",
-            type="primary" if current == LANG_EN else "secondary",
-            use_container_width=True,
-        ):
-            if current != LANG_EN:
-                _set_lang(LANG_EN)
-
-
-def render_language_toggle() -> None:
-    """Gumb HR | EN u gornjem desnom kutu."""
-    _, box = st.columns([5.2, 1.0])
-    with box:
-        render_language_toggle_buttons()
+def normalize_signal(signal: str) -> str:
+    return _SIGNAL_ALIASES.get(str(signal), str(signal))

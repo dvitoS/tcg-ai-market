@@ -33,6 +33,7 @@ def _from_streamlit_secrets(name: str) -> str:
     nested_map = {
         "SUPABASE_URL": ("supabase", "url"),
         "SUPABASE_KEY": ("supabase", "key"),
+        "SUPABASE_ANON_KEY": ("supabase", "anon_key"),
         "SUPABASE_DB_URL": ("supabase", "db_url"),
         "TCG_API_KEY": ("tcg", "api_key"),
         "JUSTTCG_API_KEY": ("justtcg", "api_key"),
@@ -95,6 +96,15 @@ def get_supabase_credentials() -> tuple[str, str]:
     url = normalize_supabase_url(_secret("SUPABASE_URL"))
     key = _clean_secret_value(_secret("SUPABASE_KEY"))
     return url, key
+
+
+def get_supabase_auth_credentials() -> tuple[str, str]:
+    """Credentials for Auth (prefer anon key; fall back to service role)."""
+    url = normalize_supabase_url(_secret("SUPABASE_URL"))
+    anon = _clean_secret_value(_secret("SUPABASE_ANON_KEY"))
+    if anon:
+        return url, anon
+    return url, _clean_secret_value(_secret("SUPABASE_KEY"))
 
 
 def get_justtcg_api_key() -> str:

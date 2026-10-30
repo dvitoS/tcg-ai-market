@@ -44,19 +44,19 @@ def _require_supabase_env() -> tuple[str, str]:
     url, key = get_supabase_credentials()
     if not url or not key:
         raise RuntimeError(
-            "SUPABASE_URL i SUPABASE_KEY nisu postavljeni. "
-            "Dodaj ih u Streamlit Secrets (Cloud) ili .env (lokalno)."
+            "SUPABASE_URL and SUPABASE_KEY are not set. "
+            "Add them in Streamlit Secrets (Cloud) or .env (local)."
         )
     if url.startswith("postgresql://") or url.startswith("postgres://"):
         raise RuntimeError(
-            "SUPABASE_URL mora biti Project URL (https://xxxx.supabase.co), "
-            "ne Postgres connection string. Postgres URI stavi u SUPABASE_DB_URL."
+            "SUPABASE_URL must be the Project URL (https://xxxx.supabase.co), "
+            "not a Postgres connection string. Put the Postgres URI in SUPABASE_DB_URL."
         )
     if "supabase.co" not in url and "localhost" not in url:
         raise RuntimeError(
-            f"Sumnjiv SUPABASE_URL: {url!r}. "
-            "Očekujem npr. https://YOUR_PROJECT.supabase.co "
-            "(bez /rest/v1 na kraju)."
+            f"Suspicious SUPABASE_URL: {url!r}. "
+            "Expected e.g. https://YOUR_PROJECT.supabase.co "
+            "(without /rest/v1 at the end)."
         )
     return url, key
 
@@ -126,7 +126,7 @@ def _apply_schema_via_postgres(db_url: str) -> None:
         from psycopg import ClientCursor
     except ImportError as exc:
         raise RuntimeError(
-            "Za automatski DDL instaliraj psycopg: pip install 'psycopg[binary]'"
+            "For automatic DDL install psycopg: pip install 'psycopg[binary]'"
         ) from exc
     # ClientCursor podržava više SQL naredbi u jednom execute().
     with psycopg.connect(db_url, autocommit=True, cursor_factory=ClientCursor) as conn:
@@ -146,10 +146,10 @@ def _verify_tables(client: Client) -> None:
     if missing:
         detail = " | ".join(details)
         raise RuntimeError(
-            "Supabase tablice nedostaju ili API ih ne vidi: "
+            "Supabase tables are missing or not visible to the API: "
             + ", ".join(missing)
-            + ". Pokreni supabase_schema.sql u SQL Editoru (cijeli fajl → Run), "
-            "zatim Reload schema cache. Detalj: "
+            + ". Run supabase_schema.sql in the SQL Editor (whole file → Run), "
+            "then Reload schema cache. Detail: "
             + detail
         )
 
@@ -425,19 +425,54 @@ def load_cards_frame() -> pd.DataFrame:
     return pd.DataFrame(fetch_all("cards", "*"))
 
 
-def load_portfolio_lots() -> pd.DataFrame:
-    rows = fetch_all(
-        "portfolio",
-        "id,card_id,quantity,purchase_price,purchase_date,"
-        "cards(name,rarity,market_price,image_url)",
-        order="id",
+def load_portfolio_lots(*, user_id: str) -> pd.DataFrame:
+    """Load portfolio lots for one authenticated user only."""
+    uid = str(user_id or "").strip()
+    if not uid:
+        return pd.DataFrame(
+            columns=[
+                "id",
+                "user_id",
+                "card_id",
+                "quantity",
+                "purchase_price",
+                "purchase_date",
+                "name",
+                "rarity",
+                "market_price",
+                "image_url",
+            ]
+        )
+
+    client = get_supabase()
+    rows: list[dict[str, Any]] = []
+    start = 0
+    columns = (
+        "id,user_id,card_id,quantity,purchase_price,purchase_date,"
+        "cards(name,rarity,market_price,image_url)"
     )
+    while True:
+        response = (
+            client.table("portfolio")
+            .select(columns)
+            .eq("user_id", uid)
+            .order("id")
+            .range(start, start + PAGE - 1)
+            .execute()
+        )
+        batch = list(response.data or [])
+        rows.extend(batch)
+        if len(batch) < PAGE:
+            break
+        start += PAGE
+
     flat: list[dict[str, Any]] = []
     for row in rows:
         card = row.get("cards") or {}
         flat.append(
             {
                 "id": row.get("id"),
+                "user_id": row.get("user_id"),
                 "card_id": row.get("card_id"),
                 "quantity": row.get("quantity"),
                 "purchase_price": row.get("purchase_price"),
@@ -455,15 +490,21 @@ def add_portfolio_position(
     card_id: str,
     quantity: int,
     purchase_price: float,
+    *,
+    user_id: str,
     purchase_date: str | None = None,
 ) -> None:
+    uid = str(user_id or "").strip()
+    if not uid:
+        raise ValueError("Sign in required to add portfolio lots.")
     if int(quantity) < 1:
-        raise ValueError("Količina mora biti barem 1.")
+        raise ValueError("Quantity must be at least 1.")
     if float(purchase_price) <= 0:
-        raise ValueError("Nabavna cijena mora biti veća od nule.")
+        raise ValueError("Purchase price must be greater than zero.")
     client = get_supabase()
     client.table("portfolio").insert(
         {
+            "user_id": uid,
             "card_id": card_id,
             "quantity": int(quantity),
             "purchase_price": float(purchase_price),
@@ -472,10 +513,43 @@ def add_portfolio_position(
     ).execute()
 
 
-def delete_portfolio_position(entry_id: int) -> bool:
+def delete_portfolio_position(entry_id: int, *, user_id: str) -> bool:
+    """Delete only if the lot belongs to this user."""
+    uid = str(user_id or "").strip()
+    if not uid:
+        return False
     client = get_supabase()
-    response = client.table("portfolio").delete().eq("id", int(entry_id)).execute()
+    response = (
+        client.table("portfolio")
+        .delete()
+        .eq("id", int(entry_id))
+        .eq("user_id", uid)
+        .execute()
+    )
     return bool(response.data)
+
+
+def ensure_portfolio_user_id_column() -> None:
+    """Best-effort DDL when SUPABASE_DB_URL is set (existing projects)."""
+    from config import _secret
+
+    db_url = (_secret("SUPABASE_DB_URL") or "").strip()
+    if not db_url:
+        return
+    try:
+        import psycopg
+        from psycopg import ClientCursor
+    except ImportError:
+        return
+    ddl = """
+    alter table public.portfolio
+      add column if not exists user_id uuid references auth.users (id) on delete cascade;
+    create index if not exists portfolio_user_id_idx on public.portfolio (user_id);
+    notify pgrst, 'reload schema';
+    """
+    with psycopg.connect(db_url, autocommit=True, cursor_factory=ClientCursor) as conn:
+        with conn.cursor() as cur:
+            cur.execute(ddl)
 
 
 def cards_summary() -> tuple[int, int, int]:
