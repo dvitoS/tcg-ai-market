@@ -15,12 +15,13 @@ from services.forecast import card_history, lag_features_for_last_day, predict_n
 from services.ebay_listings import load_ebay_listings, load_ebay_sold_comps
 from services.live_prices import (
     _ebay_module,
+    _justtcg_module,
     load_justtcg_series,
     load_psa10_series,
     resolve_tcgplayer_id,
 )
 from services.prices import clear_live_price_caches, record_justtcg_event
-from trading_signals import HOLD_BAND, SIGNAL_CLASS
+from trading_signals import HOLD_BAND, SIGNAL_CLASS, trading_signal
 from ui.chart import (
     clip_series_range,
     inject_chart_hover_counter,
