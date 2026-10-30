@@ -254,22 +254,26 @@ def get_card(card_id: str) -> Card | None:
     return _card_from_row(rows[0]) if rows else None
 
 
-def cards_have_tcgplayer_id_column() -> bool:
-    """True ako PostgREST vidi cards.tcgplayer_id (nakon ALTER + reload cache)."""
+def cards_have_tcgplayer_id_column(*, force: bool = False) -> bool:
+    """True ako PostgREST vidi cards.tcgplayer_id (nakon ALTER + reload cache).
+
+    Positive results stay cached. Missing-column (False) is re-probed so a
+    just-applied SQL migration is picked up without restarting Python.
+    """
     global _TCGPLAYER_ID_COLUMN
-    if _TCGPLAYER_ID_COLUMN is not None:
-        return _TCGPLAYER_ID_COLUMN
+    if not force and _TCGPLAYER_ID_COLUMN is True:
+        return True
     client = get_supabase()
     try:
         client.table("cards").select("tcgplayer_id").limit(1).execute()
         _TCGPLAYER_ID_COLUMN = True
     except Exception as exc:
         text = str(exc).lower()
-        if "tcgplayer_id" in text or "pgrst204" in text:
+        if "tcgplayer_id" in text or "pgrst204" in text or "42703" in text:
             _TCGPLAYER_ID_COLUMN = False
             print(
-                "Napomena: kolona cards.tcgplayer_id nedostaje u Supabase.\n"
-                "Pokreni u SQL Editoru:\n"
+                "Note: cards.tcgplayer_id is missing in Supabase.\n"
+                "Run in SQL Editor:\n"
                 f"{TCGPLAYER_ID_MIGRATE_SQL}"
             )
         else:

@@ -871,6 +871,41 @@ CUSTOM_CSS = """
         color: #f8fafc !important;
         margin: 8px 0 0;
     }
+    .chart-price-head {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
+        margin: 0.35rem 0 0.15rem;
+        padding: 0 2px;
+    }
+    .chart-price-head .chart-price-label {
+        color: #94a3b8 !important;
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        margin: 0;
+    }
+    .chart-price-head .chart-price-counter {
+        color: #f8fafc !important;
+        font-size: 1.85rem;
+        font-weight: 800;
+        line-height: 1.15;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.02em;
+        margin: 0;
+        transition: color 0.15s ease;
+    }
+    .chart-price-head .chart-price-counter.is-hover {
+        color: #93c5fd !important;
+    }
+    .chart-price-head .chart-price-date {
+        color: #64748b !important;
+        font-size: 0.78rem;
+        margin: 0;
+        min-height: 1.1em;
+    }
     .ebay-block {
         margin-top: 1.5rem;
         padding-top: 0.25rem;
@@ -1132,6 +1167,18 @@ def forecast_price_in_days(
     return prices[-1]
 
 
+def _hex_to_rgba(color: str, alpha: float) -> str:
+    raw = (color or "").strip().lstrip("#")
+    if len(raw) == 3:
+        raw = "".join(ch * 2 for ch in raw)
+    if len(raw) != 6:
+        return f"rgba(56, 189, 248, {alpha})"
+    r = int(raw[0:2], 16)
+    g = int(raw[2:4], 16)
+    b = int(raw[4:6], 16)
+    return f"rgba({r}, {g}, {b}, {alpha})"
+
+
 def price_chart(
     series: pd.DataFrame,
     predicted: float | None,
@@ -1148,7 +1195,7 @@ def price_chart(
             title=name,
             height=360,
             paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(11,18,32,0.65)",
+            plot_bgcolor="rgba(11,18,32,0.35)",
             annotations=[
                 dict(
                     text=t("source_unavailable"),
@@ -1168,20 +1215,34 @@ def price_chart(
     y_hist = series["price"].astype(float).map(to_display)
     close_label = source_label or t("chart_close")
     money_hover = f"{currency_symbol()}%{{y:.4f}}"
+    fill_color = _hex_to_rgba(line_color, 0.22)
+    y_values = [float(y_hist.min()), float(y_hist.max())]
+    # Soft band under the line (not from $0 — keeps the chart readable).
+    band_floor = float(y_hist.min()) - max((float(y_hist.max()) - float(y_hist.min())) * 0.08, 0.01)
 
     fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=series["date"],
+            y=[band_floor] * len(series),
+            mode="lines",
+            line=dict(width=0, color="rgba(0,0,0,0)"),
+            hoverinfo="skip",
+            showlegend=False,
+        )
+    )
     fig.add_trace(
         go.Scatter(
             x=series["date"],
             y=y_hist,
             mode="lines",
             name=close_label,
-            line=dict(color=line_color, width=2.4),
+            line=dict(color=line_color, width=2.8, shape="linear"),
+            fill="tonexty",
+            fillcolor=fill_color,
             hovertemplate=f"%{{x|%d.%m.%Y}}<br>{money_hover}<extra>{close_label}</extra>",
         )
     )
-
-    y_values = [float(y_hist.min()), float(y_hist.max())]
     if show_ai and predicted is not None:
         next_day = last_day + pd.Timedelta(days=1)
         y_last = to_display(last_price)
@@ -1208,27 +1269,206 @@ def price_chart(
     fig.update_layout(
         template="plotly_dark",
         title=None,
-        xaxis_title=t("xaxis_date"),
-        yaxis_title=t("yaxis_price", code=currency_code()),
-        height=420,
-        margin=dict(l=16, r=16, t=24, b=16),
+        xaxis_title=None,
+        yaxis_title=None,
+        height=440,
+        margin=dict(l=8, r=12, t=8, b=8),
         paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(11,18,32,0.65)",
-        legend=dict(orientation="h", yanchor="bottom", y=1.02),
+        plot_bgcolor="rgba(11,18,32,0.35)",
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            x=0,
+            bgcolor="rgba(0,0,0,0)",
+            font=dict(size=11, color="#94a3b8"),
+        ),
         hovermode="x unified",
+        hoverlabel=dict(
+            bgcolor="rgba(15, 23, 42, 0.94)",
+            bordercolor="rgba(148, 163, 184, 0.35)",
+            font=dict(size=12, color="#e2e8f0"),
+        ),
         xaxis=dict(
             rangeslider=dict(visible=False),
-            gridcolor="#1e293b",
+            gridcolor="rgba(30, 41, 59, 0.65)",
             showgrid=True,
+            showspikes=True,
+            spikemode="across",
+            spikesnap="cursor",
+            spikedash="dot",
+            spikethickness=1,
+            spikecolor="#64748b",
+            zeroline=False,
         ),
         yaxis=dict(
-            gridcolor="#1e293b",
+            gridcolor="rgba(30, 41, 59, 0.65)",
             showgrid=True,
             tickprefix=currency_symbol(),
             range=[price_low - pad, price_high + pad],
+            zeroline=False,
+            side="right",
         ),
     )
     return fig
+
+
+def render_chart_price_counter(
+    price_usd: float | None,
+    *,
+    counter_id: str,
+    accent: str = "#38bdf8",
+) -> None:
+    """Price label left above the chart + hover-synced animated counter."""
+    if price_usd is None:
+        return
+    display_value = float(to_display(price_usd))
+    symbol = currency_symbol()
+    digits = 4 if display_value < 10 else 2
+    initial = money(price_usd, digits=digits)
+    st.markdown(
+        f"""
+        <div class="chart-price-head" data-counter-root="{escape(counter_id, quote=True)}">
+          <p class="chart-price-label">{escape(t("chart_price_label"))}</p>
+          <p class="chart-price-counter" id="{escape(counter_id, quote=True)}"
+             data-value="{display_value:.6f}"
+             data-base="{display_value:.6f}"
+             data-symbol="{escape(symbol, quote=True)}"
+             data-digits="{digits}"
+             style="--accent:{escape(accent, quote=True)}">{escape(initial)}</p>
+          <p class="chart-price-date" id="{escape(counter_id, quote=True)}-date">{escape(t("chart_price_latest"))}</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def inject_chart_hover_counter(counter_id: str) -> None:
+    """Bind nearest Plotly chart hover → animated price counter (parent DOM)."""
+    cid = escape(counter_id, quote=True)
+    components.html(
+        f"""
+<script>
+(function () {{
+  const COUNTER_ID = "{cid}";
+  const doc = window.parent.document;
+  const counter = doc.getElementById(COUNTER_ID);
+  if (!counter) return;
+  const dateEl = doc.getElementById(COUNTER_ID + "-date");
+  const symbol = counter.dataset.symbol || "$";
+  const digits = Number(counter.dataset.digits || "2");
+  const base = Number(counter.dataset.base || "0");
+  let anim = null;
+  let current = Number(counter.dataset.value || base);
+
+  function formatMoney(v) {{
+    const n = Number(v);
+    if (!Number.isFinite(n)) return symbol + "—";
+    return symbol + n.toLocaleString(undefined, {{
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits
+    }});
+  }}
+
+  function setDate(text) {{
+    if (dateEl) dateEl.textContent = text || "";
+  }}
+
+  function animateTo(target, ms) {{
+    const from = current;
+    const to = Number(target);
+    if (!Number.isFinite(to)) return;
+    if (anim) cancelAnimationFrame(anim);
+    const start = performance.now();
+    const dur = Math.max(120, ms || 280);
+    function frame(now) {{
+      const p = Math.min(1, (now - start) / dur);
+      const eased = 1 - Math.pow(1 - p, 3);
+      current = from + (to - from) * eased;
+      counter.dataset.value = String(current);
+      counter.textContent = formatMoney(current);
+      if (p < 1) anim = requestAnimationFrame(frame);
+      else {{
+        current = to;
+        counter.dataset.value = String(to);
+        counter.textContent = formatMoney(to);
+        anim = null;
+      }}
+    }}
+    anim = requestAnimationFrame(frame);
+  }}
+
+  function pickPoint(ev) {{
+    const pts = (ev && ev.points) || [];
+    if (!pts.length) return null;
+    // Prefer main price series (curveNumber 1: invisible baseline is 0) over AI dash.
+    let pt = pts.find(p => p.curveNumber === 1) || pts.find(p => p.curveNumber === 0) || pts[0];
+    const y = (pt.y != null) ? Number(pt.y) : Number(pt.customdata);
+    if (!Number.isFinite(y)) return null;
+    let dateTxt = "";
+    if (pt.x != null) {{
+      const d = new Date(pt.x);
+      if (!Number.isNaN(d.getTime())) {{
+        dateTxt = d.toLocaleDateString(undefined, {{ day: "2-digit", month: "short", year: "numeric" }});
+      }} else {{
+        dateTxt = String(pt.x);
+      }}
+    }}
+    return {{ y, dateTxt }};
+  }}
+
+  function onHover(ev) {{
+    const hit = pickPoint(ev);
+    if (!hit) return;
+    counter.classList.add("is-hover");
+    animateTo(hit.y, 180);
+    setDate(hit.dateTxt);
+  }}
+
+  function onUnhover() {{
+    counter.classList.remove("is-hover");
+    animateTo(base, 320);
+    setDate({t("chart_price_latest")!r});
+  }}
+
+  function bindPlot(plot) {{
+    if (!plot || plot.dataset.counterBound === COUNTER_ID) return;
+    plot.dataset.counterBound = COUNTER_ID;
+    plot.on("plotly_hover", onHover);
+    plot.on("plotly_unhover", onUnhover);
+  }}
+
+  function findNearbyPlot() {{
+    const root = counter.closest("[data-testid=\\"stVerticalBlock\\"]") || counter.parentElement;
+    const scope = root || doc;
+    const plots = scope.querySelectorAll(".js-plotly-plot");
+    if (!plots.length) return null;
+    // Prefer the first plot after the counter in document order.
+    let chosen = null;
+    for (const p of plots) {{
+      if (counter.compareDocumentPosition(p) & Node.DOCUMENT_POSITION_FOLLOWING) {{
+        chosen = p;
+        break;
+      }}
+    }}
+    return chosen || plots[plots.length - 1];
+  }}
+
+  let tries = 0;
+  function tick() {{
+    const plot = findNearbyPlot();
+    if (plot && plot.on) {{
+      bindPlot(plot);
+      return;
+    }}
+    if (++tries < 40) setTimeout(tick, 150);
+  }}
+  tick();
+}})();
+</script>
+        """,
+        height=0,
+    )
 
 
 def chip_row(items: list[tuple[str, str]], css_class: str) -> None:
@@ -1990,7 +2230,7 @@ def clip_series_range(series: pd.DataFrame, range_key: str) -> pd.DataFrame:
 
 
 def resolve_tcgplayer_id(card_id: str) -> str | None:
-    """DB → pokemontcg.io URL/productId; spremi u cards ako nedostaje."""
+    """DB → pokemontcg.io → JustTCG search; spremi u cards ako kolona postoji."""
     import database as db_mod
     from justtcg_client import extract_tcgplayer_product_id
 
@@ -2002,6 +2242,7 @@ def resolve_tcgplayer_id(card_id: str) -> str | None:
     if db_card is not None and db_card.tcgplayer_id:
         return str(db_card.tcgplayer_id)
 
+    product_id: str | None = None
     try:
         import requests
 
@@ -2015,27 +2256,59 @@ def resolve_tcgplayer_id(card_id: str) -> str | None:
             headers=headers,
             timeout=25,
         )
-        if response.status_code != 200:
-            return None
-        payload = response.json() if response.content else {}
-        product_id = extract_tcgplayer_product_id(payload.get("data") or {})
-        if product_id and callable(update_tcp):
-            try:
-                update_tcp(str(card_id), product_id)
-            except Exception:
-                pass
-        return product_id
+        if response.status_code == 200:
+            payload = response.json() if response.content else {}
+            product_id = extract_tcgplayer_product_id(payload.get("data") or {})
     except Exception:
-        return None
+        product_id = None
+
+    # Fallback: JustTCG name/number/set search (works even without pokemontcg.io).
+    if not product_id and db_card is not None:
+        try:
+            jtcg = _justtcg_module()
+            number = None
+            if "-" in str(card_id):
+                number = jtcg.normalize_card_number(str(card_id).rsplit("-", 1)[-1])
+            hit = jtcg.search_pokemon_card(
+                name=str(db_card.name or ""),
+                number=number,
+                set_name=str(db_card.set_name or "") or None,
+            )
+            if hit:
+                product_id = str(hit.get("tcgplayerId") or "").strip() or None
+        except Exception:
+            product_id = None
+
+    if product_id and callable(update_tcp):
+        try:
+            update_tcp(str(card_id), product_id)
+        except Exception:
+            pass
+    return product_id
 
 
 def _justtcg_module():
-    """Učitaj justtcg_client; reload ako Streamlit drži stale modul bez novih funkcija."""
-    import importlib
+    """Učitaj justtcg_client; Streamlit drži stale sys.modules — reload po mtime."""
+    from pathlib import Path
+
     import justtcg_client as jtcg
 
-    if not hasattr(jtcg, "nm_history_for_card"):
+    path = Path(jtcg.__file__).resolve()
+    try:
+        mtime = path.stat().st_mtime
+    except OSError:
+        mtime = 0.0
+    prev = st.session_state.get("_justtcg_client_mtime")
+    missing_api = not hasattr(jtcg, "nm_history_for_card") or not hasattr(
+        jtcg, "search_pokemon_card"
+    )
+    if missing_api or prev != mtime:
         jtcg = importlib.reload(jtcg)
+        st.session_state["_justtcg_client_mtime"] = mtime
+        # Drop stale JustTCG chart caches so ranked search can refill.
+        for key in list(st.session_state.keys()):
+            if str(key).startswith(("justtcg_series::", "psa10_series::")):
+                del st.session_state[key]
     return jtcg
 
 
@@ -2104,18 +2377,17 @@ def load_justtcg_series(
 
     nm_history_for_card = getattr(jtcg, "nm_history_for_card", None)
     if not callable(nm_history_for_card):
-        # Fallback: samo product-id path ako reload nije uhvatio novu funkciju.
-        points: list = []
-        resolved = tcgplayer_id
-        if tcgplayer_id and hasattr(jtcg, "nm_history_for_tcgplayer_id"):
-            points = jtcg.nm_history_for_tcgplayer_id(str(tcgplayer_id))
-    else:
-        points, resolved = nm_history_for_card(
-            tcgplayer_id=tcgplayer_id,
-            name=name,
-            number=number or None,
-            set_name=set_name or None,
-        )
+        jtcg = importlib.reload(jtcg)
+        nm_history_for_card = getattr(jtcg, "nm_history_for_card", None)
+    if not callable(nm_history_for_card):
+        return pd.DataFrame(columns=["date", "price"]), tcgplayer_id
+
+    points, resolved = nm_history_for_card(
+        tcgplayer_id=tcgplayer_id,
+        name=name,
+        number=number or None,
+        set_name=set_name or None,
+    )
 
     if not points:
         return pd.DataFrame(columns=["date", "price"]), resolved or tcgplayer_id
@@ -2125,6 +2397,15 @@ def load_justtcg_series(
     frame["price"] = frame["price"].astype(float)
     frame = frame.sort_values("date").reset_index(drop=True)
     st.session_state[cache_key] = frame.copy()
+    if resolved and resolved != tcgplayer_id:
+        try:
+            import database as db_mod
+
+            update_tcp = getattr(db_mod, "update_card_tcgplayer_id", None)
+            if callable(update_tcp):
+                update_tcp(str(card_id), str(resolved))
+        except Exception:
+            pass
     return frame, resolved or tcgplayer_id
 
 
@@ -2353,6 +2634,22 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
                 st.info(t("source_unavailable"))
             elif used_db_fallback and has_justtcg_key:
                 st.caption(t("justtcg_using_saved"))
+                try:
+                    import database as db_mod
+
+                    has_tcp_col = getattr(db_mod, "cards_have_tcgplayer_id_column", None)
+                    # Re-probe: user may have just run ALTER while Streamlit stayed up.
+                    missing_col = callable(has_tcp_col) and not has_tcp_col(force=True)
+                    if missing_col:
+                        st.caption(t("justtcg_tcp_column_hint"))
+                        st.code(
+                            "alter table public.cards "
+                            "add column if not exists tcgplayer_id text;\n"
+                            "notify pgrst, 'reload schema';",
+                            language="sql",
+                        )
+                except Exception:
+                    pass
         elif source_key == "psa10":
             psa10_error: str | None = None
             psa_series = pd.DataFrame(columns=["date", "price"])
@@ -2401,6 +2698,13 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
             latest_src = float(chart_series["price"].iloc[-1]) if available else None
             meta_note = t("source_market_db")
 
+        counter_id = f"chart-price-{card_id}-{source_key}"
+        if latest_src is not None:
+            render_chart_price_counter(
+                latest_src,
+                counter_id=counter_id,
+                accent=line_color,
+            )
         st.plotly_chart(
             price_chart(
                 chart_series,
@@ -2411,19 +2715,17 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
                 line_color=line_color,
             ),
             width="stretch",
+            key=f"detail_chart_{card_id}_{source_key}_{range_key}",
+            config={"displayModeBar": False, "responsive": True},
         )
+        if latest_src is not None:
+            inject_chart_hover_counter(counter_id)
 
-        src_price_html = (
-            f'<div class="src-price">{escape(money(latest_src))}</div>'
-            if latest_src is not None
-            else ""
-        )
         st.markdown(
             f"""
             <div class="source-card">
               <div class="src-title">{escape(t('source_label', name=source_label))}</div>
               <p class="src-meta">{escape(meta_note)} · {len(chart_series)} {escape(t('points_series').lower())}</p>
-              {src_price_html}
             </div>
             """,
             unsafe_allow_html=True,

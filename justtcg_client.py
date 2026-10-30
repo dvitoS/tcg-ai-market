@@ -241,42 +241,118 @@ def nm_history_for_tcgplayer_id(tcgplayer_id: str) -> list[dict[str, Any]]:
     return history_points_from_variant(variant)
 
 
+def _card_number_matches(row_number: str | None, wanted: str) -> bool:
+    if not wanted:
+        return False
+    raw = str(row_number or "").strip()
+    if not raw:
+        return False
+    if normalize_card_number(raw) == wanted:
+        return True
+    # "215/203" vs wanted "215"
+    left = normalize_card_number(raw.split("/", 1)[0])
+    return left == wanted
+
+
+def _score_search_row(
+    row: dict[str, Any],
+    *,
+    wanted_name: str,
+    wanted_number: str,
+    wanted_set: str,
+) -> int:
+    score = 0
+    name = str(row.get("name") or "").strip().lower()
+    if wanted_name and name == wanted_name:
+        score += 50
+    elif wanted_name and wanted_name in name:
+        score += 20
+    if wanted_number and _card_number_matches(row.get("number"), wanted_number):
+        score += 100
+    set_obj = row.get("set") if isinstance(row.get("set"), dict) else {}
+    set_name = str(row.get("set_name") or set_obj.get("name") or "").strip().lower()
+    if wanted_set and set_name == wanted_set:
+        score += 40
+    elif wanted_set and wanted_set in set_name:
+        score += 15
+    variant = pick_nm_variant(list(row.get("variants") or []))
+    if history_points_from_variant(variant):
+        score += 5
+    return score
+
+
+def _search_cards_raw(q: str, *, limit: int = 20) -> list[dict[str, Any]]:
+    query = (q or "").strip()
+    if not query:
+        return []
+    # Free tier rejects limits above ~20.
+    safe_limit = max(1, min(int(limit), JUSTTCG_BATCH_SIZE))
+    payload = _get(
+        "/cards",
+        {
+            "game": "pokemon",
+            "q": query,
+            "condition": "NM",
+            "include_price_history": "true",
+            "priceHistoryDuration": JUSTTCG_HISTORY_DURATION,
+            "limit": safe_limit,
+        },
+    )
+    return list(payload.get("data") or [])
+
+
 def search_pokemon_card(
     *,
     name: str,
     number: str | None = None,
     set_name: str | None = None,
 ) -> dict[str, Any] | None:
-    """Pronađi JustTCG kartu po imenu (+ broj/set ako postoji)."""
-    query = " ".join(part for part in (name, number) if part).strip()
-    if not query:
-        return None
-    params: dict[str, Any] = {
-        "game": "pokemon",
-        "q": query,
-        "condition": "NM",
-        "include_price_history": "true",
-        "priceHistoryDuration": JUSTTCG_HISTORY_DURATION,
-        "limit": 20,
-    }
-    if set_name:
-        params["q"] = f"{query} {set_name}".strip()
-    payload = _get("/cards", params)
-    rows = list(payload.get("data") or [])
-    if not rows:
+    """Pronađi JustTCG kartu — preferiraj name+number (set u queryu često pokvari match)."""
+    wanted_name = (name or "").strip().lower()
+    wanted_number = normalize_card_number(number) if number else ""
+    wanted_set = (set_name or "").strip().lower()
+    if not wanted_name and not wanted_number:
         return None
 
-    wanted_number = normalize_card_number(number) if number else ""
-    if wanted_number:
+    # Order matters: number-first queries are much more precise for secret/alt arts.
+    queries: list[str] = []
+    if wanted_name and wanted_number:
+        queries.append(f"{name} {wanted_number}".strip())
+    if wanted_name:
+        queries.append(str(name).strip())
+    if wanted_name and wanted_set:
+        queries.append(f"{name} {set_name}".strip())
+    if wanted_name and wanted_number and wanted_set:
+        queries.append(f"{name} {wanted_number} {set_name}".strip())
+
+    best: dict[str, Any] | None = None
+    best_score = -1
+    seen_q: set[str] = set()
+    for q in queries:
+        key = q.lower()
+        if not q or key in seen_q:
+            continue
+        seen_q.add(key)
+        try:
+            rows = _search_cards_raw(q, limit=JUSTTCG_BATCH_SIZE)
+        except Exception as exc:
+            LOG.warning("JustTCG search failed q=%r: %s", q, exc)
+            continue
         for row in rows:
-            if normalize_card_number(str(row.get("number") or "")) == wanted_number:
-                return row
-    wanted_name = (name or "").strip().lower()
-    exact = next(
-        (r for r in rows if str(r.get("name") or "").strip().lower() == wanted_name),
-        None,
-    )
-    return exact or rows[0]
+            score = _score_search_row(
+                row,
+                wanted_name=wanted_name,
+                wanted_number=wanted_number,
+                wanted_set=wanted_set,
+            )
+            if score > best_score:
+                best = row
+                best_score = score
+        # Strong number+name hit — stop early.
+        if best is not None and wanted_number and best_score >= 150:
+            break
+
+    return best
 
 
 def nm_history_for_card(
@@ -286,7 +362,7 @@ def nm_history_for_card(
     number: str | None = None,
     set_name: str | None = None,
 ) -> tuple[list[dict[str, Any]], str | None]:
-    """Vrati (points, resolved_tcgplayer_id). Probaj product id, zatim search."""
+    """Vrati (points, resolved_tcgplayer_id). Probaj product id, zatim ranked search."""
     resolved: str | None = str(tcgplayer_id).strip() if tcgplayer_id else None
     if resolved:
         points = nm_history_for_tcgplayer_id(resolved)
@@ -298,7 +374,26 @@ def nm_history_for_card(
         return [], resolved
     resolved = str(card.get("tcgplayerId") or resolved or "") or resolved
     variant = pick_nm_variant(list(card.get("variants") or []))
-    return history_points_from_variant(variant), resolved
+    points = history_points_from_variant(variant)
+    # If the top match has no series, try other strong number matches via a fresh number query.
+    if not points and number:
+        try:
+            rows = _search_cards_raw(
+                f"{name} {normalize_card_number(number)}".strip(),
+                limit=JUSTTCG_BATCH_SIZE,
+            )
+            wanted = normalize_card_number(number)
+            for row in rows:
+                if not _card_number_matches(row.get("number"), wanted):
+                    continue
+                variant = pick_nm_variant(list(row.get("variants") or []))
+                points = history_points_from_variant(variant)
+                if points:
+                    resolved = str(row.get("tcgplayerId") or resolved or "") or resolved
+                    break
+        except Exception as exc:
+            LOG.warning("JustTCG number retry failed: %s", exc)
+    return points, resolved
 
 
 def list_pokemon_sets() -> list[dict[str, Any]]:
