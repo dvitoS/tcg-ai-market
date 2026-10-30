@@ -50,11 +50,30 @@ from ai_insights import (
     scanner_backtest,
     series_confidence,
 )
+from services.alerts import collect_watchlist_alerts, render_watchlist_alerts
 from services.prices import (
     clear_live_price_caches,
     justtcg_observability_summary,
     record_justtcg_event,
 )
+from trading_signals import (
+    FORECAST_DAYS,
+    HOLD_BAND,
+    SCANNER_GROWTH_FLOOR,
+    SIGNAL_BUY,
+    SIGNAL_CLASS,
+    SIGNAL_HOLD,
+    SIGNAL_SELL,
+    assign_signals,
+    trading_signal,
+)
+from ui.chart import (
+    clip_series_range,
+    inject_chart_hover_counter,
+    price_chart,
+    render_chart_price_counter,
+)
+from ui.skeletons import render_catalog_skeleton, render_chart_skeleton
 from database import (
     add_portfolio_position,
     add_watchlist_card,
@@ -102,20 +121,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# Change within this band stays HOLD; outside it is BUY or SELL.
-# Keep signal codes local so a stale i18n module cannot break imports.
-HOLD_BAND = 0.0035
-FORECAST_DAYS = 7
-SCANNER_GROWTH_FLOOR = 10.0
 MARKET_PAGE_SIZE_DEFAULT = 24
-SIGNAL_BUY = "BUY"
-SIGNAL_SELL = "SELL"
-SIGNAL_HOLD = "HOLD"
-SIGNAL_CLASS = {
-    SIGNAL_BUY: "signal-buy",
-    SIGNAL_SELL: "signal-sell",
-    SIGNAL_HOLD: "signal-hold",
-}
 HOLO_RARITY_KEYWORDS = ("rare", "holo", "secret", "ultra")
 
 CUSTOM_CSS = """
@@ -141,6 +147,51 @@ CUSTOM_CSS = """
     .stApp {
         background: radial-gradient(circle at top left, var(--bg2) 0%, var(--bg1) 45%, var(--bg0) 100%);
         font-family: var(--font-ui);
+    }
+    .skel-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 14px 12px;
+        margin: 8px 0 16px;
+    }
+    .skel-card {
+        border-radius: 10px;
+        overflow: hidden;
+        background: rgba(19, 32, 51, 0.85);
+        border: 1px solid rgba(36, 54, 77, 0.9);
+    }
+    .skel-img {
+        aspect-ratio: 63 / 88;
+        background: linear-gradient(90deg, rgba(255,255,255,0.04), rgba(255,255,255,0.10), rgba(255,255,255,0.04));
+        background-size: 200% 100%;
+        animation: skel-shine 1.2s ease-in-out infinite;
+    }
+    .skel-line {
+        height: 10px;
+        margin: 10px 10px 6px;
+        border-radius: 6px;
+        background: rgba(148, 163, 184, 0.18);
+    }
+    .skel-line.short { width: 55%; }
+    .skel-chart {
+        height: 280px;
+        border-radius: 12px;
+        border: 1px solid rgba(36, 54, 77, 0.9);
+        background: linear-gradient(90deg, rgba(255,255,255,0.03), rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+        background-size: 200% 100%;
+        animation: skel-shine 1.2s ease-in-out infinite;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #94a3b8 !important;
+        font-size: 0.9rem;
+    }
+    @keyframes skel-shine {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .skel-img, .skel-chart { animation: none; }
     }
     h1, h2, h3, p, label, span, div { color: var(--text) !important; }
     [data-testid="stSidebar"] { background: #0d1626; border-right: 1px solid var(--border); }
@@ -1155,23 +1206,6 @@ EXPLORE_CARD_HIT_JS = """
 """
 
 
-def trading_signal(current_price: float, predicted_price: float) -> str:
-    change = (predicted_price - current_price) / current_price
-    if change > HOLD_BAND:
-        return SIGNAL_BUY
-    if change < -HOLD_BAND:
-        return SIGNAL_SELL
-    return SIGNAL_HOLD
-
-
-def assign_signals(quotes: pd.DataFrame) -> pd.DataFrame:
-    board = quotes.copy()
-    board["expected_change_pct"] = (board["predicted_price"] - board["price"]) / board["price"] * 100.0
-    board["signal"] = [
-        trading_signal(float(current), float(predicted))
-        for current, predicted in zip(board["price"], board["predicted_price"], strict=True)
-    ]
-    return board
 
 
 @st.cache_resource(show_spinner="Loading history and training XGBoost...")
@@ -1262,337 +1296,6 @@ def forecast_price_in_days(
     return prices[-1]
 
 
-def _hex_to_rgba(color: str, alpha: float) -> str:
-    raw = (color or "").strip().lstrip("#")
-    if len(raw) == 3:
-        raw = "".join(ch * 2 for ch in raw)
-    if len(raw) != 6:
-        return f"rgba(56, 189, 248, {alpha})"
-    r = int(raw[0:2], 16)
-    g = int(raw[2:4], 16)
-    b = int(raw[4:6], 16)
-    return f"rgba({r}, {g}, {b}, {alpha})"
-
-
-def price_chart(
-    series: pd.DataFrame,
-    predicted: float | None,
-    name: str,
-    *,
-    source_label: str | None = None,
-    show_ai: bool = True,
-    line_color: str = "#38bdf8",
-    overlays: list[tuple[pd.DataFrame, str, str]] | None = None,
-) -> go.Figure:
-    """Primary series + optional overlays [(frame, label, color), ...]."""
-    overlay_rows = [
-        (frame, label, color)
-        for frame, label, color in (overlays or [])
-        if isinstance(frame, pd.DataFrame) and not frame.empty
-    ]
-    if series.empty and not overlay_rows:
-        fig = go.Figure()
-        fig.update_layout(
-            template="plotly_dark",
-            title=name,
-            height=360,
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(11,18,32,0.35)",
-            annotations=[
-                dict(
-                    text=t("source_unavailable"),
-                    xref="paper",
-                    yref="paper",
-                    x=0.5,
-                    y=0.5,
-                    showarrow=False,
-                    font=dict(color="#94a3b8", size=14),
-                )
-            ],
-        )
-        return fig
-
-    primary = series if not series.empty else overlay_rows[0][0]
-    last_day = pd.Timestamp(primary["date"].iloc[-1])
-    last_price = float(primary["price"].iloc[-1])
-    y_hist = primary["price"].astype(float).map(to_display)
-    close_label = source_label or t("chart_close")
-    money_hover = f"{currency_symbol()}%{{y:.4f}}"
-    fill_color = _hex_to_rgba(line_color, 0.22)
-    y_values = [float(y_hist.min()), float(y_hist.max())] if len(y_hist) else []
-    # Soft band under the line (not from $0 — keeps the chart readable).
-    if len(y_hist):
-        band_floor = float(y_hist.min()) - max((float(y_hist.max()) - float(y_hist.min())) * 0.08, 0.01)
-    else:
-        band_floor = 0.0
-
-    fig = go.Figure()
-    if not series.empty:
-        fig.add_trace(
-            go.Scatter(
-                x=series["date"],
-                y=[band_floor] * len(series),
-                mode="lines",
-                line=dict(width=0, color="rgba(0,0,0,0)"),
-                hoverinfo="skip",
-                showlegend=False,
-            )
-        )
-        fig.add_trace(
-            go.Scatter(
-                x=series["date"],
-                y=y_hist,
-                mode="lines",
-                name=close_label,
-                line=dict(color=line_color, width=2.8, shape="linear"),
-                fill="tonexty",
-                fillcolor=fill_color,
-                hovertemplate=f"%{{x|%d.%m.%Y}}<br>{money_hover}<extra>{close_label}</extra>",
-            )
-        )
-    for frame, label, color in overlay_rows:
-        if not series.empty and label == close_label:
-            continue
-        y_over = frame["price"].astype(float).map(to_display)
-        y_values.extend([float(y_over.min()), float(y_over.max())])
-        fig.add_trace(
-            go.Scatter(
-                x=frame["date"],
-                y=y_over,
-                mode="lines",
-                name=label,
-                line=dict(color=color, width=2.2, shape="linear"),
-                hovertemplate=f"%{{x|%d.%m.%Y}}<br>{money_hover}<extra>{label}</extra>",
-            )
-        )
-    if show_ai and predicted is not None and not primary.empty:
-        next_day = last_day + pd.Timedelta(days=1)
-        y_last = to_display(last_price)
-        y_pred = to_display(predicted)
-        signal = trading_signal(last_price, predicted)
-        forecast_color = {"BUY": "#22c55e", "SELL": "#f87171", "HOLD": "#fbbf24"}[signal]
-        ai_label = t("chart_ai")
-        fig.add_trace(
-            go.Scatter(
-                x=[last_day, next_day],
-                y=[y_last, y_pred],
-                mode="lines+markers",
-                name=ai_label,
-                line=dict(color=forecast_color, width=2.5, dash="dash"),
-                marker=dict(size=9, symbol="diamond", color=forecast_color),
-                hovertemplate=f"%{{x|%d.%m.%Y}}<br>{money_hover}<extra>AI</extra>",
-            )
-        )
-        y_values.extend([y_last, y_pred])
-
-    if not y_values:
-        y_values = [0.0, 1.0]
-    price_low = min(y_values)
-    price_high = max(y_values)
-    pad = max((price_high - price_low) * 0.18, abs(price_low) * 0.01, 0.01)
-    fig.update_layout(
-        template="plotly_dark",
-        title=None,
-        xaxis_title=None,
-        yaxis_title=None,
-        height=440,
-        margin=dict(l=8, r=12, t=8, b=8),
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(11,18,32,0.35)",
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=1.02,
-            x=0,
-            bgcolor="rgba(0,0,0,0)",
-            font=dict(size=11, color="#94a3b8"),
-        ),
-        hovermode="x unified",
-        hoverlabel=dict(
-            bgcolor="rgba(15, 23, 42, 0.94)",
-            bordercolor="rgba(148, 163, 184, 0.35)",
-            font=dict(size=12, color="#e2e8f0"),
-        ),
-        xaxis=dict(
-            rangeslider=dict(visible=False),
-            gridcolor="rgba(30, 41, 59, 0.65)",
-            showgrid=True,
-            showspikes=True,
-            spikemode="across",
-            spikesnap="cursor",
-            spikedash="dot",
-            spikethickness=1,
-            spikecolor="#64748b",
-            zeroline=False,
-        ),
-        yaxis=dict(
-            gridcolor="rgba(30, 41, 59, 0.65)",
-            showgrid=True,
-            tickprefix=currency_symbol(),
-            range=[price_low - pad, price_high + pad],
-            zeroline=False,
-            side="right",
-        ),
-    )
-    return fig
-
-
-def render_chart_price_counter(
-    price_usd: float | None,
-    *,
-    counter_id: str,
-    accent: str = "#38bdf8",
-) -> None:
-    """Price label left above the chart + hover-synced animated counter."""
-    if price_usd is None:
-        return
-    display_value = float(to_display(price_usd))
-    symbol = currency_symbol()
-    digits = 4 if display_value < 10 else 2
-    initial = money(price_usd, digits=digits)
-    st.markdown(
-        f"""
-        <div class="chart-price-head" data-counter-root="{escape(counter_id, quote=True)}">
-          <p class="chart-price-label">{escape(t("chart_price_label"))}</p>
-          <p class="chart-price-counter" id="{escape(counter_id, quote=True)}"
-             data-value="{display_value:.6f}"
-             data-base="{display_value:.6f}"
-             data-symbol="{escape(symbol, quote=True)}"
-             data-digits="{digits}"
-             style="--accent:{escape(accent, quote=True)}">{escape(initial)}</p>
-          <p class="chart-price-date" id="{escape(counter_id, quote=True)}-date">{escape(t("chart_price_latest"))}</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
-def inject_chart_hover_counter(counter_id: str) -> None:
-    """Bind nearest Plotly chart hover → animated price counter (parent DOM)."""
-    cid = escape(counter_id, quote=True)
-    components.html(
-        f"""
-<script>
-(function () {{
-  const COUNTER_ID = "{cid}";
-  const doc = window.parent.document;
-  const counter = doc.getElementById(COUNTER_ID);
-  if (!counter) return;
-  const dateEl = doc.getElementById(COUNTER_ID + "-date");
-  const symbol = counter.dataset.symbol || "$";
-  const digits = Number(counter.dataset.digits || "2");
-  const base = Number(counter.dataset.base || "0");
-  let anim = null;
-  let current = Number(counter.dataset.value || base);
-
-  function formatMoney(v) {{
-    const n = Number(v);
-    if (!Number.isFinite(n)) return symbol + "—";
-    return symbol + n.toLocaleString(undefined, {{
-      minimumFractionDigits: digits,
-      maximumFractionDigits: digits
-    }});
-  }}
-
-  function setDate(text) {{
-    if (dateEl) dateEl.textContent = text || "";
-  }}
-
-  function animateTo(target, ms) {{
-    const from = current;
-    const to = Number(target);
-    if (!Number.isFinite(to)) return;
-    if (anim) cancelAnimationFrame(anim);
-    const start = performance.now();
-    const dur = Math.max(120, ms || 280);
-    function frame(now) {{
-      const p = Math.min(1, (now - start) / dur);
-      const eased = 1 - Math.pow(1 - p, 3);
-      current = from + (to - from) * eased;
-      counter.dataset.value = String(current);
-      counter.textContent = formatMoney(current);
-      if (p < 1) anim = requestAnimationFrame(frame);
-      else {{
-        current = to;
-        counter.dataset.value = String(to);
-        counter.textContent = formatMoney(to);
-        anim = null;
-      }}
-    }}
-    anim = requestAnimationFrame(frame);
-  }}
-
-  function pickPoint(ev) {{
-    const pts = (ev && ev.points) || [];
-    if (!pts.length) return null;
-    // Prefer main price series (curveNumber 1: invisible baseline is 0) over AI dash.
-    let pt = pts.find(p => p.curveNumber === 1) || pts.find(p => p.curveNumber === 0) || pts[0];
-    const y = (pt.y != null) ? Number(pt.y) : Number(pt.customdata);
-    if (!Number.isFinite(y)) return null;
-    let dateTxt = "";
-    if (pt.x != null) {{
-      const d = new Date(pt.x);
-      if (!Number.isNaN(d.getTime())) {{
-        dateTxt = d.toLocaleDateString(undefined, {{ day: "2-digit", month: "short", year: "numeric" }});
-      }} else {{
-        dateTxt = String(pt.x);
-      }}
-    }}
-    return {{ y, dateTxt }};
-  }}
-
-  function onHover(ev) {{
-    const hit = pickPoint(ev);
-    if (!hit) return;
-    counter.classList.add("is-hover");
-    animateTo(hit.y, 180);
-    setDate(hit.dateTxt);
-  }}
-
-  function onUnhover() {{
-    counter.classList.remove("is-hover");
-    animateTo(base, 320);
-    setDate({t("chart_price_latest")!r});
-  }}
-
-  function bindPlot(plot) {{
-    if (!plot || plot.dataset.counterBound === COUNTER_ID) return;
-    plot.dataset.counterBound = COUNTER_ID;
-    plot.on("plotly_hover", onHover);
-    plot.on("plotly_unhover", onUnhover);
-  }}
-
-  function findNearbyPlot() {{
-    const root = counter.closest("[data-testid=\\"stVerticalBlock\\"]") || counter.parentElement;
-    const scope = root || doc;
-    const plots = scope.querySelectorAll(".js-plotly-plot");
-    if (!plots.length) return null;
-    // Prefer the first plot after the counter in document order.
-    let chosen = null;
-    for (const p of plots) {{
-      if (counter.compareDocumentPosition(p) & Node.DOCUMENT_POSITION_FOLLOWING) {{
-        chosen = p;
-        break;
-      }}
-    }}
-    return chosen || plots[plots.length - 1];
-  }}
-
-  let tries = 0;
-  function tick() {{
-    const plot = findNearbyPlot();
-    if (plot && plot.on) {{
-      bindPlot(plot);
-      return;
-    }}
-    if (++tries < 40) setTimeout(tick, 150);
-  }}
-  tick();
-}})();
-</script>
-        """,
-        height=0,
-    )
 
 
 def chip_row(items: list[tuple[str, str]], css_class: str) -> None:
@@ -2340,17 +2043,6 @@ def render_pill_toggle(options: list[tuple[str, str]], *, state_key: str, defaul
     return str(st.session_state[state_key])
 
 
-def clip_series_range(series: pd.DataFrame, range_key: str) -> pd.DataFrame:
-    if series.empty or "date" not in series.columns:
-        return series
-    frame = series.copy()
-    frame["date"] = pd.to_datetime(frame["date"])
-    end = frame["date"].max()
-    days = {"1m": 30, "3m": 90}.get(range_key)
-    if days is None:
-        return frame.sort_values("date").reset_index(drop=True)
-    start = end - pd.Timedelta(days=days)
-    return frame.loc[frame["date"] >= start].sort_values("date").reset_index(drop=True)
 
 
 def resolve_tcgplayer_id(card_id: str) -> str | None:
@@ -2765,6 +2457,17 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
         need_psa = source_key in {"psa10", "compare"}
 
         if need_just and has_justtcg_key:
+            cache_probe = f"justtcg_series::{card_id}::"
+            has_cached = any(
+                str(k).startswith(cache_probe)
+                and isinstance(st.session_state.get(k), pd.DataFrame)
+                and not st.session_state.get(k).empty
+                for k in st.session_state.keys()
+            )
+            skel = st.empty()
+            if not has_cached:
+                with skel.container():
+                    render_chart_skeleton()
             with st.spinner(t("loading_justtcg")):
                 try:
                     just_series, resolved_tcp = load_justtcg_series(
@@ -2778,6 +2481,7 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
                 except Exception as exc:
                     justtcg_error = str(exc)
                     just_series = pd.DataFrame(columns=["date", "price"])
+            skel.empty()
             if just_series.empty and not market_series.empty:
                 just_series = market_series[["date", "price"]].copy()
                 used_db_fallback = True
@@ -3600,6 +3304,7 @@ def render_explore(market: pd.DataFrame, history: pd.DataFrame | None = None, mo
         st.caption(t("explore_results", n=len(filtered)))
         if filtered.empty:
             st.warning(t("explore_empty"))
+            render_catalog_skeleton(n=8)
         else:
             if mode == "signals":
                 prev_pick = st.session_state.get("_catalog_prev_pick")
@@ -3889,6 +3594,17 @@ def render_scanner(history: pd.DataFrame, market: pd.DataFrame, model) -> None:
 def render_watchlist_section(market: pd.DataFrame) -> None:
     st.markdown(f"##### {t('watchlist_title')}")
     uid = _current_user_id()
+    threshold_val = float(
+        st.number_input(
+            t("alert_threshold"),
+            min_value=1.0,
+            max_value=50.0,
+            value=float(st.session_state.get("watch_alert_threshold", 5.0)),
+            step=1.0,
+            key="watch_alert_threshold_input",
+        )
+    )
+    st.session_state["watch_alert_threshold"] = threshold_val
     try:
         watch = load_watchlist(user_id=uid)
     except Exception:
@@ -4214,6 +3930,17 @@ def main() -> None:
     if market.empty or history.empty:
         st.error(t("no_price_history"))
         return
+
+    # In-app watchlist alerts (AI expected move ≥ threshold).
+    try:
+        threshold = float(st.session_state.get("watch_alert_threshold", 5.0))
+        watch_rows = load_watchlist(user_id=_current_user_id())
+        alerts = collect_watchlist_alerts(market, watch_rows, threshold_pct=threshold)
+        if alerts:
+            st.caption(t("alert_watch_caption", pct=threshold))
+            render_watchlist_alerts(alerts, money_fmt=money)
+    except Exception:
+        pass
 
     if page == "explore":
         render_explore(market, history=history, model=model)
