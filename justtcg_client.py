@@ -329,8 +329,12 @@ def search_pokemon_card(
     name: str,
     number: str | None = None,
     set_name: str | None = None,
+    quick: bool = False,
 ) -> dict[str, Any] | None:
-    """Pronađi JustTCG kartu — preferiraj name+number (set u queryu često pokvari match)."""
+    """Pronađi JustTCG kartu — preferiraj name+number (set u queryu često pokvari match).
+
+    quick=True: only the first (most precise) query — for backfill under rate limits.
+    """
     wanted_name = (name or "").strip().lower()
     wanted_number = normalize_card_number(number) if number else ""
     wanted_set = (set_name or "").strip().lower()
@@ -347,6 +351,8 @@ def search_pokemon_card(
         queries.append(f"{name} {set_name}".strip())
     if wanted_name and wanted_number and wanted_set:
         queries.append(f"{name} {wanted_number} {set_name}".strip())
+    if quick:
+        queries = queries[:1]
 
     best: dict[str, Any] | None = None
     best_score = -1
@@ -358,6 +364,8 @@ def search_pokemon_card(
         seen_q.add(key)
         try:
             rows = _search_cards_raw(q, limit=JUSTTCG_BATCH_SIZE)
+        except JustTCGRateLimitError:
+            raise
         except Exception as exc:
             LOG.warning("JustTCG search failed q=%r: %s", q, exc)
             continue

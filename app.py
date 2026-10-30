@@ -50,6 +50,11 @@ from ai_insights import (
     scanner_backtest,
     series_confidence,
 )
+from services.prices import (
+    clear_live_price_caches,
+    justtcg_observability_summary,
+    record_justtcg_event,
+)
 from database import (
     add_portfolio_position,
     add_watchlist_card,
@@ -2492,6 +2497,7 @@ def load_justtcg_series(
     cache_key = f"justtcg_series::{card_id}::{tcgplayer_id or ''}::{number}"
     cached = st.session_state.get(cache_key)
     if isinstance(cached, pd.DataFrame) and not cached.empty:
+        record_justtcg_event("cache_hit")
         return cached.copy(), tcgplayer_id
 
     nm_history_for_card = getattr(jtcg, "nm_history_for_card", None)
@@ -2499,16 +2505,22 @@ def load_justtcg_series(
         jtcg = importlib.reload(jtcg)
         nm_history_for_card = getattr(jtcg, "nm_history_for_card", None)
     if not callable(nm_history_for_card):
+        record_justtcg_event("error")
         return pd.DataFrame(columns=["date", "price"]), tcgplayer_id
 
-    points, resolved = nm_history_for_card(
-        tcgplayer_id=tcgplayer_id,
-        name=name,
-        number=number or None,
-        set_name=set_name or None,
-    )
+    try:
+        points, resolved = nm_history_for_card(
+            tcgplayer_id=tcgplayer_id,
+            name=name,
+            number=number or None,
+            set_name=set_name or None,
+        )
+    except Exception:
+        record_justtcg_event("error")
+        raise
 
     if not points:
+        record_justtcg_event("empty")
         return pd.DataFrame(columns=["date", "price"]), resolved or tcgplayer_id
 
     frame = pd.DataFrame(points)
@@ -2516,6 +2528,7 @@ def load_justtcg_series(
     frame["price"] = frame["price"].astype(float)
     frame = frame.sort_values("date").reset_index(drop=True)
     st.session_state[cache_key] = frame.copy()
+    record_justtcg_event("live")
     if resolved and resolved != tcgplayer_id:
         try:
             import database as db_mod
@@ -2806,6 +2819,7 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
                 badges.append(f'<span class="source-badge db">{escape(t("badge_db"))}</span>')
             if not just_clip.empty:
                 if used_db_fallback:
+                    record_justtcg_event("fallback")
                     badges.append(
                         f'<span class="source-badge saved">{escape(t("badge_saved"))}</span>'
                     )
@@ -2865,6 +2879,7 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
             elif has_justtcg_key and not available:
                 st.info(t("source_unavailable"))
             elif used_db_fallback and has_justtcg_key:
+                record_justtcg_event("fallback")
                 st.caption(t("justtcg_using_saved"))
         elif source_key == "psa10":
             chart_series = clip_series_range(psa_series, range_key)
@@ -2946,6 +2961,10 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
             """,
             unsafe_allow_html=True,
         )
+        if st.button(t("retry_live_prices"), key=f"retry_live_{card_id}"):
+            clear_live_price_caches(card_id=str(card_id))
+            st.session_state["portfolio_notice"] = t("retry_live_done")
+            st.rerun()
 
     # eBay Browse — full-width ispod hero/graf layouta (ne utisnuto u desni stupac).
     ebay = _ebay_module()
@@ -3878,17 +3897,46 @@ def render_watchlist_section(market: pd.DataFrame) -> None:
     if watch.empty:
         st.caption(t("watchlist_empty"))
         return
+    quotes = market.set_index("id") if "id" in market.columns else None
     for row in watch.itertuples(index=False):
-        c1, c2, c3 = st.columns([3.2, 1.2, 1])
+        c1, c2, c3 = st.columns([3.2, 1.6, 1])
         with c1:
-            st.markdown(f"**{escape(str(row.name or row.card_id))}** · {escape(str(row.card_id))}")
+            st.markdown(f"**{escape(str(row.name or row.card_id))}** · `{escape(str(row.card_id))}`")
         with c2:
             price = row.market_price
-            st.caption(money(float(price)) if price is not None else "—")
+            delta_txt = ""
+            if quotes is not None and str(row.card_id) in quotes.index:
+                q = quotes.loc[str(row.card_id)]
+                if isinstance(q, pd.DataFrame):
+                    q = q.iloc[0]
+                price = q.get("price", price) if hasattr(q, "get") else getattr(q, "price", price)
+                exp = None
+                if hasattr(q, "get"):
+                    exp = q.get("expected_change_pct")
+                else:
+                    exp = getattr(q, "expected_change_pct", None)
+                if exp is not None and pd.notna(exp):
+                    delta_txt = " · " + t("watchlist_delta", pct=float(exp))
+            st.caption(
+                (money(float(price)) if price is not None else "—") + delta_txt
+            )
         with c3:
             if st.button(t("watchlist_remove"), key=f"wl_rm_{row.card_id}"):
                 remove_watchlist_card(str(row.card_id), user_id=uid)
                 st.rerun()
+
+
+def render_data_health_expander() -> None:
+    with st.expander(t("obs_title"), expanded=False):
+        st.caption(t("obs_caption"))
+        summary = justtcg_observability_summary()
+        c1, c2, c3, c4, c5 = st.columns(5)
+        c1.metric(t("obs_live"), int(summary.get("live", 0)))
+        c2.metric(t("obs_fallback"), int(summary.get("fallback", 0)))
+        c3.metric(t("obs_empty"), int(summary.get("empty", 0)))
+        c4.metric(t("obs_errors"), int(summary.get("error", 0)))
+        c5.metric(t("obs_miss_rate"), f"{float(summary.get('miss_or_fallback_pct', 0)):.0f}%")
+        st.caption(f"{t('obs_cache')}: {int(summary.get('cache_hit', 0))}")
 
 
 def render_portfolio_performance(view: pd.DataFrame) -> None:
@@ -4175,6 +4223,8 @@ def main() -> None:
         render_portfolio(history, market, model)
     else:
         render_scanner(history, market, model)
+
+    render_data_health_expander()
 
 
 if __name__ == "__main__":

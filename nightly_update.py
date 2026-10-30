@@ -221,15 +221,18 @@ def run_nightly() -> int:
         try:
             from backfill_tcgplayer_ids import backfill_tcgplayer_ids
 
-            limit_raw = os.environ.get("NIGHTLY_BACKFILL_TCP_LIMIT", "40").strip()
-            limit = int(limit_raw) if limit_raw.isdigit() else 40
+            limit_raw = os.environ.get("NIGHTLY_BACKFILL_TCP_LIMIT", "10").strip()
+            limit = int(limit_raw) if limit_raw.isdigit() else 10
             stats = backfill_tcgplayer_ids(limit=limit, only_missing=True)
             LOG.info(
-                "tcgplayer_id backfill scanned=%s updated=%s skipped=%s failed=%s",
+                "tcgplayer_id backfill scanned=%s updated=%s skipped=%s failed=%s "
+                "rate_limited=%s stopped_early=%s",
                 stats["scanned"],
                 stats["updated"],
                 stats["skipped"],
                 stats["failed"],
+                stats.get("rate_limited", 0),
+                stats.get("stopped_early", 0),
             )
         except Exception as exc:
             _report_error("backfill_tcgplayer_ids", exc)
