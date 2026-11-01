@@ -101,7 +101,7 @@ def render_login_gate() -> bool:
         if do_signin:
             try:
                 user = auth_mod.sign_in(email, password)
-                auth_mod.bootstrap_auth()  # write cookies before rerun
+                # Cookies flush on next run via pending flag in bootstrap_auth.
                 st.success(t("login_success", email=user.get("email") or email))
                 st.rerun()
             except Exception as exc:
@@ -112,7 +112,6 @@ def render_login_gate() -> bool:
                 if user.get("needs_confirmation"):
                     st.info(t("signup_confirm"))
                 else:
-                    auth_mod.bootstrap_auth()
                     st.success(t("signup_success", email=user.get("email") or email))
                     st.rerun()
             except Exception as exc:
@@ -189,8 +188,7 @@ def render_navbar() -> str:
         if auth_disabled():
             st.caption("DEV")
         elif st.button(t("logout"), key="nav_logout", use_container_width=True):
-            auth_mod.sign_out()
-            auth_mod.bootstrap_auth()  # clear cookies
+            auth_mod.sign_out()  # clears cookies on next bootstrap_auth
             st.rerun()
 
     return str(st.session_state["nav_page"])

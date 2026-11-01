@@ -44,10 +44,29 @@ def _auth_client() -> Client:
 
 
 def _cookie_manager():
-    """Hidden Streamlit component that can read/write document cookies."""
+    """Hidden Streamlit component that can read/write document cookies.
+
+    Streamlit forbids two widgets with the same key in one script run, so we
+    mount CookieManager at most once per run and reuse that instance.
+    """
     import extra_streamlit_components as stx
 
-    return stx.CookieManager(key="tcg_auth_cookies")
+    try:
+        from streamlit.runtime.scriptrunner import get_script_run_ctx
+
+        ctx = get_script_run_ctx()
+        run_id = id(ctx) if ctx is not None else None
+    except Exception:
+        run_id = None
+
+    cached = st.session_state.get("_tcg_auth_cm")
+    if cached is not None and st.session_state.get("_tcg_auth_cm_run_id") == run_id:
+        return cached
+
+    cm = stx.CookieManager(key="tcg_auth_cookies")
+    st.session_state["_tcg_auth_cm"] = cm
+    st.session_state["_tcg_auth_cm_run_id"] = run_id
+    return cm
 
 
 def current_user() -> dict[str, Any] | None:
