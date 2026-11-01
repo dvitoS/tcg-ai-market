@@ -1,7 +1,11 @@
--- Pokreni JEDNOM u Supabase → SQL Editor → New query → Run
--- Zatim: Table Editor (provjeri cards / price_history / portfolio)
+-- Pokreni JEDNOM u Supabase → SQL Editor → New query → Run (novi projekti).
+-- Postojeći projekti s otvorenim using(true) policyjima: pokreni supabase_rls_harden.sql
+-- Zatim: Table Editor (provjeri cards / price_history / portfolio / watchlist)
 -- Ako API i dalje ne vidi tablice: Settings → API → Reload schema cache
 -- ili pokreni zadnji red: NOTIFY pgrst, 'reload schema';
+--
+-- Ključevi: SUPABASE_ANON_KEY = UI login + portfolio/watchlist (RLS).
+--           SUPABASE_KEY (service_role) = nightly/backfill/catalog sync only.
 
 create table if not exists public.cards (
     id text primary key,
@@ -68,24 +72,25 @@ alter table public.price_history enable row level security;
 alter table public.portfolio enable row level security;
 alter table public.watchlist enable row level security;
 
+-- Catalog: public read for anon + authenticated.
+-- Writes go through service_role (bypasses RLS) from nightly/backfill only.
 drop policy if exists "service_read_cards" on public.cards;
-create policy "service_read_cards" on public.cards for select using (true);
 drop policy if exists "service_write_cards" on public.cards;
-create policy "service_write_cards" on public.cards for all using (true) with check (true);
+drop policy if exists "anon_read_cards" on public.cards;
+create policy "anon_read_cards" on public.cards
+  for select to anon, authenticated using (true);
 
 drop policy if exists "service_read_price_history" on public.price_history;
-create policy "service_read_price_history" on public.price_history for select using (true);
 drop policy if exists "service_write_price_history" on public.price_history;
-create policy "service_write_price_history" on public.price_history for all using (true) with check (true);
+drop policy if exists "anon_read_price_history" on public.price_history;
+create policy "anon_read_price_history" on public.price_history
+  for select to anon, authenticated using (true);
 
--- App uses service_role today; policies below document the intended auth model.
--- When switching to anon/authenticated keys, replace service_* portfolio policies.
+-- Portfolio / watchlist: ONLY own rows via JWT (auth.uid()).
+-- Do NOT add using(true) policies — those expose every user's lots to anon.
+-- service_role still bypasses RLS for local AUTH_DISABLED / admin scripts.
 drop policy if exists "service_read_portfolio" on public.portfolio;
-create policy "service_read_portfolio" on public.portfolio for select using (true);
 drop policy if exists "service_write_portfolio" on public.portfolio;
-create policy "service_write_portfolio" on public.portfolio for all using (true) with check (true);
-
--- Prefer these when the browser uses the user's JWT (auth.uid()).
 drop policy if exists "portfolio_select_own" on public.portfolio;
 create policy "portfolio_select_own" on public.portfolio
   for select to authenticated using (auth.uid() = user_id);
@@ -100,16 +105,16 @@ create policy "portfolio_delete_own" on public.portfolio
   for delete to authenticated using (auth.uid() = user_id);
 
 drop policy if exists "service_read_watchlist" on public.watchlist;
-create policy "service_read_watchlist" on public.watchlist for select using (true);
 drop policy if exists "service_write_watchlist" on public.watchlist;
-create policy "service_write_watchlist" on public.watchlist for all using (true) with check (true);
-
 drop policy if exists "watchlist_select_own" on public.watchlist;
 create policy "watchlist_select_own" on public.watchlist
   for select to authenticated using (auth.uid() = user_id);
 drop policy if exists "watchlist_insert_own" on public.watchlist;
 create policy "watchlist_insert_own" on public.watchlist
   for insert to authenticated with check (auth.uid() = user_id);
+drop policy if exists "watchlist_update_own" on public.watchlist;
+create policy "watchlist_update_own" on public.watchlist
+  for update to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
 drop policy if exists "watchlist_delete_own" on public.watchlist;
 create policy "watchlist_delete_own" on public.watchlist
   for delete to authenticated using (auth.uid() = user_id);

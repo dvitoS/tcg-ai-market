@@ -58,6 +58,43 @@ def _current_user_id() -> str:
     return str(user.get("id") or "").strip()
 
 
+def _ebay_row_html(
+    row: dict,
+    *,
+    meta: str,
+    title_len: int = 100,
+) -> str:
+    """One eBay row: always thumb | copy | price | link so CSS grid stays aligned."""
+    title = escape((row.get("title") or "")[:title_len])
+    price_txt = (
+        escape(money(float(row["price"])))
+        if row.get("price") is not None
+        else "—"
+    )
+    url = str(row.get("url") or "").strip()
+    img = str(row.get("image") or "").strip()
+    if img.startswith("http"):
+        thumb = (
+            f'<div class="ebay-thumb"><img src="{escape(img, quote=True)}" '
+            f'alt="" loading="lazy" referrerpolicy="no-referrer" '
+            f'onerror="this.parentElement.style.opacity=\'0.35\'" /></div>'
+        )
+    else:
+        thumb = '<div class="ebay-thumb" aria-hidden="true"></div>'
+    link = (
+        f'<a class="ebay-link" href="{escape(url, quote=True)}" '
+        f'target="_blank" rel="noopener noreferrer">eBay ↗</a>'
+        if url.startswith("http")
+        else '<span class="ebay-link ebay-link-muted">—</span>'
+    )
+    return (
+        f'<div class="ebay-row">{thumb}'
+        f'<div class="ebay-copy"><div class="ebay-title">{title}</div>'
+        f'<div class="ebay-meta">{escape(meta)}</div></div>'
+        f'<div class="ebay-price">{price_txt}</div>{link}</div>'
+    )
+
+
 def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, card_id: str) -> None:
     justtcg_api_key = _justtcg_module().justtcg_api_key
 
@@ -485,44 +522,17 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
                         n=len(ebay_rows),
                     )
                 )
-            rows_html: list[str] = []
-            for r in ebay_rows:
-                title = escape((r.get("title") or "")[:100])
-                condition = escape(str(r.get("condition") or "—"))
-                price_txt = (
-                    escape(money(float(r["price"])))
-                    if r.get("price") is not None
-                    else "—"
-                )
-                url = str(r.get("url") or "").strip()
-                img = str(r.get("image") or "").strip()
-                if img.startswith("http"):
-                    thumb = (
-                        f'<div class="ebay-thumb"><img src="{escape(img, quote=True)}" '
-                        f'alt="" loading="lazy" referrerpolicy="no-referrer" '
-                        f'onerror="this.parentElement.style.opacity=\'0.35\'" /></div>'
-                    )
-                else:
-                    thumb = '<div class="ebay-thumb" aria-hidden="true"></div>'
-                link = (
-                    f'<a class="ebay-link" href="{escape(url, quote=True)}" '
-                    f'target="_blank" rel="noopener noreferrer">eBay ↗</a>'
-                    if url.startswith("http")
-                    else '<span class="ebay-meta">—</span>'
-                )
-                rows_html.append(
-                    f'<div class="ebay-row">{thumb}'
-                    f'<div class="ebay-copy"><div class="ebay-title">{title}</div>'
-                    f'<div class="ebay-meta">{condition}</div></div>'
-                    f'<div class="ebay-price">{price_txt}</div>'
-                    f"{link}</div>"
-                )
+            rows_html = [
+                _ebay_row_html(r, meta=str(r.get("condition") or "—"))
+                for r in ebay_rows
+            ]
             st.markdown(
                 f'<div class="ebay-list">{"".join(rows_html)}</div>',
                 unsafe_allow_html=True,
             )
 
-    # Sold comps (Insights) — soft fallback when gated.
+    # Sold comps (Insights). If gated, do NOT re-list the same active Browse rows —
+    # that looked like a broken duplicate card stack.
     st.markdown(
         f"""
         <div class="ebay-block">
@@ -541,51 +551,31 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
             set_name=str(card.get("set_name") or ""),
         )
         is_sold_comps = bool(sold_stats.get("is_sold", 1.0))
-        if sold_hint and not sold_rows:
-            st.caption(t("ebay_sold_unavailable", hint=sold_hint))
-        elif sold_rows:
-            if not is_sold_comps:
-                st.info(t("ebay_sold_active_fallback"))
-                if sold_hint:
-                    st.caption(sold_hint[:220])
+        if not sold_rows or not is_sold_comps:
+            st.info(t("ebay_sold_active_fallback"))
+            if not sold_rows and sold_hint and sold_hint not in {"insights_unavailable", None}:
+                st.caption(t("ebay_sold_unavailable", hint=str(sold_hint)[:220]))
+            elif not sold_rows:
+                st.caption(t("ebay_sold_see_active"))
+        else:
             if sold_stats.get("n"):
-                stats_key = "ebay_active_stats" if not is_sold_comps else "ebay_sold_stats"
                 st.caption(
                     t(
-                        stats_key,
+                        "ebay_sold_stats",
                         n=int(sold_stats["n"]),
                         lo=money(float(sold_stats["min"])) if sold_stats.get("min") is not None else "—",
                         mid=money(float(sold_stats["median"])) if sold_stats.get("median") is not None else "—",
                         hi=money(float(sold_stats["max"])) if sold_stats.get("max") is not None else "—",
                     )
                 )
-            sold_html = []
-            for r in sold_rows:
-                title = escape((r.get("title") or "")[:90])
-                price_txt = (
-                    escape(money(float(r["price"])))
-                    if r.get("price") is not None
-                    else "—"
+            sold_html = [
+                _ebay_row_html(
+                    r,
+                    meta=str(r.get("sold_date") or r.get("condition") or "—"),
+                    title_len=90,
                 )
-                if r.get("comp_source") == "active" or r.get("is_sold") is False:
-                    meta = escape(t("ebay_active_not_sold"))
-                    if r.get("condition"):
-                        meta = f"{escape(str(r.get('condition')))} · {meta}"
-                else:
-                    meta = escape(str(r.get("sold_date") or "—"))
-                url = str(r.get("url") or "").strip()
-                link = (
-                    f'<a class="ebay-link" href="{escape(url, quote=True)}" '
-                    f'target="_blank" rel="noopener noreferrer">eBay ↗</a>'
-                    if url.startswith("http")
-                    else ""
-                )
-                sold_html.append(
-                    f'<div class="ebay-row"><div class="ebay-copy">'
-                    f'<div class="ebay-title">{title}</div>'
-                    f'<div class="ebay-meta">{meta}</div></div>'
-                    f'<div class="ebay-price">{price_txt}</div>{link}</div>'
-                )
+                for r in sold_rows
+            ]
             st.markdown(
                 f'<div class="ebay-list">{"".join(sold_html)}</div>',
                 unsafe_allow_html=True,

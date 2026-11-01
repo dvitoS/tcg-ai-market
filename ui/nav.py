@@ -51,6 +51,13 @@ def apply_nav_query_params() -> None:
 def render_login_gate() -> bool:
     """Email/password form. Returns True when the user is authenticated."""
     import auth as auth_mod
+    from config import auth_disabled
+
+    # Restore JWT from cookies after refresh; or inject DEV user when disabled.
+    auth_mod.bootstrap_auth()
+
+    if auth_disabled():
+        return True
 
     if auth_mod.is_authenticated():
         return True
@@ -94,6 +101,7 @@ def render_login_gate() -> bool:
         if do_signin:
             try:
                 user = auth_mod.sign_in(email, password)
+                auth_mod.bootstrap_auth()  # write cookies before rerun
                 st.success(t("login_success", email=user.get("email") or email))
                 st.rerun()
             except Exception as exc:
@@ -104,6 +112,7 @@ def render_login_gate() -> bool:
                 if user.get("needs_confirmation"):
                     st.info(t("signup_confirm"))
                 else:
+                    auth_mod.bootstrap_auth()
                     st.success(t("signup_success", email=user.get("email") or email))
                     st.rerun()
             except Exception as exc:
@@ -161,8 +170,12 @@ def render_navbar() -> str:
                         st.session_state["market_detail_only"] = False
                     set_nav_query_params(page=key)
                     st.rerun()
+    from config import auth_disabled
+
     with email_col:
-        if email:
+        if auth_disabled():
+            st.caption(t("auth_dev_mode"))
+        elif email:
             st.caption(t("logged_in_as", email=email))
     with cur_btn:
         if st.button(
@@ -173,8 +186,11 @@ def render_navbar() -> str:
         ):
             _set_currency(CURRENCY_EUR if cur == CURRENCY_USD else CURRENCY_USD)
     with logout_btn:
-        if st.button(t("logout"), key="nav_logout", use_container_width=True):
+        if auth_disabled():
+            st.caption("DEV")
+        elif st.button(t("logout"), key="nav_logout", use_container_width=True):
             auth_mod.sign_out()
+            auth_mod.bootstrap_auth()  # clear cookies
             st.rerun()
 
     return str(st.session_state["nav_page"])

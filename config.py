@@ -99,12 +99,13 @@ def get_supabase_credentials() -> tuple[str, str]:
 
 
 def get_supabase_auth_credentials() -> tuple[str, str]:
-    """Credentials for Auth (prefer anon key; fall back to service role)."""
+    """Credentials for Auth — anon key only (never service_role).
+
+    service_role bypasses RLS; using it for login would break multi-user isolation.
+    """
     url = normalize_supabase_url(_secret("SUPABASE_URL"))
     anon = _clean_secret_value(_secret("SUPABASE_ANON_KEY"))
-    if anon:
-        return url, anon
-    return url, _clean_secret_value(_secret("SUPABASE_KEY"))
+    return url, anon
 
 
 def get_justtcg_api_key() -> str:
@@ -236,6 +237,48 @@ SUPABASE_DB_URL = _secret("SUPABASE_DB_URL")
 
 SEED_DATABASE_PATH = PROJECT_ROOT / "data" / "seed_tcg_market.db"
 AUTOMATION_LOG = PROJECT_ROOT / "automation.log"
+
+# Local/dev: skip Streamlit login gate (never enable on Cloud production).
+DEV_USER_ID = (
+    _clean_secret_value(_secret("DEV_USER_ID"))
+    or "00000000-0000-4000-8000-000000000001"
+)
+DEV_USER_EMAIL = _clean_secret_value(_secret("DEV_USER_EMAIL")) or "dev@local"
+
+
+def _is_streamlit_cloud() -> bool:
+    """Heuristic: Streamlit Community Cloud mounts the repo under /mount/src."""
+    if os.getenv("STREAMLIT_CLOUD", "").strip().lower() in {"1", "true", "yes", "on"}:
+        return True
+    return Path("/mount/src").exists()
+
+
+def auth_disabled() -> bool:
+    """True when AUTH_DISABLED=1/true — bypass login for local development.
+
+    Always False on Streamlit Cloud (multi-user). Re-reads .env on each call so a
+    long-lived local Streamlit process picks up the flag without a full restart.
+    """
+    if _is_streamlit_cloud():
+        return False
+    load_dotenv(ENV_PATH, override=False)
+    if not os.environ.get("GITHUB_ACTIONS"):
+        load_dotenv(PROJECT_ROOT / "tcg.env.txt", override=False)
+    # Prefer an explicit file value for this flag (Streamlit often starts before .env edits).
+    try:
+        from dotenv import dotenv_values
+
+        file_vals = dict(dotenv_values(ENV_PATH) or {})
+        file_flag = _clean_secret_value(str(file_vals.get("AUTH_DISABLED") or ""))
+    except Exception:
+        file_flag = ""
+    raw = (
+        file_flag
+        or _secret("AUTH_DISABLED")
+        or os.getenv("AUTH_DISABLED", "")
+        or ""
+    ).strip().lower()
+    return raw in {"1", "true", "yes", "on"}
 
 DEFAULT_SET_NAME = "Scarlet & Violet"
 DEFAULT_SET_ID = "sv1"

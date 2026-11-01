@@ -95,7 +95,8 @@ def load_ebay_sold_comps(
     if not ebay.ebay_configured() or not hasattr(ebay, "sold_comps_for_card"):
         return [], "eBay credentials missing.", empty_stats
 
-    cache_key = f"ebay_sold::{card_id}"
+    # Bump key version when fallback/UX messaging changes so stale session hints die.
+    cache_key = f"ebay_sold_v2::{card_id}"
     cached = st.session_state.get(cache_key)
     if isinstance(cached, dict) and isinstance(cached.get("rows"), list):
         return list(cached["rows"]), cached.get("hint"), dict(cached.get("stats") or empty_stats)
@@ -129,10 +130,8 @@ def load_ebay_sold_comps(
         )
         if active:
             rows = _as_active_comps(active)
-            hint = hint or (
-                "eBay Marketplace Insights unavailable — showing active listings "
-                "(asking prices, not completed sales)."
-            )
+            # UI shows a single i18n banner; keep hint empty once fallback rows exist.
+            hint = None
         elif active_err and not hint:
             hint = active_err[:180]
 

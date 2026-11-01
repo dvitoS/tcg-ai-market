@@ -86,8 +86,8 @@ def get_supabase():
 def get_user_supabase():
     """Authed anon client with the signed-in user's JWT (portfolio/watchlist RLS).
 
-    Returns None when anon key or session tokens are missing — callers fall back
-    to get_supabase() + explicit user_id filters.
+    Returns None when anon key or session tokens are missing.
+    Production callers must NOT fall back to service_role for user tables.
     """
     try:
         import streamlit as st
@@ -98,7 +98,6 @@ def get_user_supabase():
         return None
 
     url, anon = get_supabase_auth_credentials()
-    # Prefer true anon key for RLS; if only service role is configured, skip.
     has_anon = bool(_clean_secret_value(_secret("SUPABASE_ANON_KEY")))
     if not url or not anon or not has_anon:
         return None
@@ -122,19 +121,41 @@ def get_user_supabase():
         return None
 
 
+def _user_data_client():
+    """Client for portfolio/watchlist.
+
+    - Prefer JWT (anon key + user session) so RLS enforces auth.uid().
+    - Service-role allowed only when AUTH_DISABLED (local single-user).
+    """
+    from config import auth_disabled
+
+    user_client = get_user_supabase()
+    if user_client is not None:
+        return user_client
+    if auth_disabled():
+        return get_supabase()
+    raise RuntimeError(
+        "Portfolio/watchlist need a JWT session (SUPABASE_ANON_KEY + login). "
+        "Service role is not used for user data in multi-user mode."
+    )
+
+
+# Back-compat alias — old name implied a silent service fallback.
 def _user_or_service_client():
-    return get_user_supabase() or get_supabase()
+    return _user_data_client()
 
 
 def user_data_client_mode() -> str:
-    """How portfolio/watchlist will be queried: jwt | missing_anon | missing_token | service_fallback | anonymous."""
+    """jwt | missing_anon | missing_token | jwt_failed | dev_service | anonymous."""
     try:
         import auth as auth_mod
-        from config import _clean_secret_value
+        from config import _clean_secret_value, auth_disabled
     except Exception:
         return "anonymous"
     if not auth_mod.is_authenticated():
         return "anonymous"
+    if auth_disabled() and not auth_mod.has_jwt_tokens():
+        return "dev_service"
     has_anon = bool(_clean_secret_value(_secret("SUPABASE_ANON_KEY")))
     if not has_anon:
         return "missing_anon"
@@ -142,7 +163,7 @@ def user_data_client_mode() -> str:
         return "missing_token"
     if get_user_supabase() is not None:
         return "jwt"
-    return "service_fallback"
+    return "jwt_failed"
 
 
 def _chunked(rows: list[dict[str, Any]], size: int = 500):
@@ -530,7 +551,7 @@ def load_portfolio_lots(*, user_id: str, include_sold: bool = True) -> pd.DataFr
     if not uid:
         return pd.DataFrame(columns=empty_cols)
 
-    client = _user_or_service_client()
+    client = _user_data_client()
     rows: list[dict[str, Any]] = []
     start = 0
     columns = (
@@ -613,7 +634,7 @@ def add_portfolio_position(
         raise ValueError("Quantity must be at least 1.")
     if float(purchase_price) <= 0:
         raise ValueError("Purchase price must be greater than zero.")
-    client = _user_or_service_client()
+    client = _user_data_client()
     payload: dict[str, Any] = {
         "user_id": uid,
         "card_id": card_id,
@@ -670,7 +691,7 @@ def update_portfolio_position(
         payload["grade"] = str(grade).strip()
     if not payload:
         return False
-    client = _user_or_service_client()
+    client = _user_data_client()
     response = (
         client.table("portfolio")
         .update(payload)
@@ -693,7 +714,7 @@ def sell_portfolio_position(
         return False
     if float(sale_price) <= 0:
         raise ValueError("Sale price must be greater than zero.")
-    client = _user_or_service_client()
+    client = _user_data_client()
     response = (
         client.table("portfolio")
         .update(
@@ -715,7 +736,7 @@ def delete_portfolio_position(entry_id: int, *, user_id: str) -> bool:
     uid = str(user_id or "").strip()
     if not uid:
         return False
-    client = _user_or_service_client()
+    client = _user_data_client()
     response = (
         client.table("portfolio")
         .delete()
@@ -733,7 +754,7 @@ def load_watchlist(*, user_id: str) -> pd.DataFrame:
     )
     if not uid:
         return empty
-    client = _user_or_service_client()
+    client = _user_data_client()
     try:
         response = (
             client.table("watchlist")
@@ -766,7 +787,7 @@ def add_watchlist_card(card_id: str, *, user_id: str) -> None:
     uid = str(user_id or "").strip()
     if not uid:
         raise ValueError("Sign in required for watchlist.")
-    client = _user_or_service_client()
+    client = _user_data_client()
     client.table("watchlist").upsert(
         {"user_id": uid, "card_id": str(card_id)},
         on_conflict="user_id,card_id",
@@ -777,7 +798,7 @@ def remove_watchlist_card(card_id: str, *, user_id: str) -> bool:
     uid = str(user_id or "").strip()
     if not uid:
         return False
-    client = _user_or_service_client()
+    client = _user_data_client()
     response = (
         client.table("watchlist")
         .delete()
@@ -792,7 +813,7 @@ def is_on_watchlist(card_id: str, *, user_id: str) -> bool:
     uid = str(user_id or "").strip()
     if not uid:
         return False
-    client = _user_or_service_client()
+    client = _user_data_client()
     try:
         response = (
             client.table("watchlist")

@@ -1003,25 +1003,39 @@ CUSTOM_CSS = """
         color: #f8fafc !important;
         font-weight: 700;
         white-space: nowrap;
+        justify-self: end;
+        min-width: 4.5rem;
+        text-align: right;
     }
-    .ebay-row a.ebay-link {
+    .ebay-row a.ebay-link,
+    .ebay-row .ebay-link-muted {
         color: #93c5fd !important;
         font-weight: 600;
         text-decoration: none;
         white-space: nowrap;
+        justify-self: end;
+        min-width: 3.5rem;
+        text-align: right;
+    }
+    .ebay-row .ebay-link-muted {
+        color: #64748b !important;
+        font-weight: 500;
     }
     .ebay-row a.ebay-link:hover { text-decoration: underline; }
+    .ebay-row .ebay-copy { min-width: 0; }
     @media (max-width: 720px) {
         .ebay-row {
-            grid-template-columns: 40px minmax(0, 1fr) auto;
+            grid-template-columns: 44px minmax(0, 1fr) auto;
             grid-template-areas:
                 "thumb title title"
                 "thumb price link";
         }
-        .ebay-row .ebay-thumb { grid-area: thumb; }
+        .ebay-row .ebay-thumb { grid-area: thumb; width: 44px; height: 44px; }
+        .ebay-row .ebay-thumb img { width: 44px; height: 44px; }
         .ebay-row .ebay-copy { grid-area: title; }
         .ebay-row .ebay-price { grid-area: price; }
-        .ebay-row a.ebay-link { grid-area: link; }
+        .ebay-row a.ebay-link,
+        .ebay-row .ebay-link-muted { grid-area: link; }
     }
 </style>
 """

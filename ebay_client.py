@@ -252,10 +252,8 @@ def sold_comps_for_card(
         return [], str(exc)[:180]
 
     if response.status_code in {401, 403, 404}:
-        return (
-            [],
-            "eBay Marketplace Insights is not enabled for this app — showing active listings only.",
-        )
+        # Empty + hint code; UI falls back to Browse and shows one i18n banner.
+        return [], "insights_unavailable"
     if response.status_code >= 400:
         LOG.warning("eBay Insights %s: %s", response.status_code, response.text[:300])
         return [], f"eBay Insights HTTP {response.status_code}"

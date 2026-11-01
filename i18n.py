@@ -52,10 +52,12 @@ _TEXT: dict[str, str] = {
         "ai_low_confidence": "Signal hidden — data quality is too low.",
         "ai_expected_move": "Expected move",
         "ebay_sold_title": "eBay sold comps",
-        "ebay_sold_caption": "Completed sales when Marketplace Insights is enabled; otherwise active listings as a soft fallback.",
+        "ebay_sold_caption": "Completed sales when Marketplace Insights is enabled for the app.",
         "ebay_sold_unavailable": "{hint}",
         "ebay_sold_stats": "{n} sold · min {lo} · median {mid} · max {hi}",
-        "ebay_sold_active_fallback": "Insights sold history unavailable — showing active listings (asking prices, not completed sales).",
+        "ebay_sold_active_fallback": "Sold history (Insights) isn’t enabled for this eBay app. Use active listings above for asking prices — those are not completed sales.",
+        "ebay_sold_see_active": "No completed sales to show. Asking prices are in the Active listings section above.",
+        "ebay_sold_no_active": "No active eBay listings found for this card either.",
         "ebay_active_stats": "{n} active · min {lo} · median {mid} · max {hi}",
         "ebay_active_not_sold": "Active · not sold",
         "condition": "Condition",
@@ -75,9 +77,12 @@ _TEXT: dict[str, str] = {
         "portfolio_perf_bars": "Open lots (snapshot)",
         "obs_reload_model": "Reload catalog + model cache",
         "obs_reload_done": "Model cache cleared — reloading…",
+        "auth_dev_mode": "Dev mode · login off",
         "auth_anon_hint": "Add SUPABASE_ANON_KEY in Secrets so portfolio/watchlist use your JWT (RLS).",
-        "auth_rls_fallback": "Portfolio/watchlist are using the service key (RLS bypass). Set SUPABASE_ANON_KEY (Supabase → Project Settings → API → anon public) in Streamlit Secrets / .env, restart the app, then log out and log in again.",
-        "auth_rls_fallback_generic": "Portfolio/watchlist JWT client failed — falling back to service key. Log out and log in again; check SUPABASE_ANON_KEY.",
+        "auth_rls_fallback": "Portfolio/watchlist need SUPABASE_ANON_KEY (Supabase → Project Settings → API → anon public). Service role is not used for user data.",
+        "auth_rls_fallback_generic": "Portfolio/watchlist JWT client failed. Log out and log in again; check SUPABASE_ANON_KEY.",
+        "auth_rls_blocked_anon": "Multi-user mode: set SUPABASE_ANON_KEY in Secrets. Portfolio/watchlist will not use the service role key.",
+        "auth_rls_blocked_jwt": "Could not build a JWT client for portfolio/watchlist. Log out and log in again; confirm SUPABASE_ANON_KEY is the anon public key.",
         "auth_session_stale": "Your login has no access token (old session). Log out and log in again to enable portfolio RLS.",
         "watchlist_alerts_error": "Watchlist alerts unavailable right now.",
         "alert_watch_body": "Watchlist · {name}: {pct:+.1f}% expected ({signal}) · {price}",
@@ -253,18 +258,21 @@ Paste this TOML (replace the values), **Save**, then **Reboot**:
 ```toml
 SUPABASE_URL = "https://YOUR_PROJECT.supabase.co"
 SUPABASE_KEY = "YOUR_SERVICE_ROLE_KEY"
+SUPABASE_ANON_KEY = "YOUR_ANON_PUBLIC_KEY"
 ```
 
 Keys: Supabase → **Project Settings → API**  
-(`Project URL` + `service_role`).
+- `service_role` → catalog/nightly (`SUPABASE_KEY`)  
+- `anon public` → login + portfolio/watchlist (`SUPABASE_ANON_KEY`)  
 
 **Important:** URL must be only `https://xxxx.supabase.co` —  
-**without** `/rest/v1` at the end (otherwise PGRST125).""",
+**without** `/rest/v1` at the end (otherwise PGRST125).  
+Never set `AUTH_DISABLED` on Cloud.""",
         "supabase_schema_help": """### Create tables in Supabase
 1. Open [Supabase Dashboard](https://supabase.com/dashboard) → your project  
 2. Left: **SQL Editor** → **New query**  
-3. Copy the SQL below → paste → **Run**  
-4. **Table Editor**: you should see `cards`, `price_history`, `portfolio`  
+3. Copy `supabase_schema.sql` (new projects) or `supabase_rls_harden.sql` (existing) → **Run**  
+4. **Table Editor**: you should see `cards`, `price_history`, `portfolio`, `watchlist`  
 5. If the app still errors: **Project Settings → API → Reload schema**  
 6. Streamlit → **Reboot**""",
         "login_title": "Sign in",

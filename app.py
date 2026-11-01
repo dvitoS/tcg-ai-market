@@ -105,13 +105,16 @@ def main() -> None:
 
     page = render_navbar()
 
-    mode = user_data_client_mode()
-    if mode == "missing_anon":
-        st.warning(t("auth_rls_fallback"))
-    elif mode == "missing_token":
-        st.warning(t("auth_session_stale"))
-    elif mode == "service_fallback":
-        st.warning(t("auth_rls_fallback_generic"))
+    from config import auth_disabled
+
+    if not auth_disabled():
+        mode = user_data_client_mode()
+        if mode == "missing_anon":
+            st.error(t("auth_rls_blocked_anon"))
+        elif mode == "missing_token":
+            st.error(t("auth_session_stale"))
+        elif mode == "jwt_failed":
+            st.error(t("auth_rls_blocked_jwt"))
 
     try:
         with st.spinner(t("load_exchange")):
