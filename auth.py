@@ -1,35 +1,38 @@
 """Supabase Auth helpers for Streamlit (email + password).
 
-Session tokens live in st.session_state and are mirrored to browser cookies so a
-refresh keeps the user signed in until they click Log out.
+Streamlit wipes st.session_state on browser refresh. CookieManager is unreliable
+inside Streamlit's sandboxed iframes, so we persist an opaque session id:
+
+  1. On login → save tokens under .data/auth_sessions/<sid>.json
+  2. Put sid in st.query_params (survives refresh) + session_state
+  3. On bootstrap → load sid from query/session and restore tokens
+  4. On logout → delete file + clear sid from URL
 """
 
 from __future__ import annotations
 
+import json
 import logging
-from datetime import datetime, timedelta, timezone
+import secrets
+import time
+from pathlib import Path
 from typing import Any
 
 import streamlit as st
 from supabase import Client, create_client
 
-from config import get_supabase_auth_credentials, normalize_supabase_url
+from config import PROJECT_ROOT, get_supabase_auth_credentials, normalize_supabase_url
 
 LOG = logging.getLogger("tcg.auth")
 
 SESSION_USER_KEY = "auth_user"
 SESSION_ACCESS_KEY = "auth_access_token"
 SESSION_REFRESH_KEY = "auth_refresh_token"
+SESSION_SID_KEY = "auth_sid"
 
-# Browser cookies (survive Streamlit session_state wipe on refresh).
-COOKIE_REFRESH = "tcg_sb_rt"
-COOKIE_ACCESS = "tcg_sb_at"
-COOKIE_EMAIL = "tcg_sb_em"
-COOKIE_USER_ID = "tcg_sb_uid"
-
-_PENDING_SAVE = "_auth_cookie_save"
-_PENDING_CLEAR = "_auth_cookie_clear"
-_RESTORE_ATTEMPTED = "_auth_cookie_restore_attempted"
+QUERY_SID = "sid"
+SESSIONS_DIR = PROJECT_ROOT / ".data" / "auth_sessions"
+SESSION_TTL_SECONDS = 60 * 60 * 24 * 30  # 30 days
 
 
 def _auth_client() -> Client:
@@ -41,32 +44,6 @@ def _auth_client() -> Client:
             "Do not use the service_role key for login."
         )
     return create_client(normalize_supabase_url(url), key)
-
-
-def _cookie_manager():
-    """Hidden Streamlit component that can read/write document cookies.
-
-    Streamlit forbids two widgets with the same key in one script run, so we
-    mount CookieManager at most once per run and reuse that instance.
-    """
-    import extra_streamlit_components as stx
-
-    try:
-        from streamlit.runtime.scriptrunner import get_script_run_ctx
-
-        ctx = get_script_run_ctx()
-        run_id = id(ctx) if ctx is not None else None
-    except Exception:
-        run_id = None
-
-    cached = st.session_state.get("_tcg_auth_cm")
-    if cached is not None and st.session_state.get("_tcg_auth_cm_run_id") == run_id:
-        return cached
-
-    cm = stx.CookieManager(key="tcg_auth_cookies")
-    st.session_state["_tcg_auth_cm"] = cm
-    st.session_state["_tcg_auth_cm_run_id"] = run_id
-    return cm
 
 
 def current_user() -> dict[str, Any] | None:
@@ -106,6 +83,126 @@ def _session_tokens(session: Any | None) -> tuple[str, str]:
     return access, refresh
 
 
+def has_jwt_tokens() -> bool:
+    return bool(str(st.session_state.get(SESSION_ACCESS_KEY) or "").strip())
+
+
+def _sessions_dir() -> Path:
+    SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
+    return SESSIONS_DIR
+
+
+def _session_path(sid: str) -> Path:
+    safe = "".join(ch for ch in sid if ch.isalnum() or ch in {"-", "_"})
+    if not safe or safe != sid:
+        raise ValueError("Invalid session id")
+    return _sessions_dir() / f"{safe}.json"
+
+
+def _write_server_session(sid: str, *, user: dict[str, Any], access: str, refresh: str) -> None:
+    payload = {
+        "user": {"id": str(user.get("id") or ""), "email": str(user.get("email") or "")},
+        "access_token": access,
+        "refresh_token": refresh,
+        "updated_at": int(time.time()),
+    }
+    path = _session_path(sid)
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+
+def _read_server_session(sid: str) -> dict[str, Any] | None:
+    try:
+        path = _session_path(sid)
+    except ValueError:
+        return None
+    if not path.is_file():
+        return None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        LOG.warning("read session %s failed: %s", sid[:8], exc)
+        return None
+    if not isinstance(data, dict):
+        return None
+    updated = int(data.get("updated_at") or 0)
+    if updated and (time.time() - updated) > SESSION_TTL_SECONDS:
+        try:
+            path.unlink(missing_ok=True)
+        except Exception:
+            pass
+        return None
+    return data
+
+
+def _delete_server_session(sid: str) -> None:
+    try:
+        _session_path(sid).unlink(missing_ok=True)
+    except Exception as exc:
+        LOG.warning("delete session failed: %s", exc)
+
+
+def _get_sid() -> str:
+    sid = str(st.session_state.get(SESSION_SID_KEY) or "").strip()
+    if sid:
+        return sid
+    try:
+        sid = str(st.query_params.get(QUERY_SID) or "").strip()
+    except Exception:
+        sid = ""
+    return sid
+
+
+def _bind_sid(sid: str) -> None:
+    st.session_state[SESSION_SID_KEY] = sid
+    try:
+        st.query_params[QUERY_SID] = sid
+    except Exception as exc:
+        LOG.warning("set query sid failed: %s", exc)
+
+
+def _clear_sid() -> None:
+    st.session_state.pop(SESSION_SID_KEY, None)
+    try:
+        if QUERY_SID in st.query_params:
+            del st.query_params[QUERY_SID]
+    except Exception:
+        try:
+            params = dict(st.query_params)
+            params.pop(QUERY_SID, None)
+            st.query_params.from_dict(params)
+        except Exception as exc:
+            LOG.warning("clear query sid failed: %s", exc)
+
+
+def _persist_current_session() -> None:
+    """Write tokens to disk and keep sid in the URL."""
+    user = current_user() or {}
+    access = str(st.session_state.get(SESSION_ACCESS_KEY) or "").strip()
+    refresh = str(st.session_state.get(SESSION_REFRESH_KEY) or "").strip()
+    if not user.get("id") or not (access or refresh):
+        return
+    sid = _get_sid() or secrets.token_urlsafe(24)
+    _write_server_session(sid, user=user, access=access, refresh=refresh)
+    _bind_sid(sid)
+
+
+def _apply_server_payload(data: dict[str, Any]) -> bool:
+    user = data.get("user") if isinstance(data.get("user"), dict) else {}
+    access = str(data.get("access_token") or "").strip()
+    refresh = str(data.get("refresh_token") or "").strip()
+    if not refresh and not access:
+        return False
+    st.session_state[SESSION_USER_KEY] = {
+        "id": str(user.get("id") or ""),
+        "email": str(user.get("email") or ""),
+    }
+    if access:
+        st.session_state[SESSION_ACCESS_KEY] = access
+    if refresh:
+        st.session_state[SESSION_REFRESH_KEY] = refresh
+    return True
+
+
 def _store_session(user: Any, session: Any | None = None) -> None:
     payload = {
         "id": str(getattr(user, "id", "") or ""),
@@ -120,140 +217,16 @@ def _store_session(user: Any, session: Any | None = None) -> None:
         st.session_state[SESSION_ACCESS_KEY] = access
     if refresh:
         st.session_state[SESSION_REFRESH_KEY] = refresh
-    st.session_state[_PENDING_SAVE] = True
-    st.session_state.pop(_PENDING_CLEAR, None)
-
-
-def has_jwt_tokens() -> bool:
-    return bool(str(st.session_state.get(SESSION_ACCESS_KEY) or "").strip())
+    _persist_current_session()
 
 
 def clear_session() -> None:
-    for key in (SESSION_USER_KEY, SESSION_ACCESS_KEY, SESSION_REFRESH_KEY):
+    sid = _get_sid()
+    if sid:
+        _delete_server_session(sid)
+    for key in (SESSION_USER_KEY, SESSION_ACCESS_KEY, SESSION_REFRESH_KEY, SESSION_SID_KEY):
         st.session_state.pop(key, None)
-    st.session_state[_PENDING_CLEAR] = True
-    st.session_state.pop(_PENDING_SAVE, None)
-    st.session_state.pop(_RESTORE_ATTEMPTED, None)
-
-
-def _flush_cookie_ops(cm: Any) -> None:
-    """Apply pending cookie save/clear after CookieManager is mounted."""
-    if st.session_state.pop(_PENDING_CLEAR, False):
-        for name in (COOKIE_REFRESH, COOKIE_ACCESS, COOKIE_EMAIL, COOKIE_USER_ID):
-            try:
-                cm.delete(name)
-            except Exception as exc:
-                LOG.warning("cookie delete %s failed: %s", name, exc)
-        return
-
-    if not st.session_state.pop(_PENDING_SAVE, False):
-        return
-
-    access = str(st.session_state.get(SESSION_ACCESS_KEY) or "").strip()
-    refresh = str(st.session_state.get(SESSION_REFRESH_KEY) or "").strip()
-    user = current_user() or {}
-    expires = datetime.now(timezone.utc) + timedelta(days=30)
-    try:
-        if refresh:
-            cm.set(
-                COOKIE_REFRESH,
-                refresh,
-                expires_at=expires,
-                same_site="lax",
-            )
-        if access:
-            cm.set(
-                COOKIE_ACCESS,
-                access,
-                expires_at=expires,
-                same_site="lax",
-            )
-        if user.get("email"):
-            cm.set(
-                COOKIE_EMAIL,
-                str(user["email"]),
-                expires_at=expires,
-                same_site="lax",
-            )
-        if user.get("id"):
-            cm.set(
-                COOKIE_USER_ID,
-                str(user["id"]),
-                expires_at=expires,
-                same_site="lax",
-            )
-    except Exception as exc:
-        LOG.warning("cookie save failed: %s", exc)
-
-
-def _restore_from_cookies(cm: Any) -> bool:
-    """Rebuild session_state from cookies after a browser refresh."""
-    if st.session_state.get(_RESTORE_ATTEMPTED):
-        return is_authenticated() and has_jwt_tokens()
-    st.session_state[_RESTORE_ATTEMPTED] = True
-
-    try:
-        cookies = cm.get_all()
-    except Exception as exc:
-        LOG.warning("cookie get_all failed: %s", exc)
-        return False
-    if cookies is None:
-        # Component not ready yet — allow another attempt next run.
-        st.session_state.pop(_RESTORE_ATTEMPTED, None)
-        return False
-
-    refresh = str(cookies.get(COOKIE_REFRESH) or "").strip()
-    access = str(cookies.get(COOKIE_ACCESS) or "").strip()
-    email = str(cookies.get(COOKIE_EMAIL) or "").strip()
-    user_id = str(cookies.get(COOKIE_USER_ID) or "").strip()
-    if not refresh and not access:
-        return False
-
-    if refresh:
-        st.session_state[SESSION_REFRESH_KEY] = refresh
-    if access:
-        st.session_state[SESSION_ACCESS_KEY] = access
-
-    if refresh_session():
-        # refresh_session updates user + tokens; keep cookies in sync if rotated.
-        return True
-
-    # Soft restore: access token still present, user metadata from cookies.
-    if access and (user_id or email):
-        st.session_state[SESSION_USER_KEY] = {"id": user_id, "email": email}
-        try:
-            client = _auth_client()
-            user = client.auth.get_user(access)
-            u = getattr(user, "user", None) or getattr(user, "data", None)
-            if u is not None:
-                st.session_state[SESSION_USER_KEY] = {
-                    "id": str(getattr(u, "id", "") or user_id),
-                    "email": str(getattr(u, "email", "") or email),
-                }
-                return True
-        except Exception as exc:
-            LOG.warning("get_user from cookie access failed: %s", exc)
-
-    clear_session()
-    return False
-
-
-def bootstrap_auth() -> None:
-    """Mount cookie bridge + restore session after refresh. Call once per run."""
-    from config import auth_disabled
-
-    if auth_disabled():
-        ensure_dev_session()
-        return
-
-    cm = _cookie_manager()
-    _flush_cookie_ops(cm)
-
-    if is_authenticated() and has_jwt_tokens():
-        return
-
-    if _restore_from_cookies(cm):
-        _flush_cookie_ops(cm)
+    _clear_sid()
 
 
 def refresh_session() -> bool:
@@ -273,6 +246,47 @@ def refresh_session() -> bool:
     except Exception as exc:
         LOG.warning("refresh_session failed: %s", exc)
         return bool(st.session_state.get(SESSION_ACCESS_KEY))
+
+
+def _restore_from_server() -> bool:
+    sid = _get_sid()
+    if not sid:
+        return False
+    data = _read_server_session(sid)
+    if not data:
+        _clear_sid()
+        return False
+    if not _apply_server_payload(data):
+        return False
+    _bind_sid(sid)
+    if has_jwt_tokens():
+        # Best-effort rotate tokens; keep existing if refresh fails.
+        refresh_session()
+        return has_jwt_tokens() or bool(st.session_state.get(SESSION_REFRESH_KEY))
+    if refresh_session() and has_jwt_tokens():
+        return True
+    return False
+
+
+def bootstrap_auth() -> None:
+    """Restore durable session after refresh. Call once per run near the top."""
+    from config import auth_disabled
+
+    if auth_disabled():
+        ensure_dev_session()
+        return
+
+    if is_authenticated() and has_jwt_tokens():
+        # Keep server copy fresh while the tab stays open.
+        _persist_current_session()
+        return
+
+    _restore_from_server()
+
+
+def persist_cookies_now() -> None:
+    """Back-compat no-op name — durable session is written in _store_session."""
+    _persist_current_session()
 
 
 def sign_in(email: str, password: str) -> dict[str, Any]:
@@ -309,7 +323,6 @@ def sign_up(email: str, password: str) -> dict[str, Any]:
     session = getattr(response, "session", None)
     if user is None:
         raise RuntimeError("Sign-up failed. Try a different email.")
-    # When email confirmation is ON, session may be None until the user confirms.
     if session is None:
         return {
             "id": str(getattr(user, "id", "") or ""),

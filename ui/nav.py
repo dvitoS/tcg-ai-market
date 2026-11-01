@@ -18,15 +18,31 @@ def _query_param_value(raw) -> str | None:
     return text or None
 
 def set_nav_query_params(*, page: str, card_id: str | None = None) -> None:
-    """Drži deep-link u URL-u da refresh ne vrati na Explore."""
+    """Drži deep-link u URL-u da refresh ne vrati na Explore.
+
+    Always preserve auth `sid` so login survives refresh / nav clicks.
+    """
     desired: dict[str, str] = {"nav": str(page)}
     if card_id:
         desired["card"] = str(card_id)
+    sid = _query_param_value(st.query_params.get("sid"))
+    if sid:
+        desired["sid"] = sid
     current_nav = _query_param_value(st.query_params.get("nav"))
     current_card = _query_param_value(st.query_params.get("card"))
-    if current_nav == desired.get("nav") and current_card == desired.get("card"):
+    current_sid = _query_param_value(st.query_params.get("sid"))
+    if (
+        current_nav == desired.get("nav")
+        and current_card == desired.get("card")
+        and current_sid == desired.get("sid")
+    ):
         return
-    if current_nav == desired.get("nav") and desired.get("card") is None and current_card is None:
+    if (
+        current_nav == desired.get("nav")
+        and desired.get("card") is None
+        and current_card is None
+        and current_sid == desired.get("sid")
+    ):
         return
     st.query_params.from_dict(desired)
 
@@ -101,7 +117,7 @@ def render_login_gate() -> bool:
         if do_signin:
             try:
                 user = auth_mod.sign_in(email, password)
-                # Cookies flush on next run via pending flag in bootstrap_auth.
+                auth_mod.persist_cookies_now()
                 st.success(t("login_success", email=user.get("email") or email))
                 st.rerun()
             except Exception as exc:
@@ -112,6 +128,7 @@ def render_login_gate() -> bool:
                 if user.get("needs_confirmation"):
                     st.info(t("signup_confirm"))
                 else:
+                    auth_mod.persist_cookies_now()
                     st.success(t("signup_success", email=user.get("email") or email))
                     st.rerun()
             except Exception as exc:
@@ -188,7 +205,8 @@ def render_navbar() -> str:
         if auth_disabled():
             st.caption("DEV")
         elif st.button(t("logout"), key="nav_logout", use_container_width=True):
-            auth_mod.sign_out()  # clears cookies on next bootstrap_auth
+            auth_mod.sign_out()
+            auth_mod.persist_cookies_now()
             st.rerun()
 
     return str(st.session_state["nav_page"])
