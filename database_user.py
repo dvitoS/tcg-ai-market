@@ -330,3 +330,44 @@ def ensure_portfolio_user_id_column() -> None:
     with psycopg.connect(db_url, autocommit=True, cursor_factory=ClientCursor) as conn:
         with conn.cursor() as cur:
             cur.execute(ddl)
+
+
+def load_all_watchlists() -> pd.DataFrame:
+    """Service-role dump of all watchlist rows (nightly email digests)."""
+    from database_clients import fetch_all
+
+    try:
+        rows = fetch_all(
+            "watchlist",
+            "id,user_id,card_id,created_at,cards(name,rarity,market_price,image_url)",
+            order="user_id",
+        )
+    except Exception:
+        return pd.DataFrame(
+            columns=[
+                "id",
+                "user_id",
+                "card_id",
+                "created_at",
+                "name",
+                "rarity",
+                "market_price",
+                "image_url",
+            ]
+        )
+    flat: list[dict[str, Any]] = []
+    for row in rows:
+        card = row.get("cards") or {}
+        flat.append(
+            {
+                "id": row.get("id"),
+                "user_id": row.get("user_id"),
+                "card_id": row.get("card_id"),
+                "created_at": row.get("created_at"),
+                "name": card.get("name"),
+                "rarity": card.get("rarity"),
+                "market_price": card.get("market_price"),
+                "image_url": card.get("image_url"),
+            }
+        )
+    return pd.DataFrame(flat)

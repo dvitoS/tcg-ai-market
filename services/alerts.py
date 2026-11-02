@@ -43,11 +43,16 @@ def collect_watchlist_alerts(
     watch: pd.DataFrame,
     *,
     threshold_pct: float = 5.0,
+    dismissed: set[str] | None = None,
 ) -> list[WatchAlert]:
     """Cards on the watchlist whose AI expected move exceeds threshold."""
     if market.empty or watch.empty or "id" not in market.columns:
         return []
-    dismissed = _dismissed()
+    if dismissed is None:
+        try:
+            dismissed = _dismissed()
+        except Exception:
+            dismissed = set()
     quotes = market.set_index("id", drop=False)
     out: list[WatchAlert] = []
     for row in watch.itertuples(index=False):

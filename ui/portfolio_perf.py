@@ -92,55 +92,6 @@ def render_week_outlook(current_value: float, week_value: float) -> None:
         )
     )
 
-def render_watchlist_section(market: pd.DataFrame) -> None:
-    st.markdown(f"##### {t('watchlist_title')}")
-    uid = _current_user_id()
-    threshold_val = float(
-        st.number_input(
-            t("alert_threshold"),
-            min_value=1.0,
-            max_value=50.0,
-            value=float(st.session_state.get("watch_alert_threshold", 5.0)),
-            step=1.0,
-            key="watch_alert_threshold_input",
-        )
-    )
-    st.session_state["watch_alert_threshold"] = threshold_val
-    try:
-        watch = load_watchlist(user_id=uid)
-    except Exception:
-        st.caption(t("watchlist_missing_table"))
-        return
-    if watch.empty:
-        st.caption(t("watchlist_empty"))
-        return
-    quotes = market.set_index("id") if "id" in market.columns else None
-    for row in watch.itertuples(index=False):
-        c1, c2, c3 = st.columns([3.2, 1.6, 1])
-        with c1:
-            st.markdown(f"**{escape(str(row.name or row.card_id))}** · `{escape(str(row.card_id))}`")
-        with c2:
-            price = row.market_price
-            delta_txt = ""
-            if quotes is not None and str(row.card_id) in quotes.index:
-                q = quotes.loc[str(row.card_id)]
-                if isinstance(q, pd.DataFrame):
-                    q = q.iloc[0]
-                price = q.get("price", price) if hasattr(q, "get") else getattr(q, "price", price)
-                exp = None
-                if hasattr(q, "get"):
-                    exp = q.get("expected_change_pct")
-                else:
-                    exp = getattr(q, "expected_change_pct", None)
-                if exp is not None and pd.notna(exp):
-                    delta_txt = " · " + t("watchlist_delta", pct=float(exp))
-            st.caption(
-                (money(float(price)) if price is not None else "—") + delta_txt
-            )
-        with c3:
-            if st.button(t("watchlist_remove"), key=f"wl_rm_{row.card_id}"):
-                remove_watchlist_card(str(row.card_id), user_id=uid)
-                st.rerun()
 
 def _parse_lot_date(value) -> pd.Timestamp | None:
     if value is None or (isinstance(value, float) and np.isnan(value)):

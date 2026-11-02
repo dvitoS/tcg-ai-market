@@ -180,6 +180,14 @@ def retrain_ai() -> dict[str, float | int]:
     LOG.info("market_quotes refreshed: %s rows", quote_n)
     if quote_n <= 0:
         raise RuntimeError("market_quotes board is empty after rebuild")
+    try:
+        from services.email_alerts import send_watchlist_digests
+
+        digest = send_watchlist_digests(quotes)
+        metrics["alert_emails_sent"] = int(digest.get("sent") or 0)
+        LOG.info("watchlist email digests: %s", digest)
+    except Exception as exc:
+        LOG.warning("watchlist email digests failed: %s", exc)
     return metrics
 
 
