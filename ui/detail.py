@@ -171,7 +171,13 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
             money(predicted, digits=4),
             delta=f"{money_delta(predicted - last_price)} ({change_pct:+.2f}%)",
         )
-        if confidence["ok"]:
+        conf_board = True
+        if hasattr(card, "get"):
+            conf_board = bool(card.get("confidence_ok", True))
+            if card.get("conformal_ok") is not None and str(card.get("conformal_ok")) != "nan":
+                conf_board = conf_board and bool(card.get("conformal_ok"))
+        show_signal = bool(confidence["ok"] and conf_board)
+        if show_signal:
             st.markdown(
                 f'<div class="{SIGNAL_CLASS[signal]}">{signal_label(signal)}</div>',
                 unsafe_allow_html=True,
@@ -179,12 +185,21 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
         else:
             st.info(t("ai_low_confidence"))
         st.caption(t("ai_caption", band=FORECAST_SIGNAL_BAND * 100))
+        lo_pct = card.get("pred_lo_pct") if hasattr(card, "get") else getattr(card, "pred_lo_pct", None)
+        hi_pct = card.get("pred_hi_pct") if hasattr(card, "get") else getattr(card, "pred_hi_pct", None)
+        try:
+            lo_pct = float(lo_pct) if lo_pct is not None else None
+            hi_pct = float(hi_pct) if hi_pct is not None else None
+        except (TypeError, ValueError):
+            lo_pct, hi_pct = None, None
         explain_rows = explain_features(
             lags=lags,
             last_price=last_price,
             predicted=float(predicted),
             hold_band=FORECAST_SIGNAL_BAND,
             horizon_days=int(HORIZON_DAYS),
+            pred_lo_pct=lo_pct,
+            pred_hi_pct=hi_pct,
         )
         explain_html = "".join(
             f"<div><strong>{escape(k)}</strong>: {escape(v)}</div>" for k, v in explain_rows

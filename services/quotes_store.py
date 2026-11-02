@@ -25,6 +25,9 @@ QUOTE_COLUMNS = [
     "predicted_price",
     "expected_change_pct",
     "price_change_7d_pct",
+    "pred_lo_pct",
+    "pred_hi_pct",
+    "conformal_ok",
     "signal",
     "confidence_ok",
     "confidence_level",
@@ -60,6 +63,17 @@ def _rows_from_quotes(quotes: pd.DataFrame) -> list[dict[str, Any]]:
             "predicted_price": _float_or_none(row.get("predicted_price")),
             "expected_change_pct": _float_or_none(row.get("expected_change_pct")),
             "price_change_7d_pct": _float_or_none(row.get("price_change_7d_pct")),
+            "pred_lo_pct": _float_or_none(row.get("pred_lo_pct")),
+            "pred_hi_pct": _float_or_none(row.get("pred_hi_pct")),
+            "conformal_ok": bool(
+                True
+                if row.get("conformal_ok") is None
+                or (
+                    isinstance(row.get("conformal_ok"), float)
+                    and pd.isna(row.get("conformal_ok"))
+                )
+                else row.get("conformal_ok")
+            ),
             "signal": str(row.get("signal") or "") or None,
             "confidence_ok": bool(conf_ok),
             "confidence_level": str(row.get("confidence_level") or "") or None,
@@ -112,6 +126,9 @@ def save_market_quotes(quotes: pd.DataFrame) -> int:
                 "rarity_encoded",
                 "supertype_encoded",
                 "price_change_7d_pct",
+                "pred_lo_pct",
+                "pred_hi_pct",
+                "conformal_ok",
             )
             if any(col in msg for col in optional) or "column" in msg:
                 LOG.warning("save_market_quotes retry without optional cols: %s", exc)
@@ -128,6 +145,10 @@ def load_market_quotes() -> pd.DataFrame | None:
         from database import fetch_all
 
         select_attempts = (
+            "card_id,name,set_name,rarity,supertype,rarity_encoded,supertype_encoded,"
+            "price,market_price,predicted_price,expected_change_pct,price_change_7d_pct,"
+            "pred_lo_pct,pred_hi_pct,conformal_ok,signal,confidence_ok,confidence_level,"
+            "history_points,updated_at",
             "card_id,name,set_name,rarity,supertype,rarity_encoded,supertype_encoded,"
             "price,market_price,predicted_price,expected_change_pct,price_change_7d_pct,"
             "signal,confidence_ok,confidence_level,history_points,updated_at",
@@ -161,6 +182,8 @@ def load_market_quotes() -> pd.DataFrame | None:
         "predicted_price",
         "expected_change_pct",
         "price_change_7d_pct",
+        "pred_lo_pct",
+        "pred_hi_pct",
         "rarity_encoded",
         "supertype_encoded",
     ):
@@ -168,6 +191,8 @@ def load_market_quotes() -> pd.DataFrame | None:
             frame[col] = pd.to_numeric(frame[col], errors="coerce")
     if "confidence_ok" in frame.columns:
         frame["confidence_ok"] = frame["confidence_ok"].fillna(True).astype(bool)
+    if "conformal_ok" in frame.columns:
+        frame["conformal_ok"] = frame["conformal_ok"].fillna(True).astype(bool)
     if "history_points" in frame.columns:
         frame["history_points"] = (
             pd.to_numeric(frame["history_points"], errors="coerce").fillna(0).astype(int)

@@ -22,6 +22,10 @@ TEST_SIZE = 0.2
 HORIZON_DAYS = int(FORECAST_DAYS)
 # Days with |7d return| below this count as flat for direction scoring.
 RETURN_HOLD_BAND = float(FORECAST_SIGNAL_BAND)
+# Split conformal: 80% prediction intervals on holdout absolute residuals.
+CONFORMAL_ALPHA = 0.20
+# Gate BUY/SELL when interval width (return units) exceeds this.
+CONFORMAL_WIDTH_CAP = 0.25
 
 # Flat day = |1d return| below this (ffill-aware stale-quote proxy).
 FLAT_RET_EPS = 1e-4
@@ -247,6 +251,24 @@ def _signed_move(future: np.ndarray, spot: np.ndarray, *, hold_band: float) -> n
     return _signed_return(change, hold_band=hold_band)
 
 
+def conformal_abs_quantile(
+    residuals: np.ndarray,
+    *,
+    alpha: float = CONFORMAL_ALPHA,
+) -> float:
+    """Split-conformal absolute residual quantile (finite-sample corrected)."""
+    abs_res = np.abs(np.asarray(residuals, dtype=float))
+    abs_res = abs_res[np.isfinite(abs_res)]
+    n = int(abs_res.size)
+    if n <= 0:
+        return float("nan")
+    level = min(1.0, max(0.0, (1.0 - float(alpha)) * (1.0 + 1.0 / n)))
+    try:
+        return float(np.quantile(abs_res, level, method="higher"))
+    except TypeError:
+        return float(np.quantile(abs_res, level, interpolation="higher"))
+
+
 def evaluate_model(
     model: xgb.XGBRegressor,
     X_test: pd.DataFrame,
@@ -255,10 +277,12 @@ def evaluate_model(
     spot: pd.Series | None = None,
     hold_band: float | None = None,
     target_kind: str = "return",
+    conformal_alpha: float = CONFORMAL_ALPHA,
 ) -> dict[str, float]:
     """Score return (preferred) or price models vs a naive baseline.
 
     For returns, naive = 0% move. Prefer direction_accuracy and rmse_vs_naive.
+    Also fits a split-conformal absolute residual quantile on the holdout.
     """
     band = float(RETURN_HOLD_BAND if hold_band is None else hold_band)
     predictions = np.asarray(model.predict(X_test), dtype=float)
@@ -271,6 +295,16 @@ def evaluate_model(
         "r2": r2,
         "horizon_days": float(HORIZON_DAYS),
     }
+    if target_kind == "return":
+        q = conformal_abs_quantile(y - predictions, alpha=conformal_alpha)
+        if q == q:  # not NaN
+            metrics["conformal_q"] = float(q)
+            metrics["conformal_alpha"] = float(conformal_alpha)
+            metrics["conformal_width_cap"] = float(CONFORMAL_WIDTH_CAP)
+            print(
+                f"Conformal ±q: {q:.4f} "
+                f"({int((1 - conformal_alpha) * 100)}% PI on holdout |residual|)"
+            )
     print()
     print(f"=== Evaluacija (holdout, target={target_kind}, horizon={HORIZON_DAYS}d) ===")
     print(f"RMSE: {rmse:.6f}")
@@ -442,8 +476,13 @@ def split_features(
     return X_train, X_test, y_train, y_test
 
 
-def card_forecasts(model: xgb.XGBRegressor, featured: pd.DataFrame) -> pd.DataFrame:
-    """Latest row per card: predict {HORIZON_DAYS}d return → target price."""
+def card_forecasts(
+    model: xgb.XGBRegressor,
+    featured: pd.DataFrame,
+    *,
+    conformal_q: float | None = None,
+) -> pd.DataFrame:
+    """Latest row per card: predict {HORIZON_DAYS}d return → target price + PI."""
     latest = (
         featured.sort_values(["card_id", "date"])
         .groupby("card_id", as_index=False)
@@ -466,6 +505,22 @@ def card_forecasts(model: xgb.XGBRegressor, featured: pd.DataFrame) -> pd.DataFr
         latest["price_change_7d_pct"] = (
             pd.to_numeric(latest["ret_7"], errors="coerce") * 100.0
         )
+    q = float(conformal_q) if conformal_q is not None and np.isfinite(float(conformal_q)) else float("nan")
+    if q == q and q >= 0:
+        latest["pred_lo"] = pred_ret - q
+        latest["pred_hi"] = pred_ret + q
+        latest["pred_lo_pct"] = latest["pred_lo"] * 100.0
+        latest["pred_hi_pct"] = latest["pred_hi"] * 100.0
+        width = latest["pred_hi"] - latest["pred_lo"]
+        crosses_zero = (latest["pred_lo"] < 0.0) & (latest["pred_hi"] > 0.0)
+        too_wide = width > float(CONFORMAL_WIDTH_CAP)
+        latest["conformal_ok"] = ~(crosses_zero | too_wide)
+    else:
+        latest["pred_lo"] = np.nan
+        latest["pred_hi"] = np.nan
+        latest["pred_lo_pct"] = np.nan
+        latest["pred_hi_pct"] = np.nan
+        latest["conformal_ok"] = True
     latest["signal"] = np.where(
         pred_ret > RETURN_HOLD_BAND,
         "KUPI",
@@ -516,6 +571,9 @@ def retrain_model() -> dict[str, float | int]:
         "direction_accuracy_pct",
         "direction_n",
         "pred_flat_pct",
+        "conformal_q",
+        "conformal_alpha",
+        "conformal_width_cap",
     ):
         if key in eval_metrics and eval_metrics[key] == eval_metrics[key]:  # not NaN
             metrics[key] = float(eval_metrics[key])

@@ -103,9 +103,24 @@ def ensure_quote_encodings(
     return quotes
 
 
+def _conformal_q_from_meta(meta: dict | None) -> float | None:
+    metrics = (meta or {}).get("metrics") or {}
+    raw = metrics.get("conformal_q")
+    try:
+        q = float(raw)
+    except (TypeError, ValueError):
+        return None
+    return q if q == q and q >= 0 else None
+
+
 def _resolve_model(featured: pd.DataFrame, *, encoders: dict | None = None):
-    """Load persisted model when possible; otherwise train and save."""
+    """Load persisted model when possible; otherwise train and save.
+
+    Returns (model, trained_now, meta).
+    """
     from services.model_store import load_model_artifact, save_model_artifact
+
+    from ai_xgboost import evaluate_model
 
     label_maps = label_maps_from_encoders(encoders) if encoders else None
 
@@ -127,18 +142,29 @@ def _resolve_model(featured: pd.DataFrame, *, encoders: dict | None = None):
                         metrics=metrics,
                         feature_columns=list(FEATURE_COLUMNS),
                     )
+                    meta = {**meta, "metrics": metrics}
                 except Exception as exc:
                     LOG.warning("Could not persist label_maps on existing model: %s", exc)
-            return model, False
+            return model, False, meta
         LOG.warning("Persisted model feature mismatch — retraining.")
 
     trainable = drop_incomplete_rows(featured)
-    X_train, _X_test, y_train, _y_test = split_features(trainable)
+    X_train, X_test, y_train, y_test = split_features(trainable)
     model = train_xgboost(X_train, y_train)
+    eval_metrics = evaluate_model(model, X_test, y_test, target_kind="return")
+    metrics: dict = {
+        "rows": int(len(trainable)),
+        "source": "load_exchange",
+        **{
+            k: float(v)
+            for k, v in eval_metrics.items()
+            if isinstance(v, (int, float)) and v == v
+        },
+    }
+    if label_maps:
+        metrics["label_maps"] = label_maps
+    meta = {"metrics": metrics, "feature_columns": list(FEATURE_COLUMNS)}
     try:
-        metrics: dict = {"rows": int(len(trainable)), "source": "load_exchange"}
-        if label_maps:
-            metrics["label_maps"] = label_maps
         save_model_artifact(
             model,
             metrics=metrics,
@@ -146,7 +172,7 @@ def _resolve_model(featured: pd.DataFrame, *, encoders: dict | None = None):
         )
     except Exception as exc:
         LOG.warning("Could not persist freshly trained model: %s", exc)
-    return model, True
+    return model, True, meta
 
 
 def _apply_confidence(quotes: pd.DataFrame, history: pd.DataFrame) -> pd.DataFrame:
@@ -155,14 +181,27 @@ def _apply_confidence(quotes: pd.DataFrame, history: pd.DataFrame) -> pd.DataFra
         out = quotes.merge(conf, on="id", how="left")
         out["confidence_ok"] = out["confidence_ok"].fillna(False).astype(bool)
         out["confidence_level"] = out["confidence_level"].fillna("low")
-        low = ~out["confidence_ok"]
-        if low.any():
-            out.loc[low, "signal"] = SIGNAL_HOLD
-        return out
-    out = quotes.copy()
-    out["confidence_ok"] = True
-    out["confidence_level"] = "medium"
-    out["history_points"] = 0
+    else:
+        out = quotes.copy()
+        out["confidence_ok"] = True
+        out["confidence_level"] = "medium"
+        out["history_points"] = 0
+
+    if "conformal_ok" in out.columns:
+        conf_ok = out["conformal_ok"]
+        if conf_ok.dtype != bool:
+            conf_ok = conf_ok.fillna(True).astype(bool)
+            out["conformal_ok"] = conf_ok
+        # History length AND conformal interval must both pass.
+        out["confidence_ok"] = out["confidence_ok"] & conf_ok
+        unsure = ~conf_ok
+        if unsure.any():
+            # Downgrade level when interval is the blocker.
+            out.loc[unsure & (out["confidence_level"] != "low"), "confidence_level"] = "medium"
+
+    low = ~out["confidence_ok"]
+    if low.any():
+        out.loc[low, "signal"] = SIGNAL_HOLD
     return out
 
 
@@ -210,8 +249,10 @@ def build_market_board(
 
     history = load_history()
     featured, encoders = add_time_features(history)
-    model, _trained_now = _resolve_model(featured, encoders=encoders)
-    quotes = assign_signals(card_forecasts(model, featured))
+    model, _trained_now, meta = _resolve_model(featured, encoders=encoders)
+    quotes = assign_signals(
+        card_forecasts(model, featured, conformal_q=_conformal_q_from_meta(meta))
+    )
     quotes = _apply_confidence(quotes, history)
     quotes = _filter_catalog_floor(quotes)
     quotes = quotes.sort_values("name").reset_index(drop=True)

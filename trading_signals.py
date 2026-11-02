@@ -52,4 +52,19 @@ def assign_signals(quotes: pd.DataFrame) -> pd.DataFrame:
         else SIGNAL_HOLD
         for c, p in zip(price.tolist(), predicted.tolist(), strict=True)
     ]
+    return apply_conformal_gate(board)
+
+
+def apply_conformal_gate(quotes: pd.DataFrame) -> pd.DataFrame:
+    """Force HOLD when conformal interval is uncertain or too wide."""
+    board = quotes.copy()
+    if "conformal_ok" not in board.columns:
+        return board
+    ok = board["conformal_ok"]
+    if ok.dtype != bool:
+        ok = ok.fillna(True).astype(bool)
+        board["conformal_ok"] = ok
+    mask = ~ok
+    if mask.any():
+        board.loc[mask, "signal"] = SIGNAL_HOLD
     return board

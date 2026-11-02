@@ -68,6 +68,8 @@ def explain_features(
     predicted: float,
     hold_band: float,
     horizon_days: int = 7,
+    pred_lo_pct: float | None = None,
+    pred_hi_pct: float | None = None,
 ) -> list[tuple[str, str]]:
     """Human-readable feature dump for the detail panel."""
     ret_1 = float(lags.get("ret_1", 0.0))
@@ -80,7 +82,7 @@ def explain_features(
     flat_share = float(lags.get("flat_share_14", 0.0))
     hl_range = float(lags.get("hl_range_14", 0.0))
     move = ((predicted - last_price) / last_price * 100.0) if last_price else 0.0
-    return [
+    rows = [
         ("Horizon", f"{horizon_days} trading day(s) forward return"),
         ("1d return", f"{ret_1 * 100:+.2f}%"),
         ("7d return", f"{ret_7 * 100:+.2f}%"),
@@ -92,9 +94,21 @@ def explain_features(
         ("High-low 14d", f"{hl_range * 100:.1f}%"),
         ("Spot vs 7d MA", f"{dist_ma_7 * 100:+.2f}%"),
         ("Expected move", f"{move:+.2f}%"),
-        ("HOLD band", f"±{hold_band * 100:.2f}%"),
-        ("Disclaimer", "Not financial advice — model output only."),
     ]
+    if (
+        pred_lo_pct is not None
+        and pred_hi_pct is not None
+        and pred_lo_pct == pred_lo_pct
+        and pred_hi_pct == pred_hi_pct
+    ):
+        rows.append(("80% interval", f"{pred_lo_pct:+.1f}% … {pred_hi_pct:+.1f}%"))
+    rows.extend(
+        [
+            ("HOLD band", f"±{hold_band * 100:.2f}%"),
+            ("Disclaimer", "Not financial advice — model output only."),
+        ]
+    )
+    return rows
 
 
 def scanner_backtest(
