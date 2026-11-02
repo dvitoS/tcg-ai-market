@@ -131,7 +131,23 @@ def _scanner_page_block(prefix: str, frame: pd.DataFrame, page_size: int) -> Non
             "Expected ROI (%)": "expected_change_pct",
         }
     )
-    render_market_grid(grid, cols_per_row=6)
+    # Reuse catalog selection key so Show AI opens the detail + Add lot form.
+    prev_pick = st.session_state.get("_scanner_prev_pick")
+    render_market_grid(grid, cols_per_row=6, selection_key="market_selected_id")
+    picked = st.session_state.get("market_selected_id")
+    if (
+        picked
+        and str(picked) != str(prev_pick or "")
+        and "id" in page_rows.columns
+        and str(picked) in set(page_rows["id"].astype(str))
+    ):
+        st.session_state["_scanner_prev_pick"] = str(picked)
+        st.session_state["market_detail_only"] = True
+        st.session_state["nav_page"] = "explore"
+        from ui.nav import set_nav_query_params
+
+        set_nav_query_params(page="explore", card_id=str(picked))
+        st.rerun()
     with st.expander(t("table_page"), expanded=False):
         scanner_table(page_rows, height=min(360, 48 + 36 * len(page_rows)))
 

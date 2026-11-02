@@ -9,7 +9,12 @@ import streamlit as st
 
 from ai_insights import explain_features, series_confidence
 from currency import currency_code, from_display, money, money_delta, to_display
-from database import add_watchlist_card, is_on_watchlist, remove_watchlist_card
+from database import (
+    add_portfolio_position,
+    add_watchlist_card,
+    is_on_watchlist,
+    remove_watchlist_card,
+)
 from i18n import signal_label, t
 from services.forecast import card_history, lag_features_for_last_day, predict_next_close
 from services.ebay_listings import load_ebay_listings, load_ebay_sold_comps
@@ -56,6 +61,53 @@ def _current_user_id() -> str:
 
     user = auth_mod.current_user() or {}
     return str(user.get("id") or "").strip()
+
+
+def _render_add_lot_form(card_id: str, card_name: str, default_price: float) -> None:
+    """Compact add-lot controls on the detail panel (signal → portfolio)."""
+    conditions = ["NM", "LP", "MP", "HP", "DMG", "PSA 10", "PSA 9", "Other"]
+    with st.expander(t("add_lot_detail"), expanded=False):
+        st.caption(t("add_lot_detail_caption"))
+        with st.form(f"detail_add_lot_{card_id}", clear_on_submit=True):
+            qty = st.number_input(t("quantity"), min_value=1, step=1, value=1)
+            cost_display = st.number_input(
+                t("purchase_price", code=currency_code()),
+                min_value=0.0001,
+                step=0.01,
+                value=float(to_display(max(float(default_price), 0.0001))),
+                format="%.4f",
+            )
+            cond_col, grade_col = st.columns(2)
+            condition = cond_col.selectbox(t("condition"), conditions, index=0)
+            grade = grade_col.text_input(t("grade"), value="")
+            submitted = st.form_submit_button(
+                t("add_to_portfolio"),
+                type="primary",
+                use_container_width=True,
+            )
+        if not submitted:
+            return
+        uid = _current_user_id()
+        try:
+            add_portfolio_position(
+                str(card_id),
+                int(qty),
+                float(from_display(cost_display)),
+                user_id=uid,
+                condition=str(condition),
+                grade=str(grade).strip() or None,
+            )
+        except ValueError as exc:
+            st.error(str(exc))
+        except Exception as exc:
+            message = str(exc)
+            if "user_id" in message.lower():
+                st.error(t("portfolio_user_id_migration"))
+            else:
+                st.error(message[:220])
+        else:
+            st.session_state["portfolio_notice"] = t("added_to_portfolio", name=card_name)
+            st.success(t("added_to_portfolio", name=card_name))
 
 
 def _ebay_row_html(
@@ -224,6 +276,8 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
                     st.rerun()
         except Exception:
             pass
+
+        _render_add_lot_form(str(card_id), str(card["name"]), last_price)
 
     with right:
         st.markdown(
