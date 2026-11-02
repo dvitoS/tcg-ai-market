@@ -6,13 +6,17 @@ import logging
 from datetime import date, datetime, timezone
 from typing import Any
 
-from justtcg_client import (
-    JUSTTCG_PSA10_HISTORY_INCLUDE,
-    _get_v2,
-    normalize_card_number,
-)
-
 LOG = logging.getLogger("tcg.justtcg")
+
+# Constants duplicated lightly to avoid circular import with justtcg_client re-exports.
+JUSTTCG_PSA10_HISTORY_INCLUDE = "periods.30d,periods.90d,periods.1y,price_history.90d"
+
+
+def _client():
+    import justtcg_client as jtcg
+
+    return jtcg
+
 
 def pick_psa10_variant(variants: list[dict[str, Any]]) -> dict[str, Any] | None:
     """Prvi PSA 10 graded variant (bez qualifiera ako je moguće)."""
@@ -38,7 +42,8 @@ def pick_psa10_variant(variants: list[dict[str, Any]]) -> dict[str, Any] | None:
         priced = 0 if _market_price_usd(v) is None else -1
         return (has_qual, priced)
 
-    return sorted(graded, key=_rank)[0]
+    graded.sort(key=_rank)
+    return graded[0]
 
 
 def _market_entries(variant: dict[str, Any] | None) -> list[dict[str, Any]]:
@@ -73,7 +78,7 @@ def _market_price_usd(variant: dict[str, Any] | None) -> float | None:
             continue
         if value > 0:
             return value
-    return variant_price_usd(variant)
+    return _client().variant_price_usd(variant)
 
 
 def history_points_from_v2_variant(variant: dict[str, Any] | None) -> list[dict[str, Any]]:
@@ -82,7 +87,7 @@ def history_points_from_v2_variant(variant: dict[str, Any] | None) -> list[dict[
         return []
     market = _prefer_na_market(_market_entries(variant))
     if not market:
-        return history_points_from_variant(variant)
+        return _client().history_points_from_variant(variant)
 
     # Privremeno mapiraj market kao "variant" za postojeći parser.
     synthetic = {
@@ -90,7 +95,7 @@ def history_points_from_v2_variant(variant: dict[str, Any] | None) -> list[dict[
         "lastKnownPrice": market.get("last_price"),
         "price_history": market.get("price_history") or market.get("priceHistory") or [],
     }
-    points = history_points_from_variant(synthetic)
+    points = _client().history_points_from_variant(synthetic)
     if points:
         return points
     spot = _market_price_usd(variant)
@@ -132,7 +137,7 @@ def fetch_psa10_card_by_tcgplayer_id(tcgplayer_id: str) -> dict[str, Any] | None
     tid = str(tcgplayer_id or "").strip()
     if not tid:
         return None
-    payload = _get_v2(
+    payload = _client()._get_v2(
         "/cards",
         {
             "tcgplayer_id": tid,
@@ -159,7 +164,8 @@ def search_psa10_pokemon_card(
     if not query:
         return None
     q = f"{query} {set_name}".strip() if set_name else query
-    payload = _get_v2(
+    jtcg = _client()
+    payload = jtcg._get_v2(
         "/cards",
         {
             "game": "pokemon",
@@ -175,10 +181,10 @@ def search_psa10_pokemon_card(
     rows = list(payload.get("data") or [])
     if not rows:
         return None
-    wanted_number = normalize_card_number(number) if number else ""
+    wanted_number = jtcg.normalize_card_number(number) if number else ""
     if wanted_number:
         for row in rows:
-            if normalize_card_number(str(row.get("number") or "")) == wanted_number:
+            if jtcg.normalize_card_number(str(row.get("number") or "")) == wanted_number:
                 return row
     wanted_name = (name or "").strip().lower()
     exact = next(

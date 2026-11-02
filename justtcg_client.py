@@ -489,12 +489,20 @@ def batch_by_tcgplayer_ids(tcgplayer_ids: list[str]) -> list[dict[str, Any]]:
 
 
 
-# PSA10 surface — keep import path stable for UI / live_prices.
-from justtcg_psa10 import (  # noqa: E402,F401
-    fetch_psa10_card_by_tcgplayer_id,
-    history_points_from_v2_variant,
-    pick_psa10_variant,
-    psa10_history_for_card,
-    psa10_stats_from_variant,
-    search_psa10_pokemon_card,
-)
+def __getattr__(name: str):
+    """Lazy PSA10 re-exports — avoids circular import with justtcg_psa10."""
+    _psa10_names = {
+        "fetch_psa10_card_by_tcgplayer_id",
+        "history_points_from_v2_variant",
+        "pick_psa10_variant",
+        "psa10_history_for_card",
+        "psa10_stats_from_variant",
+        "search_psa10_pokemon_card",
+    }
+    if name not in _psa10_names:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    import justtcg_psa10 as _psa10
+
+    value = getattr(_psa10, name)
+    globals()[name] = value
+    return value
