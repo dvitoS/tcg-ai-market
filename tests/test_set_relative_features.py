@@ -41,10 +41,17 @@ def test_set_relative_features_on_panel():
     assert "set_ret_7" in featured.columns
     assert "rel_ret_7" in featured.columns
     assert "set_ret_7" in FEATURE_COLUMNS
+    for col in ("mean_abs_ret_7", "flat_share_14", "hl_range_14"):
+        assert col in featured.columns
+        assert col in FEATURE_COLUMNS
     latest = featured.sort_values("date").groupby("card_id").tail(1).set_index("card_id")
     # Flat card should lag a rising set → negative relative return.
     assert float(latest.loc["a", "rel_ret_7"]) < 0
     assert float(latest.loc["b", "rel_ret_7"]) >= float(latest.loc["a", "rel_ret_7"])
+    # Flat card → high flat share; rising card → more activity / range.
+    assert float(latest.loc["a", "flat_share_14"]) > float(latest.loc["b", "flat_share_14"])
+    assert float(latest.loc["b", "mean_abs_ret_7"]) > float(latest.loc["a", "mean_abs_ret_7"])
+    assert float(latest.loc["b", "hl_range_14"]) > float(latest.loc["a", "hl_range_14"])
 
 
 def test_forecast_signal_band_is_wider_than_noise():

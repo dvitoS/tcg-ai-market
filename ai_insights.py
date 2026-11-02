@@ -34,7 +34,7 @@ def series_confidence(*, points: int, used_db_fallback: bool = False) -> dict[st
         "level": "high",
         "ok": True,
         "reason_key": "conf_high",
-        "reason": "Enough history for 7d return / set-relative features.",
+        "reason": "Enough history for 7d return / set-relative / liquidity features.",
     }
 
 
@@ -76,6 +76,9 @@ def explain_features(
     dist_ma_7 = float(lags.get("dist_ma_7", 0.0))
     set_ret_7 = float(lags.get("set_ret_7", 0.0))
     rel_ret_7 = float(lags.get("rel_ret_7", 0.0))
+    mean_abs = float(lags.get("mean_abs_ret_7", 0.0))
+    flat_share = float(lags.get("flat_share_14", 0.0))
+    hl_range = float(lags.get("hl_range_14", 0.0))
     move = ((predicted - last_price) / last_price * 100.0) if last_price else 0.0
     return [
         ("Horizon", f"{horizon_days} trading day(s) forward return"),
@@ -84,6 +87,9 @@ def explain_features(
         ("Set median 7d", f"{set_ret_7 * 100:+.2f}%"),
         ("Card vs set", f"{rel_ret_7 * 100:+.2f}%"),
         ("7d volatility", f"{vol_7 * 100:.2f}%"),
+        ("Activity |ret| 7d", f"{mean_abs * 100:.2f}%"),
+        ("Flat days 14d", f"{flat_share * 100:.0f}%"),
+        ("High-low 14d", f"{hl_range * 100:.1f}%"),
         ("Spot vs 7d MA", f"{dist_ma_7 * 100:+.2f}%"),
         ("Expected move", f"{move:+.2f}%"),
         ("HOLD band", f"±{hold_band * 100:.2f}%"),

@@ -23,6 +23,9 @@ HORIZON_DAYS = int(FORECAST_DAYS)
 # Days with |7d return| below this count as flat for direction scoring.
 RETURN_HOLD_BAND = float(FORECAST_SIGNAL_BAND)
 
+# Flat day = |1d return| below this (ffill-aware stale-quote proxy).
+FLAT_RET_EPS = 1e-4
+
 RETURN_FEATURES = [
     "ret_1",
     "ret_3",
@@ -33,6 +36,10 @@ RETURN_FEATURES = [
     "log_price",
     "set_ret_7",
     "rel_ret_7",
+    # Liquidity proxies from price path (no eBay/volume API required).
+    "mean_abs_ret_7",
+    "flat_share_14",
+    "hl_range_14",
 ]
 FEATURE_COLUMNS = RETURN_FEATURES + ["rarity_encoded", "supertype_encoded"]
 FEATURE_LABELS = {
@@ -45,6 +52,9 @@ FEATURE_LABELS = {
     "log_price": "log price",
     "set_ret_7": "set median 7d return",
     "rel_ret_7": "card vs set 7d",
+    "mean_abs_ret_7": "7d mean |return| (activity)",
+    "flat_share_14": "14d flat-day share (illiquidity)",
+    "hl_range_14": "14d high-low range",
     "rarity_encoded": "rarity",
     "supertype_encoded": "supertype",
 }
@@ -131,6 +141,19 @@ def add_time_features(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, LabelEn
         "median"
     )
     featured["rel_ret_7"] = featured["ret_7"] - featured["set_ret_7"]
+    # Liquidity proxies: activity, stale/ffill share, high-low dispersion.
+    abs_ret = daily_ret.abs()
+    featured["mean_abs_ret_7"] = abs_ret.groupby(featured["card_id"], sort=False).transform(
+        lambda s: s.rolling(7, min_periods=7).mean()
+    )
+    flat = (abs_ret < FLAT_RET_EPS).astype(float)
+    featured["flat_share_14"] = flat.groupby(featured["card_id"], sort=False).transform(
+        lambda s: s.rolling(14, min_periods=14).mean()
+    )
+    roll_max = price.transform(lambda s: s.rolling(14, min_periods=14).max())
+    roll_min = price.transform(lambda s: s.rolling(14, min_periods=14).min())
+    roll_mean = price.transform(lambda s: s.rolling(14, min_periods=14).mean())
+    featured["hl_range_14"] = (roll_max - roll_min) / roll_mean.clip(lower=1e-6)
     future = price.shift(-HORIZON_DAYS)
     featured["target_price"] = future
     featured["target_return"] = future / featured["price"] - 1.0

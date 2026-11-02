@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from ai_xgboost import FEATURE_COLUMNS, HORIZON_DAYS, resample_daily_history
+from ai_xgboost import FEATURE_COLUMNS, FLAT_RET_EPS, HORIZON_DAYS, resample_daily_history
 from trading_signals import FORECAST_DAYS
 
 
@@ -25,7 +25,7 @@ def _feature_frame_from_prices(
     set_ret_7: float | None = None,
 ) -> pd.DataFrame | None:
     values = pd.Series(prices, dtype=float).reset_index(drop=True)
-    # Need enough bars for vol_7 + ma_30(min_periods=14).
+    # Need enough bars for vol_7 + ma_30 + flat_share_14 / hl_range_14.
     if len(values) < 15:
         return None
     ret_1 = float(values.pct_change(1).iloc[-1])
@@ -42,6 +42,20 @@ def _feature_frame_from_prices(
         ret_7 = ret_3
     if not np.isfinite(vol_7):
         vol_7 = 0.0
+    abs_daily = daily.abs()
+    mean_abs_ret_7 = float(abs_daily.iloc[-7:].mean())
+    if not np.isfinite(mean_abs_ret_7):
+        mean_abs_ret_7 = 0.0
+    flat_share_14 = float((abs_daily.iloc[-14:] < FLAT_RET_EPS).mean())
+    if not np.isfinite(flat_share_14):
+        flat_share_14 = 0.0
+    window14 = values.iloc[-14:]
+    hl_mean = float(window14.mean())
+    hl_range_14 = (
+        float((window14.max() - window14.min()) / hl_mean) if hl_mean > 0 else 0.0
+    )
+    if not np.isfinite(hl_range_14):
+        hl_range_14 = 0.0
     set_med = 0.0 if set_ret_7 is None or not np.isfinite(float(set_ret_7)) else float(set_ret_7)
     row = {
         "ret_1": ret_1,
@@ -53,6 +67,9 @@ def _feature_frame_from_prices(
         "log_price": float(np.log(max(spot, 1e-6))),
         "set_ret_7": set_med,
         "rel_ret_7": ret_7 - set_med,
+        "mean_abs_ret_7": mean_abs_ret_7,
+        "flat_share_14": flat_share_14,
+        "hl_range_14": hl_range_14,
         "rarity_encoded": float(rarity_encoded),
         "supertype_encoded": float(supertype_encoded),
     }
