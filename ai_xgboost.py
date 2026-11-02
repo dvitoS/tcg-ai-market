@@ -163,15 +163,74 @@ def train_xgboost(X_train: pd.DataFrame, y_train: pd.Series) -> xgb.XGBRegressor
     return model
 
 
-def evaluate_model(model: xgb.XGBRegressor, X_test: pd.DataFrame, y_test: pd.Series) -> tuple[float, float]:
-    predictions = model.predict(X_test)
-    rmse = float(np.sqrt(mean_squared_error(y_test, predictions)))
-    r2 = float(r2_score(y_test, predictions))
+def _signed_move(future: np.ndarray, spot: np.ndarray, *, hold_band: float) -> np.ndarray:
+    """+1 up, -1 down, 0 flat within hold_band (fraction of spot)."""
+    spot_safe = np.where(spot > 0, spot, np.nan)
+    change = (future - spot) / spot_safe
+    out = np.zeros(len(change), dtype=int)
+    out[change > hold_band] = 1
+    out[change < -hold_band] = -1
+    return out
+
+
+def evaluate_model(
+    model: xgb.XGBRegressor,
+    X_test: pd.DataFrame,
+    y_test: pd.Series,
+    *,
+    spot: pd.Series | None = None,
+    hold_band: float = 0.0035,
+) -> dict[str, float]:
+    """Level metrics + direction vs naive (tomorrow = today) baseline.
+
+    High R² alone is misleading: copying today's price often looks “accurate”.
+    Prefer direction_accuracy and rmse_vs_naive (< 1 means model beats persistence).
+    """
+    predictions = np.asarray(model.predict(X_test), dtype=float)
+    y = np.asarray(y_test, dtype=float)
+    rmse = float(np.sqrt(mean_squared_error(y, predictions)))
+    r2 = float(r2_score(y, predictions))
+
+    metrics: dict[str, float] = {"rmse": rmse, "r2": r2}
     print()
     print("=== Evaluacija na testnom skupu (20%) ===")
     print(f"RMSE: {rmse:.4f}")
     print(f"R2:   {r2:.4f}")
-    return rmse, r2
+
+    if spot is not None and len(spot) == len(y):
+        spot_arr = np.asarray(spot, dtype=float)
+        naive = spot_arr.copy()
+        naive_rmse = float(np.sqrt(mean_squared_error(y, naive)))
+        metrics["naive_rmse"] = naive_rmse
+        metrics["rmse_vs_naive"] = float(rmse / naive_rmse) if naive_rmse > 0 else float("nan")
+
+        actual_dir = _signed_move(y, spot_arr, hold_band=hold_band)
+        pred_dir = _signed_move(predictions, spot_arr, hold_band=hold_band)
+        movable = actual_dir != 0
+        if movable.any():
+            direction_acc = float((actual_dir[movable] == pred_dir[movable]).mean() * 100.0)
+        else:
+            direction_acc = float("nan")
+        metrics["direction_accuracy_pct"] = direction_acc
+        metrics["direction_n"] = float(int(movable.sum()))
+        # How often model predicts a flat day (persistence trap symptom).
+        metrics["pred_flat_pct"] = float((pred_dir == 0).mean() * 100.0)
+
+        print(f"Naive RMSE (tomorrow=today): {naive_rmse:.4f}")
+        print(f"RMSE / naive: {metrics['rmse_vs_naive']:.3f}  (<1 = beats persistence)")
+        if movable.any():
+            print(
+                f"Direction accuracy: {direction_acc:.1f}% "
+                f"on {int(movable.sum())} non-flat days (±{hold_band * 100:.2f}% band)"
+            )
+        print(f"Predicted flat (HOLD): {metrics['pred_flat_pct']:.1f}% of test rows")
+        if metrics["rmse_vs_naive"] >= 0.98:
+            print(
+                "Napomena: model je blizu naivnog baselinea — "
+                "visoki R2 ne znači koristan signal smjera."
+            )
+
+    return metrics
 
 
 def _normalize(values: np.ndarray) -> np.ndarray:
@@ -236,10 +295,26 @@ def maybe_plot_feature_importance(ranked: pd.DataFrame) -> None:
     print(f"Graf spremljen u {output_path}.")
 
 
-def split_features(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
+def split_features(
+    df: pd.DataFrame,
+    *,
+    return_spot: bool = False,
+) -> tuple:
     X = df[FEATURE_COLUMNS]
     y = df["target_price"]
     print(f"Dijelim podatke: {int((1 - TEST_SIZE) * 100)}% train / {int(TEST_SIZE * 100)}% test...")
+    if return_spot:
+        if "price" not in df.columns:
+            raise ValueError("split_features(return_spot=True) requires a 'price' column")
+        X_train, X_test, y_train, y_test, _spot_train, spot_test = train_test_split(
+            X,
+            y,
+            df["price"],
+            test_size=TEST_SIZE,
+            random_state=RANDOM_SEED,
+        )
+        print(f"Train: {len(X_train)} redova | Test: {len(X_test)} redova.")
+        return X_train, X_test, y_train, y_test, spot_test
     X_train, X_test, y_train, y_test = train_test_split(
         X,
         y,
@@ -294,15 +369,27 @@ def retrain_model() -> dict[str, float | int]:
     if len(trainable) < 20:
         raise RuntimeError(f"Premalo redova za trening ({len(trainable)}).")
 
-    X_train, X_test, y_train, y_test = split_features(trainable)
+    X_train, X_test, y_train, y_test, spot_test = split_features(
+        trainable, return_spot=True
+    )
     model = train_xgboost(X_train, y_train)
-    rmse, r2 = evaluate_model(model, X_test, y_test)
+    eval_metrics = evaluate_model(model, X_test, y_test, spot=spot_test)
     metrics: dict[str, float | int] = {
         "rows": int(len(trainable)),
         "cards": int(history["card_id"].nunique()),
-        "rmse": float(rmse),
-        "r2": float(r2),
+        "rmse": float(eval_metrics["rmse"]),
+        "r2": float(eval_metrics["r2"]),
     }
+    for key in (
+        "naive_rmse",
+        "rmse_vs_naive",
+        "direction_accuracy_pct",
+        "direction_n",
+        "pred_flat_pct",
+    ):
+        if key in eval_metrics and eval_metrics[key] == eval_metrics[key]:  # not NaN
+            metrics[key] = float(eval_metrics[key])
+
     try:
         from services.model_store import save_model_artifact
 
@@ -322,11 +409,15 @@ def main() -> int:
             print("Premalo redova za train/test split.", file=sys.stderr)
             return 1
 
-        X_train, X_test, y_train, y_test = split_features(trainable)
+        X_train, X_test, y_train, y_test, spot_test = split_features(
+            trainable, return_spot=True
+        )
         model = train_xgboost(X_train, y_train)
-        _rmse, r2 = evaluate_model(model, X_test, y_test)
+        eval_metrics = evaluate_model(model, X_test, y_test, spot=spot_test)
+        r2 = float(eval_metrics["r2"])
         if r2 > 0.80:
-            print("R2 je iznad 0.80.")
+            print("R2 je iznad 0.80 (provjeri i RMSE/naive + direction accuracy).")
+
         ranked = print_feature_importance(model, FEATURE_COLUMNS)
         maybe_plot_feature_importance(ranked)
         print("Gotovo.")

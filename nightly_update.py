@@ -167,11 +167,17 @@ def retrain_ai() -> dict[str, float | int]:
     LOG.info("Korak 3/3: re-trening XGBoost na proširenom nizu...")
     metrics = retrain_model()
     LOG.info(
-        "Model: cards=%s rows=%s RMSE=%.4f R2=%.4f",
+        "Model: cards=%s rows=%s RMSE=%.4f R2=%.4f "
+        "rmse/naive=%s dir_acc=%s%% pred_flat=%s%%",
         metrics["cards"],
         metrics["rows"],
         metrics["rmse"],
         metrics["r2"],
+        f"{metrics['rmse_vs_naive']:.3f}" if "rmse_vs_naive" in metrics else "—",
+        f"{metrics['direction_accuracy_pct']:.1f}"
+        if "direction_accuracy_pct" in metrics
+        else "—",
+        f"{metrics['pred_flat_pct']:.1f}" if "pred_flat_pct" in metrics else "—",
     )
     _history, quotes, _model = build_market_board(persist=True)
     quote_n = int(len(quotes)) if quotes is not None else 0
