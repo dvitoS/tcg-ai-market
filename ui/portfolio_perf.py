@@ -11,11 +11,11 @@ import streamlit as st
 
 from currency import currency_symbol, money, money_signed, to_display
 from i18n import t
-from services.forecast import card_history, forecast_price_in_days
-from trading_signals import FORECAST_DAYS, SCANNER_GROWTH_FLOOR
+from services.portfolio_outlook import enrich_portfolio_outlook
+from trading_signals import PORTFOLIO_HORIZON_DAYS
 
 def portfolio_view(lots: pd.DataFrame, market: pd.DataFrame, history: pd.DataFrame, model) -> pd.DataFrame:
-    """Spaja nabave sa zadnjim zatvaranjem i 7-dnevnom prognozom."""
+    """Spaja nabave sa spotom i portfolio-native 30d (fallback 7d) outlookom."""
     quote_cols = ["id", "price", "rarity_encoded", "supertype_encoded"]
     if "rarity" in market.columns and "rarity" not in lots.columns:
         quote_cols.append("rarity")
@@ -30,28 +30,11 @@ def portfolio_view(lots: pd.DataFrame, market: pd.DataFrame, history: pd.DataFra
     view["pnl"] = view["market_value"] - view["invested"]
     view["pnl_pct"] = np.where(view["invested"] > 0, view["pnl"] / view["invested"] * 100.0, 0.0)
 
-    week_prices: list[float] = []
-    for lot in view.itertuples(index=False):
-        series = card_history(history, str(lot.card_id))
-        if series.empty or pd.isna(lot.rarity_encoded):
-            week_prices.append(float(lot.current_price))
-            continue
-        forecast = forecast_price_in_days(
-            model,
-            series,
-            float(lot.rarity_encoded),
-            float(lot.supertype_encoded),
-        )
-        week_prices.append(float(forecast) if forecast is not None else float(lot.current_price))
-    view["week_price"] = week_prices
-    view["week_value"] = view["quantity"] * view["week_price"]
-    # Isti prag kao AI Scanner TOP prilike — te karte također dobivaju holo-foil.
-    view["week_roi_pct"] = np.where(
-        view["current_price"] > 0,
-        (view["week_price"] - view["current_price"]) / view["current_price"] * 100.0,
-        0.0,
+    view, outlook_info = enrich_portfolio_outlook(
+        view, history, fallback_model=model
     )
-    view["is_top_ai"] = view["week_roi_pct"] >= SCANNER_GROWTH_FLOOR
+    # Stash for caption rendering in the same Streamlit run.
+    st.session_state["_portfolio_outlook_info"] = outlook_info
     return view
 
 def render_portfolio_kpis(value: float, invested: float, pnl: float, pnl_pct: float) -> None:
@@ -70,25 +53,30 @@ def render_portfolio_kpis(value: float, invested: float, pnl: float, pnl_pct: fl
     st.markdown(f'<div class="stat-row">{html}</div>', unsafe_allow_html=True)
 
 def render_week_outlook(current_value: float, week_value: float) -> None:
+    """Portfolio horizon outlook (30d preferred; caption reflects active model)."""
     if current_value <= 0:
         return
+    info = st.session_state.get("_portfolio_outlook_info") or {}
+    days = int(info.get("horizon_days") or PORTFOLIO_HORIZON_DAYS)
+    using_30d = bool(info.get("using_30d"))
     change_pct = (week_value - current_value) / current_value * 100.0
     if change_pct > 0.05:
         tone = "up"
-        sentence = t("outlook_up", pct=change_pct)
+        sentence = t("outlook_up", pct=change_pct, days=days)
     elif change_pct < -0.05:
         tone = "down"
-        sentence = t("outlook_down", pct=abs(change_pct))
+        sentence = t("outlook_down", pct=abs(change_pct), days=days)
     else:
         tone = "flat"
-        sentence = t("outlook_flat")
+        sentence = t("outlook_flat", days=days)
     st.markdown(f'<div class="ai-outlook {tone}">{escape(sentence)}</div>', unsafe_allow_html=True)
+    caption_key = "outlook_caption_30d" if using_30d else "outlook_caption_fallback"
     st.caption(
         t(
-            "outlook_caption",
+            caption_key,
             current=money(current_value),
             week=money(week_value),
-            days=FORECAST_DAYS,
+            days=days,
         )
     )
 

@@ -49,8 +49,35 @@ def portfolio_card_html(row) -> str:
     rarity = getattr(row, "rarity", None)
     holo_class = " holo-card" if is_holo_eligible(rarity, is_top_ai=is_top_ai) else ""
     qty_txt = escape(t("qty_label", n=int(row.quantity)))
+    action = str(getattr(row, "lot_action", "") or "").upper()
+    roi = getattr(row, "outlook_roi_pct", None)
+    lo = getattr(row, "outlook_lo_pct", None)
+    hi = getattr(row, "outlook_hi_pct", None)
+    conf_ok = bool(getattr(row, "outlook_conformal_ok", True))
+    if action and roi is not None and conf_ok and lo == lo and hi == hi:
+        action_key = {
+            "ADD": "lot_action_add",
+            "TRIM": "lot_action_trim",
+            "HOLD": "lot_action_hold",
+        }.get(action, "lot_action_hold")
+        outlook_txt = escape(
+            t(
+                "lot_outlook_line",
+                action=t(action_key),
+                pct=float(roi),
+                lo=float(lo),
+                hi=float(hi),
+            )
+        )
+    elif action and not conf_ok:
+        outlook_txt = escape(t("lot_outlook_uncertain"))
+    else:
+        outlook_txt = ""
     click_title = escape(t("click_zoom"), quote=True)
     img_alt_fail = escape(t("image_unavailable"), quote=True)
+    outlook_html = (
+        f'<div class="pokemon-card-meta">{outlook_txt}</div>' if outlook_txt else ""
+    )
     return f"""
     <div class="pokemon-card{holo_class}" data-full-src="{full}" data-card-name="{name}">
       <div class="pokemon-card-stage" title="{click_title}">
@@ -63,6 +90,7 @@ def portfolio_card_html(row) -> str:
       <div class="pokemon-card-labels">
         <div class="pokemon-card-name">{name}</div>
         <div class="pokemon-card-meta">{qty_txt}</div>
+        {outlook_html}
         <div class="pokemon-card-value">{escape(money(float(row.market_value)))}</div>
         <div class="pokemon-card-pnl {tone}">{escape(money_signed(pnl))} / {pnl_pct:+.1f}%</div>
       </div>

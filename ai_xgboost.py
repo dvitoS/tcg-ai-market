@@ -14,11 +14,17 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 
 from database import load_history_frame
-from trading_signals import FORECAST_DAYS, FORECAST_SIGNAL_BAND
+from trading_signals import (
+    FORECAST_DAYS,
+    FORECAST_SIGNAL_BAND,
+    PORTFOLIO_CONFORMAL_WIDTH_CAP,
+    PORTFOLIO_HORIZON_DAYS,
+    PORTFOLIO_SIGNAL_BAND,
+)
 
 RANDOM_SEED = 42
 TEST_SIZE = 0.2
-# Product horizon = scanner / portfolio outlook (competitors often use 30–90d).
+# Default board/scanner horizon (7d). Portfolio uses PORTFOLIO_HORIZON_DAYS via retrain.
 HORIZON_DAYS = int(FORECAST_DAYS)
 # Days with |7d return| below this count as flat for direction scoring.
 RETURN_HOLD_BAND = float(FORECAST_SIGNAL_BAND)
@@ -26,6 +32,8 @@ RETURN_HOLD_BAND = float(FORECAST_SIGNAL_BAND)
 CONFORMAL_ALPHA = 0.20
 # Gate BUY/SELL when interval width (return units) exceeds this.
 CONFORMAL_WIDTH_CAP = 0.25
+ARTIFACT_ID_7D = "latest"
+ARTIFACT_ID_30D = "latest_30d"
 
 # Flat day = |1d return| below this (ffill-aware stale-quote proxy).
 FLAT_RET_EPS = 1e-4
@@ -120,10 +128,15 @@ def resample_daily_history(df: pd.DataFrame) -> pd.DataFrame:
     return resampled
 
 
-def add_time_features(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, LabelEncoder]]:
-    """Return / volatility features + {HORIZON_DAYS}d forward return target per card."""
+def add_time_features(
+    df: pd.DataFrame,
+    *,
+    horizon_days: int | None = None,
+) -> tuple[pd.DataFrame, dict[str, LabelEncoder]]:
+    """Return / volatility features + forward return target per card."""
+    horizon = int(horizon_days if horizon_days is not None else HORIZON_DAYS)
     print(
-        f"Feature engineering: returns/vol/MA + {HORIZON_DAYS}d forward return "
+        f"Feature engineering: returns/vol/MA + {horizon}d forward return "
         "(LabelEncoder rarity, supertype)..."
     )
     featured = df.sort_values(["card_id", "date"]).reset_index(drop=True)
@@ -158,9 +171,10 @@ def add_time_features(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, LabelEn
     roll_min = price.transform(lambda s: s.rolling(14, min_periods=14).min())
     roll_mean = price.transform(lambda s: s.rolling(14, min_periods=14).mean())
     featured["hl_range_14"] = (roll_max - roll_min) / roll_mean.clip(lower=1e-6)
-    future = price.shift(-HORIZON_DAYS)
+    future = price.shift(-horizon)
     featured["target_price"] = future
     featured["target_return"] = future / featured["price"] - 1.0
+    featured["horizon_days"] = horizon
 
     encoders: dict[str, LabelEncoder] = {}
     for column, encoded_name in (
@@ -481,8 +495,12 @@ def card_forecasts(
     featured: pd.DataFrame,
     *,
     conformal_q: float | None = None,
+    hold_band: float | None = None,
+    width_cap: float | None = None,
 ) -> pd.DataFrame:
-    """Latest row per card: predict {HORIZON_DAYS}d return → target price + PI."""
+    """Latest row per card: predict horizon return → target price + PI."""
+    band = float(RETURN_HOLD_BAND if hold_band is None else hold_band)
+    cap = float(CONFORMAL_WIDTH_CAP if width_cap is None else width_cap)
     latest = (
         featured.sort_values(["card_id", "date"])
         .groupby("card_id", as_index=False)
@@ -513,7 +531,7 @@ def card_forecasts(
         latest["pred_hi_pct"] = latest["pred_hi"] * 100.0
         width = latest["pred_hi"] - latest["pred_lo"]
         crosses_zero = (latest["pred_lo"] < 0.0) & (latest["pred_hi"] > 0.0)
-        too_wide = width > float(CONFORMAL_WIDTH_CAP)
+        too_wide = width > cap
         latest["conformal_ok"] = ~(crosses_zero | too_wide)
     else:
         latest["pred_lo"] = np.nan
@@ -522,9 +540,9 @@ def card_forecasts(
         latest["pred_hi_pct"] = np.nan
         latest["conformal_ok"] = True
     latest["signal"] = np.where(
-        pred_ret > RETURN_HOLD_BAND,
+        pred_ret > band,
         "KUPI",
-        np.where(pred_ret < -RETURN_HOLD_BAND, "PRODAJ/ČEKAJ", "HOLD"),
+        np.where(pred_ret < -band, "PRODAJ/ČEKAJ", "HOLD"),
     )
     return latest.reset_index(drop=True)
 
@@ -539,13 +557,33 @@ def fit_predictor() -> tuple[xgb.XGBRegressor, pd.DataFrame]:
     return model, card_forecasts(model, featured)
 
 
-def retrain_model() -> dict[str, float | int]:
+def retrain_model(
+    *,
+    horizon_days: int | None = None,
+    artifact_id: str | None = None,
+) -> dict[str, float | int]:
     """Ponovno trenira XGBoost na cijelom price_history. Za nightly_update.
 
     Persists the artifact to Supabase / local disk so Streamlit can skip retrain.
+    Use horizon_days=30 + artifact latest_30d for portfolio-native outlook.
     """
+    horizon = int(horizon_days if horizon_days is not None else HORIZON_DAYS)
+    art_id = artifact_id or (
+        ARTIFACT_ID_7D if horizon == int(HORIZON_DAYS) else f"latest_{horizon}d"
+    )
+    hold_band = (
+        float(PORTFOLIO_SIGNAL_BAND)
+        if horizon >= int(PORTFOLIO_HORIZON_DAYS)
+        else float(RETURN_HOLD_BAND)
+    )
+    width_cap = (
+        float(PORTFOLIO_CONFORMAL_WIDTH_CAP)
+        if horizon >= int(PORTFOLIO_HORIZON_DAYS)
+        else float(CONFORMAL_WIDTH_CAP)
+    )
+
     history = load_history()
-    featured, _encoders = add_time_features(history)
+    featured, _encoders = add_time_features(history, horizon_days=horizon)
     trainable = drop_incomplete_rows(featured)
     if len(trainable) < 20:
         raise RuntimeError(f"Premalo redova za trening ({len(trainable)}).")
@@ -555,15 +593,24 @@ def retrain_model() -> dict[str, float | int]:
     )
     model = train_xgboost(X_train, y_train)
     eval_metrics = evaluate_model(
-        model, X_test, y_test, spot=spot_test, target_kind="return"
+        model,
+        X_test,
+        y_test,
+        spot=spot_test,
+        target_kind="return",
+        hold_band=hold_band,
     )
+    # Override width cap stored for inference gating on this horizon.
+    if "conformal_q" in eval_metrics:
+        eval_metrics["conformal_width_cap"] = float(width_cap)
     metrics: dict[str, float | int] = {
         "rows": int(len(trainable)),
         "cards": int(history["card_id"].nunique()),
         "rmse": float(eval_metrics["rmse"]),
         "r2": float(eval_metrics["r2"]),
-        "horizon_days": int(HORIZON_DAYS),
+        "horizon_days": int(horizon),
         "target": "return",
+        "hold_band": float(hold_band),
     }
     for key in (
         "naive_rmse",
@@ -581,9 +628,14 @@ def retrain_model() -> dict[str, float | int]:
     try:
         from services.model_store import save_model_artifact
 
-        save_model_artifact(model, metrics=metrics, feature_columns=list(FEATURE_COLUMNS))
+        save_model_artifact(
+            model,
+            metrics=metrics,
+            feature_columns=list(FEATURE_COLUMNS),
+            artifact_id=art_id,
+        )
     except Exception as exc:
-        print(f"Model artifact save failed: {exc}", file=sys.stderr)
+        print(f"Model artifact save failed ({art_id}): {exc}", file=sys.stderr)
     return metrics
 
 

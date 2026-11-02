@@ -162,14 +162,15 @@ def refresh_price_history() -> dict[str, int]:
 
 
 def retrain_ai() -> dict[str, float | int]:
-    from ai_xgboost import retrain_model
+    from ai_xgboost import ARTIFACT_ID_30D, retrain_model
     from services.exchange import build_market_board
+    from trading_signals import PORTFOLIO_HORIZON_DAYS
 
-    LOG.info("Korak 3/3: re-trening XGBoost na proširenom nizu...")
+    LOG.info("Korak 3/3: re-trening XGBoost (7d board + %sd portfolio)...", PORTFOLIO_HORIZON_DAYS)
     metrics = retrain_model()
     LOG.info(
-        "Model: cards=%s rows=%s RMSE=%.4f R2=%.4f "
-        "rmse/naive=%s dir_acc=%s%% pred_flat=%s%%",
+        "Model 7d: cards=%s rows=%s RMSE=%.4f R2=%.4f "
+        "rmse/naive=%s dir_acc=%s%% pred_flat=%s%% conformal_q=%s",
         metrics["cards"],
         metrics["rows"],
         metrics["rmse"],
@@ -179,7 +180,44 @@ def retrain_ai() -> dict[str, float | int]:
         if "direction_accuracy_pct" in metrics
         else "—",
         f"{metrics['pred_flat_pct']:.1f}" if "pred_flat_pct" in metrics else "—",
+        f"{metrics['conformal_q']:.4f}" if "conformal_q" in metrics else "—",
     )
+    try:
+        metrics_30 = retrain_model(
+            horizon_days=int(PORTFOLIO_HORIZON_DAYS),
+            artifact_id=ARTIFACT_ID_30D,
+        )
+        LOG.info(
+            "Model 30d: cards=%s rows=%s RMSE=%.4f R2=%.4f "
+            "rmse/naive=%s dir_acc=%s%% pred_flat=%s%% conformal_q=%s",
+            metrics_30["cards"],
+            metrics_30["rows"],
+            metrics_30["rmse"],
+            metrics_30["r2"],
+            f"{metrics_30['rmse_vs_naive']:.3f}" if "rmse_vs_naive" in metrics_30 else "—",
+            f"{metrics_30['direction_accuracy_pct']:.1f}"
+            if "direction_accuracy_pct" in metrics_30
+            else "—",
+            f"{metrics_30['pred_flat_pct']:.1f}" if "pred_flat_pct" in metrics_30 else "—",
+            f"{metrics_30['conformal_q']:.4f}" if "conformal_q" in metrics_30 else "—",
+        )
+        metrics = dict(metrics)
+        metrics["portfolio_30d"] = {
+            k: metrics_30[k]
+            for k in (
+                "rows",
+                "rmse",
+                "r2",
+                "rmse_vs_naive",
+                "direction_accuracy_pct",
+                "pred_flat_pct",
+                "conformal_q",
+                "horizon_days",
+            )
+            if k in metrics_30
+        }
+    except Exception as exc:
+        LOG.warning("30d portfolio model retrain failed: %s", exc)
     _history, quotes, _model = build_market_board(persist=True)
     quote_n = int(len(quotes)) if quotes is not None else 0
     metrics = dict(metrics)

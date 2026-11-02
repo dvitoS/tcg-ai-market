@@ -1,6 +1,7 @@
 -- Persisted XGBoost artifact for Streamlit (avoid retrain on every cold start).
 -- Run once in Supabase → SQL Editor.
 -- Written by nightly_update / retrain_model via service_role; read by the app.
+-- Rows: id='latest' (7d board/scanner), id='latest_30d' (portfolio outlook).
 
 create table if not exists public.model_artifacts (
     id text primary key default 'latest',

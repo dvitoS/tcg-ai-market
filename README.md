@@ -106,7 +106,7 @@ Keep the list curated — full SV+SWSH regularly times out mid-nightly.
 
 - `app.py` — Streamlit entry  
 - `services/exchange.py` — fast boot (`market_quotes` + model) or full rebuild  
-- **AI model** — XGBoost on **7-day forward return** (not next-day $ price), with return/vol/MA + **set-relative** + **liquidity proxies**; **split conformal** 80% intervals gate BUY/SELL when the band crosses 0 or is too wide; scored vs 0% naive + direction accuracy on a time-based holdout  
+- **AI model** — board/scanner: **7d** forward return + set-relative + liquidity + **conformal** gating; portfolio: separate **30d** artifact (`latest_30d`) with lot ADD/TRIM/HOLD coach (catalog stays 7d)  
 - `database_*.py` — clients / catalog / user (facade: `database.py`)  
 - `pokemon_tcg_client.py` / `pokewallet_client.py` — facade: `api_client.py`  
 - `justtcg_client.py` + `justtcg_psa10.py` — NM vs PSA10  

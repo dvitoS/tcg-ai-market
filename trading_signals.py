@@ -9,7 +9,12 @@ HOLD_BAND = 0.0035  # legacy tight band (detail micro-move UI)
 FORECAST_DAYS = 7
 # Signal band for 7d forward-return model (competitors often use ±5% on 30d).
 FORECAST_SIGNAL_BAND = 0.02
+# Portfolio-native longer outlook (separate model artifact).
+PORTFOLIO_HORIZON_DAYS = 30
+PORTFOLIO_SIGNAL_BAND = 0.05
+PORTFOLIO_CONFORMAL_WIDTH_CAP = 0.40
 SCANNER_GROWTH_FLOOR = 10.0
+PORTFOLIO_GROWTH_FLOOR = 8.0  # % expected 30d move to highlight lot
 
 SIGNAL_BUY = "BUY"
 SIGNAL_SELL = "SELL"
