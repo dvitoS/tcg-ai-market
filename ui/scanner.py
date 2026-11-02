@@ -49,11 +49,15 @@ def build_ai_scan(
         current = float(series["price"].iloc[-1])
         if current <= 0:
             continue
+        rarity_enc = getattr(card, "rarity_encoded", None)
+        supertype_enc = getattr(card, "supertype_encoded", None)
+        if rarity_enc is None or supertype_enc is None or pd.isna(rarity_enc) or pd.isna(supertype_enc):
+            continue
         week_price = forecast_price_in_days(
             _model,
             series,
-            float(card.rarity_encoded),
-            float(card.supertype_encoded),
+            float(rarity_enc),
+            float(supertype_enc),
         )
         if week_price is None:
             continue

@@ -8,6 +8,8 @@ create table if not exists public.market_quotes (
     set_name text,
     rarity text,
     supertype text,
+    rarity_encoded double precision,
+    supertype_encoded double precision,
     price double precision,
     market_price double precision,
     predicted_price double precision,
@@ -27,6 +29,12 @@ alter table public.market_quotes enable row level security;
 drop policy if exists "anon_read_market_quotes" on public.market_quotes;
 create policy "anon_read_market_quotes" on public.market_quotes
   for select to anon, authenticated using (true);
+
+-- Existing deployments: add encoding columns used by scanner / detail forecasts.
+alter table public.market_quotes
+  add column if not exists rarity_encoded double precision;
+alter table public.market_quotes
+  add column if not exists supertype_encoded double precision;
 
 grant usage on schema public to postgres, anon, authenticated, service_role;
 grant select on table public.market_quotes to anon, authenticated;

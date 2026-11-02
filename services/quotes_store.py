@@ -18,6 +18,8 @@ QUOTE_COLUMNS = [
     "set_name",
     "rarity",
     "supertype",
+    "rarity_encoded",
+    "supertype_encoded",
     "price",
     "market_price",
     "predicted_price",
@@ -50,6 +52,8 @@ def _rows_from_quotes(quotes: pd.DataFrame) -> list[dict[str, Any]]:
             "set_name": str(row.get("set_name") or "") or None,
             "rarity": str(row.get("rarity") or "") or None,
             "supertype": str(row.get("supertype") or "") or None,
+            "rarity_encoded": _float_or_none(row.get("rarity_encoded")),
+            "supertype_encoded": _float_or_none(row.get("supertype_encoded")),
             "price": _float_or_none(row.get("price")),
             "market_price": _float_or_none(row.get("market_price")),
             "predicted_price": _float_or_none(row.get("predicted_price")),
@@ -73,6 +77,13 @@ def _float_or_none(value: Any) -> float | None:
         return None
 
 
+def _strip_encoding_fields(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        {k: v for k, v in row.items() if k not in ("rarity_encoded", "supertype_encoded")}
+        for row in rows
+    ]
+
+
 def save_market_quotes(quotes: pd.DataFrame) -> int:
     """Replace-style upsert of the catalog board."""
     rows = _rows_from_quotes(quotes)
@@ -82,11 +93,23 @@ def save_market_quotes(quotes: pd.DataFrame) -> int:
         from database import _chunked, get_supabase
 
         client = get_supabase()
-        saved = 0
-        for chunk in _chunked(rows, size=200):
-            client.table(TABLE).upsert(chunk, on_conflict="card_id").execute()
-            saved += len(chunk)
-        return saved
+
+        def _upsert(payload: list[dict[str, Any]]) -> int:
+            saved = 0
+            for chunk in _chunked(payload, size=200):
+                client.table(TABLE).upsert(chunk, on_conflict="card_id").execute()
+                saved += len(chunk)
+            return saved
+
+        try:
+            return _upsert(rows)
+        except Exception as exc:
+            # Table may predate encoding columns — retry without them.
+            msg = str(exc).lower()
+            if "rarity_encoded" in msg or "supertype_encoded" in msg or "column" in msg:
+                LOG.warning("save_market_quotes retry without encodings: %s", exc)
+                return _upsert(_strip_encoding_fields(rows))
+            raise
     except Exception as exc:
         LOG.warning("save_market_quotes failed: %s", exc)
         return 0
@@ -97,13 +120,23 @@ def load_market_quotes() -> pd.DataFrame | None:
     try:
         from database import fetch_all
 
-        rows = fetch_all(
-            TABLE,
-            "card_id,name,set_name,rarity,supertype,price,market_price,"
-            "predicted_price,expected_change_pct,signal,confidence_ok,"
-            "confidence_level,history_points,updated_at",
-            order="name",
-        )
+        try:
+            rows = fetch_all(
+                TABLE,
+                "card_id,name,set_name,rarity,supertype,rarity_encoded,supertype_encoded,"
+                "price,market_price,predicted_price,expected_change_pct,signal,"
+                "confidence_ok,confidence_level,history_points,updated_at",
+                order="name",
+            )
+        except Exception:
+            # Pre-migration tables without encoding columns.
+            rows = fetch_all(
+                TABLE,
+                "card_id,name,set_name,rarity,supertype,price,market_price,"
+                "predicted_price,expected_change_pct,signal,confidence_ok,"
+                "confidence_level,history_points,updated_at",
+                order="name",
+            )
     except Exception as exc:
         LOG.warning("load_market_quotes failed: %s", exc)
         return None
@@ -116,6 +149,8 @@ def load_market_quotes() -> pd.DataFrame | None:
         "market_price",
         "predicted_price",
         "expected_change_pct",
+        "rarity_encoded",
+        "supertype_encoded",
     ):
         if col in frame.columns:
             frame[col] = pd.to_numeric(frame[col], errors="coerce")

@@ -110,6 +110,34 @@ def add_time_features(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, LabelEn
     return featured, encoders
 
 
+def label_maps_from_encoders(encoders: dict[str, LabelEncoder]) -> dict[str, dict[str, int]]:
+    """Serialize LabelEncoder vocabularies for fast-boot quote encoding."""
+    maps: dict[str, dict[str, int]] = {}
+    for column, encoder in encoders.items():
+        maps[column] = {
+            str(label): int(code)
+            for label, code in zip(encoder.classes_, encoder.transform(encoder.classes_))
+        }
+    return maps
+
+
+def apply_label_maps(frame: pd.DataFrame, label_maps: dict[str, dict[str, int]]) -> pd.DataFrame:
+    """Attach rarity_encoded / supertype_encoded from persisted string→code maps."""
+    out = frame.copy()
+    for column, encoded_name in (
+        ("rarity", "rarity_encoded"),
+        ("supertype", "supertype_encoded"),
+    ):
+        mapping = label_maps.get(column) or {}
+        if not mapping:
+            continue
+        series = out[column] if column in out.columns else pd.Series("Unknown", index=out.index)
+        out[encoded_name] = (
+            series.fillna("Unknown").astype(str).map(mapping).astype("float64")
+        )
+    return out
+
+
 def drop_incomplete_rows(df: pd.DataFrame) -> pd.DataFrame:
     before = len(df)
     cleaned = df.dropna(subset=FEATURE_COLUMNS + ["target_price"]).reset_index(drop=True)
