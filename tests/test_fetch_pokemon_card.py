@@ -9,19 +9,19 @@ import requests
 
 
 def test_fetch_pokemon_card_returns_data(monkeypatch):
-    import api_client
+    import pokemon_tcg_client as pokemon
 
     monkeypatch.setattr(
-        api_client,
+        pokemon,
         "_pokemon_get",
         lambda url, params, progress=None: {"data": {"id": "sv3-1", "name": "Pikachu"}},
     )
-    data = api_client.fetch_pokemon_card("sv3-1")
+    data = pokemon.fetch_pokemon_card("sv3-1")
     assert data["id"] == "sv3-1"
 
 
 def test_fetch_pokemon_card_404_returns_none(monkeypatch):
-    import api_client
+    import pokemon_tcg_client as pokemon
 
     response = MagicMock()
     response.status_code = 404
@@ -29,8 +29,8 @@ def test_fetch_pokemon_card_404_returns_none(monkeypatch):
     def boom(*args, **kwargs):
         raise requests.HTTPError("404", response=response)
 
-    monkeypatch.setattr(api_client, "_pokemon_get", boom)
-    assert api_client.fetch_pokemon_card("missing-1", quiet=True) is None
+    monkeypatch.setattr(pokemon, "_pokemon_get", boom)
+    assert pokemon.fetch_pokemon_card("missing-1", quiet=True) is None
 
 
 def test_resolve_tcgplayer_id_uses_fetch_pokemon_card(monkeypatch):

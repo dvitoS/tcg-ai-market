@@ -77,6 +77,8 @@ Nightly refreshes history, optionally backfills `tcgplayer_id`, retrains the mod
 - `app.py` — Streamlit entry  
 - `services/exchange.py` — fast boot (`market_quotes` + model) or full rebuild  
 - `database_*.py` — clients / catalog / user (facade: `database.py`)  
+- `pokemon_tcg_client.py` / `pokewallet_client.py` — facade: `api_client.py`  
+- `justtcg_client.py` + `justtcg_psa10.py` — NM vs PSA10  
 - `ui/` — explore, detail, portfolio, scanner  
 - Auth: opaque `?sid=` → Supabase `auth_sessions`
 
