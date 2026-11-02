@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import date, timedelta
 
 import pandas as pd
 import streamlit as st
@@ -54,45 +55,112 @@ def _resolve_model(featured: pd.DataFrame):
     return model, True
 
 
-@st.cache_resource(show_spinner=False)
-def load_exchange() -> tuple[pd.DataFrame, pd.DataFrame, object]:
-    """Load history, resolve model (persisted or train), assign signals.
+def _apply_confidence(quotes: pd.DataFrame, history: pd.DataFrame) -> pd.DataFrame:
+    conf = confidence_by_card(history)
+    if not conf.empty:
+        out = quotes.merge(conf, on="id", how="left")
+        out["confidence_ok"] = out["confidence_ok"].fillna(False).astype(bool)
+        out["confidence_level"] = out["confidence_level"].fillna("low")
+        low = ~out["confidence_ok"]
+        if low.any():
+            out.loc[low, "signal"] = SIGNAL_HOLD
+        return out
+    out = quotes.copy()
+    out["confidence_ok"] = True
+    out["confidence_level"] = "medium"
+    out["history_points"] = 0
+    return out
 
-    Cached as a resource so Streamlit reruns do not retrain XGBoost every click.
-    Clear via clear_exchange_cache() after catalog sync / nightly.
-    """
+
+def _filter_catalog_floor(quotes: pd.DataFrame) -> pd.DataFrame:
     from config import CATALOG_MIN_PRICE
 
+    spot = pd.to_numeric(quotes.get("price"), errors="coerce")
+    if "market_price" in quotes.columns:
+        spot = spot.fillna(pd.to_numeric(quotes["market_price"], errors="coerce"))
+    return quotes.loc[spot >= float(CATALOG_MIN_PRICE)].copy()
+
+
+def build_market_board(
+    *,
+    persist: bool = True,
+) -> tuple[pd.DataFrame, pd.DataFrame, object]:
+    """Full rebuild: history → model → quotes. Used by nightly and slow-path boot."""
+    from services.quotes_store import save_market_quotes
+
+    history = load_history()
+    featured, _encoders = add_time_features(history)
+    model, _trained_now = _resolve_model(featured)
+    quotes = assign_signals(card_forecasts(model, featured))
+    quotes = _apply_confidence(quotes, history)
+    quotes = _filter_catalog_floor(quotes)
+    quotes = quotes.sort_values("name").reset_index(drop=True)
+    keep_ids = set(quotes["id"].astype(str)) if "id" in quotes.columns else set()
+    if keep_ids and "card_id" in history.columns:
+        history = history.loc[history["card_id"].astype(str).isin(keep_ids)].copy()
+    if persist:
+        try:
+            saved = save_market_quotes(quotes)
+            LOG.info("Persisted market_quotes rows=%s", saved)
+        except Exception as exc:
+            LOG.warning("market_quotes persist failed: %s", exc)
+    return history, quotes, model
+
+
+def _try_fast_boot() -> tuple[pd.DataFrame, pd.DataFrame, object] | None:
+    """Load precomputed quotes + model + scoped history when available."""
+    from config import PRICE_HISTORY_DAYS
+    from services.model_store import load_model_artifact
+    from services.quotes_store import load_market_quotes
+
+    quotes = load_market_quotes()
+    if quotes is None or quotes.empty:
+        return None
+    loaded = load_model_artifact()
+    if loaded is None:
+        return None
+    model, meta = loaded
+    cols = list(meta.get("feature_columns") or [])
+    if cols and cols != list(FEATURE_COLUMNS):
+        LOG.warning("Skipping fast boot — feature mismatch on persisted model.")
+        return None
+
+    quotes = _filter_catalog_floor(quotes)
+    if quotes.empty:
+        return None
+    card_ids = quotes["id"].astype(str).tolist()
+    since = (date.today() - timedelta(days=int(PRICE_HISTORY_DAYS) + 14)).isoformat()
+    try:
+        history = load_history(card_ids=card_ids, since_date=since)
+    except Exception as exc:
+        LOG.warning("Fast boot history load failed: %s", exc)
+        return None
+    LOG.info(
+        "Fast boot: quotes=%s history_rows=%s model_trained_at=%s",
+        len(quotes),
+        len(history),
+        meta.get("trained_at"),
+    )
+    return history, quotes.sort_values("name").reset_index(drop=True), model
+
+
+@st.cache_resource(show_spinner=False)
+def load_exchange() -> tuple[pd.DataFrame, pd.DataFrame, object]:
+    """Load history + model + signals.
+
+    Prefers nightly `market_quotes` + persisted model (fast). Falls back to a full
+    rebuild and persists quotes for the next boot.
+    """
     init_db()
     if ensure_seed_database():
         pass
     else:
         ensure_price_history()
-    history = load_history()
-    featured, _encoders = add_time_features(history)
-    model, _trained_now = _resolve_model(featured)
-    quotes = assign_signals(card_forecasts(model, featured))
-    conf = confidence_by_card(history)
-    if not conf.empty:
-        quotes = quotes.merge(conf, on="id", how="left")
-        quotes["confidence_ok"] = quotes["confidence_ok"].fillna(False).astype(bool)
-        quotes["confidence_level"] = quotes["confidence_level"].fillna("low")
-        # Soft-gate: low-data cards stay visible but signal becomes HOLD.
-        low = ~quotes["confidence_ok"]
-        if low.any():
-            quotes.loc[low, "signal"] = SIGNAL_HOLD
-    else:
-        quotes["confidence_ok"] = True
-        quotes["confidence_level"] = "medium"
-        quotes["history_points"] = 0
-    spot = pd.to_numeric(quotes.get("price"), errors="coerce")
-    if "market_price" in quotes.columns:
-        spot = spot.fillna(pd.to_numeric(quotes["market_price"], errors="coerce"))
-    quotes = quotes.loc[spot >= float(CATALOG_MIN_PRICE)].copy()
-    keep_ids = set(quotes["id"].astype(str)) if "id" in quotes.columns else set()
-    if keep_ids and "card_id" in history.columns:
-        history = history.loc[history["card_id"].astype(str).isin(keep_ids)].copy()
-    return history, quotes.sort_values("name").reset_index(drop=True), model
+
+    fast = _try_fast_boot()
+    if fast is not None:
+        return fast
+    return build_market_board(persist=True)
 
 
 def clear_exchange_cache() -> None:

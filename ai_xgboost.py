@@ -29,9 +29,13 @@ FEATURE_LABELS = {
 }
 
 
-def load_history() -> pd.DataFrame:
+def load_history(
+    *,
+    card_ids: list[str] | set[str] | None = None,
+    since_date: str | None = None,
+) -> pd.DataFrame:
     print("Učitavam price_history spojenu s cards (Supabase)...")
-    df = load_history_frame()
+    df = load_history_frame(card_ids=card_ids, since_date=since_date)
     if df.empty:
         raise RuntimeError("price_history je prazna. Pokreni generate_history.py ili seed import.")
     df["date"] = pd.to_datetime(df["date"])

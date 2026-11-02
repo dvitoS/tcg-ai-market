@@ -162,6 +162,7 @@ def refresh_price_history() -> dict[str, int]:
 
 def retrain_ai() -> dict[str, float | int]:
     from ai_xgboost import retrain_model
+    from services.exchange import build_market_board
 
     LOG.info("Korak 3/3: re-trening XGBoost na proširenom nizu...")
     metrics = retrain_model()
@@ -172,6 +173,13 @@ def retrain_ai() -> dict[str, float | int]:
         metrics["rmse"],
         metrics["r2"],
     )
+    try:
+        _history, quotes, _model = build_market_board(persist=True)
+        metrics = dict(metrics)
+        metrics["quotes"] = int(len(quotes))
+        LOG.info("market_quotes refreshed: %s rows", metrics["quotes"])
+    except Exception as exc:
+        LOG.warning("market_quotes refresh failed: %s", exc)
     return metrics
 
 

@@ -127,6 +127,6 @@ grant all on table public.watchlist to postgres, anon, authenticated, service_ro
 grant usage, select on all sequences in schema public to postgres, anon, authenticated, service_role;
 
 -- See also: supabase_auth_sessions.sql, supabase_model_artifacts.sql,
--- supabase_rls_harden.sql for incremental multi-user / Cloud hardening.
+-- supabase_market_quotes.sql, supabase_rls_harden.sql for Cloud hardening.
 
 notify pgrst, 'reload schema';

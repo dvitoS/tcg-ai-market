@@ -1,15 +1,15 @@
 """TCG AI Market Dashboard — composition root."""
 
 import importlib
-import subprocess
 import sys
 
-# (import_name, pip_name) — scikit-learn imports as sklearn.
+# Fail fast with a clear message — do not pip-install at runtime on Cloud.
 _REQUIRED_PIP = (
     ("plotly", "plotly"),
     ("xgboost", "xgboost"),
     ("sklearn", "scikit-learn"),
     ("supabase", "supabase"),
+    ("joblib", "joblib"),
 )
 
 
@@ -22,10 +22,12 @@ def _ensure_runtime_deps() -> None:
             missing.append(pip_name)
     if not missing:
         return
-    subprocess.check_call(
-        [sys.executable, "-m", "pip", "install", "--upgrade", *missing],
+    raise ImportError(
+        "Missing packages: "
+        + ", ".join(missing)
+        + ". Install with: pip install -r requirements.txt "
+        + "(Streamlit Cloud installs this automatically on reboot)."
     )
-    importlib.invalidate_caches()
 
 
 _ensure_runtime_deps()

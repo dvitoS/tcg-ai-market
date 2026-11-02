@@ -272,7 +272,8 @@ Never set `AUTH_DISABLED` on Cloud.""",
 1. Open [Supabase Dashboard](https://supabase.com/dashboard) → your project  
 2. Left: **SQL Editor** → **New query**  
 3. Copy `supabase_schema.sql` (new projects) or `supabase_rls_harden.sql` (existing) → **Run**  
-   Also run `supabase_auth_sessions.sql` + `supabase_model_artifacts.sql` for Cloud login + model cache.  
+   Also run `supabase_auth_sessions.sql`, `supabase_model_artifacts.sql`, and
+   `supabase_market_quotes.sql` for Cloud login + fast catalog boots.  
 4. **Table Editor**: you should see `cards`, `price_history`, `portfolio`, `watchlist`  
 5. If the app still errors: **Project Settings → API → Reload schema**  
 6. Streamlit → **Reboot**""",

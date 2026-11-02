@@ -472,15 +472,53 @@ def distinct_history_card_ids() -> set[str]:
     return {str(row["card_id"]) for row in rows}
 
 
-def load_history_frame() -> pd.DataFrame:
-    """price_history ⨝ cards → DataFrame (isti oblik kao stari SQL join)."""
+def _fetch_price_history_rows(
+    *,
+    card_ids: list[str] | None = None,
+    since_date: str | None = None,
+) -> list[dict[str, Any]]:
+    """Paginated price_history rows, optionally scoped to cards + date floor."""
+    client = get_supabase()
+    columns = "card_id,price,date,cards(name,supertype,rarity,set_name,market_price)"
+    id_list = [str(x) for x in (card_ids or []) if str(x).strip()]
+    chunks: list[list[str]]
+    if id_list:
+        chunks = [id_list[i : i + 150] for i in range(0, len(id_list), 150)]
+    else:
+        chunks = [[]]  # one unscoped pass
+
+    rows: list[dict[str, Any]] = []
+    for chunk in chunks:
+        start = 0
+        while True:
+            query = client.table("price_history").select(columns)
+            if chunk:
+                query = query.in_("card_id", chunk)
+            if since_date:
+                query = query.gte("date", since_date)
+            response = query.order("card_id").order("date").range(start, start + PAGE - 1).execute()
+            batch = list(response.data or [])
+            rows.extend(batch)
+            if len(batch) < PAGE:
+                break
+            start += PAGE
+    return rows
+
+
+def load_history_frame(
+    *,
+    card_ids: list[str] | set[str] | None = None,
+    since_date: str | None = None,
+) -> pd.DataFrame:
+    """price_history ⨝ cards → DataFrame (isti oblik kao stari SQL join).
+
+    Optional filters keep Streamlit boots light when market_quotes already exist.
+    """
+    id_list = [str(x) for x in (card_ids or []) if str(x).strip()] or None
     try:
-        rows = fetch_all(
-            "price_history",
-            "card_id,price,date,cards(name,supertype,rarity,set_name,market_price)",
-        )
+        raw_rows = _fetch_price_history_rows(card_ids=id_list, since_date=since_date)
         flat: list[dict[str, Any]] = []
-        for row in rows:
+        for row in raw_rows:
             card = row.get("cards") or {}
             if not card:
                 continue
@@ -506,22 +544,28 @@ def load_history_frame() -> pd.DataFrame:
     cards = pd.DataFrame(
         fetch_all("cards", "id,name,supertype,rarity,set_name,market_price")
     )
+    empty = pd.DataFrame(
+        columns=[
+            "card_id",
+            "price",
+            "date",
+            "name",
+            "supertype",
+            "rarity",
+            "set_name",
+            "market_price",
+        ]
+    )
     if history.empty or cards.empty:
-        return pd.DataFrame(
-            columns=[
-                "card_id",
-                "price",
-                "date",
-                "name",
-                "supertype",
-                "rarity",
-                "set_name",
-                "market_price",
-            ]
-        )
-    return history.merge(cards, left_on="card_id", right_on="id", how="inner").drop(
+        return empty
+    merged = history.merge(cards, left_on="card_id", right_on="id", how="inner").drop(
         columns=["id"]
     )
+    if id_list:
+        merged = merged.loc[merged["card_id"].astype(str).isin(set(id_list))]
+    if since_date and not merged.empty:
+        merged = merged.loc[merged["date"].astype(str) >= str(since_date)]
+    return merged.reset_index(drop=True)
 
 
 def load_cards_frame() -> pd.DataFrame:
