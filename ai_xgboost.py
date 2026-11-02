@@ -1,6 +1,6 @@
 # pip install xgboost scikit-learn
 # pip install matplotlib   # opcionalno, za graf feature importance
-"""XGBoost predikcija sljedeće dnevne cijene iz price_history."""
+"""XGBoost: 7-day forward return prediction (not absolute next-day price)."""
 
 from __future__ import annotations
 
@@ -14,19 +14,38 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 
 from database import load_history_frame
+from trading_signals import FORECAST_DAYS, HOLD_BAND
 
 RANDOM_SEED = 42
 TEST_SIZE = 0.2
-LAG_FEATURES = ["price_lag_1", "price_lag_3", "price_lag_7", "rolling_mean_7"]
-FEATURE_COLUMNS = LAG_FEATURES + ["rarity_encoded", "supertype_encoded"]
+# Product horizon = scanner / portfolio outlook (competitors often use 30–90d).
+HORIZON_DAYS = int(FORECAST_DAYS)
+# Days with |7d return| below this count as flat for direction scoring.
+RETURN_HOLD_BAND = max(float(HOLD_BAND), 0.02)
+
+RETURN_FEATURES = [
+    "ret_1",
+    "ret_3",
+    "ret_7",
+    "vol_7",
+    "dist_ma_7",
+    "dist_ma_30",
+    "log_price",
+]
+FEATURE_COLUMNS = RETURN_FEATURES + ["rarity_encoded", "supertype_encoded"]
 FEATURE_LABELS = {
-    "price_lag_1": "cijena jučer",
-    "price_lag_3": "cijena prije 3 dana",
-    "price_lag_7": "cijena prije 7 dana",
-    "rolling_mean_7": "7-dnevni prosjek",
-    "rarity_encoded": "rijetkost (rarity)",
+    "ret_1": "1d return",
+    "ret_3": "3d return",
+    "ret_7": "7d return",
+    "vol_7": "7d volatility",
+    "dist_ma_7": "vs 7d MA",
+    "dist_ma_30": "vs 30d MA",
+    "log_price": "log price",
+    "rarity_encoded": "rarity",
     "supertype_encoded": "supertype",
 }
+# Back-compat alias (old lag names no longer used as model inputs).
+LAG_FEATURES = RETURN_FEATURES
 
 
 def load_history(
@@ -84,15 +103,28 @@ def resample_daily_history(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def add_time_features(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, LabelEncoder]]:
-    """Lagovi i 7-dnevni prosjek računaju se posebno za svaku kartu."""
-    print("Feature engineering: lagovi po card_id + LabelEncoder (rarity, supertype)...")
+    """Return / volatility features + {HORIZON_DAYS}d forward return target per card."""
+    print(
+        f"Feature engineering: returns/vol/MA + {HORIZON_DAYS}d forward return "
+        "(LabelEncoder rarity, supertype)..."
+    )
     featured = df.sort_values(["card_id", "date"]).reset_index(drop=True)
     price = featured.groupby("card_id", sort=False)["price"]
-    featured["price_lag_1"] = price.shift(1)
-    featured["price_lag_3"] = price.shift(3)
-    featured["price_lag_7"] = price.shift(7)
-    featured["rolling_mean_7"] = price.transform(lambda series: series.rolling(7, min_periods=7).mean())
-    featured["target_price"] = price.shift(-1)
+    featured["ret_1"] = price.pct_change(1)
+    featured["ret_3"] = price.pct_change(3)
+    featured["ret_7"] = price.pct_change(7)
+    daily_ret = price.pct_change(1)
+    featured["vol_7"] = daily_ret.groupby(featured["card_id"], sort=False).transform(
+        lambda s: s.rolling(7, min_periods=7).std()
+    )
+    featured["ma_7"] = price.transform(lambda s: s.rolling(7, min_periods=7).mean())
+    featured["ma_30"] = price.transform(lambda s: s.rolling(30, min_periods=14).mean())
+    featured["dist_ma_7"] = featured["price"] / featured["ma_7"] - 1.0
+    featured["dist_ma_30"] = featured["price"] / featured["ma_30"] - 1.0
+    featured["log_price"] = np.log(featured["price"].clip(lower=1e-6))
+    future = price.shift(-HORIZON_DAYS)
+    featured["target_price"] = future
+    featured["target_return"] = future / featured["price"] - 1.0
 
     encoders: dict[str, LabelEncoder] = {}
     for column, encoded_name in (
@@ -140,21 +172,26 @@ def apply_label_maps(frame: pd.DataFrame, label_maps: dict[str, dict[str, int]])
 
 def drop_incomplete_rows(df: pd.DataFrame) -> pd.DataFrame:
     before = len(df)
-    cleaned = df.dropna(subset=FEATURE_COLUMNS + ["target_price"]).reset_index(drop=True)
-    print(f"Nakon čišćenja NaN (lag/target): {len(cleaned)} redova (uklonjeno {before - len(cleaned)}).")
+    cleaned = df.dropna(subset=FEATURE_COLUMNS + ["target_return"]).reset_index(drop=True)
+    print(
+        f"Nakon čišćenja NaN (features/target_return): {len(cleaned)} redova "
+        f"(uklonjeno {before - len(cleaned)})."
+    )
     return cleaned
 
 
 def train_xgboost(X_train: pd.DataFrame, y_train: pd.Series) -> xgb.XGBRegressor:
     print(
-        "Treniram XGBRegressor "
-        "(n_estimators=200, learning_rate=0.05, max_depth=6, subsample=0.8)..."
+        "Treniram XGBRegressor na forward return "
+        f"(horizon={HORIZON_DAYS}d, n_estimators=300, max_depth=5)..."
     )
     model = xgb.XGBRegressor(
-        n_estimators=200,
+        n_estimators=300,
         learning_rate=0.05,
-        max_depth=6,
+        max_depth=5,
         subsample=0.8,
+        colsample_bytree=0.8,
+        min_child_weight=4,
         objective="reg:squarederror",
         random_state=RANDOM_SEED,
         n_jobs=1,
@@ -163,14 +200,19 @@ def train_xgboost(X_train: pd.DataFrame, y_train: pd.Series) -> xgb.XGBRegressor
     return model
 
 
+def _signed_return(returns: np.ndarray, *, hold_band: float) -> np.ndarray:
+    """+1 up, -1 down, 0 flat within hold_band on return units."""
+    out = np.zeros(len(returns), dtype=int)
+    out[returns > hold_band] = 1
+    out[returns < -hold_band] = -1
+    return out
+
+
 def _signed_move(future: np.ndarray, spot: np.ndarray, *, hold_band: float) -> np.ndarray:
     """+1 up, -1 down, 0 flat within hold_band (fraction of spot)."""
     spot_safe = np.where(spot > 0, spot, np.nan)
     change = (future - spot) / spot_safe
-    out = np.zeros(len(change), dtype=int)
-    out[change > hold_band] = 1
-    out[change < -hold_band] = -1
-    return out
+    return _signed_return(change, hold_band=hold_band)
 
 
 def evaluate_model(
@@ -179,57 +221,70 @@ def evaluate_model(
     y_test: pd.Series,
     *,
     spot: pd.Series | None = None,
-    hold_band: float = 0.0035,
+    hold_band: float | None = None,
+    target_kind: str = "return",
 ) -> dict[str, float]:
-    """Level metrics + direction vs naive (tomorrow = today) baseline.
+    """Score return (preferred) or price models vs a naive baseline.
 
-    High R² alone is misleading: copying today's price often looks “accurate”.
-    Prefer direction_accuracy and rmse_vs_naive (< 1 means model beats persistence).
+    For returns, naive = 0% move. Prefer direction_accuracy and rmse_vs_naive.
     """
+    band = float(RETURN_HOLD_BAND if hold_band is None else hold_band)
     predictions = np.asarray(model.predict(X_test), dtype=float)
     y = np.asarray(y_test, dtype=float)
     rmse = float(np.sqrt(mean_squared_error(y, predictions)))
-    r2 = float(r2_score(y, predictions))
+    r2 = float(r2_score(y, predictions)) if len(y) > 1 else float("nan")
 
-    metrics: dict[str, float] = {"rmse": rmse, "r2": r2}
+    metrics: dict[str, float] = {
+        "rmse": rmse,
+        "r2": r2,
+        "horizon_days": float(HORIZON_DAYS),
+    }
     print()
-    print("=== Evaluacija na testnom skupu (20%) ===")
-    print(f"RMSE: {rmse:.4f}")
+    print(f"=== Evaluacija (holdout, target={target_kind}, horizon={HORIZON_DAYS}d) ===")
+    print(f"RMSE: {rmse:.6f}")
     print(f"R2:   {r2:.4f}")
 
-    if spot is not None and len(spot) == len(y):
+    if target_kind == "return":
+        naive = np.zeros_like(y)
+        naive_rmse = float(np.sqrt(mean_squared_error(y, naive)))
+        metrics["naive_rmse"] = naive_rmse
+        metrics["rmse_vs_naive"] = float(rmse / naive_rmse) if naive_rmse > 0 else float("nan")
+        actual_dir = _signed_return(y, hold_band=band)
+        pred_dir = _signed_return(predictions, hold_band=band)
+    elif spot is not None and len(spot) == len(y):
         spot_arr = np.asarray(spot, dtype=float)
         naive = spot_arr.copy()
         naive_rmse = float(np.sqrt(mean_squared_error(y, naive)))
         metrics["naive_rmse"] = naive_rmse
         metrics["rmse_vs_naive"] = float(rmse / naive_rmse) if naive_rmse > 0 else float("nan")
+        actual_dir = _signed_move(y, spot_arr, hold_band=band)
+        pred_dir = _signed_move(predictions, spot_arr, hold_band=band)
+    else:
+        print("Skipped direction/naive metrics (no spot / unsupported target).")
+        return metrics
 
-        actual_dir = _signed_move(y, spot_arr, hold_band=hold_band)
-        pred_dir = _signed_move(predictions, spot_arr, hold_band=hold_band)
-        movable = actual_dir != 0
-        if movable.any():
-            direction_acc = float((actual_dir[movable] == pred_dir[movable]).mean() * 100.0)
-        else:
-            direction_acc = float("nan")
-        metrics["direction_accuracy_pct"] = direction_acc
-        metrics["direction_n"] = float(int(movable.sum()))
-        # How often model predicts a flat day (persistence trap symptom).
-        metrics["pred_flat_pct"] = float((pred_dir == 0).mean() * 100.0)
+    movable = actual_dir != 0
+    if movable.any():
+        direction_acc = float((actual_dir[movable] == pred_dir[movable]).mean() * 100.0)
+    else:
+        direction_acc = float("nan")
+    metrics["direction_accuracy_pct"] = direction_acc
+    metrics["direction_n"] = float(int(movable.sum()))
+    metrics["pred_flat_pct"] = float((pred_dir == 0).mean() * 100.0)
 
-        print(f"Naive RMSE (tomorrow=today): {naive_rmse:.4f}")
-        print(f"RMSE / naive: {metrics['rmse_vs_naive']:.3f}  (<1 = beats persistence)")
-        if movable.any():
-            print(
-                f"Direction accuracy: {direction_acc:.1f}% "
-                f"on {int(movable.sum())} non-flat days (±{hold_band * 100:.2f}% band)"
-            )
-        print(f"Predicted flat (HOLD): {metrics['pred_flat_pct']:.1f}% of test rows")
-        if metrics["rmse_vs_naive"] >= 0.98:
-            print(
-                "Napomena: model je blizu naivnog baselinea — "
-                "visoki R2 ne znači koristan signal smjera."
-            )
-
+    print(f"Naive RMSE (0% return / persistence): {naive_rmse:.6f}")
+    print(f"RMSE / naive: {metrics['rmse_vs_naive']:.3f}  (<1 = beats baseline)")
+    if movable.any():
+        print(
+            f"Direction accuracy: {direction_acc:.1f}% "
+            f"on {int(movable.sum())} non-flat rows (±{band * 100:.2f}% band)"
+        )
+    print(f"Predicted flat: {metrics['pred_flat_pct']:.1f}% of test rows")
+    if metrics["rmse_vs_naive"] >= 0.98:
+        print(
+            "Napomena: model je blizu naivnog baselinea — "
+            "signal smjera još nije dovoljno jak."
+        )
     return metrics
 
 
@@ -299,10 +354,40 @@ def split_features(
     df: pd.DataFrame,
     *,
     return_spot: bool = False,
+    time_based: bool = True,
 ) -> tuple:
+    """Train/test split on target_return. Prefer temporal holdout (no shuffle leak)."""
+    if "target_return" not in df.columns:
+        raise ValueError("split_features requires target_return (run add_time_features)")
     X = df[FEATURE_COLUMNS]
-    y = df["target_price"]
-    print(f"Dijelim podatke: {int((1 - TEST_SIZE) * 100)}% train / {int(TEST_SIZE * 100)}% test...")
+    y = df["target_return"]
+    print(
+        f"Dijelim podatke: {int((1 - TEST_SIZE) * 100)}% train / {int(TEST_SIZE * 100)}% test "
+        f"({'time-based' if time_based and 'date' in df.columns else 'random'})..."
+    )
+
+    if time_based and "date" in df.columns and df["date"].nunique() >= 5:
+        ordered = df.sort_values("date")
+        dates = np.sort(pd.to_datetime(ordered["date"]).unique())
+        cut_idx = max(1, int(len(dates) * (1.0 - TEST_SIZE)))
+        cut_idx = min(cut_idx, len(dates) - 1)
+        cut = dates[cut_idx]
+        train_mask = pd.to_datetime(df["date"]) < cut
+        test_mask = ~train_mask
+        if int(test_mask.sum()) < 10 or int(train_mask.sum()) < 20:
+            # Fall back if history is too short for a clean temporal cut.
+            time_based = False
+        else:
+            X_train, X_test = X.loc[train_mask], X.loc[test_mask]
+            y_train, y_test = y.loc[train_mask], y.loc[test_mask]
+            print(
+                f"Train: {len(X_train)} redova | Test: {len(X_test)} redova "
+                f"(cut date {pd.Timestamp(cut).date()})."
+            )
+            if return_spot:
+                return X_train, X_test, y_train, y_test, df.loc[test_mask, "price"]
+            return X_train, X_test, y_train, y_test
+
     if return_spot:
         if "price" not in df.columns:
             raise ValueError("split_features(return_spot=True) requires a 'price' column")
@@ -326,7 +411,7 @@ def split_features(
 
 
 def card_forecasts(model: xgb.XGBRegressor, featured: pd.DataFrame) -> pd.DataFrame:
-    """Zadnji dan svake karte: predviđa cijenu sljedećeg dana."""
+    """Latest row per card: predict {HORIZON_DAYS}d return → target price."""
     latest = (
         featured.sort_values(["card_id", "date"])
         .groupby("card_id", as_index=False)
@@ -334,16 +419,21 @@ def card_forecasts(model: xgb.XGBRegressor, featured: pd.DataFrame) -> pd.DataFr
         .dropna(subset=FEATURE_COLUMNS)
         .copy()
     )
-    latest["predicted_price"] = model.predict(latest[FEATURE_COLUMNS])
+    pred_ret = np.asarray(model.predict(latest[FEATURE_COLUMNS]), dtype=float)
+    latest["predicted_return"] = pred_ret
+    spot = latest["price"].astype(float)
+    latest["predicted_price"] = spot * (1.0 + pred_ret)
     latest["id"] = latest["card_id"]
     latest["name_length"] = latest["name"].str.len().astype(int)
     latest["target_price"] = latest["predicted_price"]
-    latest["growth"] = latest["predicted_price"] - latest["market_price"]
-    latest["growth_pct"] = latest["growth"] / latest["market_price"] * 100.0
+    mkt = pd.to_numeric(latest.get("market_price"), errors="coerce").fillna(spot)
+    latest["growth"] = latest["predicted_price"] - mkt
+    latest["growth_pct"] = np.where(mkt > 0, latest["growth"] / mkt * 100.0, 0.0)
+    latest["expected_change_pct"] = pred_ret * 100.0
     latest["signal"] = np.where(
-        latest["predicted_price"] > latest["market_price"],
+        pred_ret > RETURN_HOLD_BAND,
         "KUPI",
-        "PRODAJ/ČEKAJ",
+        np.where(pred_ret < -RETURN_HOLD_BAND, "PRODAJ/ČEKAJ", "HOLD"),
     )
     return latest.reset_index(drop=True)
 
@@ -373,12 +463,16 @@ def retrain_model() -> dict[str, float | int]:
         trainable, return_spot=True
     )
     model = train_xgboost(X_train, y_train)
-    eval_metrics = evaluate_model(model, X_test, y_test, spot=spot_test)
+    eval_metrics = evaluate_model(
+        model, X_test, y_test, spot=spot_test, target_kind="return"
+    )
     metrics: dict[str, float | int] = {
         "rows": int(len(trainable)),
         "cards": int(history["card_id"].nunique()),
         "rmse": float(eval_metrics["rmse"]),
         "r2": float(eval_metrics["r2"]),
+        "horizon_days": int(HORIZON_DAYS),
+        "target": "return",
     }
     for key in (
         "naive_rmse",
@@ -413,10 +507,15 @@ def main() -> int:
             trainable, return_spot=True
         )
         model = train_xgboost(X_train, y_train)
-        eval_metrics = evaluate_model(model, X_test, y_test, spot=spot_test)
-        r2 = float(eval_metrics["r2"])
-        if r2 > 0.80:
-            print("R2 je iznad 0.80 (provjeri i RMSE/naive + direction accuracy).")
+        eval_metrics = evaluate_model(
+            model, X_test, y_test, spot=spot_test, target_kind="return"
+        )
+        r2 = float(eval_metrics.get("r2") or 0.0)
+        vs = float(eval_metrics.get("rmse_vs_naive") or 1.0)
+        if vs < 0.95:
+            print("Model bije naivni 0% return baseline (rmse/naive < 0.95).")
+        if r2 > 0.20:
+            print(f"R2 na returnima je {r2:.2f} (na returnima je niži R2 normalan).")
 
         ranked = print_feature_importance(model, FEATURE_COLUMNS)
         maybe_plot_feature_importance(ranked)

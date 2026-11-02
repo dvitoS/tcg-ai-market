@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 
-from ai_xgboost import FEATURE_COLUMNS, resample_daily_history
+from ai_xgboost import FEATURE_COLUMNS, HORIZON_DAYS, resample_daily_history
 from trading_signals import FORECAST_DAYS
 
 
@@ -16,16 +17,68 @@ def card_history(history: pd.DataFrame, card_id: str) -> pd.DataFrame:
     return resample_daily_history(raw.copy()).reset_index(drop=True)
 
 
-def lag_features_for_last_day(series: pd.DataFrame) -> dict[str, float] | None:
-    prices = series.sort_values("date")["price"].astype(float).reset_index(drop=True)
-    if len(prices) < 8:
+def _feature_frame_from_prices(
+    prices,
+    rarity_encoded: float,
+    supertype_encoded: float,
+) -> pd.DataFrame | None:
+    values = pd.Series(prices, dtype=float).reset_index(drop=True)
+    # Need enough bars for vol_7 + ma_30(min_periods=14).
+    if len(values) < 15:
         return None
-    return {
-        "price_lag_1": float(prices.iloc[-2]),
-        "price_lag_3": float(prices.iloc[-4]),
-        "price_lag_7": float(prices.iloc[-8]),
-        "rolling_mean_7": float(prices.iloc[-7:].mean()),
+    ret_1 = float(values.pct_change(1).iloc[-1])
+    ret_3 = float(values.pct_change(3).iloc[-1])
+    ret_7 = float(values.pct_change(7).iloc[-1]) if len(values) >= 8 else float("nan")
+    daily = values.pct_change(1)
+    vol_7 = float(daily.iloc[-7:].std(ddof=0)) if len(daily.dropna()) >= 7 else float("nan")
+    ma_7 = float(values.iloc[-7:].mean())
+    ma_30 = float(values.iloc[-min(30, len(values)) :].mean())
+    spot = float(values.iloc[-1])
+    if not np.isfinite(ret_1) or not np.isfinite(ret_3) or ma_7 <= 0 or ma_30 <= 0 or spot <= 0:
+        return None
+    if not np.isfinite(ret_7):
+        ret_7 = ret_3
+    if not np.isfinite(vol_7):
+        vol_7 = 0.0
+    row = {
+        "ret_1": ret_1,
+        "ret_3": ret_3,
+        "ret_7": ret_7,
+        "vol_7": vol_7,
+        "dist_ma_7": spot / ma_7 - 1.0,
+        "dist_ma_30": spot / ma_30 - 1.0,
+        "log_price": float(np.log(max(spot, 1e-6))),
+        "rarity_encoded": float(rarity_encoded),
+        "supertype_encoded": float(supertype_encoded),
     }
+    frame = pd.DataFrame([row])[FEATURE_COLUMNS]
+    if frame.isna().any(axis=None):
+        return None
+    return frame
+
+
+def lag_features_for_last_day(series: pd.DataFrame) -> dict[str, float] | None:
+    """Explainability snapshot for the detail panel (return-model features)."""
+    prices = series.sort_values("date")["price"].astype(float).reset_index(drop=True)
+    if len(prices) < 15:
+        return None
+    frame = _feature_frame_from_prices(prices, 0.0, 0.0)
+    if frame is None:
+        return None
+    return {col: float(frame.iloc[0][col]) for col in FEATURE_COLUMNS if col in frame.columns}
+
+
+def predict_horizon_return(
+    model,
+    prices,
+    rarity_encoded: float,
+    supertype_encoded: float,
+) -> float | None:
+    """Model output: expected fractional return over HORIZON_DAYS."""
+    features = _feature_frame_from_prices(prices, rarity_encoded, supertype_encoded)
+    if features is None:
+        return None
+    return float(model.predict(features)[0])
 
 
 def predict_from_prices(
@@ -34,19 +87,15 @@ def predict_from_prices(
     rarity_encoded: float,
     supertype_encoded: float,
 ) -> float | None:
+    """Predicted price at horizon = spot × (1 + predicted return)."""
     values = pd.Series(prices, dtype=float).reset_index(drop=True)
-    if len(values) < 8:
+    if values.empty:
         return None
-    row = {
-        "price_lag_1": float(values.iloc[-2]),
-        "price_lag_3": float(values.iloc[-4]),
-        "price_lag_7": float(values.iloc[-8]),
-        "rolling_mean_7": float(values.iloc[-7:].mean()),
-        "rarity_encoded": float(rarity_encoded),
-        "supertype_encoded": float(supertype_encoded),
-    }
-    features = pd.DataFrame([row])[FEATURE_COLUMNS]
-    return float(model.predict(features)[0])
+    pred_ret = predict_horizon_return(model, values, rarity_encoded, supertype_encoded)
+    if pred_ret is None:
+        return None
+    spot = float(values.iloc[-1])
+    return float(spot * (1.0 + pred_ret))
 
 
 def predict_next_close(
@@ -55,6 +104,7 @@ def predict_next_close(
     rarity_encoded: float,
     supertype_encoded: float,
 ) -> float | None:
+    """Horizon target price (product default = FORECAST_DAYS, not next calendar day)."""
     prices = series.sort_values("date")["price"]
     return predict_from_prices(model, prices, rarity_encoded, supertype_encoded)
 
@@ -66,10 +116,18 @@ def forecast_price_in_days(
     supertype_encoded: float,
     days: int = FORECAST_DAYS,
 ) -> float | None:
-    prices = series.sort_values("date")["price"].astype(float).tolist()
-    for _ in range(days):
-        nxt = predict_from_prices(model, prices, rarity_encoded, supertype_encoded)
-        if nxt is None:
-            return None
-        prices.append(max(nxt, 0.0))
-    return prices[-1]
+    """Single-shot horizon price. `days` should match training HORIZON_DAYS."""
+    del days  # model is trained for HORIZON_DAYS; rolling next-day is no longer used
+    prices = series.sort_values("date")["price"].astype(float)
+    return predict_from_prices(model, prices, rarity_encoded, supertype_encoded)
+
+
+def predicted_return_pct(
+    model,
+    series: pd.DataFrame,
+    rarity_encoded: float,
+    supertype_encoded: float,
+) -> float | None:
+    prices = series.sort_values("date")["price"]
+    ret = predict_horizon_return(model, prices, rarity_encoded, supertype_encoded)
+    return None if ret is None else float(ret * 100.0)

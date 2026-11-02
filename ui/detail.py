@@ -15,6 +15,7 @@ from database import (
     is_on_watchlist,
     remove_watchlist_card,
 )
+from ai_xgboost import HORIZON_DAYS
 from i18n import signal_label, t
 from services.forecast import card_history, lag_features_for_last_day, predict_next_close
 from services.live_prices import resolve_tcgplayer_id
@@ -113,8 +114,10 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
         predicted = float(card["predicted_price"])
     change_pct = (predicted - last_price) / last_price * 100.0
     lags = lag_features_for_last_day(market_series) or {
-        "price_lag_1": float(card.get("price_lag_1", last_price)),
-        "rolling_mean_7": float(card.get("rolling_mean_7", last_price)),
+        "ret_1": 0.0,
+        "ret_7": 0.0,
+        "vol_7": 0.0,
+        "dist_ma_7": 0.0,
     }
     day_change_pct = (
         (last_price - previous_price) / previous_price * 100.0 if previous_price else 0.0
@@ -181,7 +184,7 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
             last_price=last_price,
             predicted=float(predicted),
             hold_band=HOLD_BAND,
-            horizon_days=1,
+            horizon_days=int(HORIZON_DAYS),
         )
         explain_html = "".join(
             f"<div><strong>{escape(k)}</strong>: {escape(v)}</div>" for k, v in explain_rows

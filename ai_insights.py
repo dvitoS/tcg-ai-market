@@ -67,18 +67,20 @@ def explain_features(
     last_price: float,
     predicted: float,
     hold_band: float,
-    horizon_days: int = 1,
+    horizon_days: int = 7,
 ) -> list[tuple[str, str]]:
     """Human-readable feature dump for the detail panel."""
-    lag1 = float(lags.get("price_lag_1", last_price))
-    roll7 = float(lags.get("rolling_mean_7", last_price))
-    vs_roll = ((last_price - roll7) / roll7 * 100.0) if roll7 else 0.0
+    ret_1 = float(lags.get("ret_1", 0.0))
+    ret_7 = float(lags.get("ret_7", 0.0))
+    vol_7 = float(lags.get("vol_7", 0.0))
+    dist_ma_7 = float(lags.get("dist_ma_7", 0.0))
     move = ((predicted - last_price) / last_price * 100.0) if last_price else 0.0
     return [
-        ("Horizon", f"{horizon_days} trading day(s)"),
-        ("Yesterday close", f"{lag1:.4f}"),
-        ("7-day average", f"{roll7:.4f}"),
-        ("Spot vs 7d avg", f"{vs_roll:+.2f}%"),
+        ("Horizon", f"{horizon_days} trading day(s) forward return"),
+        ("1d return", f"{ret_1 * 100:+.2f}%"),
+        ("7d return", f"{ret_7 * 100:+.2f}%"),
+        ("7d volatility", f"{vol_7 * 100:.2f}%"),
+        ("Spot vs 7d MA", f"{dist_ma_7 * 100:+.2f}%"),
         ("Expected move", f"{move:+.2f}%"),
         ("HOLD band", f"±{hold_band * 100:.2f}%"),
         ("Disclaimer", "Not financial advice — model output only."),
