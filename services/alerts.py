@@ -9,8 +9,11 @@ import pandas as pd
 import streamlit as st
 
 from i18n import signal_label, t
+from trading_signals import SIGNAL_BUY, SIGNAL_SELL
 
 LOG = logging.getLogger("tcg.alerts")
+
+_ACTIONABLE = {SIGNAL_BUY, SIGNAL_SELL, "KUPI", "PRODAJ", "PRODAJ/ČEKAJ"}
 
 
 @dataclass
@@ -22,6 +25,8 @@ class WatchAlert:
     price: float
     reason: str = "ai"  # "ai" | "price" | "both"
     price_change_pct: float | None = None
+    conformal_ok: bool = True
+    sure: bool = False
 
 
 def _dismissed() -> set[str]:
@@ -46,14 +51,42 @@ def _cell(q, key: str, default=None):
     return getattr(q, key, default)
 
 
+def _truthy(raw, default: bool = True) -> bool:
+    if raw is None:
+        return default
+    if isinstance(raw, float) and pd.isna(raw):
+        return default
+    return bool(raw)
+
+
+def is_sure_alert(
+    *,
+    signal: str,
+    conformal_ok: bool,
+    confidence_ok: bool,
+    reason: str,
+) -> bool:
+    """Actionable AI signal with conformal + confidence gates (no price-only noise)."""
+    if not confidence_ok or not conformal_ok:
+        return False
+    if reason == "price":
+        return False
+    return str(signal or "").upper() in _ACTIONABLE
+
+
 def collect_watchlist_alerts(
     market: pd.DataFrame,
     watch: pd.DataFrame,
     *,
     threshold_pct: float = 5.0,
     dismissed: set[str] | None = None,
+    sure_only: bool = False,
 ) -> list[WatchAlert]:
-    """Watchlist cards where |AI ROI| or |7d price move| ≥ threshold."""
+    """Watchlist cards where |AI ROI| or |7d price move| ≥ threshold.
+
+    When ``sure_only`` is True, keep only conformal BUY/SELL (or both) hits —
+    drop uncertain intervals and pure 7d price moves.
+    """
     if market.empty or watch.empty or "id" not in market.columns:
         return []
     if dismissed is None:
@@ -71,10 +104,10 @@ def collect_watchlist_alerts(
         q = quotes.loc[card_id]
         if isinstance(q, pd.DataFrame):
             q = q.iloc[0]
-        conf_ok = _cell(q, "confidence_ok", True)
-        if conf_ok is not None and not (isinstance(conf_ok, float) and pd.isna(conf_ok)):
-            if not bool(conf_ok):
-                continue
+        conf_ok = _truthy(_cell(q, "confidence_ok", True), True)
+        c_ok = _truthy(_cell(q, "conformal_ok", True), True)
+        if not conf_ok:
+            continue
 
         exp_raw = _cell(q, "expected_change_pct")
         price_raw = _cell(q, "price_change_7d_pct")
@@ -99,6 +132,14 @@ def collect_watchlist_alerts(
         else:
             reason = "ai"
         signal = str(_cell(q, "signal", "") or "")
+        sure = is_sure_alert(
+            signal=signal,
+            conformal_ok=c_ok,
+            confidence_ok=conf_ok,
+            reason=reason,
+        )
+        if sure_only and not sure:
+            continue
         price = float(_cell(q, "price", 0) or 0)
         name = str(_cell(q, "name") or getattr(row, "name", card_id) or card_id)
         out.append(
@@ -110,14 +151,18 @@ def collect_watchlist_alerts(
                 price=price,
                 reason=reason,
                 price_change_pct=price_chg,
+                conformal_ok=c_ok,
+                sure=sure,
             )
         )
     out.sort(
-        key=lambda a: max(
-            abs(a.expected_pct),
-            abs(a.price_change_pct) if a.price_change_pct is not None else 0.0,
+        key=lambda a: (
+            0 if a.sure else 1,
+            -max(
+                abs(a.expected_pct),
+                abs(a.price_change_pct) if a.price_change_pct is not None else 0.0,
+            ),
         ),
-        reverse=True,
     )
     return out
 
@@ -178,15 +223,19 @@ def render_watchlist_digest(
     *,
     threshold_pct: float,
     money_fmt,
+    sure_only: bool = False,
 ) -> None:
     """In-app digest panel (portfolio) — denser than top banners."""
     if not alerts:
-        st.caption(t("alert_digest_empty", pct=threshold_pct))
+        empty_key = "alert_digest_empty_sure" if sure_only else "alert_digest_empty"
+        st.caption(t(empty_key, pct=threshold_pct))
         return
-    st.caption(t("alert_watch_caption", pct=threshold_pct))
+    cap_key = "alert_watch_caption_sure" if sure_only else "alert_watch_caption"
+    st.caption(t(cap_key, pct=threshold_pct))
     lines = []
     for alert in alerts[:15]:
-        lines.append(_alert_body(alert, money_fmt=money_fmt))
+        prefix = "✓ " if alert.sure else ""
+        lines.append(prefix + _alert_body(alert, money_fmt=money_fmt))
     st.markdown("\n\n".join(f"- {line}" for line in lines))
     if len(alerts) > 15:
         st.caption(t("alert_digest_more", n=len(alerts) - 15))
@@ -198,6 +247,7 @@ def safe_collect_and_render_alerts(
     user_id: str,
     threshold_pct: float,
     money_fmt,
+    sure_only: bool = True,
 ) -> None:
     """Load watchlist + render alerts; log failures instead of silent pass."""
     if not user_id:
@@ -206,9 +256,15 @@ def safe_collect_and_render_alerts(
         from database import load_watchlist
 
         watch_rows = load_watchlist(user_id=user_id)
-        alerts = collect_watchlist_alerts(market, watch_rows, threshold_pct=threshold_pct)
+        alerts = collect_watchlist_alerts(
+            market,
+            watch_rows,
+            threshold_pct=threshold_pct,
+            sure_only=sure_only,
+        )
         if alerts:
-            st.caption(t("alert_watch_caption", pct=threshold_pct))
+            cap_key = "alert_watch_caption_sure" if sure_only else "alert_watch_caption"
+            st.caption(t(cap_key, pct=threshold_pct))
             render_watchlist_alerts(alerts, money_fmt=money_fmt)
     except Exception as exc:
         LOG.warning("watchlist alerts failed: %s", exc)

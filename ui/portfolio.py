@@ -57,18 +57,30 @@ def load_portfolio_lots() -> pd.DataFrame:
 def render_watchlist_section(market: pd.DataFrame) -> None:
     st.markdown(f"##### {t('watchlist_title')}")
     uid = _current_user_id()
-    threshold_val = float(
-        st.number_input(
-            t("alert_threshold"),
-            min_value=1.0,
-            max_value=50.0,
-            value=float(st.session_state.get("watch_alert_threshold", 5.0)),
-            step=1.0,
-            key="watch_alert_threshold_input",
-            help=t("alert_threshold_help"),
+    c_thr, c_sure = st.columns([1.2, 1.4])
+    with c_thr:
+        threshold_val = float(
+            st.number_input(
+                t("alert_threshold"),
+                min_value=1.0,
+                max_value=50.0,
+                value=float(st.session_state.get("watch_alert_threshold", 5.0)),
+                step=1.0,
+                key="watch_alert_threshold_input",
+                help=t("alert_threshold_help"),
+            )
         )
-    )
+    with c_sure:
+        sure_only = bool(
+            st.toggle(
+                t("alert_sure_only"),
+                value=bool(st.session_state.get("watch_alert_sure_only", True)),
+                key="watch_alert_sure_only_input",
+                help=t("alert_sure_only_help"),
+            )
+        )
     st.session_state["watch_alert_threshold"] = threshold_val
+    st.session_state["watch_alert_sure_only"] = sure_only
     try:
         from services.email_alerts import smtp_configured
 
@@ -92,11 +104,18 @@ def render_watchlist_section(market: pd.DataFrame) -> None:
         from services.alerts import collect_watchlist_alerts, render_watchlist_digest
 
         digests = collect_watchlist_alerts(
-            market, watch, threshold_pct=threshold_val, dismissed=set()
+            market,
+            watch,
+            threshold_pct=threshold_val,
+            dismissed=set(),
+            sure_only=sure_only,
         )
         with st.expander(t("alert_digest_title", n=len(digests)), expanded=bool(digests)):
             render_watchlist_digest(
-                digests, threshold_pct=threshold_val, money_fmt=money
+                digests,
+                threshold_pct=threshold_val,
+                money_fmt=money,
+                sure_only=sure_only,
             )
     except Exception:
         pass

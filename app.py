@@ -138,11 +138,13 @@ def main() -> None:
         return
 
     threshold = float(st.session_state.get("watch_alert_threshold", 5.0))
+    sure_only = bool(st.session_state.get("watch_alert_sure_only", True))
     safe_collect_and_render_alerts(
         market,
         user_id=_current_user_id(),
         threshold_pct=threshold,
         money_fmt=money,
+        sure_only=sure_only,
     )
 
     if page == "explore":

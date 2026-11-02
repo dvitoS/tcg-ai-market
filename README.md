@@ -43,11 +43,11 @@ Optional: `JUSTTCG_API_KEY`, `TCG_API_KEY` (PokéWallet), eBay Browse keys, `SUP
 
 ### Watchlist alerts (in-app + optional email)
 
-Portfolio has an **Alert threshold (%)** field. When `|AI expected ROI|` or `|7d price change|` crosses it:
+Portfolio has **Alert threshold (%)** and a **Sure-only (conformal)** toggle (default on). Sure-only keeps conformal **BUY/SELL** with `|AI ROI| ≥ threshold` — drops uncertain intervals and pure 7d price moves.
 
 - Top-of-app dismissible banners
 - Portfolio **Alert digest** expander
-- Nightly **email digests** when SMTP is set (GitHub Actions **and/or** Cloud secrets)
+- Nightly **email digests** when SMTP is set (GitHub Actions **and/or** Cloud secrets; default sure-only)
 
 | Secret | Purpose |
 |--------|---------|
@@ -56,6 +56,7 @@ Portfolio has an **Alert threshold (%)** field. When `|AI expected ROI|` or `|7d
 | `SMTP_FROM` | From address |
 | `ALERT_EMAIL_TO` | Fallback recipient if user email lookup fails |
 | `ALERT_THRESHOLD_PCT` | Default `5` (email path; UI threshold is per session) |
+| `ALERT_SURE_ONLY` | Default `1` — nightly conformal BUY/SELL only (`0` = legacy) |
 
 Without SMTP, nightly skips email quietly; in-app digest still works.
 

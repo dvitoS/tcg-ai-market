@@ -33,13 +33,30 @@ def default_threshold_pct() -> float:
         return 5.0
 
 
-def format_digest(alerts: list[WatchAlert], *, threshold_pct: float) -> str:
+def default_sure_only() -> bool:
+    """Nightly digests default to sure-only (conformal BUY/SELL)."""
+    raw = (_clean("ALERT_SURE_ONLY") or "1").strip().lower()
+    return raw not in {"0", "false", "no", "off"}
+
+
+def format_digest(
+    alerts: list[WatchAlert],
+    *,
+    threshold_pct: float,
+    sure_only: bool = False,
+) -> str:
+    mode = (
+        f"sure-only conformal BUY/SELL · |AI ROI| ≥ {threshold_pct:g}%"
+        if sure_only
+        else f"|AI ROI| or |7d price| ≥ {threshold_pct:g}%"
+    )
     lines = [
-        f"TCG AI Market — watchlist alerts (|AI ROI| or |7d price| ≥ {threshold_pct:g}%)",
+        f"TCG AI Market — watchlist alerts ({mode})",
         "",
     ]
     for alert in alerts[:25]:
-        bits = [f"• {alert.name} ({alert.card_id})"]
+        mark = "✓" if alert.sure else "•"
+        bits = [f"{mark} {alert.name} ({alert.card_id})"]
         if alert.reason in {"ai", "both"}:
             bits.append(f"AI {alert.expected_pct:+.1f}%")
         if alert.price_change_pct is not None and alert.reason in {"price", "both"}:
@@ -114,12 +131,14 @@ def send_watchlist_digests(
     market: pd.DataFrame,
     *,
     threshold_pct: float | None = None,
+    sure_only: bool | None = None,
 ) -> dict[str, Any]:
     """Email each watchlist owner (and optional ALERT_EMAIL_TO) a digest.
 
     No-op when SMTP is not configured. Never raises for partial user failures.
+    Defaults to sure-only (conformal BUY/SELL) unless ALERT_SURE_ONLY=0.
     """
-    stats = {"users": 0, "sent": 0, "skipped": 0, "alerts": 0}
+    stats = {"users": 0, "sent": 0, "skipped": 0, "alerts": 0, "sure_only": False}
     if not smtp_configured():
         LOG.info("SMTP not configured — skipping watchlist email digests")
         return stats
@@ -127,6 +146,8 @@ def send_watchlist_digests(
         return stats
 
     threshold = float(threshold_pct if threshold_pct is not None else default_threshold_pct())
+    use_sure = bool(default_sure_only() if sure_only is None else sure_only)
+    stats["sure_only"] = use_sure
     try:
         from database import load_all_watchlists
 
@@ -145,6 +166,7 @@ def send_watchlist_digests(
             group,
             threshold_pct=threshold,
             dismissed=set(),
+            sure_only=use_sure,
         )
         if not alerts:
             stats["skipped"] += 1
@@ -155,8 +177,9 @@ def send_watchlist_digests(
             LOG.warning("No email for user_id=%s — skip digest", user_id)
             stats["skipped"] += 1
             continue
-        body = format_digest(alerts, threshold_pct=threshold)
-        subject = f"[TCG AI] {len(alerts)} watchlist alert(s)"
+        body = format_digest(alerts, threshold_pct=threshold, sure_only=use_sure)
+        kind = "sure" if use_sure else "watchlist"
+        subject = f"[TCG AI] {len(alerts)} {kind} alert(s)"
         if send_smtp_email(to_addr=to_addr, subject=subject, body=body):
             stats["sent"] += 1
         else:
