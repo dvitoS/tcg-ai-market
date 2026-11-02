@@ -14,14 +14,14 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 
 from database import load_history_frame
-from trading_signals import FORECAST_DAYS, HOLD_BAND
+from trading_signals import FORECAST_DAYS, FORECAST_SIGNAL_BAND
 
 RANDOM_SEED = 42
 TEST_SIZE = 0.2
 # Product horizon = scanner / portfolio outlook (competitors often use 30–90d).
 HORIZON_DAYS = int(FORECAST_DAYS)
 # Days with |7d return| below this count as flat for direction scoring.
-RETURN_HOLD_BAND = max(float(HOLD_BAND), 0.02)
+RETURN_HOLD_BAND = float(FORECAST_SIGNAL_BAND)
 
 RETURN_FEATURES = [
     "ret_1",
@@ -31,6 +31,8 @@ RETURN_FEATURES = [
     "dist_ma_7",
     "dist_ma_30",
     "log_price",
+    "set_ret_7",
+    "rel_ret_7",
 ]
 FEATURE_COLUMNS = RETURN_FEATURES + ["rarity_encoded", "supertype_encoded"]
 FEATURE_LABELS = {
@@ -41,6 +43,8 @@ FEATURE_LABELS = {
     "dist_ma_7": "vs 7d MA",
     "dist_ma_30": "vs 30d MA",
     "log_price": "log price",
+    "set_ret_7": "set median 7d return",
+    "rel_ret_7": "card vs set 7d",
     "rarity_encoded": "rarity",
     "supertype_encoded": "supertype",
 }
@@ -122,6 +126,11 @@ def add_time_features(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, LabelEn
     featured["dist_ma_7"] = featured["price"] / featured["ma_7"] - 1.0
     featured["dist_ma_30"] = featured["price"] / featured["ma_30"] - 1.0
     featured["log_price"] = np.log(featured["price"].clip(lower=1e-6))
+    # Set context: median peer 7d return that day ("laggard in a hot set").
+    featured["set_ret_7"] = featured.groupby(["set_name", "date"], sort=False)["ret_7"].transform(
+        "median"
+    )
+    featured["rel_ret_7"] = featured["ret_7"] - featured["set_ret_7"]
     future = price.shift(-HORIZON_DAYS)
     featured["target_price"] = future
     featured["target_return"] = future / featured["price"] - 1.0

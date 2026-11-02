@@ -76,7 +76,8 @@ Nightly refreshes history, optionally backfills `tcgplayer_id`, retrains the mod
 
 - `app.py` — Streamlit entry  
 - `services/exchange.py` — fast boot (`market_quotes` + model) or full rebuild  
-- **AI model** — XGBoost on **7-day forward return** (not next-day $ price), with return/vol/MA features; scored vs 0% naive + direction accuracy on a time-based holdout  
+- **AI model** — XGBoost on **7-day forward return** (not next-day $ price), with return/vol/MA + **set-relative** features (“laggard in hot set”); BUY/SELL gated at ±2% over 7d; scored vs 0% naive + direction accuracy on a time-based holdout  
+
 
 - `database_*.py` — clients / catalog / user (facade: `database.py`)  
 - `pokemon_tcg_client.py` / `pokewallet_client.py` — facade: `api_client.py`  

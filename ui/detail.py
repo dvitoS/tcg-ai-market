@@ -19,7 +19,7 @@ from ai_xgboost import HORIZON_DAYS
 from i18n import signal_label, t
 from services.forecast import card_history, lag_features_for_last_day, predict_next_close
 from services.live_prices import resolve_tcgplayer_id
-from trading_signals import HOLD_BAND, SIGNAL_CLASS, trading_signal
+from trading_signals import FORECAST_SIGNAL_BAND, SIGNAL_CLASS, trading_signal
 from ui.detail_chart import render_detail_compare_chart
 from ui.detail_ebay import render_detail_ebay_sections
 
@@ -178,12 +178,12 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
             )
         else:
             st.info(t("ai_low_confidence"))
-        st.caption(t("ai_caption", band=HOLD_BAND * 100))
+        st.caption(t("ai_caption", band=FORECAST_SIGNAL_BAND * 100))
         explain_rows = explain_features(
             lags=lags,
             last_price=last_price,
             predicted=float(predicted),
-            hold_band=HOLD_BAND,
+            hold_band=FORECAST_SIGNAL_BAND,
             horizon_days=int(HORIZON_DAYS),
         )
         explain_html = "".join(

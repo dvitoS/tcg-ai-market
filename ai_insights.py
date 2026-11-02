@@ -9,12 +9,12 @@ import pandas as pd
 
 def series_confidence(*, points: int, used_db_fallback: bool = False) -> dict[str, Any]:
     """Gate trading-signal confidence from data quality."""
-    if points < 8:
+    if points < 15:
         return {
             "level": "low",
             "ok": False,
             "reason_key": "conf_short",
-            "reason": "Series shorter than 8 days — lag features are incomplete.",
+            "reason": "Series shorter than 15 days — 7d return features are incomplete.",
         }
     if used_db_fallback:
         return {
@@ -23,18 +23,18 @@ def series_confidence(*, points: int, used_db_fallback: bool = False) -> dict[st
             "reason_key": "conf_fallback",
             "reason": "Live JustTCG NM was empty — forecast uses saved DB history; treat signal cautiously.",
         }
-    if points < 20:
+    if points < 30:
         return {
             "level": "medium",
             "ok": True,
             "reason_key": "conf_medium",
-            "reason": "Short series — treat the signal as directional only.",
+            "reason": "Short series — treat the 7d return signal as directional only.",
         }
     return {
         "level": "high",
         "ok": True,
         "reason_key": "conf_high",
-        "reason": "Enough history for next-day lag features.",
+        "reason": "Enough history for 7d return / set-relative features.",
     }
 
 
@@ -74,11 +74,15 @@ def explain_features(
     ret_7 = float(lags.get("ret_7", 0.0))
     vol_7 = float(lags.get("vol_7", 0.0))
     dist_ma_7 = float(lags.get("dist_ma_7", 0.0))
+    set_ret_7 = float(lags.get("set_ret_7", 0.0))
+    rel_ret_7 = float(lags.get("rel_ret_7", 0.0))
     move = ((predicted - last_price) / last_price * 100.0) if last_price else 0.0
     return [
         ("Horizon", f"{horizon_days} trading day(s) forward return"),
         ("1d return", f"{ret_1 * 100:+.2f}%"),
         ("7d return", f"{ret_7 * 100:+.2f}%"),
+        ("Set median 7d", f"{set_ret_7 * 100:+.2f}%"),
+        ("Card vs set", f"{rel_ret_7 * 100:+.2f}%"),
         ("7d volatility", f"{vol_7 * 100:.2f}%"),
         ("Spot vs 7d MA", f"{dist_ma_7 * 100:+.2f}%"),
         ("Expected move", f"{move:+.2f}%"),
