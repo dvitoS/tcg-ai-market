@@ -109,7 +109,6 @@ EXPLORE_CARD_HIT_JS = """
 
 
 
-@st.cache_resource(show_spinner="Loading history and training XGBoost...")
 def select_explore_card(card_id: str) -> None:
     """Streamlit on_click — detail-first inside Catalog."""
     st.session_state["market_selected_id"] = str(card_id)
