@@ -193,11 +193,12 @@ def build_market_board(
     if keep_ids and "card_id" in history.columns:
         history = history.loc[history["card_id"].astype(str).isin(keep_ids)].copy()
     if persist:
-        try:
-            saved = save_market_quotes(quotes)
-            LOG.info("Persisted market_quotes rows=%s", saved)
-        except Exception as exc:
-            LOG.warning("market_quotes persist failed: %s", exc)
+        saved = save_market_quotes(quotes)
+        LOG.info("Persisted market_quotes rows=%s", saved)
+        if len(quotes) > 0 and saved <= 0:
+            raise RuntimeError(
+                f"market_quotes persist saved 0 of {len(quotes)} rows — check table/schema"
+            )
     return history, quotes, model
 
 

@@ -4,7 +4,7 @@ Streamlit wipes st.session_state on browser refresh. We persist an opaque
 session id in the URL (?sid=) and store JWT material in Supabase table
 `auth_sessions` (service_role only) so Streamlit Cloud / multi-instance works.
 
-Fallback: local `.data/auth_sessions/` if the table is missing (dev only).
+Local `.data/auth_sessions/` is allowed only off Cloud (single-process dev).
 """
 
 from __future__ import annotations
@@ -103,6 +103,13 @@ def _safe_sid(sid: str) -> str:
     if not safe or safe != sid:
         raise ValueError("Invalid session id")
     return safe
+
+
+def _allow_local_session_fallback() -> bool:
+    """Disk sessions are not durable across Streamlit Cloud workers."""
+    from config import _is_streamlit_cloud
+
+    return not _is_streamlit_cloud()
 
 
 def _sessions_dir() -> Path:
@@ -232,25 +239,58 @@ def _delete_supabase_session(sid: str) -> None:
 
 def _write_server_session(sid: str, *, user: dict[str, Any], access: str, refresh: str) -> None:
     if _write_supabase_session(sid, user=user, access=access, refresh=refresh):
-        # Keep local mirror for faster local restarts; ignore failures.
-        try:
-            _write_local_session(sid, user=user, access=access, refresh=refresh)
-        except Exception:
-            pass
+        if _allow_local_session_fallback():
+            # Local mirror for faster single-process restarts; ignore failures.
+            try:
+                _write_local_session(sid, user=user, access=access, refresh=refresh)
+            except Exception:
+                pass
         return
-    _write_local_session(sid, user=user, access=access, refresh=refresh)
+    if _allow_local_session_fallback():
+        _write_local_session(sid, user=user, access=access, refresh=refresh)
+        return
+    raise RuntimeError(
+        "Could not persist auth session to Supabase auth_sessions. "
+        "Run supabase_auth_sessions.sql and check the service_role key."
+    )
 
 
 def _read_server_session(sid: str) -> dict[str, Any] | None:
     data = _read_supabase_session(sid)
     if data is not None:
         return data
-    return _read_local_session(sid)
+    if _allow_local_session_fallback():
+        return _read_local_session(sid)
+    return None
 
 
 def _delete_server_session(sid: str) -> None:
     _delete_supabase_session(sid)
-    _delete_local_session(sid)
+    if _allow_local_session_fallback():
+        _delete_local_session(sid)
+
+
+def purge_expired_auth_sessions() -> int:
+    """Delete expired auth_sessions rows (service_role). Returns deleted count guess."""
+    client = _service_client()
+    if client is None:
+        return 0
+    now = datetime.now(timezone.utc).isoformat()
+    try:
+        response = (
+            client.table(AUTH_SESSIONS_TABLE)
+            .delete()
+            .lt("expires_at", now)
+            .execute()
+        )
+        rows = list(response.data or [])
+        deleted = len(rows)
+        if deleted:
+            LOG.info("Purged %s expired auth_sessions", deleted)
+        return deleted
+    except Exception as exc:
+        LOG.warning("purge_expired_auth_sessions failed: %s", exc)
+        return 0
 
 
 def _get_sid() -> str:

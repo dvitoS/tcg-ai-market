@@ -173,13 +173,13 @@ def retrain_ai() -> dict[str, float | int]:
         metrics["rmse"],
         metrics["r2"],
     )
-    try:
-        _history, quotes, _model = build_market_board(persist=True)
-        metrics = dict(metrics)
-        metrics["quotes"] = int(len(quotes))
-        LOG.info("market_quotes refreshed: %s rows", metrics["quotes"])
-    except Exception as exc:
-        LOG.warning("market_quotes refresh failed: %s", exc)
+    _history, quotes, _model = build_market_board(persist=True)
+    quote_n = int(len(quotes)) if quotes is not None else 0
+    metrics = dict(metrics)
+    metrics["quotes"] = quote_n
+    LOG.info("market_quotes refreshed: %s rows", quote_n)
+    if quote_n <= 0:
+        raise RuntimeError("market_quotes board is empty after rebuild")
     return metrics
 
 
@@ -259,6 +259,15 @@ def run_nightly() -> int:
     except Exception as exc:
         _report_error("retrain_ai", exc)
         failures.append("retrain")
+
+    try:
+        from auth import purge_expired_auth_sessions
+
+        purged = purge_expired_auth_sessions()
+        LOG.info("auth_sessions purge: %s", purged)
+    except Exception as exc:
+        _report_error("purge_auth_sessions", exc)
+        # Non-fatal — session table bloat should not fail the nightly.
 
     try:
         print_summary()
