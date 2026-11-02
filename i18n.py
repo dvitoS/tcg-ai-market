@@ -249,7 +249,7 @@ _TEXT: dict[str, str] = {
         "col_current": "Current price",
         "col_ai_target": "AI target price",
         "col_roi": "Expected ROI (%)",
-        "load_exchange": "Loading history and training XGBoost...",
+        "load_exchange": "Loading market history and AI model...",
         "chart_title": "{name} · price history",
         "xaxis_date": "Date",
         "supabase_secrets_help": """**Streamlit Cloud → ⋮ Manage app → Settings → Secrets**  
@@ -272,6 +272,7 @@ Never set `AUTH_DISABLED` on Cloud.""",
 1. Open [Supabase Dashboard](https://supabase.com/dashboard) → your project  
 2. Left: **SQL Editor** → **New query**  
 3. Copy `supabase_schema.sql` (new projects) or `supabase_rls_harden.sql` (existing) → **Run**  
+   Also run `supabase_auth_sessions.sql` + `supabase_model_artifacts.sql` for Cloud login + model cache.  
 4. **Table Editor**: you should see `cards`, `price_history`, `portfolio`, `watchlist`  
 5. If the app still errors: **Project Settings → API → Reload schema**  
 6. Streamlit → **Reboot**""",

@@ -252,7 +252,10 @@ def fit_predictor() -> tuple[xgb.XGBRegressor, pd.DataFrame]:
 
 
 def retrain_model() -> dict[str, float | int]:
-    """Ponovno trenira XGBoost na cijelom price_history. Za nightly_update."""
+    """Ponovno trenira XGBoost na cijelom price_history. Za nightly_update.
+
+    Persists the artifact to Supabase / local disk so Streamlit can skip retrain.
+    """
     history = load_history()
     featured, _encoders = add_time_features(history)
     trainable = drop_incomplete_rows(featured)
@@ -262,12 +265,19 @@ def retrain_model() -> dict[str, float | int]:
     X_train, X_test, y_train, y_test = split_features(trainable)
     model = train_xgboost(X_train, y_train)
     rmse, r2 = evaluate_model(model, X_test, y_test)
-    return {
+    metrics: dict[str, float | int] = {
         "rows": int(len(trainable)),
         "cards": int(history["card_id"].nunique()),
         "rmse": float(rmse),
         "r2": float(r2),
     }
+    try:
+        from services.model_store import save_model_artifact
+
+        save_model_artifact(model, metrics=metrics, feature_columns=list(FEATURE_COLUMNS))
+    except Exception as exc:
+        print(f"Model artifact save failed: {exc}", file=sys.stderr)
+    return metrics
 
 
 def main() -> int:

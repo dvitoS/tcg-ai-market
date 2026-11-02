@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import logging
+
 import pandas as pd
 import streamlit as st
 
 from ai_insights import confidence_by_card
 from ai_xgboost import (
+    FEATURE_COLUMNS,
     add_time_features,
     card_forecasts,
     drop_incomplete_rows,
@@ -18,10 +21,42 @@ from database import ensure_seed_database, init_db
 from generate_history import ensure_price_history
 from trading_signals import SIGNAL_HOLD, assign_signals
 
+LOG = logging.getLogger("tcg.exchange")
+
+
+def _resolve_model(featured: pd.DataFrame):
+    """Load persisted model when possible; otherwise train and save."""
+    from services.model_store import load_model_artifact, save_model_artifact
+
+    loaded = load_model_artifact()
+    if loaded is not None:
+        model, meta = loaded
+        cols = list(meta.get("feature_columns") or [])
+        if not cols or cols == list(FEATURE_COLUMNS):
+            LOG.info(
+                "Using persisted XGBoost model (trained_at=%s)",
+                meta.get("trained_at"),
+            )
+            return model, False
+        LOG.warning("Persisted model feature mismatch — retraining.")
+
+    trainable = drop_incomplete_rows(featured)
+    X_train, _X_test, y_train, _y_test = split_features(trainable)
+    model = train_xgboost(X_train, y_train)
+    try:
+        save_model_artifact(
+            model,
+            metrics={"rows": int(len(trainable)), "source": "load_exchange"},
+            feature_columns=list(FEATURE_COLUMNS),
+        )
+    except Exception as exc:
+        LOG.warning("Could not persist freshly trained model: %s", exc)
+    return model, True
+
 
 @st.cache_resource(show_spinner=False)
 def load_exchange() -> tuple[pd.DataFrame, pd.DataFrame, object]:
-    """Load history, train model, assign signals.
+    """Load history, resolve model (persisted or train), assign signals.
 
     Cached as a resource so Streamlit reruns do not retrain XGBoost every click.
     Clear via clear_exchange_cache() after catalog sync / nightly.
@@ -35,9 +70,7 @@ def load_exchange() -> tuple[pd.DataFrame, pd.DataFrame, object]:
         ensure_price_history()
     history = load_history()
     featured, _encoders = add_time_features(history)
-    trainable = drop_incomplete_rows(featured)
-    X_train, _X_test, y_train, _y_test = split_features(trainable)
-    model = train_xgboost(X_train, y_train)
+    model, _trained_now = _resolve_model(featured)
     quotes = assign_signals(card_forecasts(model, featured))
     conf = confidence_by_card(history)
     if not conf.empty:

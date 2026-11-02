@@ -1,12 +1,10 @@
 """Supabase Auth helpers for Streamlit (email + password).
 
-Streamlit wipes st.session_state on browser refresh. CookieManager is unreliable
-inside Streamlit's sandboxed iframes, so we persist an opaque session id:
+Streamlit wipes st.session_state on browser refresh. We persist an opaque
+session id in the URL (?sid=) and store JWT material in Supabase table
+`auth_sessions` (service_role only) so Streamlit Cloud / multi-instance works.
 
-  1. On login → save tokens under .data/auth_sessions/<sid>.json
-  2. Put sid in st.query_params (survives refresh) + session_state
-  3. On bootstrap → load sid from query/session and restore tokens
-  4. On logout → delete file + clear sid from URL
+Fallback: local `.data/auth_sessions/` if the table is missing (dev only).
 """
 
 from __future__ import annotations
@@ -15,6 +13,7 @@ import json
 import logging
 import secrets
 import time
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -33,6 +32,7 @@ SESSION_SID_KEY = "auth_sid"
 QUERY_SID = "sid"
 SESSIONS_DIR = PROJECT_ROOT / ".data" / "auth_sessions"
 SESSION_TTL_SECONDS = 60 * 60 * 24 * 30  # 30 days
+AUTH_SESSIONS_TABLE = "auth_sessions"
 
 
 def _auth_client() -> Client:
@@ -44,6 +44,17 @@ def _auth_client() -> Client:
             "Do not use the service_role key for login."
         )
     return create_client(normalize_supabase_url(url), key)
+
+
+def _service_client() -> Client | None:
+    """Service-role client for auth_sessions (never use for portfolio RLS)."""
+    try:
+        from database import get_supabase
+
+        return get_supabase()
+    except Exception as exc:
+        LOG.warning("service client unavailable: %s", exc)
+        return None
 
 
 def current_user() -> dict[str, Any] | None:
@@ -87,30 +98,33 @@ def has_jwt_tokens() -> bool:
     return bool(str(st.session_state.get(SESSION_ACCESS_KEY) or "").strip())
 
 
+def _safe_sid(sid: str) -> str:
+    safe = "".join(ch for ch in sid if ch.isalnum() or ch in {"-", "_"})
+    if not safe or safe != sid:
+        raise ValueError("Invalid session id")
+    return safe
+
+
 def _sessions_dir() -> Path:
     SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
     return SESSIONS_DIR
 
 
 def _session_path(sid: str) -> Path:
-    safe = "".join(ch for ch in sid if ch.isalnum() or ch in {"-", "_"})
-    if not safe or safe != sid:
-        raise ValueError("Invalid session id")
-    return _sessions_dir() / f"{safe}.json"
+    return _sessions_dir() / f"{_safe_sid(sid)}.json"
 
 
-def _write_server_session(sid: str, *, user: dict[str, Any], access: str, refresh: str) -> None:
+def _write_local_session(sid: str, *, user: dict[str, Any], access: str, refresh: str) -> None:
     payload = {
         "user": {"id": str(user.get("id") or ""), "email": str(user.get("email") or "")},
         "access_token": access,
         "refresh_token": refresh,
         "updated_at": int(time.time()),
     }
-    path = _session_path(sid)
-    path.write_text(json.dumps(payload), encoding="utf-8")
+    _session_path(sid).write_text(json.dumps(payload), encoding="utf-8")
 
 
-def _read_server_session(sid: str) -> dict[str, Any] | None:
+def _read_local_session(sid: str) -> dict[str, Any] | None:
     try:
         path = _session_path(sid)
     except ValueError:
@@ -120,7 +134,7 @@ def _read_server_session(sid: str) -> dict[str, Any] | None:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except Exception as exc:
-        LOG.warning("read session %s failed: %s", sid[:8], exc)
+        LOG.warning("read local session failed: %s", exc)
         return None
     if not isinstance(data, dict):
         return None
@@ -134,11 +148,109 @@ def _read_server_session(sid: str) -> dict[str, Any] | None:
     return data
 
 
-def _delete_server_session(sid: str) -> None:
+def _delete_local_session(sid: str) -> None:
     try:
         _session_path(sid).unlink(missing_ok=True)
     except Exception as exc:
-        LOG.warning("delete session failed: %s", exc)
+        LOG.warning("delete local session failed: %s", exc)
+
+
+def _write_supabase_session(
+    sid: str, *, user: dict[str, Any], access: str, refresh: str
+) -> bool:
+    client = _service_client()
+    if client is None:
+        return False
+    now = datetime.now(timezone.utc)
+    expires = now + timedelta(seconds=SESSION_TTL_SECONDS)
+    row = {
+        "sid": _safe_sid(sid),
+        "user_id": str(user.get("id") or "") or None,
+        "email": str(user.get("email") or "") or None,
+        "access_token": access or None,
+        "refresh_token": refresh or None,
+        "updated_at": now.isoformat(),
+        "expires_at": expires.isoformat(),
+    }
+    try:
+        client.table(AUTH_SESSIONS_TABLE).upsert(row, on_conflict="sid").execute()
+        return True
+    except Exception as exc:
+        LOG.warning("supabase auth_sessions upsert failed: %s", exc)
+        return False
+
+
+def _read_supabase_session(sid: str) -> dict[str, Any] | None:
+    client = _service_client()
+    if client is None:
+        return None
+    try:
+        response = (
+            client.table(AUTH_SESSIONS_TABLE)
+            .select("sid,user_id,email,access_token,refresh_token,updated_at,expires_at")
+            .eq("sid", _safe_sid(sid))
+            .limit(1)
+            .execute()
+        )
+    except Exception as exc:
+        LOG.warning("supabase auth_sessions read failed: %s", exc)
+        return None
+    rows = list(response.data or [])
+    if not rows:
+        return None
+    row = rows[0]
+    expires_raw = row.get("expires_at")
+    if expires_raw:
+        try:
+            expires_at = datetime.fromisoformat(str(expires_raw).replace("Z", "+00:00"))
+            if expires_at.tzinfo is None:
+                expires_at = expires_at.replace(tzinfo=timezone.utc)
+            if expires_at < datetime.now(timezone.utc):
+                _delete_supabase_session(sid)
+                return None
+        except Exception:
+            pass
+    return {
+        "user": {
+            "id": str(row.get("user_id") or ""),
+            "email": str(row.get("email") or ""),
+        },
+        "access_token": str(row.get("access_token") or ""),
+        "refresh_token": str(row.get("refresh_token") or ""),
+    }
+
+
+def _delete_supabase_session(sid: str) -> None:
+    client = _service_client()
+    if client is None:
+        return
+    try:
+        client.table(AUTH_SESSIONS_TABLE).delete().eq("sid", _safe_sid(sid)).execute()
+    except Exception as exc:
+        LOG.warning("supabase auth_sessions delete failed: %s", exc)
+
+
+def _write_server_session(sid: str, *, user: dict[str, Any], access: str, refresh: str) -> None:
+    if _write_supabase_session(sid, user=user, access=access, refresh=refresh):
+        # Keep local mirror for faster local restarts; ignore failures.
+        try:
+            _write_local_session(sid, user=user, access=access, refresh=refresh)
+        except Exception:
+            pass
+        return
+    _write_local_session(sid, user=user, access=access, refresh=refresh)
+
+
+def _read_server_session(sid: str) -> dict[str, Any] | None:
+    data = _read_supabase_session(sid)
+    if data is not None:
+        return data
+    return _read_local_session(sid)
+
+
+def _delete_server_session(sid: str) -> None:
+    _delete_supabase_session(sid)
+    _delete_local_session(sid)
 
 
 def _get_sid() -> str:
@@ -175,7 +287,7 @@ def _clear_sid() -> None:
 
 
 def _persist_current_session() -> None:
-    """Write tokens to disk and keep sid in the URL."""
+    """Write tokens to Supabase (or local fallback) and keep sid in the URL."""
     user = current_user() or {}
     access = str(st.session_state.get(SESSION_ACCESS_KEY) or "").strip()
     refresh = str(st.session_state.get(SESSION_REFRESH_KEY) or "").strip()
@@ -260,7 +372,6 @@ def _restore_from_server() -> bool:
         return False
     _bind_sid(sid)
     if has_jwt_tokens():
-        # Best-effort rotate tokens; keep existing if refresh fails.
         refresh_session()
         return has_jwt_tokens() or bool(st.session_state.get(SESSION_REFRESH_KEY))
     if refresh_session() and has_jwt_tokens():
@@ -277,7 +388,6 @@ def bootstrap_auth() -> None:
         return
 
     if is_authenticated() and has_jwt_tokens():
-        # Keep server copy fresh while the tab stays open.
         _persist_current_session()
         return
 
@@ -285,7 +395,7 @@ def bootstrap_auth() -> None:
 
 
 def persist_cookies_now() -> None:
-    """Back-compat no-op name — durable session is written in _store_session."""
+    """Back-compat name — durable session is written in _store_session."""
     _persist_current_session()
 
 

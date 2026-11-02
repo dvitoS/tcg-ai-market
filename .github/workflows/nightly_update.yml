@@ -113,6 +113,11 @@ jobs:
           NIGHTLY_SKIP_CATALOG: ${{ github.event_name == 'workflow_dispatch' && inputs.refresh_catalog == false && '1' || '0' }}
           # Manual default "all" so Streamlit sees every $5+ card (synthetic history fills gaps).
           NIGHTLY_CARD_LIMIT: ${{ github.event_name == 'workflow_dispatch' && inputs.card_limit || 'all' }}
+          # Resolve missing cards.tcgplayer_id via TCGplayer public search (drip).
+          NIGHTLY_BACKFILL_TCP: "1"
+          NIGHTLY_BACKFILL_TCP_LIMIT: "40"
+          # Keep JustTCG search off by default (429 risk); TCP search is primary.
+          NIGHTLY_BACKFILL_JUSTTCG: "0"
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
           JUSTTCG_API_KEY: ${{ secrets.JUSTTCG_API_KEY }}

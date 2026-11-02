@@ -126,4 +126,7 @@ grant all on table public.portfolio to postgres, anon, authenticated, service_ro
 grant all on table public.watchlist to postgres, anon, authenticated, service_role;
 grant usage, select on all sequences in schema public to postgres, anon, authenticated, service_role;
 
+-- See also: supabase_auth_sessions.sql, supabase_model_artifacts.sql,
+-- supabase_rls_harden.sql for incremental multi-user / Cloud hardening.
+
 notify pgrst, 'reload schema';
