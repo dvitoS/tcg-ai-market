@@ -8,7 +8,7 @@ import requests
 
 from api_client import TCGRateLimitError, fetch_card_price_history
 from config import PAGE_SIZE, TCG_API_KEY
-from database import Card, init_db, list_cards, replace_card_history, table_count
+from database import Card, init_db, list_cards, list_cards_for_sync, replace_card_history, table_count
 
 
 def top_cards(limit: int = PAGE_SIZE) -> list[Card]:
@@ -22,7 +22,7 @@ def sync_live_price_history(limit: int | None = PAGE_SIZE) -> dict[str, int]:
         )
 
     init_db()
-    cards = list_cards(limit=limit, order_price_desc=True)
+    cards = list_cards_for_sync(limit=limit)
     if not cards:
         print("Nema karata u bazi. Prvo pokreni main.py.")
         return {"updated": 0, "skipped": 0, "saved": 0, "total_history": 0}

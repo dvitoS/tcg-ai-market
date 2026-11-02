@@ -65,9 +65,20 @@ def render_watchlist_section(market: pd.DataFrame) -> None:
             value=float(st.session_state.get("watch_alert_threshold", 5.0)),
             step=1.0,
             key="watch_alert_threshold_input",
+            help=t("alert_threshold_help"),
         )
     )
     st.session_state["watch_alert_threshold"] = threshold_val
+    try:
+        from services.email_alerts import smtp_configured
+
+        if smtp_configured():
+            st.caption(t("alert_email_enabled"))
+        else:
+            st.caption(t("alert_email_optional"))
+    except Exception:
+        st.caption(t("alert_email_optional"))
+
     try:
         watch = load_watchlist(user_id=uid)
     except Exception:
@@ -76,6 +87,20 @@ def render_watchlist_section(market: pd.DataFrame) -> None:
     if watch.empty:
         st.caption(t("watchlist_empty"))
         return
+
+    try:
+        from services.alerts import collect_watchlist_alerts, render_watchlist_digest
+
+        digests = collect_watchlist_alerts(
+            market, watch, threshold_pct=threshold_val, dismissed=set()
+        )
+        with st.expander(t("alert_digest_title", n=len(digests)), expanded=bool(digests)):
+            render_watchlist_digest(
+                digests, threshold_pct=threshold_val, money_fmt=money
+            )
+    except Exception:
+        pass
+
     quotes = market.set_index("id") if "id" in market.columns else None
     for row in watch.itertuples(index=False):
         c1, c2, c3 = st.columns([3.2, 1.6, 1])

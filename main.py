@@ -5,7 +5,7 @@ import sys
 import requests
 
 from api_client import clean_cards, fetch_cards
-from config import CATALOG_MIN_PRICE, CATALOG_SETS, TCG_API_KEY
+from config import CATALOG_MIN_PRICE, TCG_API_KEY, catalog_sets
 from database import cards_summary, init_db, list_cards, upsert_cards
 from generate_history import ensure_price_history
 
@@ -40,9 +40,10 @@ def main() -> int:
         print("Inicijaliziram Supabase tablice...")
         init_db()
 
-        labels = ", ".join(f"{name} ({sid})" for sid, name in CATALOG_SETS)
+        sets = catalog_sets()
+        labels = ", ".join(f"{name} ({sid})" for sid, name in sets)
         print(f"Katalog: {labels} · min ${CATALOG_MIN_PRICE:.2f}")
-        raw_cards = fetch_cards(set_ids=list(CATALOG_SETS), paginate=True)
+        raw_cards = fetch_cards(set_ids=list(sets), paginate=True)
         cleaned = clean_cards(raw_cards, min_price=CATALOG_MIN_PRICE)
         save_cards(cleaned)
         if TCG_API_KEY:

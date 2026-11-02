@@ -73,3 +73,16 @@ def test_get_supabase_auth_credentials_never_falls_back_to_service(config_mod, m
     url, anon = config_mod.get_supabase_auth_credentials()
     assert url == "https://abc.supabase.co"
     assert anon == ""
+
+
+def test_catalog_sets_default_nonempty(config_mod):
+    sets = config_mod.catalog_sets()
+    assert len(sets) >= 5
+    assert all(len(pair) == 2 and pair[0] and pair[1] for pair in sets)
+
+
+def test_catalog_sets_env_override(config_mod, monkeypatch):
+    monkeypatch.setenv("CATALOG_SET_IDS", "sv8:Surging Sparks,swsh7:Evolving Skies")
+    monkeypatch.setattr(config_mod, "_secret", lambda name, default="": "")
+    sets = config_mod.catalog_sets()
+    assert sets == (("sv8", "Surging Sparks"), ("swsh7", "Evolving Skies"))

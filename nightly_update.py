@@ -77,16 +77,17 @@ def _report_error(phase: str, exc: BaseException) -> None:
 
 def refresh_card_catalog() -> int:
     from api_client import clean_cards, fetch_cards
-    from config import CATALOG_MIN_PRICE, CATALOG_SETS
+    from config import CATALOG_MIN_PRICE, catalog_sets
     from main import save_cards
 
-    labels = ", ".join(f"{name} ({sid})" for sid, name in CATALOG_SETS)
+    sets = catalog_sets()
+    labels = ", ".join(f"{name} ({sid})" for sid, name in sets)
     LOG.info(
         "Korak 1/3: osvježavam katalog karata [%s], min $%.2f...",
         labels,
         CATALOG_MIN_PRICE,
     )
-    raw = fetch_cards(set_ids=list(CATALOG_SETS), paginate=True)
+    raw = fetch_cards(set_ids=list(sets), paginate=True)
     if not raw:
         raise RuntimeError(
             "Katalog: nijedan set nije vraćen s pokemontcg.io "

@@ -24,6 +24,7 @@ QUOTE_COLUMNS = [
     "market_price",
     "predicted_price",
     "expected_change_pct",
+    "price_change_7d_pct",
     "signal",
     "confidence_ok",
     "confidence_level",
@@ -58,6 +59,7 @@ def _rows_from_quotes(quotes: pd.DataFrame) -> list[dict[str, Any]]:
             "market_price": _float_or_none(row.get("market_price")),
             "predicted_price": _float_or_none(row.get("predicted_price")),
             "expected_change_pct": _float_or_none(row.get("expected_change_pct")),
+            "price_change_7d_pct": _float_or_none(row.get("price_change_7d_pct")),
             "signal": str(row.get("signal") or "") or None,
             "confidence_ok": bool(conf_ok),
             "confidence_level": str(row.get("confidence_level") or "") or None,
@@ -77,11 +79,11 @@ def _float_or_none(value: Any) -> float | None:
         return None
 
 
-def _strip_encoding_fields(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    return [
-        {k: v for k, v in row.items() if k not in ("rarity_encoded", "supertype_encoded")}
-        for row in rows
-    ]
+def _strip_optional_fields(
+    rows: list[dict[str, Any]], *fields: str
+) -> list[dict[str, Any]]:
+    drop = set(fields)
+    return [{k: v for k, v in row.items() if k not in drop} for row in rows]
 
 
 def save_market_quotes(quotes: pd.DataFrame) -> int:
@@ -104,11 +106,16 @@ def save_market_quotes(quotes: pd.DataFrame) -> int:
         try:
             return _upsert(rows)
         except Exception as exc:
-            # Table may predate encoding columns — retry without them.
+            # Table may predate optional columns — strip and retry.
             msg = str(exc).lower()
-            if "rarity_encoded" in msg or "supertype_encoded" in msg or "column" in msg:
-                LOG.warning("save_market_quotes retry without encodings: %s", exc)
-                return _upsert(_strip_encoding_fields(rows))
+            optional = (
+                "rarity_encoded",
+                "supertype_encoded",
+                "price_change_7d_pct",
+            )
+            if any(col in msg for col in optional) or "column" in msg:
+                LOG.warning("save_market_quotes retry without optional cols: %s", exc)
+                return _upsert(_strip_optional_fields(rows, *optional))
             raise
     except Exception as exc:
         LOG.warning("save_market_quotes failed: %s", exc)
@@ -120,23 +127,27 @@ def load_market_quotes() -> pd.DataFrame | None:
     try:
         from database import fetch_all
 
-        try:
-            rows = fetch_all(
-                TABLE,
-                "card_id,name,set_name,rarity,supertype,rarity_encoded,supertype_encoded,"
-                "price,market_price,predicted_price,expected_change_pct,signal,"
-                "confidence_ok,confidence_level,history_points,updated_at",
-                order="name",
-            )
-        except Exception:
-            # Pre-migration tables without encoding columns.
-            rows = fetch_all(
-                TABLE,
-                "card_id,name,set_name,rarity,supertype,price,market_price,"
-                "predicted_price,expected_change_pct,signal,confidence_ok,"
-                "confidence_level,history_points,updated_at",
-                order="name",
-            )
+        select_attempts = (
+            "card_id,name,set_name,rarity,supertype,rarity_encoded,supertype_encoded,"
+            "price,market_price,predicted_price,expected_change_pct,price_change_7d_pct,"
+            "signal,confidence_ok,confidence_level,history_points,updated_at",
+            "card_id,name,set_name,rarity,supertype,rarity_encoded,supertype_encoded,"
+            "price,market_price,predicted_price,expected_change_pct,signal,"
+            "confidence_ok,confidence_level,history_points,updated_at",
+            "card_id,name,set_name,rarity,supertype,price,market_price,"
+            "predicted_price,expected_change_pct,signal,confidence_ok,"
+            "confidence_level,history_points,updated_at",
+        )
+        rows = None
+        last_exc: Exception | None = None
+        for cols in select_attempts:
+            try:
+                rows = fetch_all(TABLE, cols, order="name")
+                break
+            except Exception as exc:
+                last_exc = exc
+        if rows is None:
+            raise last_exc or RuntimeError("load_market_quotes select failed")
     except Exception as exc:
         LOG.warning("load_market_quotes failed: %s", exc)
         return None
@@ -149,6 +160,7 @@ def load_market_quotes() -> pd.DataFrame | None:
         "market_price",
         "predicted_price",
         "expected_change_pct",
+        "price_change_7d_pct",
         "rarity_encoded",
         "supertype_encoded",
     ):

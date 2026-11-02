@@ -158,6 +158,24 @@ def list_cards(*, limit: int | None = None, order_price_desc: bool = False) -> l
     return cards
 
 
+def list_cards_for_sync(*, limit: int | None = None) -> list[Card]:
+    """Prefer cards missing price_history, then higher market price (smart nightly limits)."""
+    cards = list_cards(limit=None, order_price_desc=False)
+    if not cards:
+        return []
+    have = distinct_history_card_ids()
+    cards.sort(
+        key=lambda c: (
+            0 if str(c.id) not in have else 1,
+            -(c.market_price or 0.0),
+            str(c.id),
+        )
+    )
+    if limit is not None:
+        return cards[: int(limit)]
+    return cards
+
+
 def get_card(card_id: str) -> Card | None:
     client = get_supabase()
     response = client.table("cards").select("*").eq("id", card_id).limit(1).execute()

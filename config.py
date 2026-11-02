@@ -284,13 +284,19 @@ DEFAULT_SET_NAME = "Scarlet & Violet"
 DEFAULT_SET_ID = "sv1"
 # Curated market catalog (pokemontcg.io set IDs). Prefer this over full eras —
 # full SV+SWSH is 40+ sets and regularly times out / 500s mid-nightly.
-CATALOG_SETS: tuple[tuple[str, str], ...] = (
+# Override via env CATALOG_SET_IDS="sv3pt5:151,swsh7:Evolving Skies,..."
+_DEFAULT_CATALOG_SETS: tuple[tuple[str, str], ...] = (
     ("sv3pt5", "151"),
+    ("sv4pt5", "Paldean Fates"),
+    ("sv8", "Surging Sparks"),
+    ("sv8pt5", "Prismatic Evolutions"),
     ("swsh7", "Evolving Skies"),
+    ("swsh11", "Lost Origin"),
     ("swsh12pt5", "Crown Zenith"),
     ("base1", "Base"),
     ("sm115", "Hidden Fates"),
 )
+CATALOG_SETS: tuple[tuple[str, str], ...] = _DEFAULT_CATALOG_SETS
 # Keep for optional full-era pulls / fetch_sets_for_series default.
 CATALOG_SERIES = (
     "Scarlet & Violet",
@@ -300,6 +306,29 @@ CATALOG_SERIES = (
 )
 # Only keep cards with a spot market price at or above this (USD).
 CATALOG_MIN_PRICE = 5.0
+
+
+def catalog_sets() -> tuple[tuple[str, str], ...]:
+    """Active catalog sets — env override for Cloud/Actions without code edits."""
+    raw = (
+        _secret("CATALOG_SET_IDS") or os.getenv("CATALOG_SET_IDS", "") or ""
+    ).strip()
+    if not raw:
+        return CATALOG_SETS
+    parsed: list[tuple[str, str]] = []
+    for part in raw.split(","):
+        piece = part.strip()
+        if not piece:
+            continue
+        if ":" in piece:
+            sid, name = piece.split(":", 1)
+            sid, name = sid.strip(), name.strip()
+            if sid and name:
+                parsed.append((sid, name))
+        else:
+            # id-only — use id as display name
+            parsed.append((piece, piece))
+    return tuple(parsed) if parsed else CATALOG_SETS
 # pokemontcg.io allows up to 250; one page covers each curated set (largest is ~237).
 PAGE_SIZE = 250
 POKEMON_TCG_MAX_PAGE_SIZE = 250

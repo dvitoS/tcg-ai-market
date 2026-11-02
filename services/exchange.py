@@ -175,6 +175,32 @@ def _filter_catalog_floor(quotes: pd.DataFrame) -> pd.DataFrame:
     return quotes.loc[spot >= float(CATALOG_MIN_PRICE)].copy()
 
 
+def attach_price_change_7d(quotes: pd.DataFrame, history: pd.DataFrame) -> pd.DataFrame:
+    """Fill price_change_7d_pct from history when missing on persisted quotes."""
+    if quotes is None or quotes.empty:
+        return quotes
+    out = quotes.copy()
+    if "price_change_7d_pct" in out.columns and out["price_change_7d_pct"].notna().any():
+        return out
+    if history is None or history.empty or "card_id" not in history.columns:
+        if "price_change_7d_pct" not in out.columns:
+            out["price_change_7d_pct"] = pd.NA
+        return out
+    frame = history.sort_values(["card_id", "date"]).copy()
+    frame["price"] = pd.to_numeric(frame["price"], errors="coerce")
+    frame["ret_7"] = frame.groupby("card_id", sort=False)["price"].pct_change(7)
+    latest = (
+        frame.groupby("card_id", as_index=False)
+        .tail(1)[["card_id", "ret_7"]]
+        .rename(columns={"card_id": "id", "ret_7": "price_change_7d_pct"})
+    )
+    latest["price_change_7d_pct"] = pd.to_numeric(latest["price_change_7d_pct"], errors="coerce") * 100.0
+    out = out.drop(columns=["price_change_7d_pct"], errors="ignore").merge(
+        latest, on="id", how="left"
+    )
+    return out
+
+
 def build_market_board(
     *,
     persist: bool = True,
@@ -234,6 +260,7 @@ def _try_fast_boot() -> tuple[pd.DataFrame, pd.DataFrame, object] | None:
     if not _quotes_have_encodings(quotes):
         LOG.warning("Fast boot skipped — could not attach rarity/supertype encodings.")
         return None
+    quotes = attach_price_change_7d(quotes, history)
     LOG.info(
         "Fast boot: quotes=%s history_rows=%s model_trained_at=%s",
         len(quotes),

@@ -14,6 +14,7 @@ create table if not exists public.market_quotes (
     market_price double precision,
     predicted_price double precision,
     expected_change_pct double precision,
+    price_change_7d_pct double precision,
     signal text,
     confidence_ok boolean not null default true,
     confidence_level text,
@@ -35,6 +36,8 @@ alter table public.market_quotes
   add column if not exists rarity_encoded double precision;
 alter table public.market_quotes
   add column if not exists supertype_encoded double precision;
+alter table public.market_quotes
+  add column if not exists price_change_7d_pct double precision;
 
 grant usage on schema public to postgres, anon, authenticated, service_role;
 grant select on table public.market_quotes to anon, authenticated;

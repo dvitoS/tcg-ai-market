@@ -8,8 +8,9 @@ from __future__ import annotations
 import sys
 from collections import defaultdict
 
-from config import CATALOG_SETS, JUSTTCG_BATCH_SIZE
+from config import JUSTTCG_BATCH_SIZE, catalog_sets
 from database import (
+    distinct_history_card_ids,
     init_db,
     list_cards,
     replace_card_history,
@@ -48,8 +49,20 @@ def _match_card(by_set: dict[str, list], set_code: str, just_number: str):
     return None
 
 
+def _sets_prioritized_by_coverage(by_set: dict[str, list]) -> list[tuple[str, str]]:
+    """Prefer sets with more cards missing price_history (fill gaps first)."""
+    have_history = distinct_history_card_ids()
+    scored: list[tuple[int, str, str]] = []
+    for set_code, set_name in catalog_sets():
+        cards = by_set.get(set_code) or []
+        missing = sum(1 for _n, card in cards if str(card.id) not in have_history)
+        scored.append((missing, set_code, set_name))
+    scored.sort(key=lambda item: (-item[0], item[1]))
+    return [(sid, name) for _m, sid, name in scored]
+
+
 def sync_justtcg_price_history(*, limit: int | None = None) -> dict[str, int]:
-    """Live sync: JustTCG NM + 30d history po CATALOG_SETS."""
+    """Live sync: JustTCG NM + 30d history po curated catalog sets."""
     if not justtcg_api_key():
         raise RuntimeError("JUSTTCG_API_KEY nije postavljen.")
 
@@ -62,32 +75,23 @@ def sync_justtcg_price_history(*, limit: int | None = None) -> dict[str, int]:
     updated = skipped = saved = 0
     set_cache: dict[str, str] = {}
     matched_ids: set[str] = set()
+    have_history = distinct_history_card_ids()
+    ordered_sets = _sets_prioritized_by_coverage(by_set)
 
-    print("JustTCG set sync (NM + 30d history)...")
-    for set_code, set_name in CATALOG_SETS:
-        if set_code not in by_set:
-            continue
-        try:
-            jset = resolve_set_id(set_name, cache=set_cache)
-        except JustTCGRateLimitError:
-            print("JustTCG rate limit pri resolve setova.", file=sys.stderr)
-            break
-        except Exception as exc:
-            print(f"  set '{set_name}' resolve fail: {exc}", file=sys.stderr)
-            continue
-        if not jset:
-            print(f"  JustTCG set nije pronađen za '{set_name}'")
-            continue
-
-        offset = 0
-        print(f"  set {set_name} ({set_code}) → {jset}")
-        while True:
+    print(
+        "JustTCG set sync (NM + 30d history) — sets by missing history first: %s"
+        % ", ".join(f"{n}({c})" for c, n in ordered_sets)
+    )
+    # Two passes when limited: fill missing history first, then refresh others.
+    passes = (True, False) if limit is not None else (False,)
+    for missing_only in passes:
+        for set_code, set_name in ordered_sets:
+            if set_code not in by_set:
+                continue
             try:
-                rows, has_more = fetch_set_cards_page(
-                    jset, offset=offset, limit=JUSTTCG_BATCH_SIZE
-                )
+                jset = resolve_set_id(set_name, cache=set_cache)
             except JustTCGRateLimitError:
-                print("JustTCG rate limit — stop set sync.", file=sys.stderr)
+                print("JustTCG rate limit pri resolve setova.", file=sys.stderr)
                 total = table_count("price_history")
                 return {
                     "updated": updated,
@@ -96,39 +100,22 @@ def sync_justtcg_price_history(*, limit: int | None = None) -> dict[str, int]:
                     "total_history": int(total),
                 }
             except Exception as exc:
-                print(f"  page offset={offset} greška: {exc}", file=sys.stderr)
-                break
+                print(f"  set '{set_name}' resolve fail: {exc}", file=sys.stderr)
+                continue
+            if not jset:
+                print(f"  JustTCG set nije pronađen za '{set_name}'")
+                continue
 
-            if not rows:
-                break
-
-            for row in rows:
-                card = _match_card(by_set, set_code, str(row.get("number") or ""))
-                if card is None:
-                    continue
-                if card.id in matched_ids:
-                    continue
-
-                variant = pick_nm_variant(list(row.get("variants") or []))
-                points = history_points_from_variant(variant)
-                price = variant_price_usd(variant)
-                tcp = str(row.get("tcgplayerId") or "") or None
-                if not points and price is None:
-                    skipped += 1
-                    continue
-
-                if points:
-                    written = replace_card_history(card.id, points)
-                    saved += written
-                if price is not None:
-                    update_card_market_price(card.id, price, tcgplayer_id=tcp)
-
-                updated += 1
-                matched_ids.add(card.id)
-                print(
-                    f"  OK {card.id} · ${price if price is not None else '?'} · {len(points)} pts"
-                )
-                if limit is not None and updated >= limit:
+            offset = 0
+            pass_label = "missing" if missing_only else "refresh"
+            print(f"  set {set_name} ({set_code}) → {jset} [{pass_label}]")
+            while True:
+                try:
+                    rows, has_more = fetch_set_cards_page(
+                        jset, offset=offset, limit=JUSTTCG_BATCH_SIZE
+                    )
+                except JustTCGRateLimitError:
+                    print("JustTCG rate limit — stop set sync.", file=sys.stderr)
                     total = table_count("price_history")
                     return {
                         "updated": updated,
@@ -136,10 +123,54 @@ def sync_justtcg_price_history(*, limit: int | None = None) -> dict[str, int]:
                         "saved": saved,
                         "total_history": int(total),
                     }
+                except Exception as exc:
+                    print(f"  page offset={offset} greška: {exc}", file=sys.stderr)
+                    break
 
-            if not has_more:
-                break
-            offset += JUSTTCG_BATCH_SIZE
+                if not rows:
+                    break
+
+                for row in rows:
+                    card = _match_card(by_set, set_code, str(row.get("number") or ""))
+                    if card is None:
+                        continue
+                    if card.id in matched_ids:
+                        continue
+                    if missing_only and str(card.id) in have_history:
+                        continue
+
+                    variant = pick_nm_variant(list(row.get("variants") or []))
+                    points = history_points_from_variant(variant)
+                    price = variant_price_usd(variant)
+                    tcp = str(row.get("tcgplayerId") or "") or None
+                    if not points and price is None:
+                        skipped += 1
+                        continue
+
+                    if points:
+                        written = replace_card_history(card.id, points)
+                        saved += written
+                        have_history.add(str(card.id))
+                    if price is not None:
+                        update_card_market_price(card.id, price, tcgplayer_id=tcp)
+
+                    updated += 1
+                    matched_ids.add(card.id)
+                    print(
+                        f"  OK {card.id} · ${price if price is not None else '?'} · {len(points)} pts"
+                    )
+                    if limit is not None and updated >= limit:
+                        total = table_count("price_history")
+                        return {
+                            "updated": updated,
+                            "skipped": skipped,
+                            "saved": saved,
+                            "total_history": int(total),
+                        }
+
+                if not has_more:
+                    break
+                offset += JUSTTCG_BATCH_SIZE
 
     total = table_count("price_history")
     print(

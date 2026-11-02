@@ -20,6 +20,8 @@ class WatchAlert:
     expected_pct: float
     signal: str
     price: float
+    reason: str = "ai"  # "ai" | "price" | "both"
+    price_change_pct: float | None = None
 
 
 def _dismissed() -> set[str]:
@@ -38,6 +40,12 @@ def clear_watch_alert_dismissals() -> None:
     st.session_state["_watch_alert_dismissed"] = set()
 
 
+def _cell(q, key: str, default=None):
+    if hasattr(q, "get"):
+        return q.get(key, default)
+    return getattr(q, key, default)
+
+
 def collect_watchlist_alerts(
     market: pd.DataFrame,
     watch: pd.DataFrame,
@@ -45,7 +53,7 @@ def collect_watchlist_alerts(
     threshold_pct: float = 5.0,
     dismissed: set[str] | None = None,
 ) -> list[WatchAlert]:
-    """Cards on the watchlist whose AI expected move exceeds threshold."""
+    """Watchlist cards where |AI ROI| or |7d price move| ≥ threshold."""
     if market.empty or watch.empty or "id" not in market.columns:
         return []
     if dismissed is None:
@@ -54,6 +62,7 @@ def collect_watchlist_alerts(
         except Exception:
             dismissed = set()
     quotes = market.set_index("id", drop=False)
+    band = float(threshold_pct)
     out: list[WatchAlert] = []
     for row in watch.itertuples(index=False):
         card_id = str(row.card_id)
@@ -62,36 +71,81 @@ def collect_watchlist_alerts(
         q = quotes.loc[card_id]
         if isinstance(q, pd.DataFrame):
             q = q.iloc[0]
-        conf_ok = True
-        if hasattr(q, "get"):
-            conf_ok = q.get("confidence_ok", True)
-        else:
-            conf_ok = getattr(q, "confidence_ok", True)
+        conf_ok = _cell(q, "confidence_ok", True)
         if conf_ok is not None and not (isinstance(conf_ok, float) and pd.isna(conf_ok)):
             if not bool(conf_ok):
                 continue
-        exp = q.get("expected_change_pct") if hasattr(q, "get") else getattr(q, "expected_change_pct", None)
-        if exp is None or pd.isna(exp):
-            continue
-        expected = float(exp)
-        if abs(expected) < float(threshold_pct):
-            continue
-        signal = str(q.get("signal") if hasattr(q, "get") else getattr(q, "signal", "") or "")
-        price = float(q.get("price") if hasattr(q, "get") else getattr(q, "price", 0) or 0)
-        name = str(
-            q.get("name") if hasattr(q, "get") else getattr(q, "name", None) or getattr(row, "name", card_id)
+
+        exp_raw = _cell(q, "expected_change_pct")
+        price_raw = _cell(q, "price_change_7d_pct")
+        expected = (
+            float(exp_raw)
+            if exp_raw is not None and not (isinstance(exp_raw, float) and pd.isna(exp_raw))
+            else None
         )
+        price_chg = (
+            float(price_raw)
+            if price_raw is not None and not (isinstance(price_raw, float) and pd.isna(price_raw))
+            else None
+        )
+        ai_hit = expected is not None and abs(expected) >= band
+        price_hit = price_chg is not None and abs(price_chg) >= band
+        if not ai_hit and not price_hit:
+            continue
+        if ai_hit and price_hit:
+            reason = "both"
+        elif price_hit:
+            reason = "price"
+        else:
+            reason = "ai"
+        signal = str(_cell(q, "signal", "") or "")
+        price = float(_cell(q, "price", 0) or 0)
+        name = str(_cell(q, "name") or getattr(row, "name", card_id) or card_id)
         out.append(
             WatchAlert(
                 card_id=card_id,
                 name=name,
-                expected_pct=expected,
+                expected_pct=float(expected if expected is not None else 0.0),
                 signal=signal,
                 price=price,
+                reason=reason,
+                price_change_pct=price_chg,
             )
         )
-    out.sort(key=lambda a: abs(a.expected_pct), reverse=True)
+    out.sort(
+        key=lambda a: max(
+            abs(a.expected_pct),
+            abs(a.price_change_pct) if a.price_change_pct is not None else 0.0,
+        ),
+        reverse=True,
+    )
     return out
+
+
+def _alert_body(alert: WatchAlert, *, money_fmt) -> str:
+    if alert.reason == "price" and alert.price_change_pct is not None:
+        return t(
+            "alert_watch_body_price",
+            name=alert.name,
+            pct=alert.price_change_pct,
+            price=money_fmt(alert.price),
+        )
+    if alert.reason == "both" and alert.price_change_pct is not None:
+        return t(
+            "alert_watch_body_both",
+            name=alert.name,
+            ai_pct=alert.expected_pct,
+            price_pct=alert.price_change_pct,
+            signal=signal_label(alert.signal) if alert.signal else "—",
+            price=money_fmt(alert.price),
+        )
+    return t(
+        "alert_watch_body",
+        name=alert.name,
+        pct=alert.expected_pct,
+        signal=signal_label(alert.signal) if alert.signal else "—",
+        price=money_fmt(alert.price),
+    )
 
 
 def render_watchlist_alerts(alerts: list[WatchAlert], *, money_fmt) -> None:
@@ -99,14 +153,10 @@ def render_watchlist_alerts(alerts: list[WatchAlert], *, money_fmt) -> None:
     if not alerts:
         return
     for alert in alerts[:5]:
-        tone = "success" if alert.expected_pct >= 0 else "warning"
-        label = t(
-            "alert_watch_body",
-            name=alert.name,
-            pct=alert.expected_pct,
-            signal=signal_label(alert.signal) if alert.signal else "—",
-            price=money_fmt(alert.price),
-        )
+        tone = "success" if alert.expected_pct >= 0 or (alert.price_change_pct or 0) >= 0 else "warning"
+        if alert.reason == "price" and alert.price_change_pct is not None:
+            tone = "success" if alert.price_change_pct >= 0 else "warning"
+        label = _alert_body(alert, money_fmt=money_fmt)
         cols = st.columns([6, 1])
         with cols[0]:
             if tone == "success":
@@ -121,6 +171,25 @@ def render_watchlist_alerts(alerts: list[WatchAlert], *, money_fmt) -> None:
             ):
                 dismiss_watch_alert(alert.card_id)
                 st.rerun()
+
+
+def render_watchlist_digest(
+    alerts: list[WatchAlert],
+    *,
+    threshold_pct: float,
+    money_fmt,
+) -> None:
+    """In-app digest panel (portfolio) — denser than top banners."""
+    if not alerts:
+        st.caption(t("alert_digest_empty", pct=threshold_pct))
+        return
+    st.caption(t("alert_watch_caption", pct=threshold_pct))
+    lines = []
+    for alert in alerts[:15]:
+        lines.append(_alert_body(alert, money_fmt=money_fmt))
+    st.markdown("\n\n".join(f"- {line}" for line in lines))
+    if len(alerts) > 15:
+        st.caption(t("alert_digest_more", n=len(alerts) - 15))
 
 
 def safe_collect_and_render_alerts(

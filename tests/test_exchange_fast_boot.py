@@ -82,3 +82,18 @@ def test_try_fast_boot_skips_on_feature_mismatch(monkeypatch):
         ),
     )
     assert exchange._try_fast_boot() is None
+
+
+def test_attach_price_change_7d_from_history():
+    import services.exchange as exchange
+
+    quotes = pd.DataFrame([{"id": "c1", "name": "A", "price": 10.0}])
+    history = pd.DataFrame(
+        [
+            {"card_id": "c1", "date": pd.Timestamp("2024-01-01") + pd.Timedelta(days=i), "price": 8.0 + i * 0.25}
+            for i in range(10)
+        ]
+    )
+    out = exchange.attach_price_change_7d(quotes, history)
+    assert "price_change_7d_pct" in out.columns
+    assert pd.notna(out.loc[0, "price_change_7d_pct"])

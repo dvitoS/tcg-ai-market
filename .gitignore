@@ -25,6 +25,9 @@ automation.log
 *.log
 run_nightly.bat
 data/ebay_account_deletions.jsonl
+data/*backfill*
+data/*progress*
+!data/seed_tcg_market.db
 
 # Secrets
 .env

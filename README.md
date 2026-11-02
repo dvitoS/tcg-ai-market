@@ -15,12 +15,21 @@ streamlit run app.py
 - `AUTH_DISABLED=1` skips login for single-user local work (ignored on Streamlit Cloud).
 - Tests: `pytest -q`
 
-## Streamlit Cloud
+## Deploy checklist (Streamlit Cloud)
 
-1. **Python 3.12** (App → Advanced settings). Do not use 3.13/3.14 defaults.
+Do this once per environment — saves hours of Cloud debug later.
+
+1. **Python 3.12** — App → Advanced settings. Do **not** use 3.13/3.14 defaults (XGBoost / binary wheels).
 2. **Secrets** — paste from [`.streamlit/secrets.toml.example`](.streamlit/secrets.toml.example), Save, **Reboot**.
-3. Repo must include `requirements.txt` and `packages.txt` (`libgomp1` for XGBoost).
-4. Never set `AUTH_DISABLED` on Cloud.
+3. Repo root must include `requirements.txt` and `packages.txt` (`libgomp1` for XGBoost).
+4. Run Supabase SQL **once, in order** (SQL Editor), then **Project Settings → API → Reload schema**:
+   1. `supabase_schema.sql` — cards, history, portfolio, watchlist  
+   2. `supabase_rls_harden.sql` — RLS for user tables  
+   3. `supabase_auth_sessions.sql` — durable `?sid=` login on Cloud  
+   4. `supabase_model_artifacts.sql` — persisted XGBoost  
+   5. `supabase_market_quotes.sql` — fast catalog boot (+ encodings + 7d price move)
+5. Never set `AUTH_DISABLED` on Cloud.
+6. After a model feature change (e.g. set-relative), trigger a **nightly retrain** (or wait for schedule) so `market_quotes` match `FEATURE_COLUMNS`.
 
 ### Required secrets
 
@@ -30,13 +39,15 @@ streamlit run app.py
 | `SUPABASE_KEY` | **service_role** — catalog, nightly, `auth_sessions`, model/quotes write |
 | `SUPABASE_ANON_KEY` | **anon public** — login + portfolio/watchlist JWT/RLS |
 
-Optional: `JUSTTCG_API_KEY`, `TCG_API_KEY` (PokéWallet), eBay Browse keys, `SUPABASE_DB_URL` (DDL).
+Optional: `JUSTTCG_API_KEY`, `TCG_API_KEY` (PokéWallet), eBay Browse keys, `SUPABASE_DB_URL` (DDL), `CATALOG_SET_IDS` (override curated sets).
 
-### Watchlist email digests (optional)
+### Watchlist alerts (in-app + optional email)
 
-In-app banners already fire when `|expected_change_pct| ≥` your portfolio threshold.
+Portfolio has an **Alert threshold (%)** field. When `|AI expected ROI|` or `|7d price change|` crosses it:
 
-Nightly can also email digests when SMTP is set (GitHub Actions **and/or** Cloud secrets):
+- Top-of-app dismissible banners
+- Portfolio **Alert digest** expander
+- Nightly **email digests** when SMTP is set (GitHub Actions **and/or** Cloud secrets)
 
 | Secret | Purpose |
 |--------|---------|
@@ -44,19 +55,9 @@ Nightly can also email digests when SMTP is set (GitHub Actions **and/or** Cloud
 | `SMTP_USER` / `SMTP_PASSWORD` | Auth |
 | `SMTP_FROM` | From address |
 | `ALERT_EMAIL_TO` | Fallback recipient if user email lookup fails |
-| `ALERT_THRESHOLD_PCT` | Default `5` |
+| `ALERT_THRESHOLD_PCT` | Default `5` (email path; UI threshold is per session) |
 
-Without SMTP, nightly skips email quietly.
-
-### Supabase SQL (run once, in order)
-
-1. `supabase_schema.sql` — cards, history, portfolio, watchlist  
-2. `supabase_rls_harden.sql` — RLS for user tables  
-3. `supabase_auth_sessions.sql` — durable `?sid=` login on Cloud  
-4. `supabase_model_artifacts.sql` — persisted XGBoost  
-5. `supabase_market_quotes.sql` — fast catalog boot (+ encoding columns)
-
-Then **Project Settings → API → Reload schema** if PostgREST is stale.
+Without SMTP, nightly skips email quietly; in-app digest still works.
 
 ### Key split (important)
 
@@ -64,27 +65,50 @@ Then **Project Settings → API → Reload schema** if PostgREST is stale.
 - **anon + user JWT** → portfolio & watchlist (RLS `auth.uid()`)  
 - Cloud never falls back to writing auth sessions on local disk
 
+## What must NOT go in the repo
+
+| Keep out | Why |
+|----------|-----|
+| `.env`, `tcg.env.txt`, `.streamlit/secrets.toml` | Live keys |
+| `.data/` | Durable auth session blobs |
+| `automation.log`, `*.log` | Local / Actions noise |
+| Backfill progress / resume files under `data/` (except shipped seed DB) | Machine-local |
+| Real Supabase service_role in Issues / commits | Rotate immediately if leaked |
+| `ebay-worker/` secrets / `wrangler` local state | Separate worker |
+
+Use `.env.example` and `secrets.toml.example` only. Seed DB `data/seed_tcg_market.db` is intentional for empty Cloud boots.
+
 ## Nightly (GitHub Actions)
 
 Workflow: [`.github/workflows/nightly_update.yml`](.github/workflows/nightly_update.yml) (03:00 UTC).
 
-Actions secrets: `SUPABASE_URL`, `SUPABASE_KEY`, preferably `JUSTTCG_API_KEY`.
+Actions secrets: `SUPABASE_URL`, `SUPABASE_KEY`, preferably `JUSTTCG_API_KEY`. Optional SMTP + `CATALOG_SET_IDS`.
 
-Nightly refreshes history, optionally backfills `tcgplayer_id`, retrains the model, and **fails** if `market_quotes` persist is empty. It also purges expired `auth_sessions`.
+Nightly refreshes history (sets with **missing history first**; limited runs prefer gap-fill), optionally backfills `tcgplayer_id` (default 60/night), retrains the model, emails watchlist digests when SMTP is set, and **fails** if `market_quotes` persist is empty. Also purges expired `auth_sessions`.
+
+### Catalog scale
+
+Default curated sets (pokemontcg.io ids): 151, Paldean Fates, Surging Sparks, Prismatic Evolutions, Evolving Skies, Lost Origin, Crown Zenith, Base, Hidden Fates — `$5+` floor.
+
+Override without code change:
+
+```text
+CATALOG_SET_IDS=sv3pt5:151,sv8:Surging Sparks,swsh7:Evolving Skies
+```
+
+Keep the list curated — full SV+SWSH regularly times out mid-nightly.
+
+## CI
+
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) — Python **3.12**, `libgomp1`, smoke-imports critical modules, then `pytest -q` (includes `load_exchange` fast-boot mocks). No live Supabase / Streamlit e2e.
 
 ## Architecture (short)
 
 - `app.py` — Streamlit entry  
 - `services/exchange.py` — fast boot (`market_quotes` + model) or full rebuild  
 - **AI model** — XGBoost on **7-day forward return** (not next-day $ price), with return/vol/MA + **set-relative** features (“laggard in hot set”); BUY/SELL gated at ±2% over 7d; scored vs 0% naive + direction accuracy on a time-based holdout  
-
-
 - `database_*.py` — clients / catalog / user (facade: `database.py`)  
 - `pokemon_tcg_client.py` / `pokewallet_client.py` — facade: `api_client.py`  
 - `justtcg_client.py` + `justtcg_psa10.py` — NM vs PSA10  
 - `ui/` — explore, detail, portfolio, scanner  
 - Auth: opaque `?sid=` → Supabase `auth_sessions`
-
-## Out of scope in git
-
-- `ebay-worker/` and local backfill progress files are not required for Cloud deploy.

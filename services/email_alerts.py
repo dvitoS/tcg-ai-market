@@ -35,18 +35,22 @@ def default_threshold_pct() -> float:
 
 def format_digest(alerts: list[WatchAlert], *, threshold_pct: float) -> str:
     lines = [
-        f"TCG AI Market — watchlist alerts (|move| ≥ {threshold_pct:g}%)",
+        f"TCG AI Market — watchlist alerts (|AI ROI| or |7d price| ≥ {threshold_pct:g}%)",
         "",
     ]
     for alert in alerts[:25]:
-        lines.append(
-            f"• {alert.name} ({alert.card_id}): {alert.expected_pct:+.1f}% "
-            f"signal={alert.signal or '—'} price={alert.price:.4f}"
-        )
+        bits = [f"• {alert.name} ({alert.card_id})"]
+        if alert.reason in {"ai", "both"}:
+            bits.append(f"AI {alert.expected_pct:+.1f}%")
+        if alert.price_change_pct is not None and alert.reason in {"price", "both"}:
+            bits.append(f"7d price {alert.price_change_pct:+.1f}%")
+        bits.append(f"signal={alert.signal or '—'}")
+        bits.append(f"price={alert.price:.4f}")
+        lines.append(" · ".join(bits))
     if len(alerts) > 25:
         lines.append(f"… and {len(alerts) - 25} more")
     lines.append("")
-    lines.append("Open the Streamlit app → Portfolio / Scanner for details.")
+    lines.append("Open the Streamlit app → Portfolio for the in-app digest.")
     return "\n".join(lines)
 
 

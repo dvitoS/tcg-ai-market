@@ -16,16 +16,47 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - name: Set up Python 3.11
+      - name: Install system libs for XGBoost
+        run: sudo apt-get update && sudo apt-get install -y libgomp1
+
+      - name: Set up Python 3.12
         uses: actions/setup-python@v6
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           cache: pip
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
+
+      - name: Smoke-import app modules
+        env:
+          AUTH_DISABLED: "0"
+          GITHUB_ACTIONS: "1"
+        run: |
+          python - <<'PY'
+          import importlib
+
+          modules = [
+              "config",
+              "ai_xgboost",
+              "trading_signals",
+              "services.exchange",
+              "services.alerts",
+              "services.email_alerts",
+              "services.quotes_store",
+              "services.forecast",
+              "database",
+              "nightly_update",
+          ]
+          for name in modules:
+              importlib.import_module(name)
+              print("ok", name)
+          from config import catalog_sets
+          assert catalog_sets(), "catalog_sets empty"
+          print("catalog_sets", len(catalog_sets()))
+          PY
 
       - name: Run pytest
         env:
