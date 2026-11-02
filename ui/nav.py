@@ -152,6 +152,7 @@ def render_navbar() -> str:
         ("explore", t("nav_explore")),
         ("portfolio", t("nav_portfolio")),
         ("scanner", t("nav_scanner")),
+        ("dealer", t("nav_dealer")),
     ]
 
     cur = get_currency()
@@ -159,9 +160,9 @@ def render_navbar() -> str:
     user = auth_mod.current_user() or {}
     email = str(user.get("email") or "")
 
-    # brand | 3 links | spacer | email | currency | logout
+    # brand | 4 links | spacer | email | currency | logout
     brand, *nav_cols, _gap, email_col, cur_btn, logout_btn = st.columns(
-        [1.35, 0.9, 0.9, 1.0, 2.2, 1.4, 0.65, 0.85],
+        [1.2, 0.85, 0.85, 0.85, 0.85, 1.6, 1.2, 0.6, 0.8],
         vertical_alignment="center",
         gap="medium",
     )

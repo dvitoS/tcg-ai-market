@@ -59,6 +59,10 @@ Portfolio has an **Alert threshold (%)** field. When `|AI expected ROI|` or `|7d
 
 Without SMTP, nightly skips email quietly; in-app digest still works.
 
+### Dealer desk
+
+Nav → **Dealer**. Upload inventory CSV (`card_id`/`id` or `name`, optional `quantity`/`cost`). The desk joins your rows to the live 7d AI board, applies sell fee + shipping, and ranks **LIST / BUY MORE / HOLD** only when the conformal gate is green.
+
 ### Key split (important)
 
 - **service_role** → automation / catalog only  
@@ -110,5 +114,5 @@ Keep the list curated — full SV+SWSH regularly times out mid-nightly.
 - `database_*.py` — clients / catalog / user (facade: `database.py`)  
 - `pokemon_tcg_client.py` / `pokewallet_client.py` — facade: `api_client.py`  
 - `justtcg_client.py` + `justtcg_psa10.py` — NM vs PSA10  
-- `ui/` — explore, detail, portfolio, scanner  
+- `ui/` — explore, detail, portfolio, scanner, **dealer desk** (CSV inventory × fee-aware AI)  
 - Auth: opaque `?sid=` → Supabase `auth_sessions`

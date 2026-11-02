@@ -48,6 +48,7 @@ from services.alerts import safe_collect_and_render_alerts
 from services.exchange import clear_exchange_cache, load_exchange
 from services.prices import justtcg_observability_summary
 from ui.catalog import render_explore, render_market
+from ui.dealer import render_dealer_desk
 from ui.nav import apply_nav_query_params, render_login_gate, render_navbar
 from ui.portfolio import render_portfolio
 from ui.scanner import render_scanner
@@ -150,6 +151,8 @@ def main() -> None:
         render_market(history, market, model)
     elif page == "portfolio":
         render_portfolio(history, market, model)
+    elif page == "dealer":
+        render_dealer_desk(market)
     else:
         render_scanner(history, market, model)
 
