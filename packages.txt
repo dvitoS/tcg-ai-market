@@ -1,3 +1,1 @@
-# Streamlit Community Cloud system packages (apt).
-# Required for XGBoost native lib on Linux.
 libgomp1
