@@ -25,21 +25,11 @@ def resolve_tcgplayer_id(card_id: str) -> str | None:
 
     product_id: str | None = None
     try:
-        import requests
+        from api_client import fetch_pokemon_card
 
-        from config import POKEMON_TCG_API_URL, TCG_API_KEY
-
-        headers = {"Accept": "application/json"}
-        if TCG_API_KEY:
-            headers["X-Api-Key"] = str(TCG_API_KEY)
-        response = requests.get(
-            f"{POKEMON_TCG_API_URL.rstrip('/')}/{card_id}",
-            headers=headers,
-            timeout=25,
-        )
-        if response.status_code == 200:
-            payload = response.json() if response.content else {}
-            product_id = extract_tcgplayer_product_id(payload.get("data") or {})
+        card_payload = fetch_pokemon_card(str(card_id), quiet=True)
+        if card_payload:
+            product_id = extract_tcgplayer_product_id(card_payload)
     except Exception:
         product_id = None
 

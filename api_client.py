@@ -150,6 +150,9 @@ def _pokemon_get(
                     _append_automation_log(msg, level="WARNING")
                     sleep(RATE_LIMIT_RETRY_SLEEP_SECONDS)
                     continue
+                # 4xx (except 429) — do not burn retries (e.g. missing card 404).
+                if 400 <= response.status_code < 500:
+                    raise
                 last_error = exc
                 print(f"HTTP greška ({response.status_code}): {exc}")
                 sleep(min(30, 3 * attempt))
@@ -418,6 +421,35 @@ def fetch_cards(
         names = ", ".join(f"{label} ({sid})" for sid, label, _ in failed)
         print(f"[WARNING] Setovi bez kompletnog dohvata: {names}")
     return all_cards
+
+
+def fetch_pokemon_card(card_id: str, *, quiet: bool = True) -> dict[str, Any] | None:
+    """Single-card GET via `_pokemon_get` (retries 429/5xx; no PokéWallet key).
+
+    Returns the `data` object or None when the card is missing / request fails quietly.
+    """
+    cid = str(card_id or "").strip()
+    if not cid:
+        return None
+    url = f"{POKEMON_TCG_API_URL.rstrip('/')}/{cid}"
+    progress = None if quiet else f"card {cid}"
+    try:
+        payload = _pokemon_get(url, {}, progress=progress)
+    except requests.HTTPError as exc:
+        status = exc.response.status_code if exc.response is not None else None
+        if status == 404:
+            return None
+        if quiet:
+            LOG.warning("fetch_pokemon_card(%s) HTTP %s", cid, status)
+            return None
+        raise
+    except Exception as exc:
+        if quiet:
+            LOG.warning("fetch_pokemon_card(%s) failed: %s", cid, exc)
+            return None
+        raise
+    data = payload.get("data") if isinstance(payload, dict) else None
+    return data if isinstance(data, dict) else None
 
 
 def pokemontcg_image_url(card_id: str) -> str | None:
