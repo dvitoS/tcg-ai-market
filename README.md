@@ -48,6 +48,7 @@ Portfolio has **Alert threshold (%)** and a **Sure-only (conformal)** toggle (de
 - Top-of-app dismissible banners
 - Portfolio **Alert digest** expander
 - Nightly **email digests** when SMTP is set (GitHub Actions **and/or** Cloud secrets; default sure-only)
+- Nightly **Discord webhook** digest when `DISCORD_WEBHOOK_URL` is set (aggregated sure-only across watchlists)
 
 | Secret | Purpose |
 |--------|---------|
@@ -57,8 +58,9 @@ Portfolio has **Alert threshold (%)** and a **Sure-only (conformal)** toggle (de
 | `ALERT_EMAIL_TO` | Fallback recipient if user email lookup fails |
 | `ALERT_THRESHOLD_PCT` | Default `5` (email path; UI threshold is per session) |
 | `ALERT_SURE_ONLY` | Default `1` — nightly conformal BUY/SELL only (`0` = legacy) |
+| `DISCORD_WEBHOOK_URL` | Channel webhook for one nightly sure-only digest |
 
-Without SMTP, nightly skips email quietly; in-app digest still works.
+Without SMTP/Discord, nightly skips those quietly; in-app digest still works.
 
 ### Dealer desk
 

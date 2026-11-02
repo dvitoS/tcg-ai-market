@@ -132,6 +132,8 @@ jobs:
           SMTP_FROM: ${{ secrets.SMTP_FROM }}
           ALERT_EMAIL_TO: ${{ secrets.ALERT_EMAIL_TO }}
           ALERT_THRESHOLD_PCT: ${{ secrets.ALERT_THRESHOLD_PCT }}
+          ALERT_SURE_ONLY: ${{ secrets.ALERT_SURE_ONLY }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: python nightly_update.py
 
       - name: Upload automation.log

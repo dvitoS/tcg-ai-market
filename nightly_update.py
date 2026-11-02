@@ -233,6 +233,15 @@ def retrain_ai() -> dict[str, float | int]:
         LOG.info("watchlist email digests: %s", digest)
     except Exception as exc:
         LOG.warning("watchlist email digests failed: %s", exc)
+    try:
+        from services.discord_alerts import send_sure_discord_digest
+
+        discord = send_sure_discord_digest(quotes)
+        metrics["alert_discord_sent"] = int(discord.get("sent") or 0)
+        metrics["alert_discord_n"] = int(discord.get("alerts") or 0)
+        LOG.info("watchlist Discord digest: %s", discord)
+    except Exception as exc:
+        LOG.warning("watchlist Discord digest failed: %s", exc)
     return metrics
 
 

@@ -82,12 +82,17 @@ def render_watchlist_section(market: pd.DataFrame) -> None:
     st.session_state["watch_alert_threshold"] = threshold_val
     st.session_state["watch_alert_sure_only"] = sure_only
     try:
+        from services.discord_alerts import discord_configured
         from services.email_alerts import smtp_configured
 
         if smtp_configured():
             st.caption(t("alert_email_enabled"))
         else:
             st.caption(t("alert_email_optional"))
+        if discord_configured():
+            st.caption(t("alert_discord_enabled"))
+        else:
+            st.caption(t("alert_discord_optional"))
     except Exception:
         st.caption(t("alert_email_optional"))
 

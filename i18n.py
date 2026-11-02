@@ -147,6 +147,8 @@ _TEXT: dict[str, str] = {
         "alert_digest_more": "+{n} more in email / top banners",
         "alert_email_enabled": "Nightly email digests are enabled (SMTP configured).",
         "alert_email_optional": "Optional: set SMTP_* secrets for nightly email digests.",
+        "alert_discord_enabled": "Nightly Discord webhook digests are enabled.",
+        "alert_discord_optional": "Optional: set DISCORD_WEBHOOK_URL for a sure-only channel digest.",
         "search": "Search",
         "search_ph": "Name or ID…",
         "search_ph_name": "Name…",
