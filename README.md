@@ -102,18 +102,18 @@ Without SMTP/Discord, nightly skips those quietly; in-app digest still works.
 
 Nav → **Dealer**. Upload inventory CSV (`card_id`/`id` or `name`, optional `quantity`/`cost`). The desk joins your rows to the live 7d AI board, applies sell fee + shipping, and ranks **LIST / BUY MORE / HOLD** only when the conformal gate is green. Download scored CSV from the full table.
 
-### Soft Pro gate
+### Soft Pro gate (Creem)
 
-Until Stripe/Lemon: Dealer desk + sure-only alerts are Pro surfaces.
+Dealer desk is a Pro surface. Open beta stays on until you set `PRO_OPEN=0`.
 
 | Secret | Purpose |
 |--------|---------|
 | `PRO_OPEN` | Default `1` — everyone is Pro (open beta) |
-| `PRO_EMAILS` | Comma-separated emails when `PRO_OPEN=0` |
-| `PRO_USER_IDS` | Comma-separated Supabase user UUIDs when `PRO_OPEN=0` |
-| `PRO_CHECKOUT_URL` | Optional Lemon/Stripe Payment Link — “Upgrade to Pro” on locked surfaces |
+| `PRO_EMAILS` / `PRO_USER_IDS` | Manual allowlist when `PRO_OPEN=0` |
+| `PRO_CHECKOUT_URL` | Creem product payment link — Upgrade CTA on locked Dealer |
+| `CREEM_WEBHOOK_SECRET` | HMAC secret for `POST /api/webhooks/creem` |
 
-`AUTH_DISABLED` local always counts as Pro. Empty allowlist with `PRO_OPEN=0` stays open (avoids locking everyone out). After someone pays, add their email to `PRO_EMAILS` (webhook automation later).
+Paid checkouts write `pro_entitlements` (run `supabase_pro_entitlements.sql`). Success page: `/pro/success`. Full go-live steps: [docs/DEPLOY.md](docs/DEPLOY.md) §5.
 
 ### Key split (important)
 

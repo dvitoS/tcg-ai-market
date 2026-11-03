@@ -1187,6 +1187,17 @@ a {
   }
 }
 
+.pro-success-page {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 2.5rem 1.25rem 4rem;
+  animation: rise 0.55s ease both;
+}
+
+.pro-success-page .detail-actions {
+  margin-top: 1.5rem;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
