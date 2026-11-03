@@ -942,6 +942,156 @@ a {
   text-underline-offset: 2px;
 }
 
+.scanner-page,
+.dealer-page {
+  animation: rise 0.55s ease both;
+}
+
+.scanner-search {
+  margin-top: 0.35rem;
+}
+
+.scanner-kpis {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.scanner-grid {
+  margin-bottom: 1rem;
+}
+
+.scan-list,
+.dealer-list {
+  display: grid;
+  gap: 0.55rem;
+  margin-bottom: 1.5rem;
+}
+
+.scan-row,
+.dealer-row {
+  display: grid;
+  grid-template-columns: 48px 1fr auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(26, 26, 26, 0.78);
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.scan-row:hover,
+.dealer-row:hover {
+  transform: translateY(-2px);
+  border-color: rgba(184, 115, 51, 0.35);
+}
+
+.scan-art {
+  border-radius: 7px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.scan-art img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.scan-metrics,
+.dealer-metrics {
+  display: grid;
+  justify-items: end;
+  gap: 0.12rem;
+  font-size: 0.82rem;
+}
+
+.scan-metrics span,
+.dealer-metrics span {
+  color: var(--muted);
+}
+
+.dealer-form {
+  display: grid;
+  gap: 0.85rem;
+  margin: 0.5rem 0 1.25rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel);
+  box-shadow: var(--shadow-soft);
+}
+
+.csv-label {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.csv-label span {
+  color: var(--muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.csv-label textarea,
+.filter-row input[type="number"],
+.filter-row input[type="file"] {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg0);
+  color: var(--text);
+  font: inherit;
+  padding: 0.7rem 0.85rem;
+}
+
+.csv-label textarea {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  resize: vertical;
+  min-height: 160px;
+}
+
+.dealer-row {
+  grid-template-columns: 1fr auto;
+}
+
+.dealer-action {
+  display: inline-flex;
+  margin-bottom: 0.25rem;
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.dealer-row.action-buy {
+  border-color: rgba(90, 175, 120, 0.35);
+}
+
+.dealer-row.action-buy .dealer-action {
+  color: var(--buy);
+  border-color: rgba(90, 175, 120, 0.4);
+}
+
+.dealer-row.action-list {
+  border-color: rgba(208, 114, 114, 0.35);
+}
+
+.dealer-row.action-list .dealer-action {
+  color: var(--sell);
+  border-color: rgba(208, 114, 114, 0.4);
+}
+
+.dealer-row.action-hold .dealer-action {
+  color: var(--hold);
+}
+
 @keyframes rise {
   from {
     opacity: 0;
@@ -1007,6 +1157,27 @@ a {
     grid-column: 2;
     justify-items: start;
     justify-self: start;
+  }
+
+  .scanner-kpis {
+    grid-template-columns: 1fr;
+  }
+
+  .scan-row {
+    grid-template-columns: 48px 1fr;
+  }
+
+  .scan-metrics {
+    grid-column: 2;
+    justify-items: start;
+  }
+
+  .dealer-row {
+    grid-template-columns: 1fr;
+  }
+
+  .dealer-metrics {
+    justify-items: start;
   }
 }
 

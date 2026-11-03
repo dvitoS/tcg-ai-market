@@ -131,3 +131,65 @@ export type WatchlistResponse = {
   items: WatchlistItem[];
   demo: boolean;
 };
+
+export type ScannerCard = CatalogCard & {
+  current_price?: number | null;
+  ai_target_price?: number | null;
+  expected_roi_pct?: number | null;
+};
+
+export type ScannerResponse = {
+  forecast_days: number;
+  growth_floor: number;
+  min_growth: number;
+  scoped: number;
+  opp_total: number;
+  warn_total: number;
+  sets: string[];
+  rarities: string[];
+  opportunities: ScannerCard[];
+  warnings: ScannerCard[];
+  source: "supabase" | "demo" | "empty";
+};
+
+export type DealerStatus = {
+  allowed: boolean;
+  reason: string;
+  checkout_url?: string | null;
+  default_fee_pct: number;
+  default_ship_usd: number;
+  sample_csv: string;
+};
+
+export type DealerRow = {
+  card_id?: string | null;
+  name?: string | null;
+  set_name?: string | null;
+  quantity: number;
+  unit_cost?: number | null;
+  matched: boolean;
+  spot?: number | null;
+  expected_change_pct?: number | null;
+  signal?: string | null;
+  conformal_ok: boolean;
+  pred_lo_pct?: number | null;
+  pred_hi_pct?: number | null;
+  net_now?: number | null;
+  net_forecast?: number | null;
+  net_edge_pct?: number | null;
+  action: string;
+  inventory_value?: number | null;
+};
+
+export type DealerResponse = {
+  items: DealerRow[];
+  rows: number;
+  matched: number;
+  actionable: number;
+  unmatched: number;
+  inventory_value: number;
+  fee_pct: number;
+  ship_usd: number;
+  source: "supabase" | "demo" | "empty";
+  demo: boolean;
+};

@@ -183,3 +183,62 @@ class WatchlistResponse(BaseModel):
 
 class AddWatchRequest(BaseModel):
     card_id: str
+
+
+class ScannerCard(CatalogCard):
+    current_price: float | None = None
+    ai_target_price: float | None = None
+    expected_roi_pct: float | None = None
+
+
+class ScannerResponse(BaseModel):
+    forecast_days: int = 7
+    growth_floor: float = 10.0
+    min_growth: float = 10.0
+    scoped: int = 0
+    opp_total: int = 0
+    warn_total: int = 0
+    sets: list[str] = Field(default_factory=list)
+    rarities: list[str] = Field(default_factory=list)
+    opportunities: list[ScannerCard] = Field(default_factory=list)
+    warnings: list[ScannerCard] = Field(default_factory=list)
+    source: Literal["supabase", "demo", "empty"] = "empty"
+
+
+class DealerRequest(BaseModel):
+    csv_text: str
+    fee_pct: float | None = None
+    ship_usd: float | None = None
+
+
+class DealerRow(BaseModel):
+    card_id: str | None = None
+    name: str | None = None
+    set_name: str | None = None
+    quantity: int = 1
+    unit_cost: float | None = None
+    matched: bool = False
+    spot: float | None = None
+    expected_change_pct: float | None = None
+    signal: str | None = None
+    conformal_ok: bool = False
+    pred_lo_pct: float | None = None
+    pred_hi_pct: float | None = None
+    net_now: float | None = None
+    net_forecast: float | None = None
+    net_edge_pct: float | None = None
+    action: str = "HOLD"
+    inventory_value: float | None = None
+
+
+class DealerResponse(BaseModel):
+    items: list[DealerRow]
+    rows: int = 0
+    matched: int = 0
+    actionable: int = 0
+    unmatched: int = 0
+    inventory_value: float = 0.0
+    fee_pct: float = 13.0
+    ship_usd: float = 4.0
+    source: Literal["supabase", "demo", "empty"] = "empty"
+    demo: bool = False

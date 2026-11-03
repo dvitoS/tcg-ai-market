@@ -10,8 +10,8 @@ const NAV = [
   { href: "/", label: "Browse" },
   { href: "/#signals", label: "AI signals" },
   { href: "/portfolio", label: "Portfolio" },
-  { href: "/scanner", label: "Scanner", soon: true },
-  { href: "/dealer", label: "Dealer", soon: true },
+  { href: "/scanner", label: "Scanner" },
+  { href: "/dealer", label: "Dealer" },
 ] as const;
 
 export function SiteHeader() {

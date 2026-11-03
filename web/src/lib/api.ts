@@ -4,7 +4,10 @@ import type {
   CardHistoryResponse,
   CatalogMode,
   CatalogResponse,
+  DealerResponse,
+  DealerStatus,
   PortfolioResponse,
+  ScannerResponse,
   WatchlistResponse,
 } from "./types";
 
@@ -253,4 +256,68 @@ export async function fetchWatchStatus(cardId: string): Promise<boolean> {
   if (!res.ok) return false;
   const body = (await res.json()) as { watched?: boolean };
   return Boolean(body.watched);
+}
+
+export type ScannerQuery = {
+  q?: string;
+  set?: string;
+  rarity?: string;
+  min_price?: number;
+  max_price?: number;
+  min_growth?: number;
+  limit?: number;
+};
+
+export async function fetchScanner(query: ScannerQuery = {}): Promise<ScannerResponse> {
+  const params = new URLSearchParams();
+  if (query.q) params.set("q", query.q);
+  if (query.set) params.set("set", query.set);
+  if (query.rarity) params.set("rarity", query.rarity);
+  if (query.min_price != null) params.set("min_price", String(query.min_price));
+  if (query.max_price != null) params.set("max_price", String(query.max_price));
+  if (query.min_growth != null) params.set("min_growth", String(query.min_growth));
+  if (query.limit != null) params.set("limit", String(query.limit));
+  const res = await fetch(apiUrl(`/api/scanner?${params.toString()}`), {
+    headers: { Accept: "application/json" },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`Scanner failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function fetchDealerStatus(): Promise<DealerStatus> {
+  const res = await fetch(apiUrl("/api/dealer/status"), {
+    headers: {
+      Accept: "application/json",
+      ...authHeaders(),
+    },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`Dealer status failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function scoreDealerCsv(input: {
+  csv_text: string;
+  fee_pct: number;
+  ship_usd: number;
+}): Promise<DealerResponse> {
+  const res = await fetch(apiUrl("/api/dealer/score"), {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const detail = await res.text();
+    throw new Error(detail || `Dealer score failed (${res.status})`);
+  }
+  return res.json();
 }

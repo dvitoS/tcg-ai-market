@@ -24,7 +24,7 @@ Streamlit stays the production UI until cutover. New surface:
 | Path | Role |
 |------|------|
 | `api/` | FastAPI over existing `services/` + `market_quotes` (falls back to `data/seed_tcg_market.db` demo) |
-| `web/` | Next.js Soft Ink — Browse, card detail + chart, portfolio/watchlist |
+| `web/` | Next.js Soft Ink — Browse, detail + chart, portfolio/watchlist, scanner, dealer |
 
 Without Supabase Auth credentials the API runs in **demo mode** (seeded lots + watchlist). With `SUPABASE_URL` + `SUPABASE_ANON_KEY`, login uses real Supabase email/password.
 
