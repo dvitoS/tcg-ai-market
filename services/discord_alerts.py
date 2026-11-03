@@ -54,7 +54,7 @@ def build_discord_payload(
 ) -> dict[str, Any]:
     """Discord webhook JSON: content + embeds (capped)."""
     mode = "sure-only conformal" if sure_only else "watchlist"
-    content = f"**TCG AI** · {len(alerts)} {mode} alert(s) · |AI ROI| ≥ {threshold_pct:g}%"
+    content = f"**Kestrel** · {len(alerts)} {mode} alert(s) · |AI ROI| ≥ {threshold_pct:g}%"
     embeds: list[dict[str, Any]] = []
     # Pack alerts into embeds (≈8 fields each → stay under Discord limits).
     chunk: list[WatchAlert] = []

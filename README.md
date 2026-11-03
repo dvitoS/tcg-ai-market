@@ -1,6 +1,8 @@
-# TCG AI Market
+# Kestrel
 
-Streamlit app for Pokémon TCG market history, XGBoost forecasts, portfolio/watchlist (Supabase Auth + RLS), and live JustTCG / eBay comps. Catalog, scanner, and dealer browse are **public**; sign-in is required for portfolio / watchlist / alerts.
+Pokémon TCG market signals — price history, XGBoost forecasts, portfolio/watchlist (Supabase Auth + RLS), dealer desk, and live JustTCG / eBay comps. Catalog, scanner, and dealer browse are **public**; sign-in is required for portfolio / watchlist / alerts.
+
+*(Repo folder may still be `tcg-ai-market`; product name is **Kestrel**.)*
 
 ## Local
 

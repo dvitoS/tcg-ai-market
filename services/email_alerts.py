@@ -51,7 +51,7 @@ def format_digest(
         else f"|AI ROI| or |7d price| ≥ {threshold_pct:g}%"
     )
     lines = [
-        f"TCG AI Market — watchlist alerts ({mode})",
+        f"Kestrel — watchlist alerts ({mode})",
         "",
     ]
     for alert in alerts[:25]:
@@ -179,7 +179,7 @@ def send_watchlist_digests(
             continue
         body = format_digest(alerts, threshold_pct=threshold, sure_only=use_sure)
         kind = "sure" if use_sure else "watchlist"
-        subject = f"[TCG AI] {len(alerts)} {kind} alert(s)"
+        subject = f"[Kestrel] {len(alerts)} {kind} alert(s)"
         if send_smtp_email(to_addr=to_addr, subject=subject, body=body):
             stats["sent"] += 1
         else:

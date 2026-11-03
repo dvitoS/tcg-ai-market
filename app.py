@@ -1,4 +1,4 @@
-"""TCG AI Market Dashboard — composition root."""
+"""Kestrel — composition root."""
 
 import importlib
 import sys
@@ -66,8 +66,8 @@ importlib.reload(_i18n_mod)
 from i18n import t
 
 st.set_page_config(
-    page_title="TCG AI Market Dashboard",
-    page_icon="📈",
+    page_title="Kestrel",
+    page_icon="🦅",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
@@ -130,6 +130,21 @@ def main() -> None:
             st.error(t("auth_session_stale"))
         elif mode == "jwt_failed":
             st.error(t("auth_rls_blocked_jwt"))
+            try:
+                from database_clients import last_user_supabase_error
+
+                detail = last_user_supabase_error()
+                if detail:
+                    st.caption(t("auth_rls_blocked_jwt_detail", error=detail))
+            except Exception:
+                pass
+            st.caption(t("auth_rls_fix_session_hint"))
+            if st.button(t("auth_fix_session"), key="fix_jwt_session"):
+                import auth as auth_mod
+
+                auth_mod.sign_out()
+                auth_mod.persist_cookies_now()
+                st.rerun()
 
     try:
         with st.spinner(t("load_exchange")):

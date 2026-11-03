@@ -61,3 +61,29 @@ def test_user_data_client_mode_missing_anon(monkeypatch, fake_st):
     monkeypatch.setattr(database_clients, "get_user_supabase", lambda: None)
 
     assert database.user_data_client_mode() == "missing_anon"
+
+
+def test_jwt_role_claim_reads_anon():
+    import base64
+    import json
+
+    import database_clients
+
+    payload = base64.urlsafe_b64encode(
+        json.dumps({"role": "anon", "ref": "x"}).encode()
+    ).decode().rstrip("=")
+    token = f"eyJhbGciOiJub25lIn0.{payload}.sig"
+    assert database_clients.jwt_role_claim(token) == "anon"
+
+
+def test_jwt_role_claim_detects_service_role():
+    import base64
+    import json
+
+    import database_clients
+
+    payload = base64.urlsafe_b64encode(
+        json.dumps({"role": "service_role"}).encode()
+    ).decode().rstrip("=")
+    token = f"hdr.{payload}.sig"
+    assert database_clients.jwt_role_claim(token) == "service_role"

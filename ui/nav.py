@@ -193,7 +193,7 @@ def render_navbar() -> str:
     )
     with brand:
         st.markdown(
-            f'<div class="nav-brand-left">TCG AI'
+            f'<div class="nav-brand-left">Kestrel'
             f'<span>{escape(t("brand_tagline"))}</span></div>',
             unsafe_allow_html=True,
         )

@@ -6,8 +6,8 @@ from typing import Any
 
 _TEXT: dict[str, str] = {
 
-        "app_title": "📈 TCG AI Market Dashboard",
-        "app_caption": "Pokémon TCG market · portfolio · XGBoost forecasts",
+        "app_title": "Kestrel",
+        "app_caption": "Pokémon TCG signals · portfolio · dealer desk",
         "tab_market": "Market & AI",
         "tab_portfolio": "My Portfolio",
         "tab_scanner": "🤖 AI Scanner",
@@ -63,7 +63,7 @@ _TEXT: dict[str, str] = {
         "explore_load_more": "Load more",
         "explore_end": "End of results",
         "explore_empty": "No cards match these filters.",
-        "brand_tagline": "Collect. Track. Predict.",
+        "brand_tagline": "Spot. Signal. Act.",
         "badge_live": "Live JustTCG",
         "badge_saved": "Saved history",
         "badge_spot": "Spot only",
@@ -113,6 +113,9 @@ _TEXT: dict[str, str] = {
         "auth_rls_fallback_generic": "Portfolio/watchlist JWT client failed. Log out and log in again; check SUPABASE_ANON_KEY.",
         "auth_rls_blocked_anon": "Multi-user mode: set SUPABASE_ANON_KEY in Secrets. Portfolio/watchlist will not use the service role key.",
         "auth_rls_blocked_jwt": "Could not build a JWT client for portfolio/watchlist. Log out and log in again; confirm SUPABASE_ANON_KEY is the anon public key.",
+        "auth_rls_blocked_jwt_detail": "Detail: {error}",
+        "auth_rls_fix_session_hint": "Cloud → Secrets: SUPABASE_ANON_KEY must be anon public (not service_role). Then use Fix session below.",
+        "auth_fix_session": "Fix session (log out)",
         "auth_session_stale": "Your login has no access token (old session). Log out and log in again to enable portfolio RLS.",
         "watchlist_alerts_error": "Watchlist alerts unavailable right now.",
         "alert_watch_body": "Watchlist · {name}: {pct:+.1f}% expected ({signal}) · {price}",

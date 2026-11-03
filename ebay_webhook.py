@@ -75,7 +75,7 @@ def append_deletion_event(payload: dict) -> None:
 
 
 app = FastAPI(
-    title="TCG AI Market — eBay webhooks",
+    title="Kestrel — eBay webhooks",
     docs_url="/docs",
     redoc_url=None,
 )

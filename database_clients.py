@@ -68,6 +68,36 @@ def get_supabase():
     return create_client(url, key)
 
 
+_JWT_FAIL_KEY = "_user_supabase_fail_reason"
+
+
+def jwt_role_claim(key: str) -> str | None:
+    """Best-effort decode of Supabase JWT ``role`` without verifying signature."""
+    import base64
+    import json
+
+    raw = str(key or "").strip()
+    parts = raw.split(".")
+    if len(parts) < 2:
+        return None
+    try:
+        pad = "=" * (-len(parts[1]) % 4)
+        payload = json.loads(base64.urlsafe_b64decode(parts[1] + pad))
+        role = payload.get("role")
+        return str(role) if role else None
+    except Exception:
+        return None
+
+
+def last_user_supabase_error() -> str:
+    try:
+        import streamlit as st
+
+        return str(st.session_state.get(_JWT_FAIL_KEY) or "").strip()
+    except Exception:
+        return ""
+
+
 def get_user_supabase():
     """Authed anon client with the signed-in user's JWT (portfolio/watchlist RLS).
 
@@ -86,6 +116,17 @@ def get_user_supabase():
     has_anon = bool(_clean_secret_value(_secret("SUPABASE_ANON_KEY")))
     if not url or not anon or not has_anon:
         return None
+
+    role = jwt_role_claim(anon)
+    if role == "service_role":
+        try:
+            st.session_state[_JWT_FAIL_KEY] = (
+                "SUPABASE_ANON_KEY looks like service_role — use the anon public key."
+            )
+        except Exception:
+            pass
+        return None
+
     refresh_session()
     access = str(st.session_state.get(SESSION_ACCESS_KEY) or "").strip()
     refresh = str(st.session_state.get(SESSION_REFRESH_KEY) or "").strip()
@@ -94,15 +135,31 @@ def get_user_supabase():
     try:
         _, create_client = _supabase_api()
         client = create_client(url, anon)
-        # refresh_token is required by gotrue set_session
+        # Prefer real refresh token; access-as-refresh is a last resort for legacy sessions.
         client.auth.set_session(access, refresh or access)
-        # Touch auth so a bad token fails here instead of later on PostgREST.
-        client.auth.get_user(access)
+        try:
+            # Touch auth so a bad token fails here instead of later on PostgREST.
+            client.auth.get_user(access)
+        except TypeError:
+            client.auth.get_user()
+        except Exception as user_exc:
+            # set_session may still be enough for PostgREST; keep client if session exists.
+            session = client.auth.get_session()
+            if session is None:
+                raise user_exc
+        try:
+            st.session_state.pop(_JWT_FAIL_KEY, None)
+        except Exception:
+            pass
         return client
     except Exception as exc:
         import logging
 
         logging.getLogger("tcg.database").warning("get_user_supabase failed: %s", exc)
+        try:
+            st.session_state[_JWT_FAIL_KEY] = str(exc)[:180]
+        except Exception:
+            pass
         return None
 
 
