@@ -101,11 +101,11 @@ export function CardDetailView({
               <div className="stat-row">
                 <div className="stat-chip">
                   <span>Range min</span>
-                  <strong>{formatMoney(history.min_price, "USD", 2)}</strong>
+                  <strong>{formatMoney(history.min_price, "USD", 0)}</strong>
                 </div>
                 <div className="stat-chip">
                   <span>Range max</span>
-                  <strong>{formatMoney(history.max_price, "USD", 2)}</strong>
+                  <strong>{formatMoney(history.max_price, "USD", 0)}</strong>
                 </div>
                 <div className="stat-chip">
                   <span>Points</span>
