@@ -11,6 +11,10 @@ class HealthResponse(BaseModel):
     status: str = "ok"
     service: str = "kestrel-api"
     source: Literal["supabase", "demo", "empty"] = "empty"
+    # Ops diagnostics only — never include secret values.
+    creem_webhook_secret: bool = False
+    pro_checkout_url: bool = False
+    pro_open: bool = True
 
 
 class LoginRequest(BaseModel):
