@@ -122,6 +122,31 @@ def test_webhook_route_accepts_valid_signature(monkeypatch) -> None:
     assert res.json()["action"] == "ignored"
 
 
+def test_webhook_route_returns_500_when_grant_fails(monkeypatch) -> None:
+    secret = "whsec_grant_fail"
+    monkeypatch.setenv("CREEM_WEBHOOK_SECRET", secret)
+
+    def fake_handle(_event):
+        return {"ok": False, "action": "grant", "reason": "db_error", "event_type": "checkout.completed"}
+
+    monkeypatch.setattr("api.routers.webhooks.handle_creem_event", fake_handle)
+    from api.main import app
+
+    client = TestClient(app)
+    body = {"eventType": "checkout.completed", "id": "evt_1", "object": {}}
+    raw = json.dumps(body).encode("utf-8")
+    res = client.post(
+        "/api/webhooks/creem",
+        content=raw,
+        headers={
+            "content-type": "application/json",
+            "creem-signature": _sign(raw, secret),
+        },
+    )
+    assert res.status_code == 500
+
+
+
 def test_is_pro_user_honors_db_entitlement(monkeypatch) -> None:
     import services.pro as pro
 
