@@ -63,4 +63,5 @@ jobs:
           # Keep tests offline / deterministic.
           AUTH_DISABLED: "0"
           GITHUB_ACTIONS: "1"
+          PYTHONPATH: .
         run: pytest -q
