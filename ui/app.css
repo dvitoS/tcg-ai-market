@@ -816,21 +816,28 @@
         height: 0 !important;
         min-height: 0 !important;
     }
-    /* Hide Streamlit chrome (toolbar / Deploy / “Made with” / status). */
+    /* Hide Streamlit chrome (toolbar / Deploy / Manage app / “Made with”). */
     div[data-testid="stDecoration"],
     div[data-testid="stToolbar"],
     div[data-testid="stStatusWidget"],
     div[data-testid="stToolbarActions"],
     a[data-testid="stAppDeployButton"],
     div[data-testid="stAppDeployButton"],
+    [data-testid="manage-app-button"],
+    button[data-testid="manage-app-button"],
+    a[data-testid="manage-app-button"],
     #MainMenu,
     button[kind="header"],
     [data-testid="stBaseButton-header"],
     [data-testid="stBaseButton-headerNoPadding"],
     footer,
     .stAppDeployButton,
+    .stDeployButton,
     a[href*="streamlit.io"],
+    a[href*="share.streamlit.io"],
     div[data-testid="stViewerBadge"],
+    .viewerBadge_container__r5tak,
+    .viewerBadge_link__qRIco,
     section[data-testid="stSidebar"] {
         display: none !important;
         visibility: hidden !important;
@@ -839,6 +846,7 @@
         margin: 0 !important;
         padding: 0 !important;
         overflow: hidden !important;
+        pointer-events: none !important;
     }
     .stMainBlockContainer.block-container,
     .block-container {
