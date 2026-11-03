@@ -96,10 +96,13 @@ export function PortfolioView() {
 
   async function onRemoveWatch(cardId: string) {
     setBusy(true);
+    const previous = watch;
+    setWatch((prev) => prev.filter((item) => item.card_id !== cardId));
     try {
       await removeWatchlistCard(cardId);
       await load();
     } catch (err) {
+      setWatch(previous);
       setError(err instanceof Error ? err.message : "Could not remove watch");
     } finally {
       setBusy(false);
