@@ -86,3 +86,31 @@ def pro_gate_reason() -> str:
     if is_pro_user():
         return "allowlist"
     return "locked"
+
+
+def pro_checkout_url() -> str | None:
+    """Lemon/Stripe Payment Link (or any https checkout). None when unset."""
+    url = _clean("PRO_CHECKOUT_URL")
+    if url.startswith("https://") or url.startswith("http://"):
+        return url
+    return None
+
+
+def render_pro_upgrade_cta(*, key: str = "pro_upgrade") -> None:
+    """Locked-surface CTA: checkout link when configured, else ops hint."""
+    import streamlit as st
+
+    from i18n import t
+
+    checkout = pro_checkout_url()
+    if checkout:
+        st.link_button(
+            t("pro_upgrade_cta"),
+            checkout,
+            type="primary",
+            use_container_width=True,
+            key=f"{key}_link",
+        )
+        st.caption(t("pro_upgrade_after_pay"))
+    else:
+        st.caption(t("pro_upgrade_hint"))

@@ -80,8 +80,9 @@ Until Stripe/Lemon: Dealer desk + sure-only alerts are Pro surfaces.
 | `PRO_OPEN` | Default `1` — everyone is Pro (open beta) |
 | `PRO_EMAILS` | Comma-separated emails when `PRO_OPEN=0` |
 | `PRO_USER_IDS` | Comma-separated Supabase user UUIDs when `PRO_OPEN=0` |
+| `PRO_CHECKOUT_URL` | Optional Lemon/Stripe Payment Link — “Upgrade to Pro” on locked surfaces |
 
-`AUTH_DISABLED` local always counts as Pro. Empty allowlist with `PRO_OPEN=0` stays open (avoids locking everyone out).
+`AUTH_DISABLED` local always counts as Pro. Empty allowlist with `PRO_OPEN=0` stays open (avoids locking everyone out). After someone pays, add their email to `PRO_EMAILS` (webhook automation later).
 
 ### Key split (important)
 

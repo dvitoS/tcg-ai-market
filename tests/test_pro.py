@@ -46,3 +46,16 @@ def test_locked_without_allowlist_stays_open(monkeypatch):
     )
     monkeypatch.setattr(pro, "auth_disabled", lambda: False)
     assert pro.is_pro_user({"email": "anyone@x.com", "id": "z"}) is True
+
+
+def test_pro_checkout_url(monkeypatch):
+    import services.pro as pro
+
+    monkeypatch.setattr(pro, "_clean", lambda name: "")
+    assert pro.pro_checkout_url() is None
+    monkeypatch.setattr(
+        pro,
+        "_clean",
+        lambda name: "https://buy.stripe.com/test" if name == "PRO_CHECKOUT_URL" else "",
+    )
+    assert pro.pro_checkout_url() == "https://buy.stripe.com/test"

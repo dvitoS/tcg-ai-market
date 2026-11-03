@@ -34,11 +34,11 @@ def render_dealer_desk(market: pd.DataFrame) -> None:
     st.subheader(t("desk_title"))
     st.caption(t("desk_caption"))
 
-    from services.pro import is_pro_user
+    from services.pro import is_pro_user, render_pro_upgrade_cta
 
     if not is_pro_user():
         st.info(t("pro_desk_locked"))
-        st.caption(t("pro_upgrade_hint"))
+        render_pro_upgrade_cta(key="desk_pro_upgrade")
         sample = (
             "card_id,quantity,cost\n"
             "base1-1,2,40.00\n"

@@ -85,6 +85,9 @@ def render_watchlist_section(market: pd.DataFrame) -> None:
             )
         else:
             st.caption(t("pro_sure_locked"))
+            from services.pro import render_pro_upgrade_cta
+
+            render_pro_upgrade_cta(key="sure_pro_upgrade")
             sure_only = False
     st.session_state["watch_alert_threshold"] = threshold_val
     st.session_state["watch_alert_sure_only"] = sure_only if pro else False
