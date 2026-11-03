@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { DM_Sans, Fraunces } from "next/font/google";
 
+import { AuthProvider } from "@/components/AuthProvider";
 import { SiteHeader } from "@/components/SiteHeader";
 
 import "./globals.css";
@@ -30,10 +31,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${dmSans.variable} ${fraunces.variable} antialiased`}>
-        <div className="app-shell">
-          <SiteHeader />
-          <main>{children}</main>
-        </div>
+        <AuthProvider>
+          <div className="app-shell">
+            <SiteHeader />
+            <main>{children}</main>
+          </div>
+        </AuthProvider>
       </body>
     </html>
   );

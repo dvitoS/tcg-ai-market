@@ -24,7 +24,9 @@ Streamlit stays the production UI until cutover. New surface:
 | Path | Role |
 |------|------|
 | `api/` | FastAPI over existing `services/` + `market_quotes` (falls back to `data/seed_tcg_market.db` demo) |
-| `web/` | Next.js Soft Ink shell — Browse Market + card detail stub |
+| `web/` | Next.js Soft Ink — Browse, card detail + chart, portfolio/watchlist |
+
+Without Supabase Auth credentials the API runs in **demo mode** (seeded lots + watchlist). With `SUPABASE_URL` + `SUPABASE_ANON_KEY`, login uses real Supabase email/password.
 
 ```bash
 # API (repo root)
@@ -38,7 +40,7 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:3000`. Docs: `http://127.0.0.1:8000/docs`.
+Open `http://localhost:3000` (Portfolio at `/portfolio`). Docs: `http://127.0.0.1:8000/docs`.
 
 ## Deploy checklist (Streamlit Cloud)
 

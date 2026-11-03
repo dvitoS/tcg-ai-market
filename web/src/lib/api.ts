@@ -1,9 +1,30 @@
 import type {
+  AuthUser,
   CardDetailResponse,
   CardHistoryResponse,
   CatalogMode,
   CatalogResponse,
+  PortfolioResponse,
+  WatchlistResponse,
 } from "./types";
+
+const TOKEN_KEY = "kestrel_access_token";
+
+export function getAccessToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem(TOKEN_KEY);
+}
+
+export function setAccessToken(token: string | null) {
+  if (typeof window === "undefined") return;
+  if (!token) window.localStorage.removeItem(TOKEN_KEY);
+  else window.localStorage.setItem(TOKEN_KEY, token);
+}
+
+function authHeaders(token?: string | null): HeadersInit {
+  const value = token === undefined ? getAccessToken() : token;
+  return value ? { Authorization: `Bearer ${value}` } : {};
+}
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "http://127.0.0.1:8000";
@@ -115,4 +136,121 @@ export async function fetchCardHistory(
     throw new Error(`Card history failed (${res.status})`);
   }
   return res.json() as Promise<CardHistoryResponse>;
+}
+
+export async function loginRequest(
+  email: string,
+  password: string,
+): Promise<{ access_token: string; user: AuthUser }> {
+  const res = await fetch(apiUrl("/api/auth/login"), {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) {
+    throw new Error("Invalid email or password");
+  }
+  return res.json();
+}
+
+export async function fetchMe(token?: string | null): Promise<{
+  authenticated: boolean;
+  user: AuthUser | null;
+}> {
+  const res = await fetch(apiUrl("/api/auth/me"), {
+    headers: {
+      Accept: "application/json",
+      ...authHeaders(token),
+    },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    return { authenticated: false, user: null };
+  }
+  return res.json();
+}
+
+export async function fetchPortfolio(): Promise<PortfolioResponse> {
+  const res = await fetch(apiUrl("/api/portfolio"), {
+    headers: {
+      Accept: "application/json",
+      ...authHeaders(),
+    },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`Portfolio failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function deletePortfolioLot(entryId: number | string): Promise<void> {
+  const res = await fetch(apiUrl(`/api/portfolio/lots/${entryId}`), {
+    method: "DELETE",
+    headers: {
+      Accept: "application/json",
+      ...authHeaders(),
+    },
+  });
+  if (!res.ok) {
+    throw new Error(`Could not remove lot (${res.status})`);
+  }
+}
+
+export async function fetchWatchlist(): Promise<WatchlistResponse> {
+  const res = await fetch(apiUrl("/api/watchlist"), {
+    headers: {
+      Accept: "application/json",
+      ...authHeaders(),
+    },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`Watchlist failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function addWatchlistCard(cardId: string): Promise<void> {
+  const res = await fetch(apiUrl("/api/watchlist"), {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify({ card_id: cardId }),
+  });
+  if (!res.ok) {
+    throw new Error(`Could not add watch (${res.status})`);
+  }
+}
+
+export async function removeWatchlistCard(cardId: string): Promise<void> {
+  const res = await fetch(apiUrl(`/api/watchlist/${encodeURIComponent(cardId)}`), {
+    method: "DELETE",
+    headers: {
+      Accept: "application/json",
+      ...authHeaders(),
+    },
+  });
+  if (!res.ok) {
+    throw new Error(`Could not remove watch (${res.status})`);
+  }
+}
+
+export async function fetchWatchStatus(cardId: string): Promise<boolean> {
+  const res = await fetch(
+    apiUrl(`/api/watchlist/${encodeURIComponent(cardId)}/status`),
+    {
+      headers: {
+        Accept: "application/json",
+        ...authHeaders(),
+      },
+      cache: "no-store",
+    },
+  );
+  if (!res.ok) return false;
+  const body = (await res.json()) as { watched?: boolean };
+  return Boolean(body.watched);
 }

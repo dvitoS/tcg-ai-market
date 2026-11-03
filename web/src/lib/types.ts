@@ -65,3 +65,69 @@ export type CardHistoryResponse = {
   points: HistoryPoint[];
   stats: HistoryStats;
 };
+
+export type AuthUser = {
+  id: string;
+  email?: string | null;
+  dev?: boolean;
+};
+
+export type PortfolioLot = {
+  id: number | string;
+  card_id: string;
+  quantity: number;
+  purchase_price: number;
+  purchase_date?: string | null;
+  condition?: string | null;
+  grade?: string | null;
+  status?: string;
+  name?: string | null;
+  rarity?: string | null;
+  set_name?: string | null;
+  image_url?: string | null;
+  market_price?: number | null;
+  current_price?: number | null;
+  invested?: number | null;
+  market_value?: number | null;
+  pnl?: number | null;
+  pnl_pct?: number | null;
+  signal?: string | null;
+  expected_change_pct?: number | null;
+  predicted_price?: number | null;
+  outlook_value?: number | null;
+};
+
+export type PortfolioSummary = {
+  lots: number;
+  value: number;
+  invested: number;
+  pnl: number;
+  pnl_pct: number;
+  outlook_value: number;
+  outlook_pct: number;
+};
+
+export type PortfolioResponse = {
+  items: PortfolioLot[];
+  summary: PortfolioSummary;
+  demo: boolean;
+};
+
+export type WatchlistItem = {
+  id?: number | string | null;
+  card_id: string;
+  created_at?: string | null;
+  name?: string | null;
+  rarity?: string | null;
+  set_name?: string | null;
+  image_url?: string | null;
+  market_price?: number | null;
+  signal?: string | null;
+  expected_change_pct?: number | null;
+  predicted_price?: number | null;
+};
+
+export type WatchlistResponse = {
+  items: WatchlistItem[];
+  demo: boolean;
+};

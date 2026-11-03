@@ -7,9 +7,10 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from api.deps import auth_client, optional_user, require_user
+from api.demo_mode import demo_mode
+from api.deps import DEV_TOKEN, auth_client, optional_user, require_user
 from api.schemas import AuthSessionResponse, AuthUser, LoginRequest, MeResponse
-from config import DEV_USER_EMAIL, DEV_USER_ID, auth_disabled
+from config import DEV_USER_EMAIL, DEV_USER_ID
 
 LOG = logging.getLogger("kestrel.api.auth")
 
@@ -49,11 +50,11 @@ def _session_payload(session: Any, user: Any) -> AuthSessionResponse:
 
 @router.post("/login", response_model=AuthSessionResponse)
 def login(body: LoginRequest) -> AuthSessionResponse:
-    if auth_disabled():
+    if demo_mode():
         return AuthSessionResponse(
-            access_token="dev-local-token",
+            access_token=DEV_TOKEN,
             refresh_token=None,
-            user=AuthUser(id=str(DEV_USER_ID), email=str(DEV_USER_EMAIL), dev=True),
+            user=AuthUser(id=str(DEV_USER_ID), email=body.email.strip() or str(DEV_USER_EMAIL), dev=True),
         )
     try:
         client = auth_client()

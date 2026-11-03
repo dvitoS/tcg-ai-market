@@ -106,3 +106,80 @@ class SignalBoardResponse(BaseModel):
     sells: list[CatalogCard]
     holds: list[CatalogCard]
     source: Literal["supabase", "demo", "empty"] = "empty"
+
+
+class PortfolioLot(BaseModel):
+    id: int | str
+    user_id: str | None = None
+    card_id: str
+    quantity: int
+    purchase_price: float
+    purchase_date: str | None = None
+    condition: str | None = "NM"
+    grade: str | None = None
+    status: str = "open"
+    sale_price: float | None = None
+    sale_date: str | None = None
+    name: str | None = None
+    rarity: str | None = None
+    set_name: str | None = None
+    image_url: str | None = None
+    market_price: float | None = None
+    current_price: float | None = None
+    invested: float | None = None
+    market_value: float | None = None
+    pnl: float | None = None
+    pnl_pct: float | None = None
+    signal: str | None = None
+    expected_change_pct: float | None = None
+    predicted_price: float | None = None
+    outlook_value: float | None = None
+
+
+class PortfolioSummary(BaseModel):
+    lots: int = 0
+    value: float = 0.0
+    invested: float = 0.0
+    pnl: float = 0.0
+    pnl_pct: float = 0.0
+    outlook_value: float = 0.0
+    outlook_pct: float = 0.0
+
+
+class PortfolioResponse(BaseModel):
+    items: list[PortfolioLot]
+    summary: PortfolioSummary
+    demo: bool = False
+
+
+class AddLotRequest(BaseModel):
+    card_id: str
+    quantity: int = 1
+    purchase_price: float
+    condition: str = "NM"
+    grade: str | None = None
+    purchase_date: str | None = None
+
+
+class WatchlistItem(BaseModel):
+    id: int | str | None = None
+    user_id: str | None = None
+    card_id: str
+    created_at: str | None = None
+    name: str | None = None
+    rarity: str | None = None
+    set_name: str | None = None
+    image_url: str | None = None
+    market_price: float | None = None
+    signal: str | None = None
+    expected_change_pct: float | None = None
+    predicted_price: float | None = None
+
+
+class WatchlistResponse(BaseModel):
+    items: list[WatchlistItem]
+    demo: bool = False
+
+
+class AddWatchRequest(BaseModel):
+    card_id: str

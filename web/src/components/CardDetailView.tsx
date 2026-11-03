@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { PriceChart } from "@/components/PriceChart";
+import { WatchToggle } from "@/components/WatchToggle";
 import { formatChange, formatMoney } from "@/lib/api";
 import type { CardDetailResponse, HistoryPoint } from "@/lib/types";
 
@@ -90,6 +91,12 @@ export function CardDetailView({
               <div className={`detail-hero-delta ${deltaClass(dayChange)}`}>
                 {formatChange(dayChange, 2)}
                 {showSignal ? ` · ${card.signal}` : ""}
+              </div>
+              <div className="detail-actions">
+                <WatchToggle cardId={card.id} />
+                <Link href="/portfolio#watchlist" className="btn-ghost">
+                  Open watchlist
+                </Link>
               </div>
               <div className="stat-row">
                 <div className="stat-chip">
