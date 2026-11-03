@@ -524,14 +524,24 @@ def card_forecasts(
     """Latest row per card: predict horizon return → target price + PI."""
     band = float(RETURN_HOLD_BAND if hold_band is None else hold_band)
     cap = float(CONFORMAL_WIDTH_CAP if width_cap is None else width_cap)
+    from services.forecast import align_features_for_model, model_feature_names
+
     latest = (
         featured.sort_values(["card_id", "date"])
         .groupby("card_id", as_index=False)
         .tail(1)
-        .dropna(subset=FEATURE_COLUMNS)
         .copy()
     )
-    pred_ret = np.asarray(model.predict(latest[FEATURE_COLUMNS]), dtype=float)
+    # Prefer model schema (old artifacts may lack newer columns like eBay features).
+    need = model_feature_names(model)
+    drop_cols = [c for c in need if c in latest.columns]
+    if drop_cols:
+        latest = latest.dropna(subset=drop_cols)
+    for col in need:
+        if col not in latest.columns:
+            latest[col] = 0.0
+    pred_x = align_features_for_model(latest, model)
+    pred_ret = np.asarray(model.predict(pred_x), dtype=float)
     latest["predicted_return"] = pred_ret
     spot = latest["price"].astype(float)
     latest["predicted_price"] = spot * (1.0 + pred_ret)

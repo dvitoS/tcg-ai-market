@@ -128,7 +128,14 @@ def _resolve_model(featured: pd.DataFrame, *, encoders: dict | None = None):
     if loaded is not None:
         model, meta = loaded
         cols = list(meta.get("feature_columns") or [])
-        if not cols or cols == list(FEATURE_COLUMNS):
+        if not cols:
+            try:
+                from services.forecast import model_feature_names
+
+                cols = model_feature_names(model)
+            except Exception:
+                cols = []
+        if cols and cols == list(FEATURE_COLUMNS):
             LOG.info(
                 "Using persisted XGBoost model (trained_at=%s)",
                 meta.get("trained_at"),
@@ -146,7 +153,11 @@ def _resolve_model(featured: pd.DataFrame, *, encoders: dict | None = None):
                 except Exception as exc:
                     LOG.warning("Could not persist label_maps on existing model: %s", exc)
             return model, False, meta
-        LOG.warning("Persisted model feature mismatch — retraining.")
+        LOG.warning(
+            "Persisted model feature mismatch (have=%s want=%s) — retraining.",
+            len(cols),
+            len(FEATURE_COLUMNS),
+        )
 
     trainable = drop_incomplete_rows(featured)
     X_train, X_test, y_train, y_test = split_features(trainable)
@@ -283,8 +294,19 @@ def _try_fast_boot() -> tuple[pd.DataFrame, pd.DataFrame, object] | None:
         return None
     model, meta = loaded
     cols = list(meta.get("feature_columns") or [])
-    if cols and cols != list(FEATURE_COLUMNS):
-        LOG.warning("Skipping fast boot — feature mismatch on persisted model.")
+    if not cols:
+        try:
+            from services.forecast import model_feature_names
+
+            cols = model_feature_names(model)
+        except Exception:
+            cols = []
+    if not cols or cols != list(FEATURE_COLUMNS):
+        LOG.warning(
+            "Skipping fast boot — feature mismatch on persisted model (have=%s want=%s).",
+            len(cols),
+            len(FEATURE_COLUMNS),
+        )
         return None
 
     quotes = _filter_catalog_floor(quotes)

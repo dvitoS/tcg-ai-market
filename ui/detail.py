@@ -103,12 +103,15 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
     supertype_enc = card["supertype_encoded"] if "supertype_encoded" in card.index else None
     predicted = None
     if rarity_enc is not None and supertype_enc is not None and pd.notna(rarity_enc) and pd.notna(supertype_enc):
-        predicted = predict_next_close(
-            model,
-            market_series,
-            float(rarity_enc),
-            float(supertype_enc),
-        )
+        try:
+            predicted = predict_next_close(
+                model,
+                market_series,
+                float(rarity_enc),
+                float(supertype_enc),
+            )
+        except Exception:
+            predicted = None
     if predicted is None:
         st.warning(t("short_series"))
         predicted = float(card["predicted_price"])

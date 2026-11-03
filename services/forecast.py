@@ -9,6 +9,33 @@ from ai_xgboost import FEATURE_COLUMNS, FLAT_RET_EPS, HORIZON_DAYS, resample_dai
 from trading_signals import FORECAST_DAYS
 
 
+def model_feature_names(model) -> list[str]:
+    """Feature names the booster was trained with (fallback: current FEATURE_COLUMNS)."""
+    names = getattr(model, "feature_names_in_", None)
+    if names is not None and len(names) > 0:
+        return [str(n) for n in list(names)]
+    try:
+        booster = model.get_booster()
+        fn = getattr(booster, "feature_names", None)
+        if fn:
+            return [str(n) for n in list(fn)]
+    except Exception:
+        pass
+    return list(FEATURE_COLUMNS)
+
+
+def align_features_for_model(frame: pd.DataFrame, model) -> pd.DataFrame:
+    """Select/pad columns so predict() matches the persisted model schema."""
+    names = model_feature_names(model)
+    out = pd.DataFrame(index=frame.index)
+    for col in names:
+        if col in frame.columns:
+            out[col] = pd.to_numeric(frame[col], errors="coerce").fillna(0.0)
+        else:
+            out[col] = 0.0
+    return out
+
+
 def card_history(history: pd.DataFrame, card_id: str) -> pd.DataFrame:
     """Daily resampling like training: mean per day, then ffill."""
     raw = history.loc[history["card_id"] == card_id].sort_values("date")
@@ -108,7 +135,8 @@ def predict_horizon_return(
     )
     if features is None:
         return None
-    return float(model.predict(features)[0])
+    aligned = align_features_for_model(features, model)
+    return float(model.predict(aligned)[0])
 
 
 def predict_from_prices(
