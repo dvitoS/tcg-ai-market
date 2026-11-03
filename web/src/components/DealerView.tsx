@@ -119,19 +119,25 @@ export function DealerView() {
       </div>
 
       {status && !status.allowed ? (
-        <p className="banner-error">
-          Dealer desk is a Pro surface.
-          {status.checkout_url ? (
-            <>
-              {" "}
-              <a href={status.checkout_url} className="inline-link">
-                Upgrade
+        <div className="dealer-lock">
+          <p className="banner-error">Dealer desk is a Soft Pro surface.</p>
+          <p className="explore-lede">
+            Upgrade with the same email you use to sign in, then come back to score inventory.
+          </p>
+          <div className="detail-actions">
+            {status.checkout_url ? (
+              <a href={status.checkout_url} className="btn-primary" rel="noreferrer">
+                Upgrade with Creem
               </a>
-            </>
-          ) : null}
-        </p>
+            ) : null}
+            <Link href="/pro" className="btn-ghost">
+              Soft Pro details
+            </Link>
+          </div>
+        </div>
       ) : null}
 
+      {status?.allowed ? (
       <form className="dealer-form" onSubmit={onScore}>
         <div className="filter-row">
           <label>
@@ -189,10 +195,11 @@ export function DealerView() {
           ) : null}
         </div>
       </form>
+      ) : null}
 
       {error ? <p className="banner-error">{error}</p> : null}
 
-      {result ? (
+      {status?.allowed && result ? (
         <>
           <div className="kpi-row">
             <div className="kpi-chip">
