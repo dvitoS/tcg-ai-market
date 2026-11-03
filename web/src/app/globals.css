@@ -1187,15 +1187,100 @@ a {
   }
 }
 
-.pro-success-page {
+.pro-success-page,
+.pro-page {
   max-width: 40rem;
   margin: 0 auto;
   padding: 2.5rem 1.25rem 4rem;
   animation: rise 0.55s ease both;
 }
 
-.pro-success-page .detail-actions {
+.pro-success-page .detail-actions,
+.pro-page .detail-actions {
   margin-top: 1.5rem;
+}
+
+.pro-open-note {
+  margin-top: 1rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.pro-feature-list {
+  margin: 1.75rem 0 0;
+  padding-left: 1.1rem;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.add-lot-panel {
+  margin-top: 1.15rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.add-lot-panel h2 {
+  margin: 0;
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-size: 1.15rem;
+  font-weight: 560;
+}
+
+.add-lot-hint {
+  margin: 0.35rem 0 0.85rem;
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.add-lot-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem 0.75rem;
+  align-items: end;
+}
+
+.add-lot-form label {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.add-lot-form label span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.add-lot-form input,
+.add-lot-form select {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(12, 12, 12, 0.4);
+  color: inherit;
+  padding: 0.55rem 0.65rem;
+}
+
+.add-lot-form .btn-primary {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+
+.add-lot-ok {
+  margin: 0.75rem 0 0;
+  color: var(--up, #7dcea0);
+}
+
+.btn-ghost.is-disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+@media (max-width: 640px) {
+  .add-lot-form {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

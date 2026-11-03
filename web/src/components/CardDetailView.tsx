@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { AddLotForm } from "@/components/AddLotForm";
 import { PriceChart } from "@/components/PriceChart";
 import { WatchToggle } from "@/components/WatchToggle";
 import { formatChange, formatMoney } from "@/lib/api";
@@ -112,6 +113,11 @@ export function CardDetailView({
                   <strong>{history.points || points.length || "—"}</strong>
                 </div>
               </div>
+              <AddLotForm
+                cardId={card.id}
+                cardName={card.name}
+                defaultPrice={history.last_price ?? card.price}
+              />
             </div>
           </section>
 

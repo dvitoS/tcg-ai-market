@@ -6,6 +6,7 @@ import type {
   CatalogResponse,
   DealerResponse,
   DealerStatus,
+  PortfolioLot,
   PortfolioResponse,
   ScannerResponse,
   WatchlistResponse,
@@ -187,6 +188,30 @@ export async function fetchPortfolio(): Promise<PortfolioResponse> {
   return res.json();
 }
 
+export async function addPortfolioLot(body: {
+  card_id: string;
+  quantity: number;
+  purchase_price: number;
+  condition?: string;
+  grade?: string | null;
+  purchase_date?: string | null;
+}): Promise<PortfolioLot> {
+  const res = await fetch(apiUrl("/api/portfolio/lots"), {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    throw new Error(detail || `Could not add lot (${res.status})`);
+  }
+  return res.json();
+}
+
 export async function deletePortfolioLot(entryId: number | string): Promise<void> {
   const res = await fetch(apiUrl(`/api/portfolio/lots/${entryId}`), {
     method: "DELETE",
@@ -198,6 +223,20 @@ export async function deletePortfolioLot(entryId: number | string): Promise<void
   if (!res.ok) {
     throw new Error(`Could not remove lot (${res.status})`);
   }
+}
+
+export async function fetchBillingStatus(): Promise<{
+  pro_open: boolean;
+  checkout_url: string | null;
+}> {
+  const res = await fetch(apiUrl("/api/billing/status"), {
+    headers: { Accept: "application/json" },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`Billing status failed (${res.status})`);
+  }
+  return res.json();
 }
 
 export async function fetchWatchlist(): Promise<WatchlistResponse> {

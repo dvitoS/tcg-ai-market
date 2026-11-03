@@ -12,7 +12,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.routers import auth, cards, catalog, dealer, health, portfolio, scanner, webhooks
+from api.routers import auth, billing, cards, catalog, dealer, health, portfolio, scanner, webhooks
 
 LOG = logging.getLogger("kestrel.api")
 logging.basicConfig(level=logging.INFO)
@@ -40,6 +40,7 @@ app.add_middleware(
 )
 
 app.include_router(health.router, prefix="/api")
+app.include_router(billing.router, prefix="/api")
 app.include_router(auth.router, prefix="/api")
 app.include_router(catalog.router, prefix="/api")
 app.include_router(cards.router, prefix="/api")
