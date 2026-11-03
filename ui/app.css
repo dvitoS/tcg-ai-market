@@ -190,9 +190,9 @@
     .market-tile, .explore-card {
         transition: transform 0.2s ease, border-color 0.15s ease, box-shadow 0.2s ease;
     }
-    /* Leaf column only — parent results column also :has(.explore-card). */
-    .market-tile:hover,
-    div[data-testid="stColumn"]:has(.explore-card):not(:has(div[data-testid="stColumn"])):hover .explore-card {
+    /* Leaf column only — parent results column also :has(.explore-card / .market-tile). */
+    div[data-testid="stColumn"]:has(.explore-card):not(:has(div[data-testid="stColumn"])):hover .explore-card,
+    div[data-testid="stColumn"]:has(.market-tile):not(:has(div[data-testid="stColumn"])):hover .market-tile {
         transform: translateY(-3px) scale(1.012);
     }
     @keyframes detail-enter {
@@ -236,11 +236,12 @@
             transition: none !important;
             animation: none !important;
         }
-        .market-tile:hover,
-        div[data-testid="stColumn"]:has(.explore-card):not(:has(div[data-testid="stColumn"])):hover .explore-card {
+        div[data-testid="stColumn"]:has(.explore-card):not(:has(div[data-testid="stColumn"])):hover .explore-card,
+        div[data-testid="stColumn"]:has(.market-tile):not(:has(div[data-testid="stColumn"])):hover .market-tile {
             transform: none !important;
         }
-        .explore-card::after { display: none !important; }
+        .explore-card::after,
+        .market-tile::after { display: none !important; }
     }
     .signal-buy, .signal-sell, .signal-hold {
         font-size: 1.05rem;
@@ -320,23 +321,51 @@
         margin: 8px 0 12px;
     }
     .market-tile {
+        position: relative;
+        overflow: hidden;
         text-align: center;
-        padding: 6px 4px 8px;
+        padding: 10px 10px 14px;
         margin: 0;
-        border-radius: 10px;
-        border: 2px solid transparent;
-        transition: border-color 0.15s ease, background 0.15s ease;
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+        background: var(--panel);
+        box-shadow: var(--shadow-soft);
+        transition: border-color 0.15s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        animation: explore-fade 0.28s ease both;
     }
     .market-tile.is-selected {
         border-color: var(--accent);
         background: rgba(184, 115, 51, 0.08);
     }
+    .market-tile::after {
+        content: "";
+        pointer-events: none;
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+            120deg,
+            transparent 35%,
+            rgba(184, 115, 51, 0.08) 50%,
+            transparent 65%
+        );
+        transform: translateX(-120%);
+        transition: transform 0.55s ease;
+    }
+    div[data-testid="stColumn"]:has(.market-tile):not(:has(div[data-testid="stColumn"])):hover .market-tile::after {
+        transform: translateX(120%);
+    }
+    div[data-testid="stColumn"]:has(.market-tile):not(:has(div[data-testid="stColumn"])):hover .market-tile {
+        border-color: rgba(184, 115, 51, 0.5);
+        box-shadow: 0 14px 36px rgba(0, 0, 0, 0.48);
+    }
     .market-tile img {
         display: block;
-        width: 100%;
+        width: 88%;
+        max-width: 168px;
+        margin: 0 auto 10px;
         height: auto;
         border-radius: 4.35% / 3%;
-        box-shadow: 0 4px 14px rgba(20, 17, 15, 0.12);
+        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.5);
     }
     .market-tile-name {
         margin: 8px 0 2px;
