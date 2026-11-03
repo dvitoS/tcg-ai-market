@@ -49,6 +49,7 @@ _TEXT: dict[str, str] = {
         "catalog_mode": "Mode",
         "catalog_browse": "Browse",
         "catalog_signals": "AI signals",
+        "explore_browse_line": "Browse market",
         "explore_find": "Find a Product",
         "explore_search_ph": "Search cards, sets…",
         "explore_search_btn": "Search",

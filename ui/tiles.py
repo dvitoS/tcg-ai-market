@@ -59,7 +59,7 @@ def market_tile_html(row, *, selected: bool = False) -> str:
 
 
 def explore_card_html(row) -> str:
-    """Collectr-style explore card."""
+    """Gallery-grade explore tile — art first, price primary."""
     name = escape(str(getattr(row, "name", "")))
     set_name = escape(str(getattr(row, "set_name", "") or ""))
     rarity = escape(str(getattr(row, "rarity", "") or ""))
@@ -75,11 +75,13 @@ def explore_card_html(row) -> str:
     meta = " · ".join(p for p in (set_name, rarity) if p)
     return f"""
     <div class="explore-card">
-      <img src="{image}" alt="{name}" loading="lazy"
-           onerror="this.style.opacity='0.25';" />
+      <div class="explore-card-art">
+        <img src="{image}" alt="{name}" loading="lazy"
+             onerror="this.style.opacity='0.25';" />
+      </div>
+      <div class="explore-card-price">{escape(money(price))}</div>
       <div class="explore-card-name">{name}</div>
       <div class="explore-card-meta">{meta}</div>
-      <div class="explore-card-price">{escape(money(price))}</div>
       {change_html}
     </div>
     """

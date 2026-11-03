@@ -19,7 +19,7 @@ def hex_to_rgba(color: str, alpha: float) -> str:
     if len(raw) == 3:
         raw = "".join(ch * 2 for ch in raw)
     if len(raw) != 6:
-        return f"rgba(56, 189, 248, {alpha})"
+        return f"rgba(184, 115, 51, {alpha})"
     r = int(raw[0:2], 16)
     g = int(raw[2:4], 16)
     b = int(raw[4:6], 16)
@@ -46,7 +46,7 @@ def price_chart(
     *,
     source_label: str | None = None,
     show_ai: bool = True,
-    line_color: str = "#38bdf8",
+    line_color: str = "#B87333",
     overlays: list[tuple[pd.DataFrame, str, str]] | None = None,
 ) -> go.Figure:
     """Primary series + optional overlays [(frame, label, color), ...]."""
@@ -62,7 +62,7 @@ def price_chart(
             title=name,
             height=360,
             paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(11,18,32,0.35)",
+            plot_bgcolor="rgba(26,26,26,0.55)",
             annotations=[
                 dict(
                     text=t("source_unavailable"),
@@ -71,7 +71,7 @@ def price_chart(
                     x=0.5,
                     y=0.5,
                     showarrow=False,
-                    font=dict(color="#94a3b8", size=14),
+                    font=dict(color="#a1a1aa", size=14),
                 )
             ],
         )
@@ -136,7 +136,7 @@ def price_chart(
         y_last = to_display(last_price)
         y_pred = to_display(predicted)
         signal = trading_signal(last_price, predicted)
-        forecast_color = {"BUY": "#22c55e", "SELL": "#f87171", "HOLD": "#fbbf24"}[signal]
+        forecast_color = {"BUY": "#5aaf78", "SELL": "#d07272", "HOLD": "#c4a35a"}[signal]
         ai_label = t("chart_ai")
         fig.add_trace(
             go.Scatter(
@@ -164,35 +164,36 @@ def price_chart(
         height=440,
         margin=dict(l=8, r=12, t=8, b=8),
         paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(11,18,32,0.35)",
+        plot_bgcolor="rgba(26,26,26,0.55)",
+        font=dict(color="#a1a1aa", family="DM Sans, sans-serif"),
         legend=dict(
             orientation="h",
             yanchor="bottom",
             y=1.02,
             x=0,
             bgcolor="rgba(0,0,0,0)",
-            font=dict(size=11, color="#94a3b8"),
+            font=dict(size=11, color="#a1a1aa"),
         ),
         hovermode="x unified",
         hoverlabel=dict(
-            bgcolor="rgba(15, 23, 42, 0.94)",
-            bordercolor="rgba(148, 163, 184, 0.35)",
-            font=dict(size=12, color="#e2e8f0"),
+            bgcolor="rgba(26, 26, 26, 0.96)",
+            bordercolor="rgba(184, 115, 51, 0.35)",
+            font=dict(size=12, color="#f4f4f5"),
         ),
         xaxis=dict(
             rangeslider=dict(visible=False),
-            gridcolor="rgba(30, 41, 59, 0.65)",
+            gridcolor="rgba(42, 42, 42, 0.9)",
             showgrid=True,
             showspikes=True,
             spikemode="across",
             spikesnap="cursor",
             spikedash="dot",
             spikethickness=1,
-            spikecolor="#64748b",
+            spikecolor="#71717a",
             zeroline=False,
         ),
         yaxis=dict(
-            gridcolor="rgba(30, 41, 59, 0.65)",
+            gridcolor="rgba(42, 42, 42, 0.9)",
             showgrid=True,
             tickprefix=currency_symbol(),
             range=[price_low - pad, price_high + pad],
@@ -207,7 +208,7 @@ def render_chart_price_counter(
     price_usd: float | None,
     *,
     counter_id: str,
-    accent: str = "#38bdf8",
+    accent: str = "#B87333",
 ) -> None:
     if price_usd is None:
         return
