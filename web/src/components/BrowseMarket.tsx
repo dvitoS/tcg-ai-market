@@ -2,11 +2,19 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState, useTransition } from "react";
 
+import { CardSkeletonGrid } from "@/components/CardSkeletonGrid";
 import { ExploreCard } from "@/components/ExploreCard";
 import { fetchCatalog } from "@/lib/api";
 import type { CatalogCard, CatalogMeta, CatalogMode } from "@/lib/types";
 
 const BATCH = 24;
+
+function parsePrice(raw: string): number | undefined {
+  const text = raw.trim();
+  if (!text) return undefined;
+  const n = Number(text);
+  return Number.isFinite(n) && n >= 0 ? n : undefined;
+}
 
 type Props = {
   initialItems: CatalogCard[];
@@ -26,6 +34,8 @@ export function BrowseMarket({
   const [submittedQuery, setSubmittedQuery] = useState("");
   const [setName, setSetName] = useState("");
   const [signal, setSignal] = useState("");
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
   const [items, setItems] = useState(initialItems);
   const [total, setTotal] = useState(initialTotal);
   const [meta, setMeta] = useState(initialMeta);
@@ -41,6 +51,8 @@ export function BrowseMarket({
             q: submittedQuery || undefined,
             set: setName || undefined,
             signal: mode === "signals" ? signal || undefined : undefined,
+            min_price: parsePrice(minPrice),
+            max_price: parsePrice(maxPrice),
             mode,
             limit: BATCH,
             offset,
@@ -55,7 +67,7 @@ export function BrowseMarket({
         }
       });
     },
-    [mode, setName, signal, submittedQuery],
+    [mode, setName, signal, submittedQuery, minPrice, maxPrice],
   );
 
   useEffect(() => {
@@ -77,6 +89,8 @@ export function BrowseMarket({
     setSubmittedQuery("");
     setSetName("");
     setSignal("");
+    setMinPrice("");
+    setMaxPrice("");
   }
 
   const sets = useMemo(() => meta.sets || [], [meta.sets]);
@@ -153,6 +167,30 @@ export function BrowseMarket({
             </select>
           </label>
         ) : null}
+        <label>
+          <span>Min $</span>
+          <input
+            type="number"
+            min={0}
+            step={1}
+            inputMode="decimal"
+            value={minPrice}
+            onChange={(e) => setMinPrice(e.target.value)}
+            placeholder="0"
+          />
+        </label>
+        <label>
+          <span>Max $</span>
+          <input
+            type="number"
+            min={0}
+            step={1}
+            inputMode="decimal"
+            value={maxPrice}
+            onChange={(e) => setMaxPrice(e.target.value)}
+            placeholder="Any"
+          />
+        </label>
         <p className="result-count">
           {total} cards
           {meta.source === "demo" ? " · demo seed" : null}
@@ -162,10 +200,12 @@ export function BrowseMarket({
 
       {error ? <p className="banner-error">{error}</p> : null}
 
-      {items.length === 0 && !pending ? (
-        <p className="empty-state">No cards match these filters.</p>
+      {pending && items.length === 0 ? (
+        <CardSkeletonGrid />
+      ) : items.length === 0 ? (
+        <p className="empty-state">No cards match these filters. Try clearing price or set.</p>
       ) : (
-        <div className="explore-grid">
+        <div className={`explore-grid ${pending ? "is-pending" : ""}`}>
           {items.map((card) => (
             <ExploreCard key={card.id} card={card} showSignal={mode === "signals"} />
           ))}

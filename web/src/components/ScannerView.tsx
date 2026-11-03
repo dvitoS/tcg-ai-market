@@ -4,9 +4,17 @@ import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useState, useTransition } from "react";
 
+import { CardSkeletonGrid } from "@/components/CardSkeletonGrid";
 import { ExploreCard } from "@/components/ExploreCard";
 import { fetchScanner, formatChange, formatMoney } from "@/lib/api";
 import type { ScannerCard, ScannerResponse } from "@/lib/types";
+
+function parsePrice(raw: string): number | undefined {
+  const text = raw.trim();
+  if (!text) return undefined;
+  const n = Number(text);
+  return Number.isFinite(n) && n >= 0 ? n : undefined;
+}
 
 const EMPTY: ScannerResponse = {
   forecast_days: 7,
@@ -57,8 +65,11 @@ export function ScannerView() {
   const [setName, setSetName] = useState("");
   const [rarity, setRarity] = useState("");
   const [minGrowth, setMinGrowth] = useState(5);
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [hydrated, setHydrated] = useState(false);
 
   const load = useCallback(() => {
     startTransition(async () => {
@@ -67,6 +78,8 @@ export function ScannerView() {
           q: submitted || undefined,
           set: setName || undefined,
           rarity: rarity || undefined,
+          min_price: parsePrice(minPrice),
+          max_price: parsePrice(maxPrice),
           min_growth: minGrowth,
           limit: 24,
         });
@@ -76,11 +89,16 @@ export function ScannerView() {
         setError(err instanceof Error ? err.message : "Scanner failed");
       }
     });
-  }, [submitted, setName, rarity, minGrowth]);
+  }, [submitted, setName, rarity, minGrowth, minPrice, maxPrice]);
 
   useEffect(() => {
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
     load();
-  }, [load]);
+  }, [hydrated, load]);
 
   function onSearch(event: FormEvent) {
     event.preventDefault();
@@ -146,6 +164,30 @@ export function ScannerView() {
             onChange={(e) => setMinGrowth(Number(e.target.value) || 0)}
           />
         </label>
+        <label>
+          <span>Min $</span>
+          <input
+            type="number"
+            min={0}
+            step={1}
+            inputMode="decimal"
+            value={minPrice}
+            onChange={(e) => setMinPrice(e.target.value)}
+            placeholder="0"
+          />
+        </label>
+        <label>
+          <span>Max $</span>
+          <input
+            type="number"
+            min={0}
+            step={1}
+            inputMode="decimal"
+            value={maxPrice}
+            onChange={(e) => setMaxPrice(e.target.value)}
+            placeholder="Any"
+          />
+        </label>
         <p className="result-count">
           {data.scoped} scoped
           {pending ? " · updating…" : null}
@@ -172,8 +214,10 @@ export function ScannerView() {
       <div className="portfolio-section-head">
         <h2>Top opportunities</h2>
       </div>
-      {data.opportunities.length === 0 ? (
-        <p className="empty-state">No opportunities at this growth floor.</p>
+      {pending && data.opportunities.length === 0 ? (
+        <CardSkeletonGrid count={6} />
+      ) : data.opportunities.length === 0 ? (
+        <p className="empty-state">No opportunities at this growth floor / price range.</p>
       ) : (
         <>
           <div className="explore-grid scanner-grid">

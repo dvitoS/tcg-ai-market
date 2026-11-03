@@ -297,6 +297,54 @@ a {
   gap: 1rem 0.85rem;
 }
 
+.explore-grid.is-pending {
+  opacity: 0.72;
+  transition: opacity 0.2s ease;
+}
+
+.card-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.55rem;
+}
+
+.card-skeleton-art,
+.card-skeleton-line {
+  border-radius: 10px;
+  background: linear-gradient(
+    110deg,
+    rgba(40, 40, 40, 0.9) 20%,
+    rgba(70, 58, 48, 0.55) 40%,
+    rgba(40, 40, 40, 0.9) 60%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.2s ease-in-out infinite;
+}
+
+.card-skeleton-art {
+  aspect-ratio: 5 / 7;
+  width: 100%;
+}
+
+.card-skeleton-line {
+  height: 0.7rem;
+  width: 88%;
+}
+
+.card-skeleton-line.is-short {
+  width: 55%;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
 .explore-card {
   position: relative;
   display: flex;
