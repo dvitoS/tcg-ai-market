@@ -128,6 +128,7 @@
         .market-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 12px 10px; }
         .detail-hero { flex-direction: column; }
         .nav-brand-left { letter-spacing: 0.12em; font-size: 1rem; }
+        .nav-brand-left.nav-brand-logo img { height: 28px; max-width: 130px; padding: 2px 6px; }
         .pokemon-card-transformer { --card-w: 150px; }
         div[data-testid="stHorizontalBlock"]:has(.nav-brand-left) {
             flex-wrap: wrap !important;
@@ -567,6 +568,20 @@
         user-select: none;
         white-space: nowrap;
     }
+    .nav-brand-left.nav-brand-logo {
+        letter-spacing: 0;
+        text-transform: none;
+    }
+    .nav-brand-left.nav-brand-logo img {
+        display: block;
+        height: 34px;
+        width: auto;
+        max-width: 160px;
+        object-fit: contain;
+        border-radius: 4px;
+        background: #fff;
+        padding: 3px 8px;
+    }
     .nav-brand-left span {
         display: block;
         font-family: var(--font-ui), system-ui, sans-serif;
@@ -669,13 +684,36 @@
     }
     header[data-testid="stHeader"],
     header.stAppHeader {
-        background: rgba(10, 10, 10, 0.85) !important;
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
+        background: transparent !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
         border-bottom: none !important;
+        height: 0 !important;
+        min-height: 0 !important;
     }
-    div[data-testid="stDecoration"] {
+    /* Hide Streamlit chrome (toolbar / Deploy / “Made with” / status). */
+    div[data-testid="stDecoration"],
+    div[data-testid="stToolbar"],
+    div[data-testid="stStatusWidget"],
+    div[data-testid="stToolbarActions"],
+    a[data-testid="stAppDeployButton"],
+    div[data-testid="stAppDeployButton"],
+    #MainMenu,
+    button[kind="header"],
+    [data-testid="stBaseButton-header"],
+    [data-testid="stBaseButton-headerNoPadding"],
+    footer,
+    .stAppDeployButton,
+    a[href*="streamlit.io"],
+    div[data-testid="stViewerBadge"],
+    section[data-testid="stSidebar"] {
         display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        width: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
     }
     .stMainBlockContainer.block-container,
     .block-container {

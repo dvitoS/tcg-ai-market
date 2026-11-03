@@ -65,11 +65,19 @@ import i18n as _i18n_mod
 importlib.reload(_i18n_mod)
 from i18n import t
 
+from pathlib import Path
+
+_LOGO = Path(__file__).resolve().parent / "assets" / "kestrel-logo.png"
 st.set_page_config(
     page_title="Kestrel",
-    page_icon="🦅",
+    page_icon=str(_LOGO) if _LOGO.is_file() else "🦅",
     layout="wide",
     initial_sidebar_state="collapsed",
+    menu_items={
+        "Get Help": None,
+        "Report a bug": None,
+        "About": "Kestrel — Spot. Signal. Act.",
+    },
 )
 
 

@@ -2,12 +2,29 @@
 
 from __future__ import annotations
 
+import base64
 from html import escape
+from pathlib import Path
 
 import streamlit as st
 
 from currency import CURRENCY_EUR, CURRENCY_USD, _set_currency, get_currency
 from i18n import signal_label, t
+
+_LOGO_PATH = Path(__file__).resolve().parents[1] / "assets" / "kestrel-logo.png"
+
+
+def logo_path() -> Path:
+    return _LOGO_PATH
+
+
+def _brand_logo_data_uri() -> str | None:
+    if not _LOGO_PATH.is_file():
+        return None
+    raw = _LOGO_PATH.read_bytes()
+    b64 = base64.b64encode(raw).decode("ascii")
+    return f"data:image/png;base64,{b64}"
+
 
 def _query_param_value(raw) -> str | None:
     if raw is None:
@@ -194,11 +211,20 @@ def render_navbar() -> str:
         gap="medium",
     )
     with brand:
-        st.markdown(
-            f'<div class="nav-brand-left">Kestrel'
-            f'<span>{escape(t("brand_tagline"))}</span></div>',
-            unsafe_allow_html=True,
-        )
+        logo_uri = _brand_logo_data_uri()
+        if logo_uri:
+            st.markdown(
+                f'<div class="nav-brand-left nav-brand-logo">'
+                f'<img src="{logo_uri}" alt="Kestrel" />'
+                f'<span>{escape(t("brand_tagline"))}</span></div>',
+                unsafe_allow_html=True,
+            )
+        else:
+            st.markdown(
+                f'<div class="nav-brand-left">Kestrel'
+                f'<span>{escape(t("brand_tagline"))}</span></div>',
+                unsafe_allow_html=True,
+            )
     for col, (key, label) in zip(nav_cols, pages, strict=True):
         with col:
             active = st.session_state["nav_page"] == key
