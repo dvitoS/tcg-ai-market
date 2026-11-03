@@ -101,11 +101,11 @@ export function CardDetailView({
               <div className="stat-row">
                 <div className="stat-chip">
                   <span>Range min</span>
-                  <strong>{formatMoney(history.min_price, "USD", 4)}</strong>
+                  <strong>{formatMoney(history.min_price, "USD", 2)}</strong>
                 </div>
                 <div className="stat-chip">
                   <span>Range max</span>
-                  <strong>{formatMoney(history.max_price, "USD", 4)}</strong>
+                  <strong>{formatMoney(history.max_price, "USD", 2)}</strong>
                 </div>
                 <div className="stat-chip">
                   <span>Points</span>
@@ -125,7 +125,7 @@ export function CardDetailView({
             </p>
             <p className="ai-board-price-label">Predicted price</p>
             <p className="ai-board-price">
-              {formatMoney(card.predicted_price, "USD", 4)}
+              {formatMoney(card.predicted_price, "USD", 2)}
               {card.expected_change_pct != null ? (
                 <span className="ai-board-delta">
                   {formatChange(card.expected_change_pct, 2)}
