@@ -138,7 +138,10 @@ def main() -> None:
         return
 
     threshold = float(st.session_state.get("watch_alert_threshold", 5.0))
-    sure_only = bool(st.session_state.get("watch_alert_sure_only", True))
+    from services.pro import is_pro_user
+
+    # Sure-only banners are a Pro surface; free users still get threshold alerts.
+    sure_only = bool(st.session_state.get("watch_alert_sure_only", True)) and is_pro_user()
     safe_collect_and_render_alerts(
         market,
         user_id=_current_user_id(),

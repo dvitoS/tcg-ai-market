@@ -57,6 +57,9 @@ def load_portfolio_lots() -> pd.DataFrame:
 def render_watchlist_section(market: pd.DataFrame) -> None:
     st.markdown(f"##### {t('watchlist_title')}")
     uid = _current_user_id()
+    from services.pro import is_pro_user
+
+    pro = is_pro_user()
     c_thr, c_sure = st.columns([1.2, 1.4])
     with c_thr:
         threshold_val = float(
@@ -71,16 +74,20 @@ def render_watchlist_section(market: pd.DataFrame) -> None:
             )
         )
     with c_sure:
-        sure_only = bool(
-            st.toggle(
-                t("alert_sure_only"),
-                value=bool(st.session_state.get("watch_alert_sure_only", True)),
-                key="watch_alert_sure_only_input",
-                help=t("alert_sure_only_help"),
+        if pro:
+            sure_only = bool(
+                st.toggle(
+                    t("alert_sure_only"),
+                    value=bool(st.session_state.get("watch_alert_sure_only", True)),
+                    key="watch_alert_sure_only_input",
+                    help=t("alert_sure_only_help"),
+                )
             )
-        )
+        else:
+            st.caption(t("pro_sure_locked"))
+            sure_only = False
     st.session_state["watch_alert_threshold"] = threshold_val
-    st.session_state["watch_alert_sure_only"] = sure_only
+    st.session_state["watch_alert_sure_only"] = sure_only if pro else False
     try:
         from services.discord_alerts import discord_configured
         from services.email_alerts import smtp_configured

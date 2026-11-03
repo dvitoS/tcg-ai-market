@@ -1,0 +1,88 @@
+"""Soft Pro entitlement (allowlist) until Stripe/Lemon is wired.
+
+- ``PRO_OPEN=1`` (default) → everyone is Pro (open beta).
+- ``PRO_OPEN=0`` + ``PRO_EMAILS`` / ``PRO_USER_IDS`` → only allowlisted users.
+- Local ``AUTH_DISABLED`` → always Pro.
+- ``PRO_OPEN=0`` with empty allowlist → stay open (avoid locking everyone out).
+"""
+
+from __future__ import annotations
+
+import os
+from typing import Any
+
+from config import _secret, auth_disabled
+
+
+def _clean(name: str) -> str:
+    return str(_secret(name) or os.getenv(name, "") or "").strip()
+
+
+def _flag_on(raw: str, *, default: bool) -> bool:
+    text = (raw or "").strip().lower()
+    if not text:
+        return default
+    return text not in {"0", "false", "no", "off"}
+
+
+def _split_list(raw: str) -> set[str]:
+    out: set[str] = set()
+    for chunk in (raw or "").replace(";", ",").split(","):
+        item = chunk.strip().lower()
+        if item:
+            out.add(item)
+    return out
+
+
+def pro_open_beta() -> bool:
+    return _flag_on(_clean("PRO_OPEN"), default=True)
+
+
+def pro_allowlist_emails() -> set[str]:
+    return _split_list(_clean("PRO_EMAILS"))
+
+
+def pro_allowlist_user_ids() -> set[str]:
+    return _split_list(_clean("PRO_USER_IDS"))
+
+
+def has_pro_allowlist() -> bool:
+    return bool(pro_allowlist_emails() or pro_allowlist_user_ids())
+
+
+def is_pro_user(user: dict[str, Any] | None = None) -> bool:
+    """True when the user may use Dealer desk + sure-only Pro surfaces."""
+    if auth_disabled():
+        return True
+    if pro_open_beta():
+        return True
+    if not has_pro_allowlist():
+        return True
+
+    raw = user
+    if raw is None:
+        try:
+            import auth as auth_mod
+
+            raw = auth_mod.current_user() or {}
+        except Exception:
+            raw = {}
+    email = str((raw or {}).get("email") or "").strip().lower()
+    uid = str((raw or {}).get("id") or "").strip().lower()
+    if email and email in pro_allowlist_emails():
+        return True
+    if uid and uid in pro_allowlist_user_ids():
+        return True
+    return False
+
+
+def pro_gate_reason() -> str:
+    if auth_disabled():
+        return "dev"
+    if pro_open_beta():
+        return "open_beta"
+    if not has_pro_allowlist():
+        return "open_beta"
+    if is_pro_user():
+        return "allowlist"
+    return "locked"

@@ -64,7 +64,19 @@ Without SMTP/Discord, nightly skips those quietly; in-app digest still works.
 
 ### Dealer desk
 
-Nav → **Dealer**. Upload inventory CSV (`card_id`/`id` or `name`, optional `quantity`/`cost`). The desk joins your rows to the live 7d AI board, applies sell fee + shipping, and ranks **LIST / BUY MORE / HOLD** only when the conformal gate is green.
+Nav → **Dealer**. Upload inventory CSV (`card_id`/`id` or `name`, optional `quantity`/`cost`). The desk joins your rows to the live 7d AI board, applies sell fee + shipping, and ranks **LIST / BUY MORE / HOLD** only when the conformal gate is green. Download scored CSV from the full table.
+
+### Soft Pro gate
+
+Until Stripe/Lemon: Dealer desk + sure-only alerts are Pro surfaces.
+
+| Secret | Purpose |
+|--------|---------|
+| `PRO_OPEN` | Default `1` — everyone is Pro (open beta) |
+| `PRO_EMAILS` | Comma-separated emails when `PRO_OPEN=0` |
+| `PRO_USER_IDS` | Comma-separated Supabase user UUIDs when `PRO_OPEN=0` |
+
+`AUTH_DISABLED` local always counts as Pro. Empty allowlist with `PRO_OPEN=0` stays open (avoids locking everyone out).
 
 ### Key split (important)
 

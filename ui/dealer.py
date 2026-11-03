@@ -34,6 +34,20 @@ def render_dealer_desk(market: pd.DataFrame) -> None:
     st.subheader(t("desk_title"))
     st.caption(t("desk_caption"))
 
+    from services.pro import is_pro_user
+
+    if not is_pro_user():
+        st.info(t("pro_desk_locked"))
+        st.caption(t("pro_upgrade_hint"))
+        sample = (
+            "card_id,quantity,cost\n"
+            "base1-1,2,40.00\n"
+            "sv3pt5-198,1,25.50\n"
+        )
+        with st.expander(t("desk_sample_title"), expanded=True):
+            st.code(sample, language="csv")
+        return
+
     c1, c2, c3 = st.columns([1.2, 1, 1])
     with c1:
         fee = float(
@@ -147,7 +161,8 @@ def render_dealer_desk(market: pd.DataFrame) -> None:
     with st.expander(t("desk_full_table"), expanded=False):
         show = board.copy()
         if not show.empty:
-            show["action"] = show["action"].map(_action_label)
+            export = show.copy()
+            export["action"] = export["action"].map(_action_label)
             cols = [
                 c
                 for c in (
@@ -163,6 +178,13 @@ def render_dealer_desk(market: pd.DataFrame) -> None:
                     "pred_hi_pct",
                     "matched",
                 )
-                if c in show.columns
+                if c in export.columns
             ]
-            st.dataframe(show[cols], use_container_width=True, hide_index=True)
+            st.dataframe(export[cols], use_container_width=True, hide_index=True)
+            st.download_button(
+                t("desk_download_csv"),
+                data=export[cols].to_csv(index=False).encode("utf-8"),
+                file_name="dealer_desk_actions.csv",
+                mime="text/csv",
+                key="desk_download_scored",
+            )
