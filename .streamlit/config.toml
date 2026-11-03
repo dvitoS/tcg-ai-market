@@ -7,3 +7,11 @@ showSidebarNavigation = false
 
 [browser]
 gatherUsageStats = false
+
+[theme]
+base = "dark"
+primaryColor = "#B87333"
+backgroundColor = "#121212"
+secondaryBackgroundColor = "#1a1a1a"
+textColor = "#f4f4f5"
+font = "sans serif"
