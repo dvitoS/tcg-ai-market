@@ -57,6 +57,7 @@ def _feature_frame_from_prices(
     if not np.isfinite(hl_range_14):
         hl_range_14 = 0.0
     set_med = 0.0 if set_ret_7 is None or not np.isfinite(float(set_ret_7)) else float(set_ret_7)
+    # Detail path defaults: no live eBay join here (board/train use snapshots).
     row = {
         "ret_1": ret_1,
         "ret_3": ret_3,
@@ -70,6 +71,9 @@ def _feature_frame_from_prices(
         "mean_abs_ret_7": mean_abs_ret_7,
         "flat_share_14": flat_share_14,
         "hl_range_14": hl_range_14,
+        "ebay_active_n_log": 0.0,
+        "ebay_ask_premium": 0.0,
+        "ebay_has_obs": 0.0,
         "rarity_encoded": float(rarity_encoded),
         "supertype_encoded": float(supertype_encoded),
     }

@@ -52,6 +52,10 @@ RETURN_FEATURES = [
     "mean_abs_ret_7",
     "flat_share_14",
     "hl_range_14",
+    # eBay Browse depth (from ebay_liquidity_snapshots; 0 until harvested).
+    "ebay_active_n_log",
+    "ebay_ask_premium",
+    "ebay_has_obs",
 ]
 FEATURE_COLUMNS = RETURN_FEATURES + ["rarity_encoded", "supertype_encoded"]
 FEATURE_LABELS = {
@@ -67,6 +71,9 @@ FEATURE_LABELS = {
     "mean_abs_ret_7": "7d mean |return| (activity)",
     "flat_share_14": "14d flat-day share (illiquidity)",
     "hl_range_14": "14d high-low range",
+    "ebay_active_n_log": "eBay active depth (log)",
+    "ebay_ask_premium": "eBay ask vs spot",
+    "ebay_has_obs": "eBay snapshot present",
     "rarity_encoded": "rarity",
     "supertype_encoded": "supertype",
 }
@@ -175,6 +182,16 @@ def add_time_features(
     featured["target_price"] = future
     featured["target_return"] = future / featured["price"] - 1.0
     featured["horizon_days"] = horizon
+
+    try:
+        from services.ebay_liquidity import attach_ebay_features
+
+        featured = attach_ebay_features(featured)
+    except Exception as exc:
+        print(f"eBay liquidity features skipped: {exc}")
+        featured["ebay_active_n_log"] = 0.0
+        featured["ebay_ask_premium"] = 0.0
+        featured["ebay_has_obs"] = 0.0
 
     encoders: dict[str, LabelEncoder] = {}
     for column, encoded_name in (

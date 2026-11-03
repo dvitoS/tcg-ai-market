@@ -79,6 +79,9 @@ def test_card_forecasts_marks_cross_zero_uncertain(monkeypatch):
                 "mean_abs_ret_7": 0.01,
                 "flat_share_14": 0.2,
                 "hl_range_14": 0.05,
+                "ebay_active_n_log": 0.0,
+                "ebay_ask_premium": 0.0,
+                "ebay_has_obs": 0.0,
                 "rarity_encoded": 1.0,
                 "supertype_encoded": 0.0,
             }

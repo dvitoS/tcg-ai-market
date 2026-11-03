@@ -326,6 +326,15 @@ def run_nightly() -> int:
             failures.append("tcp_backfill")
 
     try:
+        from services.ebay_liquidity import harvest_ebay_liquidity
+
+        ebay_liq = harvest_ebay_liquidity()
+        LOG.info("eBay liquidity harvest: %s", ebay_liq)
+    except Exception as exc:
+        _report_error("harvest_ebay_liquidity", exc)
+        failures.append("ebay_liquidity")
+
+    try:
         retrain_ai()
     except Exception as exc:
         _report_error("retrain_ai", exc)

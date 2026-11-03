@@ -61,6 +61,9 @@ def _synthetic_trainable(n_days: int = 60, n_cards: int = 8) -> pd.DataFrame:
                 "mean_abs_ret_7": abs(ret_1),
                 "flat_share_14": 0.2,
                 "hl_range_14": abs(ret_1) * 2,
+                "ebay_active_n_log": 0.0,
+                "ebay_ask_premium": 0.0,
+                "ebay_has_obs": 0.0,
                 "rarity_encoded": card_i % 3,
                 "supertype_encoded": 0,
             }

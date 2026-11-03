@@ -27,7 +27,8 @@ Do this once per environment — saves hours of Cloud debug later.
    2. `supabase_rls_harden.sql` — RLS for user tables  
    3. `supabase_auth_sessions.sql` — durable `?sid=` login on Cloud  
    4. `supabase_model_artifacts.sql` — persisted XGBoost  
-   5. `supabase_market_quotes.sql` — fast catalog boot (+ encodings + 7d price move)
+   5. `supabase_market_quotes.sql` — fast catalog boot (+ encodings + 7d price move)  
+   6. `supabase_ebay_liquidity.sql` — daily eBay active-depth snapshots for model features
 5. Never set `AUTH_DISABLED` on Cloud.
 6. After a model feature change (e.g. set-relative), trigger a **nightly retrain** (or wait for schedule) so `market_quotes` match `FEATURE_COLUMNS`.
 
@@ -125,7 +126,7 @@ Keep the list curated — full SV+SWSH regularly times out mid-nightly.
 
 - `app.py` — Streamlit entry  
 - `services/exchange.py` — fast boot (`market_quotes` + model) or full rebuild  
-- **AI model** — board/scanner: **7d** forward return + set-relative + liquidity + **conformal** gating; portfolio: separate **30d** artifact (`latest_30d`) with lot ADD/TRIM/HOLD coach (catalog stays 7d). Nightly also runs **expanding-window walk-forward** (`wf_folds` / `wf_direction_accuracy_pct` / `wf_rmse_vs_naive` on the artifact).  
+- **AI model** — board/scanner: **7d** forward return + set-relative + price-path liquidity + **eBay active depth / ask premium** (from `ebay_liquidity_snapshots`) + **conformal** gating; portfolio: separate **30d** artifact (`latest_30d`) with lot ADD/TRIM/HOLD coach (catalog stays 7d). Nightly also runs **expanding-window walk-forward** (`wf_folds` / `wf_direction_accuracy_pct` / `wf_rmse_vs_naive` on the artifact). Optional: `EBAY_LIQUIDITY_SAMPLE_N` (default `40`) caps nightly Browse harvest.  
 - `database_*.py` — clients / catalog / user (facade: `database.py`)  
 - `pokemon_tcg_client.py` / `pokewallet_client.py` — facade: `api_client.py`  
 - `justtcg_client.py` + `justtcg_psa10.py` — NM vs PSA10  

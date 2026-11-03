@@ -124,6 +124,10 @@ jobs:
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
           JUSTTCG_API_KEY: ${{ secrets.JUSTTCG_API_KEY }}
           TCG_API_KEY: ${{ secrets.TCG_API_KEY }}
+          EBAY_APP_ID: ${{ secrets.EBAY_APP_ID }}
+          EBAY_CERT_ID: ${{ secrets.EBAY_CERT_ID }}
+          EBAY_OAUTH_TOKEN: ${{ secrets.EBAY_OAUTH_TOKEN }}
+          EBAY_LIQUIDITY_SAMPLE_N: ${{ secrets.EBAY_LIQUIDITY_SAMPLE_N }}
           # Optional watchlist email digests
           SMTP_HOST: ${{ secrets.SMTP_HOST }}
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
