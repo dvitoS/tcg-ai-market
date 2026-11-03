@@ -1,0 +1,323 @@
+import type {
+  AuthUser,
+  CardDetailResponse,
+  CardHistoryResponse,
+  CatalogMode,
+  CatalogResponse,
+  DealerResponse,
+  DealerStatus,
+  PortfolioResponse,
+  ScannerResponse,
+  WatchlistResponse,
+} from "./types";
+
+const TOKEN_KEY = "kestrel_access_token";
+
+export function getAccessToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem(TOKEN_KEY);
+}
+
+export function setAccessToken(token: string | null) {
+  if (typeof window === "undefined") return;
+  if (!token) window.localStorage.removeItem(TOKEN_KEY);
+  else window.localStorage.setItem(TOKEN_KEY, token);
+}
+
+function authHeaders(token?: string | null): HeadersInit {
+  const value = token === undefined ? getAccessToken() : token;
+  return value ? { Authorization: `Bearer ${value}` } : {};
+}
+
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "http://127.0.0.1:8000";
+
+export type CatalogQuery = {
+  q?: string;
+  set?: string;
+  signal?: string;
+  min_price?: number;
+  max_price?: number;
+  mode?: CatalogMode;
+  limit?: number;
+  offset?: number;
+  sort?: "price_desc" | "price_asc" | "change_desc" | "change_asc" | "name";
+};
+
+export function apiUrl(path: string): string {
+  return `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
+export async function fetchCatalog(
+  query: CatalogQuery = {},
+  init?: RequestInit,
+): Promise<CatalogResponse> {
+  const params = new URLSearchParams();
+  if (query.q) params.set("q", query.q);
+  if (query.set) params.set("set", query.set);
+  if (query.signal) params.set("signal", query.signal);
+  if (query.min_price != null) params.set("min_price", String(query.min_price));
+  if (query.max_price != null) params.set("max_price", String(query.max_price));
+  if (query.mode) params.set("mode", query.mode);
+  if (query.limit != null) params.set("limit", String(query.limit));
+  if (query.offset != null) params.set("offset", String(query.offset));
+  if (query.sort) params.set("sort", query.sort);
+
+  const url = apiUrl(`/api/catalog?${params.toString()}`);
+  const res = await fetch(url, {
+    ...init,
+    headers: {
+      Accept: "application/json",
+      ...(init?.headers || {}),
+    },
+    next: { revalidate: 30 },
+  });
+  if (!res.ok) {
+    throw new Error(`Catalog request failed (${res.status})`);
+  }
+  return res.json() as Promise<CatalogResponse>;
+}
+
+export function formatMoney(
+  value?: number | null,
+  currency = "USD",
+  digits = 2,
+): string {
+  if (value == null || Number.isNaN(value)) return "—";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  }).format(value);
+}
+
+export function formatChange(value?: number | null, digits = 1): string {
+  if (value == null || Number.isNaN(value)) return "—";
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${value.toFixed(digits)}%`;
+}
+
+export async function fetchCardDetail(
+  cardId: string,
+  init?: RequestInit,
+): Promise<CardDetailResponse> {
+  const res = await fetch(apiUrl(`/api/cards/${encodeURIComponent(cardId)}`), {
+    ...init,
+    headers: {
+      Accept: "application/json",
+      ...(init?.headers || {}),
+    },
+    next: { revalidate: 30 },
+  });
+  if (res.status === 404) {
+    throw new Error("NOT_FOUND");
+  }
+  if (!res.ok) {
+    throw new Error(`Card detail failed (${res.status})`);
+  }
+  return res.json() as Promise<CardDetailResponse>;
+}
+
+export async function fetchCardHistory(
+  cardId: string,
+  limit = 180,
+  init?: RequestInit,
+): Promise<CardHistoryResponse> {
+  const res = await fetch(
+    apiUrl(`/api/cards/${encodeURIComponent(cardId)}/history?limit=${limit}`),
+    {
+      ...init,
+      headers: {
+        Accept: "application/json",
+        ...(init?.headers || {}),
+      },
+      next: { revalidate: 30 },
+    },
+  );
+  if (!res.ok) {
+    throw new Error(`Card history failed (${res.status})`);
+  }
+  return res.json() as Promise<CardHistoryResponse>;
+}
+
+export async function loginRequest(
+  email: string,
+  password: string,
+): Promise<{ access_token: string; user: AuthUser }> {
+  const res = await fetch(apiUrl("/api/auth/login"), {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) {
+    throw new Error("Invalid email or password");
+  }
+  return res.json();
+}
+
+export async function fetchMe(token?: string | null): Promise<{
+  authenticated: boolean;
+  user: AuthUser | null;
+}> {
+  const res = await fetch(apiUrl("/api/auth/me"), {
+    headers: {
+      Accept: "application/json",
+      ...authHeaders(token),
+    },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    return { authenticated: false, user: null };
+  }
+  return res.json();
+}
+
+export async function fetchPortfolio(): Promise<PortfolioResponse> {
+  const res = await fetch(apiUrl("/api/portfolio"), {
+    headers: {
+      Accept: "application/json",
+      ...authHeaders(),
+    },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`Portfolio failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function deletePortfolioLot(entryId: number | string): Promise<void> {
+  const res = await fetch(apiUrl(`/api/portfolio/lots/${entryId}`), {
+    method: "DELETE",
+    headers: {
+      Accept: "application/json",
+      ...authHeaders(),
+    },
+  });
+  if (!res.ok) {
+    throw new Error(`Could not remove lot (${res.status})`);
+  }
+}
+
+export async function fetchWatchlist(): Promise<WatchlistResponse> {
+  const res = await fetch(apiUrl("/api/watchlist"), {
+    headers: {
+      Accept: "application/json",
+      ...authHeaders(),
+    },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`Watchlist failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function addWatchlistCard(cardId: string): Promise<void> {
+  const res = await fetch(apiUrl("/api/watchlist"), {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify({ card_id: cardId }),
+  });
+  if (!res.ok) {
+    throw new Error(`Could not add watch (${res.status})`);
+  }
+}
+
+export async function removeWatchlistCard(cardId: string): Promise<void> {
+  const res = await fetch(apiUrl(`/api/watchlist/${encodeURIComponent(cardId)}`), {
+    method: "DELETE",
+    headers: {
+      Accept: "application/json",
+      ...authHeaders(),
+    },
+  });
+  if (!res.ok) {
+    throw new Error(`Could not remove watch (${res.status})`);
+  }
+}
+
+export async function fetchWatchStatus(cardId: string): Promise<boolean> {
+  const res = await fetch(
+    apiUrl(`/api/watchlist/${encodeURIComponent(cardId)}/status`),
+    {
+      headers: {
+        Accept: "application/json",
+        ...authHeaders(),
+      },
+      cache: "no-store",
+    },
+  );
+  if (!res.ok) return false;
+  const body = (await res.json()) as { watched?: boolean };
+  return Boolean(body.watched);
+}
+
+export type ScannerQuery = {
+  q?: string;
+  set?: string;
+  rarity?: string;
+  min_price?: number;
+  max_price?: number;
+  min_growth?: number;
+  limit?: number;
+};
+
+export async function fetchScanner(query: ScannerQuery = {}): Promise<ScannerResponse> {
+  const params = new URLSearchParams();
+  if (query.q) params.set("q", query.q);
+  if (query.set) params.set("set", query.set);
+  if (query.rarity) params.set("rarity", query.rarity);
+  if (query.min_price != null) params.set("min_price", String(query.min_price));
+  if (query.max_price != null) params.set("max_price", String(query.max_price));
+  if (query.min_growth != null) params.set("min_growth", String(query.min_growth));
+  if (query.limit != null) params.set("limit", String(query.limit));
+  const res = await fetch(apiUrl(`/api/scanner?${params.toString()}`), {
+    headers: { Accept: "application/json" },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`Scanner failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function fetchDealerStatus(): Promise<DealerStatus> {
+  const res = await fetch(apiUrl("/api/dealer/status"), {
+    headers: {
+      Accept: "application/json",
+      ...authHeaders(),
+    },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`Dealer status failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function scoreDealerCsv(input: {
+  csv_text: string;
+  fee_pct: number;
+  ship_usd: number;
+}): Promise<DealerResponse> {
+  const res = await fetch(apiUrl("/api/dealer/score"), {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const detail = await res.text();
+    throw new Error(detail || `Dealer score failed (${res.status})`);
+  }
+  return res.json();
+}

@@ -1,0 +1,8 @@
+# FastAPI layer for the Next.js frontend (Phase 1+).
+# Install alongside requirements.txt from repo root:
+#   pip install -r requirements.txt -r requirements-api.txt
+fastapi>=0.115,<1
+uvicorn[standard]>=0.30,<1
+httpx>=0.27,<1
+pydantic>=2.7,<3
+python-multipart>=0.0.9
