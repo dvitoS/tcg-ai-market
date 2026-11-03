@@ -534,6 +534,8 @@ a {
 }
 
 .stat-chip {
+  min-width: 0;
+  overflow: hidden;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: rgba(12, 12, 12, 0.35);
@@ -550,6 +552,10 @@ a {
 }
 
 .stat-chip strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 0.92rem;
   font-variant-numeric: tabular-nums;
 }
