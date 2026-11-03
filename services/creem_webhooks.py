@@ -31,7 +31,15 @@ REVOKE_EVENTS = frozenset(
 
 
 def creem_webhook_secret() -> str:
-    return str(_secret("CREEM_WEBHOOK_SECRET") or os.getenv("CREEM_WEBHOOK_SECRET", "") or "").strip()
+    from config import _clean_secret_value
+
+    # Accept the documented name; also tolerate a common typo used in dashboards.
+    for name in ("CREEM_WEBHOOK_SECRET", "CREEM_WEBHOOK_SECRETS", "CREEM_SIGNING_SECRET"):
+        raw = _secret(name) or os.getenv(name, "") or ""
+        cleaned = _clean_secret_value(str(raw))
+        if cleaned:
+            return cleaned
+    return ""
 
 
 def verify_creem_signature(raw_body: bytes | str, signature: str | None, secret: str | None = None) -> bool:

@@ -19,6 +19,9 @@ def test_health_ok() -> None:
     body = res.json()
     assert body["status"] == "ok"
     assert body["source"] in {"supabase", "demo", "empty"}
+    assert isinstance(body.get("creem_webhook_secret"), bool)
+    assert isinstance(body.get("pro_checkout_url"), bool)
+    assert isinstance(body.get("pro_open"), bool)
 
 
 def test_catalog_returns_items_from_demo_or_live() -> None:
