@@ -333,7 +333,8 @@ def _persist_current_session() -> None:
     refresh = str(st.session_state.get(SESSION_REFRESH_KEY) or "").strip()
     if not user.get("id") or not (access or refresh):
         return
-    sid = _get_sid() or secrets.token_urlsafe(24)
+    # 16 bytes urlsafe ≈ shorter URL than 24; still ~128 bits of entropy.
+    sid = _get_sid() or secrets.token_urlsafe(16)
     _write_server_session(sid, user=user, access=access, refresh=refresh)
     _bind_sid(sid)
 

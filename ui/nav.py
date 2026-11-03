@@ -18,31 +18,33 @@ def _query_param_value(raw) -> str | None:
     return text or None
 
 def set_nav_query_params(*, page: str, card_id: str | None = None) -> None:
-    """Drži deep-link u URL-u da refresh ne vrati na Explore.
+    """Keep deep-link + auth sid in the URL — but stay minimal.
 
-    Always preserve auth `sid` so login survives refresh / nav clicks.
+    - Default page ``explore`` omits ``nav`` (cleaner share URL).
+    - ``sid`` stays when logged in (Streamlit Cloud session restore).
+    - ``card`` only when a detail deep-link is active.
     """
-    desired: dict[str, str] = {"nav": str(page)}
+    desired: dict[str, str] = {}
+    page_key = str(page or "explore")
+    # explore is the default home — don't pollute the URL with nav=explore.
+    if page_key not in {"explore", "market"}:
+        desired["nav"] = page_key
     if card_id:
         desired["card"] = str(card_id)
     sid = _query_param_value(st.query_params.get("sid"))
     if sid:
         desired["sid"] = sid
-    current_nav = _query_param_value(st.query_params.get("nav"))
-    current_card = _query_param_value(st.query_params.get("card"))
-    current_sid = _query_param_value(st.query_params.get("sid"))
-    if (
-        current_nav == desired.get("nav")
-        and current_card == desired.get("card")
-        and current_sid == desired.get("sid")
-    ):
-        return
-    if (
-        current_nav == desired.get("nav")
-        and desired.get("card") is None
-        and current_card is None
-        and current_sid == desired.get("sid")
-    ):
+
+    current = {
+        k: _query_param_value(st.query_params.get(k))
+        for k in ("nav", "card", "sid")
+    }
+    desired_cmp = {
+        "nav": desired.get("nav"),
+        "card": desired.get("card"),
+        "sid": desired.get("sid"),
+    }
+    if current == desired_cmp:
         return
     st.query_params.from_dict(desired)
 
