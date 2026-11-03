@@ -42,6 +42,10 @@ npm run dev
 
 Open `http://localhost:3000` (Portfolio at `/portfolio`). Docs: `http://127.0.0.1:8000/docs`.
 
+### Deploy + custom domain (Creem)
+
+See **[docs/DEPLOY.md](docs/DEPLOY.md)** — Vercel (`web/`) + Railway/Render API (`Dockerfile.api`, `railway.api.toml`) + `app.` / `api.` DNS so Creem accepts your store URL instead of `*.streamlit.app`.
+
 ## Deploy checklist (Streamlit Cloud)
 
 Do this once per environment — saves hours of Cloud debug later.
