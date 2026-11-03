@@ -190,7 +190,9 @@
     .market-tile, .explore-card {
         transition: transform 0.2s ease, border-color 0.15s ease, box-shadow 0.2s ease;
     }
-    .market-tile:hover, div[data-testid="stColumn"]:has(.explore-card):hover .explore-card {
+    /* Leaf column only — parent results column also :has(.explore-card). */
+    .market-tile:hover,
+    div[data-testid="stColumn"]:has(.explore-card):not(:has(div[data-testid="stColumn"])):hover .explore-card {
         transform: translateY(-3px) scale(1.012);
     }
     @keyframes detail-enter {
@@ -234,7 +236,8 @@
             transition: none !important;
             animation: none !important;
         }
-        .market-tile:hover, div[data-testid="stColumn"]:has(.explore-card):hover .explore-card {
+        .market-tile:hover,
+        div[data-testid="stColumn"]:has(.explore-card):not(:has(div[data-testid="stColumn"])):hover .explore-card {
             transform: none !important;
         }
         .explore-card::after { display: none !important; }
@@ -931,7 +934,7 @@
         transform: translateX(-120%);
         transition: transform 0.55s ease;
     }
-    div[data-testid="stColumn"]:has(.explore-card):hover .explore-card::after {
+    div[data-testid="stColumn"]:has(.explore-card):not(:has(div[data-testid="stColumn"])):hover .explore-card::after {
         transform: translateX(120%);
     }
     .explore-card-art {
@@ -979,7 +982,7 @@
     .explore-card-change.up { color: var(--buy) !important; }
     .explore-card-change.down { color: var(--sell) !important; }
     .explore-card-change.flat { color: var(--muted) !important; }
-    div[data-testid="stColumn"]:has(.explore-card):hover .explore-card {
+    div[data-testid="stColumn"]:has(.explore-card):not(:has(div[data-testid="stColumn"])):hover .explore-card {
         border-color: rgba(184, 115, 51, 0.5);
         box-shadow: 0 14px 36px rgba(0, 0, 0, 0.48);
     }
