@@ -12,11 +12,12 @@ const NAV = [
   { href: "/portfolio", label: "Portfolio" },
   { href: "/scanner", label: "Scanner" },
   { href: "/dealer", label: "Dealer" },
+  { href: "/pro", label: "Pro" },
 ] as const;
 
 export function SiteHeader() {
   const pathname = usePathname();
-  const { user, logout, ensureDemoSession } = useAuth();
+  const { user, logout } = useAuth();
 
   return (
     <header className="site-header">
@@ -38,17 +39,6 @@ export function SiteHeader() {
             item.href === "/"
               ? pathname === "/"
               : pathname === item.href || pathname.startsWith(`${item.href}/`);
-          if ("soon" in item && item.soon) {
-            return (
-              <span
-                key={item.href}
-                className="nav-link is-soon"
-                title="Coming in the web rewrite"
-              >
-                {item.label}
-              </span>
-            );
-          }
           return (
             <Link
               key={item.href}
@@ -67,13 +57,9 @@ export function SiteHeader() {
             {user.email || "Account"}
           </button>
         ) : (
-          <button
-            type="button"
-            className="btn-ghost header-auth"
-            onClick={() => void ensureDemoSession()}
-          >
+          <Link href="/portfolio" className="btn-ghost header-auth">
             Sign in
-          </button>
+          </Link>
         )}
       </div>
     </header>
