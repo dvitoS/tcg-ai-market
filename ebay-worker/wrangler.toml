@@ -1,0 +1,7 @@
+name = "tcg-ebay-deletion"
+main = "src/index.js"
+compatibility_date = "2024-10-01"
+
+[vars]
+EBAY_DELETION_ENDPOINT = "https://tcg-ebay-deletion.translucent-alto.workers.dev/ebay/account-deletion"
+EBAY_VERIFICATION_TOKEN = "LWo8pO7gbKjlCuMtrcIXTF2k3V0ifAJ9msz5hYaE"
