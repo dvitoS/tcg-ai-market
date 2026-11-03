@@ -170,7 +170,8 @@ def retrain_ai() -> dict[str, float | int]:
     metrics = retrain_model()
     LOG.info(
         "Model 7d: cards=%s rows=%s RMSE=%.4f R2=%.4f "
-        "rmse/naive=%s dir_acc=%s%% pred_flat=%s%% conformal_q=%s",
+        "rmse/naive=%s dir_acc=%s%% pred_flat=%s%% conformal_q=%s "
+        "wf_folds=%s wf_dir=%s%% wf_rmse/naive=%s",
         metrics["cards"],
         metrics["rows"],
         metrics["rmse"],
@@ -181,6 +182,11 @@ def retrain_ai() -> dict[str, float | int]:
         else "—",
         f"{metrics['pred_flat_pct']:.1f}" if "pred_flat_pct" in metrics else "—",
         f"{metrics['conformal_q']:.4f}" if "conformal_q" in metrics else "—",
+        metrics.get("wf_folds", 0),
+        f"{metrics['wf_direction_accuracy_pct']:.1f}"
+        if "wf_direction_accuracy_pct" in metrics
+        else "—",
+        f"{metrics['wf_rmse_vs_naive']:.3f}" if "wf_rmse_vs_naive" in metrics else "—",
     )
     try:
         metrics_30 = retrain_model(
@@ -213,6 +219,9 @@ def retrain_ai() -> dict[str, float | int]:
                 "pred_flat_pct",
                 "conformal_q",
                 "horizon_days",
+                "wf_folds",
+                "wf_direction_accuracy_pct",
+                "wf_rmse_vs_naive",
             )
             if k in metrics_30
         }

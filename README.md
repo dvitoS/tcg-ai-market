@@ -125,7 +125,7 @@ Keep the list curated — full SV+SWSH regularly times out mid-nightly.
 
 - `app.py` — Streamlit entry  
 - `services/exchange.py` — fast boot (`market_quotes` + model) or full rebuild  
-- **AI model** — board/scanner: **7d** forward return + set-relative + liquidity + **conformal** gating; portfolio: separate **30d** artifact (`latest_30d`) with lot ADD/TRIM/HOLD coach (catalog stays 7d)  
+- **AI model** — board/scanner: **7d** forward return + set-relative + liquidity + **conformal** gating; portfolio: separate **30d** artifact (`latest_30d`) with lot ADD/TRIM/HOLD coach (catalog stays 7d). Nightly also runs **expanding-window walk-forward** (`wf_folds` / `wf_direction_accuracy_pct` / `wf_rmse_vs_naive` on the artifact).  
 - `database_*.py` — clients / catalog / user (facade: `database.py`)  
 - `pokemon_tcg_client.py` / `pokewallet_client.py` — facade: `api_client.py`  
 - `justtcg_client.py` + `justtcg_psa10.py` — NM vs PSA10  

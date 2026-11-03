@@ -230,11 +230,17 @@ def drop_incomplete_rows(df: pd.DataFrame) -> pd.DataFrame:
     return cleaned
 
 
-def train_xgboost(X_train: pd.DataFrame, y_train: pd.Series) -> xgb.XGBRegressor:
-    print(
-        "Treniram XGBRegressor na forward return "
-        f"(horizon={HORIZON_DAYS}d, n_estimators=300, max_depth=5)..."
-    )
+def train_xgboost(
+    X_train: pd.DataFrame,
+    y_train: pd.Series,
+    *,
+    quiet: bool = False,
+) -> xgb.XGBRegressor:
+    if not quiet:
+        print(
+            "Treniram XGBRegressor na forward return "
+            f"(horizon={HORIZON_DAYS}d, n_estimators=300, max_depth=5)..."
+        )
     model = xgb.XGBRegressor(
         n_estimators=300,
         learning_rate=0.05,
@@ -624,6 +630,26 @@ def retrain_model(
     ):
         if key in eval_metrics and eval_metrics[key] == eval_metrics[key]:  # not NaN
             metrics[key] = float(eval_metrics[key])
+
+    try:
+        from services.walk_forward import walk_forward_evaluate, walk_forward_summary_metrics
+
+        wf = walk_forward_evaluate(
+            trainable,
+            n_folds=4,
+            hold_band=hold_band,
+            quiet=True,
+        )
+        metrics.update(walk_forward_summary_metrics(wf))
+        if not wf.get("wf_skipped"):
+            print(
+                f"Walk-forward ({metrics.get('wf_folds')} folds): "
+                f"dir={metrics.get('wf_direction_accuracy_pct', float('nan')):.1f}% "
+                f"rmse/naive={metrics.get('wf_rmse_vs_naive', float('nan')):.3f}"
+            )
+    except Exception as exc:
+        print(f"Walk-forward skipped: {exc}", file=sys.stderr)
+        metrics["wf_folds"] = 0
 
     try:
         from services.model_store import save_model_artifact
