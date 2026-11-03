@@ -1,6 +1,6 @@
 # TCG AI Market
 
-Streamlit app for Pokémon TCG market history, XGBoost forecasts, portfolio/watchlist (Supabase Auth + RLS), and live JustTCG / eBay comps.
+Streamlit app for Pokémon TCG market history, XGBoost forecasts, portfolio/watchlist (Supabase Auth + RLS), and live JustTCG / eBay comps. Catalog, scanner, and dealer browse are **public**; sign-in is required for portfolio / watchlist / alerts.
 
 ## Local
 
@@ -40,7 +40,11 @@ Do this once per environment — saves hours of Cloud debug later.
 | `SUPABASE_KEY` | **service_role** — catalog, nightly, `auth_sessions`, model/quotes write |
 | `SUPABASE_ANON_KEY` | **anon public** — login + portfolio/watchlist JWT/RLS |
 
-Optional: `JUSTTCG_API_KEY`, `TCG_API_KEY` (PokéWallet), eBay Browse keys, `SUPABASE_DB_URL` (DDL), `CATALOG_SET_IDS` (override curated sets).
+Optional: `JUSTTCG_API_KEY`, `TCG_API_KEY` (PokéWallet), eBay Browse keys, `EPN_CAMPID` (Partner Network click-out), `SUPABASE_DB_URL` (DDL), `CATALOG_SET_IDS` (override curated sets).
+
+### eBay Partner Network (EPN)
+
+Set `EPN_CAMPID` (campaign ID from [partnernetwork.ebay.com](https://partnernetwork.ebay.com/)). Detail page eBay ↗ links get `campid` / `mkcid` / `mkevt` / `customid` (e.g. `detail-active-{card_id}`). No-op without the secret. Disclosure caption shows when configured.
 
 ### Watchlist alerts (in-app + optional email)
 

@@ -64,30 +64,41 @@ def apply_nav_query_params() -> None:
     elif nav is not None:
         st.session_state["nav_page"] = nav
 
-def render_login_gate() -> bool:
-    """Email/password form. Returns True when the user is authenticated."""
+
+def bootstrap_session() -> None:
+    """Restore JWT / DEV user; never blocks the page."""
+    import auth as auth_mod
+
+    auth_mod.bootstrap_auth()
+
+
+def is_logged_in() -> bool:
     import auth as auth_mod
     from config import auth_disabled
 
-    # Restore JWT from cookies after refresh; or inject DEV user when disabled.
-    auth_mod.bootstrap_auth()
-
     if auth_disabled():
         return True
+    return bool(auth_mod.is_authenticated())
 
-    if auth_mod.is_authenticated():
-        return True
 
-    from config import _clean_secret_value, _secret
+def render_login_form(*, reason: str | None = None) -> None:
+    """Email/password form (used as dedicated page or portfolio gate)."""
+    import auth as auth_mod
+    from config import _clean_secret_value, _secret, auth_disabled
+
+    if auth_disabled():
+        st.info(t("auth_dev_mode"))
+        return
 
     if not _clean_secret_value(_secret("SUPABASE_ANON_KEY")):
         st.info(t("auth_anon_hint"))
 
+    caption = reason or t("login_caption")
     st.markdown(
         f"""
         <div class="compare-head" style="max-width:420px;margin:2.5rem auto 1rem;">
           <h3>{escape(t("login_title"))}</h3>
-          <p class="compare-caption">{escape(t("login_caption"))}</p>
+          <p class="compare-caption">{escape(caption)}</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -119,6 +130,10 @@ def render_login_gate() -> bool:
                 user = auth_mod.sign_in(email, password)
                 auth_mod.persist_cookies_now()
                 st.success(t("login_success", email=user.get("email") or email))
+                # After login, leave the login page.
+                if st.session_state.get("nav_page") == "login":
+                    st.session_state["nav_page"] = "explore"
+                    set_nav_query_params(page="explore")
                 st.rerun()
             except Exception as exc:
                 st.error(t("login_error", error=str(exc)[:220]))
@@ -130,15 +145,24 @@ def render_login_gate() -> bool:
                 else:
                     auth_mod.persist_cookies_now()
                     st.success(t("signup_success", email=user.get("email") or email))
+                    if st.session_state.get("nav_page") == "login":
+                        st.session_state["nav_page"] = "explore"
+                        set_nav_query_params(page="explore")
                     st.rerun()
             except Exception as exc:
                 st.error(t("login_error", error=str(exc)[:220]))
-    return False
+
+
+def render_login_gate() -> bool:
+    """Back-compat: bootstrap only; browsing is public. Always returns True."""
+    bootstrap_session()
+    return True
+
 
 def render_navbar() -> str:
-    """Collectr-style sticky header: brand | text links | currency | logout."""
-    from currency import CURRENCY_EUR, CURRENCY_USD, get_currency, _set_currency
+    """Collectr-style sticky header: brand | text links | currency | login/logout."""
     import auth as auth_mod
+    from config import auth_disabled
 
     if "nav_page" not in st.session_state:
         st.session_state["nav_page"] = "explore"
@@ -159,9 +183,10 @@ def render_navbar() -> str:
     code = "USD" if cur == CURRENCY_USD else "EUR"
     user = auth_mod.current_user() or {}
     email = str(user.get("email") or "")
+    logged_in = is_logged_in()
 
-    # brand | 4 links | spacer | email | currency | logout
-    brand, *nav_cols, _gap, email_col, cur_btn, logout_btn = st.columns(
+    # brand | 4 links | spacer | email | currency | auth
+    brand, *nav_cols, _gap, email_col, cur_btn, auth_btn = st.columns(
         [1.2, 0.85, 0.85, 0.85, 0.85, 1.6, 1.2, 0.6, 0.8],
         vertical_alignment="center",
         gap="medium",
@@ -187,13 +212,14 @@ def render_navbar() -> str:
                         st.session_state["market_detail_only"] = False
                     set_nav_query_params(page=key)
                     st.rerun()
-    from config import auth_disabled
 
     with email_col:
         if auth_disabled():
             st.caption(t("auth_dev_mode"))
         elif email:
             st.caption(t("logged_in_as", email=email))
+        else:
+            st.caption(t("guest_browse"))
     with cur_btn:
         if st.button(
             code,
@@ -202,13 +228,18 @@ def render_navbar() -> str:
             help="USD / EUR",
         ):
             _set_currency(CURRENCY_EUR if cur == CURRENCY_USD else CURRENCY_USD)
-    with logout_btn:
+    with auth_btn:
         if auth_disabled():
             st.caption("DEV")
-        elif st.button(t("logout"), key="nav_logout", use_container_width=True):
-            auth_mod.sign_out()
-            auth_mod.persist_cookies_now()
-            st.rerun()
+        elif logged_in:
+            if st.button(t("logout"), key="nav_logout", use_container_width=True):
+                auth_mod.sign_out()
+                auth_mod.persist_cookies_now()
+                st.rerun()
+        else:
+            if st.button(t("login_signin"), key="nav_login", use_container_width=True):
+                st.session_state["nav_page"] = "login"
+                set_nav_query_params(page="login")
+                st.rerun()
 
     return str(st.session_state["nav_page"])
-

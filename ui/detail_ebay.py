@@ -9,6 +9,7 @@ import streamlit as st
 from currency import money
 from i18n import t
 from services.ebay_listings import load_ebay_listings, load_ebay_sold_comps
+from services.epn import affiliate_ebay_url, epn_configured
 from services.live_prices import _ebay_module
 
 
@@ -17,6 +18,7 @@ def ebay_row_html(
     *,
     meta: str,
     title_len: int = 100,
+    customid: str | None = None,
 ) -> str:
     """One eBay row: always thumb | copy | price | link so CSS grid stays aligned."""
     title = escape((row.get("title") or "")[:title_len])
@@ -25,7 +27,7 @@ def ebay_row_html(
         if row.get("price") is not None
         else "—"
     )
-    url = str(row.get("url") or "").strip()
+    url = affiliate_ebay_url(str(row.get("url") or "").strip(), customid=customid)
     img = str(row.get("image") or "").strip()
     if img.startswith("http"):
         thumb = (
@@ -35,9 +37,10 @@ def ebay_row_html(
         )
     else:
         thumb = '<div class="ebay-thumb" aria-hidden="true"></div>'
+    rel = "noopener noreferrer sponsored" if epn_configured() else "noopener noreferrer"
     link = (
         f'<a class="ebay-link" href="{escape(url, quote=True)}" '
-        f'target="_blank" rel="noopener noreferrer">eBay ↗</a>'
+        f'target="_blank" rel="{rel}">eBay ↗</a>'
         if url.startswith("http")
         else '<span class="ebay-link ebay-link-muted">—</span>'
     )
@@ -88,8 +91,14 @@ def render_detail_ebay_sections(*, card_id: str, card_name: str, set_name: str) 
                         n=len(ebay_rows),
                     )
                 )
+            if epn_configured():
+                st.caption(t("ebay_epn_disclosure"))
             rows_html = [
-                ebay_row_html(r, meta=str(r.get("condition") or "—"))
+                ebay_row_html(
+                    r,
+                    meta=str(r.get("condition") or "—"),
+                    customid=f"detail-active-{card_id}",
+                )
                 for r in ebay_rows
             ]
             st.markdown(
@@ -133,11 +142,14 @@ def render_detail_ebay_sections(*, card_id: str, card_name: str, set_name: str) 
                 hi=money(float(sold_stats["max"])) if sold_stats.get("max") is not None else "—",
             )
         )
+    if epn_configured():
+        st.caption(t("ebay_epn_disclosure"))
     sold_html = [
         ebay_row_html(
             r,
             meta=str(r.get("sold_date") or r.get("condition") or "—"),
             title_len=90,
+            customid=f"detail-sold-{card_id}",
         )
         for r in sold_rows
     ]

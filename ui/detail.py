@@ -212,29 +212,37 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
             f"{explain_html}</div>",
             unsafe_allow_html=True,
         )
-        try:
-            uid = _current_user_id()
-            watching = is_on_watchlist(str(card_id), user_id=uid)
-            w_label = t("watchlist_remove") if watching else t("watchlist_add")
-            if st.button(w_label, key=f"watch_{card_id}", use_container_width=True):
-                try:
-                    if watching:
-                        remove_watchlist_card(str(card_id), user_id=uid)
-                        st.session_state["portfolio_notice"] = t("watchlist_removed")
-                    else:
-                        add_watchlist_card(str(card_id), user_id=uid)
-                        st.session_state["portfolio_notice"] = t("watchlist_added")
-                except Exception as exc:
-                    if "watchlist" in str(exc).lower() or "pgrst" in str(exc).lower():
-                        st.warning(t("watchlist_missing_table"))
-                    else:
-                        st.warning(str(exc)[:180])
-                else:
-                    st.rerun()
-        except Exception:
-            pass
+        from ui.nav import is_logged_in, set_nav_query_params
 
-        _render_add_lot_form(str(card_id), str(card["name"]), last_price)
+        if is_logged_in():
+            try:
+                uid = _current_user_id()
+                watching = is_on_watchlist(str(card_id), user_id=uid)
+                w_label = t("watchlist_remove") if watching else t("watchlist_add")
+                if st.button(w_label, key=f"watch_{card_id}", use_container_width=True):
+                    try:
+                        if watching:
+                            remove_watchlist_card(str(card_id), user_id=uid)
+                            st.session_state["portfolio_notice"] = t("watchlist_removed")
+                        else:
+                            add_watchlist_card(str(card_id), user_id=uid)
+                            st.session_state["portfolio_notice"] = t("watchlist_added")
+                    except Exception as exc:
+                        if "watchlist" in str(exc).lower() or "pgrst" in str(exc).lower():
+                            st.warning(t("watchlist_missing_table"))
+                        else:
+                            st.warning(str(exc)[:180])
+                    else:
+                        st.rerun()
+            except Exception:
+                pass
+            _render_add_lot_form(str(card_id), str(card["name"]), last_price)
+        else:
+            st.caption(t("login_required_watchlist"))
+            if st.button(t("login_signin"), key=f"watch_login_{card_id}", use_container_width=True):
+                st.session_state["nav_page"] = "login"
+                set_nav_query_params(page="login")
+                st.rerun()
 
     with right:
         render_detail_compare_chart(

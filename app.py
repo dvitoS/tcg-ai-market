@@ -49,7 +49,13 @@ from services.exchange import clear_exchange_cache, load_exchange
 from services.prices import justtcg_observability_summary
 from ui.catalog import render_explore, render_market
 from ui.dealer import render_dealer_desk
-from ui.nav import apply_nav_query_params, render_login_gate, render_navbar
+from ui.nav import (
+    apply_nav_query_params,
+    bootstrap_session,
+    is_logged_in,
+    render_login_form,
+    render_navbar,
+)
 from ui.portfolio import render_portfolio
 from ui.scanner import render_scanner
 from ui.styles import inject_app_styles
@@ -103,14 +109,20 @@ def main() -> None:
         st.markdown(t("supabase_secrets_help"))
         return
 
-    if not render_login_gate():
-        return
-
+    bootstrap_session()
     page = render_navbar()
 
     from config import auth_disabled
 
-    if not auth_disabled():
+    # Dedicated login page (guests). Authenticated users see catalog instead.
+    if page == "login":
+        if is_logged_in() and not auth_disabled():
+            st.session_state["nav_page"] = "explore"
+            st.rerun()
+        render_login_form(reason=t("login_caption_public"))
+        return
+
+    if is_logged_in() and not auth_disabled():
         mode = user_data_client_mode()
         if mode == "missing_anon":
             st.error(t("auth_rls_blocked_anon"))
@@ -137,25 +149,29 @@ def main() -> None:
         st.error(t("no_price_history"))
         return
 
-    threshold = float(st.session_state.get("watch_alert_threshold", 5.0))
-    from services.pro import is_pro_user
+    if is_logged_in():
+        threshold = float(st.session_state.get("watch_alert_threshold", 5.0))
+        from services.pro import is_pro_user
 
-    # Sure-only banners are a Pro surface; free users still get threshold alerts.
-    sure_only = bool(st.session_state.get("watch_alert_sure_only", True)) and is_pro_user()
-    safe_collect_and_render_alerts(
-        market,
-        user_id=_current_user_id(),
-        threshold_pct=threshold,
-        money_fmt=money,
-        sure_only=sure_only,
-    )
+        # Sure-only banners are a Pro surface; free users still get threshold alerts.
+        sure_only = bool(st.session_state.get("watch_alert_sure_only", True)) and is_pro_user()
+        safe_collect_and_render_alerts(
+            market,
+            user_id=_current_user_id(),
+            threshold_pct=threshold,
+            money_fmt=money,
+            sure_only=sure_only,
+        )
 
     if page == "explore":
         render_explore(market, history=history, model=model)
     elif page == "market":
         render_market(history, market, model)
     elif page == "portfolio":
-        render_portfolio(history, market, model)
+        if not is_logged_in():
+            render_login_form(reason=t("login_required_portfolio"))
+        else:
+            render_portfolio(history, market, model)
     elif page == "dealer":
         render_dealer_desk(market)
     else:
