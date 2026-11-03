@@ -71,20 +71,34 @@ class CatalogResponse(BaseModel):
     meta: CatalogMeta
 
 
-class CardDetailResponse(BaseModel):
-    card: CatalogCard
-    pred_lo_pct: float | None = None
-    pred_hi_pct: float | None = None
-
-
 class HistoryPoint(BaseModel):
     date: str
     price: float
 
 
+class HistoryStats(BaseModel):
+    points: int = 0
+    min_price: float | None = None
+    max_price: float | None = None
+    last_price: float | None = None
+    previous_price: float | None = None
+    day_change_pct: float | None = None
+    first_date: str | None = None
+    last_date: str | None = None
+
+
+class CardDetailResponse(BaseModel):
+    card: CatalogCard
+    pred_lo_pct: float | None = None
+    pred_hi_pct: float | None = None
+    history: HistoryStats = Field(default_factory=HistoryStats)
+    source: Literal["supabase", "demo", "empty"] = "empty"
+
+
 class CardHistoryResponse(BaseModel):
     card_id: str
     points: list[HistoryPoint]
+    stats: HistoryStats = Field(default_factory=HistoryStats)
 
 
 class SignalBoardResponse(BaseModel):

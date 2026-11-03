@@ -48,10 +48,18 @@ def test_card_detail_and_history_roundtrip() -> None:
     card_id = items[0]["id"]
     detail = client.get(f"/api/cards/{card_id}")
     assert detail.status_code == 200
-    assert detail.json()["card"]["id"] == card_id
+    body = detail.json()
+    assert body["card"]["id"] == card_id
+    assert "history" in body
+    assert "points" in body["history"]
     history = client.get(f"/api/cards/{card_id}/history")
     assert history.status_code == 200
-    assert history.json()["card_id"] == card_id
+    hist = history.json()
+    assert hist["card_id"] == card_id
+    assert "stats" in hist
+    if hist["points"]:
+        assert hist["stats"]["points"] == len(hist["points"])
+        assert hist["stats"]["last_price"] is not None
 
 
 def test_signals_board_shape() -> None:

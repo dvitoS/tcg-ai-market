@@ -35,3 +35,33 @@ export type CatalogResponse = {
 };
 
 export type CatalogMode = "browse" | "signals";
+
+export type HistoryPoint = {
+  date: string;
+  price: number;
+};
+
+export type HistoryStats = {
+  points: number;
+  min_price?: number | null;
+  max_price?: number | null;
+  last_price?: number | null;
+  previous_price?: number | null;
+  day_change_pct?: number | null;
+  first_date?: string | null;
+  last_date?: string | null;
+};
+
+export type CardDetailResponse = {
+  card: CatalogCard;
+  pred_lo_pct?: number | null;
+  pred_hi_pct?: number | null;
+  history: HistoryStats;
+  source: "supabase" | "demo" | "empty";
+};
+
+export type CardHistoryResponse = {
+  card_id: string;
+  points: HistoryPoint[];
+  stats: HistoryStats;
+};

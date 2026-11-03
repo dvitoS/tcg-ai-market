@@ -293,6 +293,34 @@ def board_meta(board: pd.DataFrame, source: Source) -> dict[str, Any]:
     }
 
 
+def history_stats(points: list[dict[str, Any]]) -> dict[str, Any]:
+    if not points:
+        return {
+            "points": 0,
+            "min_price": None,
+            "max_price": None,
+            "last_price": None,
+            "previous_price": None,
+            "day_change_pct": None,
+            "first_date": None,
+            "last_date": None,
+        }
+    prices = [float(p["price"]) for p in points]
+    last = prices[-1]
+    previous = prices[-2] if len(prices) > 1 else last
+    day_change = ((last - previous) / previous * 100.0) if previous else None
+    return {
+        "points": len(points),
+        "min_price": min(prices),
+        "max_price": max(prices),
+        "last_price": last,
+        "previous_price": previous,
+        "day_change_pct": day_change,
+        "first_date": str(points[0]["date"])[:10],
+        "last_date": str(points[-1]["date"])[:10],
+    }
+
+
 def load_card_history(card_id: str, *, limit: int = 180) -> list[dict[str, Any]]:
     card_id = str(card_id).strip()
     if not card_id:
