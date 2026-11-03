@@ -132,7 +132,7 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
     delta_cls = "up" if day_change_pct > 0.05 else "down" if day_change_pct < -0.05 else "flat"
     image = escape(card_image_for_id(str(card["id"])), quote=True)
 
-    # Desktop: ~1/3 karta+AI | ~2/3 compare graf (kao TCG Forecast).
+    # Desktop: ~1/3 karta+AI | ~2/3 compare graf.
     left, right = st.columns([1.05, 2.15], gap="large")
 
     with left:
@@ -158,36 +158,19 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
             ],
             "stat-row",
         )
-        st.markdown(
-            f'<div class="detail-ai-head"><h3>{escape(t("ai_prediction"))}</h3></div>',
-            unsafe_allow_html=True,
-        )
         used_fb = bool(st.session_state.get(f"_db_fb::{card_id}", False))
         confidence = series_confidence(points=len(market_series), used_db_fallback=used_fb)
-        st.markdown(
-            f'<div class="ai-move-label">{escape(t("ai_expected_move"))}</div>'
-            f'<div class="ai-move-value">{change_pct:+.2f}%</div>',
-            unsafe_allow_html=True,
-        )
-        st.metric(
-            t("price_on", date=next_day),
-            money(predicted, digits=4),
-            delta=f"{money_delta(predicted - last_price)} ({change_pct:+.2f}%)",
-        )
         conf_board = True
         if hasattr(card, "get"):
             conf_board = bool(card.get("confidence_ok", True))
             if card.get("conformal_ok") is not None and str(card.get("conformal_ok")) != "nan":
                 conf_board = conf_board and bool(card.get("conformal_ok"))
         show_signal = bool(confidence["ok"] and conf_board)
-        if show_signal:
-            st.markdown(
-                f'<div class="{SIGNAL_CLASS[signal]}">{signal_label(signal)}</div>',
-                unsafe_allow_html=True,
-            )
-        else:
-            st.info(t("ai_low_confidence"))
-        st.caption(t("ai_caption", band=FORECAST_SIGNAL_BAND * 100))
+        signal_block = (
+            f'<div class="{SIGNAL_CLASS[signal]} signal-chip">{escape(signal_label(signal))}</div>'
+            if show_signal
+            else f'<div class="ai-low-conf">{escape(t("ai_low_confidence"))}</div>'
+        )
         lo_pct = card.get("pred_lo_pct") if hasattr(card, "get") else getattr(card, "pred_lo_pct", None)
         hi_pct = card.get("pred_hi_pct") if hasattr(card, "get") else getattr(card, "pred_hi_pct", None)
         try:
@@ -208,11 +191,25 @@ def render_market_detail(history: pd.DataFrame, market: pd.DataFrame, model, car
             f"<div><strong>{escape(k)}</strong>: {escape(v)}</div>" for k, v in explain_rows
         )
         st.markdown(
-            f'<div class="ai-explain"><div class="ai-conf">'
-            f'{escape(t("ai_confidence", level=confidence["level"]))}'
-            f" — {escape(str(confidence['reason']))}</div>"
-            f"<div><strong>{escape(t('ai_explain_title'))}</strong></div>"
-            f"{explain_html}</div>",
+            f"""
+            <div class="detail-ai-board">
+              <div class="detail-ai-head"><h3>{escape(t("ai_prediction"))}</h3></div>
+              <div class="ai-move-label">{escape(t("ai_expected_move"))}</div>
+              <div class="ai-move-value">{change_pct:+.2f}%</div>
+              <div class="ai-board-price-label">{escape(t("price_on", date=next_day))}</div>
+              <div class="ai-board-price">{escape(money(predicted, digits=4))}
+                <span class="ai-board-delta">{escape(money_delta(predicted - last_price))} ({change_pct:+.2f}%)</span>
+              </div>
+              {signal_block}
+              <p class="ai-board-caption">{escape(t("ai_caption", band=FORECAST_SIGNAL_BAND * 100))}</p>
+              <div class="ai-explain">
+                <div class="ai-conf">{escape(t("ai_confidence", level=confidence["level"]))}
+                  — {escape(str(confidence["reason"]))}</div>
+                <div><strong>{escape(t("ai_explain_title"))}</strong></div>
+                {explain_html}
+              </div>
+            </div>
+            """,
             unsafe_allow_html=True,
         )
         from ui.nav import is_logged_in, set_nav_query_params

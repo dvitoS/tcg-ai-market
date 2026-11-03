@@ -133,7 +133,7 @@ def render_detail_compare_chart(
     overlays: list[tuple[pd.DataFrame, str, str]] = []
     chart_series = pd.DataFrame(columns=["date", "price"])
     source_label = "TCGplayer"
-    line_color = "#f87171"
+    line_color = "#d07272"
     latest_src: float | None = None
     meta_note = t("source_market_db")
     available = False
@@ -143,10 +143,10 @@ def render_detail_compare_chart(
         psa_clip = clip_series_range(psa_series, range_key) if not psa_series.empty else psa_series
         chart_series = just_clip if not just_clip.empty else db_clip
         source_label = t("chart_overlay")
-        line_color = "#60a5fa"
+        line_color = "#B87333"
         overlays = []
         if not db_clip.empty:
-            overlays.append((db_clip, "TCGplayer", "#f87171"))
+            overlays.append((db_clip, "TCGplayer", "#d07272"))
             badges.append(f'<span class="source-badge db">{escape(t("badge_db"))}</span>')
         if not just_clip.empty:
             st.session_state[f"_db_fb::{card_id}"] = bool(used_db_fallback)
@@ -162,9 +162,9 @@ def render_detail_compare_chart(
             if chart_series is just_clip:
                 source_label = "JustTCG NM"
             else:
-                overlays.append((just_clip, "JustTCG NM", "#60a5fa"))
+                overlays.append((just_clip, "JustTCG NM", "#B87333"))
         if not psa_clip.empty:
-            overlays.append((psa_clip, "PSA 10", "#c4b5fd"))
+            overlays.append((psa_clip, "PSA 10", "#D4A574"))
             has_hist = bool(psa10_stats.get("has_history_series"))
             badges.append(
                 f'<span class="source-badge {"spot" if not has_hist else "live"}">'
@@ -194,7 +194,7 @@ def render_detail_compare_chart(
     elif source_key == "justtcg":
         chart_series = clip_series_range(just_series, range_key)
         source_label = "JustTCG NM"
-        line_color = "#60a5fa"
+        line_color = "#B87333"
         available = not chart_series.empty
         latest_src = float(chart_series["price"].iloc[-1]) if available else None
         meta_note = (
@@ -218,7 +218,7 @@ def render_detail_compare_chart(
     elif source_key == "psa10":
         chart_series = clip_series_range(psa_series, range_key)
         source_label = "JustTCG PSA 10"
-        line_color = "#c4b5fd"
+        line_color = "#D4A574"
         available = not chart_series.empty
         latest_src = float(chart_series["price"].iloc[-1]) if available else None
         has_hist = bool(psa10_stats.get("has_history_series"))
@@ -249,7 +249,7 @@ def render_detail_compare_chart(
     else:
         chart_series = clip_series_range(market_series, range_key)
         source_label = "TCGplayer"
-        line_color = "#f87171"
+        line_color = "#d07272"
         available = not chart_series.empty
         latest_src = float(chart_series["price"].iloc[-1]) if available else None
         meta_note = t("source_market_db")

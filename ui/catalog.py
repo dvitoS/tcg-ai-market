@@ -276,14 +276,22 @@ def render_explore(market: pd.DataFrame, history: pd.DataFrame | None = None, mo
         render_market_detail(history, market, model, str(selected_id))
         return
 
-    st.markdown('<div class="catalog-hero-search"></div>', unsafe_allow_html=True)
-    mode = render_pill_toggle(
-        [("browse", t("catalog_browse")), ("signals", t("catalog_signals"))],
-        state_key="catalog_mode",
-        default="browse",
+    st.markdown(
+        f'<div class="explore-command">'
+        f'<p class="explore-command-eyebrow">{escape(t("explore_browse_line"))}</p>'
+        f"</div>",
+        unsafe_allow_html=True,
     )
+    mode_wrap, _mode_gap = st.columns([1.4, 3.6])
+    with mode_wrap:
+        mode = render_pill_toggle(
+            [("browse", t("catalog_browse")), ("signals", t("catalog_signals"))],
+            state_key="catalog_mode",
+            default="browse",
+        )
 
-    s1, s2, s3 = st.columns([4.2, 1.0, 0.9])
+    st.markdown('<div class="explore-search-wrap"></div>', unsafe_allow_html=True)
+    s1, s2, s3 = st.columns([4.6, 0.9, 0.8])
     with s1:
         query = st.text_input(
             t("search"),
@@ -340,11 +348,11 @@ def render_explore(market: pd.DataFrame, history: pd.DataFrame | None = None, mo
                 key="catalog_signal",
             )
 
-    left, right = st.columns([1.05, 3.2], gap="large")
+    left, right = st.columns([0.95, 3.35], gap="large")
     with left:
         with st.container(border=True):
             st.markdown(
-                f'<div class="explore-filter-head">'
+                f'<div class="explore-filter-head explore-filter-rail">'
                 f"<h4>{escape(t('explore_filters'))}</h4></div>",
                 unsafe_allow_html=True,
             )
