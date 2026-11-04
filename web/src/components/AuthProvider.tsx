@@ -22,7 +22,8 @@ type AuthContextValue = {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
-  ensureDemoSession: () => Promise<void>;
+  /** Local/demo only. Returns false in production when demo login is rejected. */
+  ensureDemoSession: () => Promise<boolean>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -68,9 +69,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const ensureDemoSession = useCallback(async () => {
     if (getAccessToken()) {
       await refresh();
-      return;
+      return true;
     }
-    await login("dev@local", "demo");
+    try {
+      await login("dev@local", "demo");
+      return true;
+    } catch {
+      // Production (AUTH_DISABLED=0) rejects demo credentials — don't spam the console.
+      return false;
+    }
   }, [login, refresh]);
 
   const value = useMemo(

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
@@ -10,7 +11,7 @@ import {
 } from "@/lib/api";
 
 export function WatchToggle({ cardId }: { cardId: string }) {
-  const { user, ensureDemoSession } = useAuth();
+  const { user } = useAuth();
   const [watched, setWatched] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -35,11 +36,9 @@ export function WatchToggle({ cardId }: { cardId: string }) {
   }, [cardId, user]);
 
   async function toggle() {
+    if (!user) return;
     setBusy(true);
     try {
-      if (!user) {
-        await ensureDemoSession();
-      }
       if (watched) {
         await removeWatchlistCard(cardId);
         setWatched(false);
@@ -52,6 +51,14 @@ export function WatchToggle({ cardId }: { cardId: string }) {
     } finally {
       setBusy(false);
     }
+  }
+
+  if (!user) {
+    return (
+      <Link href="/portfolio" className="btn-ghost watch-toggle">
+        Sign in to watch
+      </Link>
+    );
   }
 
   return (
