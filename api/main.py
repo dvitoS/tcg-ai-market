@@ -21,7 +21,7 @@ logging.basicConfig(level=logging.INFO)
 app = FastAPI(
     title="Kestrel API",
     version="0.1.0",
-    description="HTTP surface for the Next.js Kestrel frontend. Streamlit remains until cutover.",
+    description="HTTP API for Soft Ink (Next.js) — the primary Kestrel UI. Streamlit is legacy.",
 )
 
 _origins = [

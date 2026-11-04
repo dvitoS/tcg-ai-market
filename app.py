@@ -105,6 +105,20 @@ def _current_user_id() -> str:
     return str(user.get("id") or "").strip()
 
 
+def _render_soft_ink_banner() -> None:
+    """Non-blocking pointer to Soft Ink when SOFT_INK_URL / KESTREL_WEB_URL is set."""
+    from config import get_soft_ink_url
+
+    soft_ink = get_soft_ink_url()
+    if not soft_ink:
+        return
+    left, right = st.columns([3.2, 1.0], gap="small")
+    with left:
+        st.info(t("soft_ink_banner"))
+    with right:
+        st.link_button(t("soft_ink_open"), soft_ink, use_container_width=True)
+
+
 def main() -> None:
     inject_app_styles()
     apply_nav_query_params()
@@ -118,6 +132,7 @@ def main() -> None:
         return
 
     bootstrap_session()
+    _render_soft_ink_banner()
     page = render_navbar()
 
     from config import auth_disabled

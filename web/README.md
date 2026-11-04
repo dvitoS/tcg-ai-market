@@ -1,6 +1,8 @@
-# Kestrel web (Next.js)
+# Kestrel Soft Ink (Next.js)
 
-Soft Ink frontend for Kestrel. Talks to the FastAPI app in `../api`.
+Primary public UI for Kestrel. Talks to the FastAPI app in `../api`.
+
+Surfaces: marketing landing, browse + AI signals, card detail (multi-source chart, eBay comps, AI explain), portfolio / watchlist / alerts, scanner, dealer CSV, Soft Pro billing.
 
 ```bash
 # from repo root — API
@@ -12,4 +14,4 @@ npm install
 npm run dev
 ```
 
-Phase 1–2: shell, Browse Market, card detail stub. Portfolio / Scanner / Dealer come later.
+Open `http://localhost:3000`. Set `NEXT_PUBLIC_API_URL` to the API origin (no trailing slash).
