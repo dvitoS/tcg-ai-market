@@ -176,6 +176,36 @@ export async function loginRequest(
   return res.json();
 }
 
+export type SignupResult = {
+  needs_confirmation: boolean;
+  access_token?: string | null;
+  refresh_token?: string | null;
+  user?: AuthUser | null;
+  message?: string | null;
+};
+
+export async function signupRequest(
+  email: string,
+  password: string,
+): Promise<SignupResult> {
+  const res = await fetch(apiUrl("/api/auth/signup"), {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) {
+    let detail = "Could not create account";
+    try {
+      const body = (await res.json()) as { detail?: string };
+      if (body.detail) detail = body.detail;
+    } catch {
+      /* ignore */
+    }
+    throw new Error(detail);
+  }
+  return res.json();
+}
+
 export async function fetchMe(token?: string | null): Promise<{
   authenticated: boolean;
   user: AuthUser | null;

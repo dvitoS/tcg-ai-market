@@ -24,6 +24,11 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class SignupRequest(BaseModel):
+    email: str
+    password: str
+
+
 class AuthUser(BaseModel):
     id: str
     email: str | None = None
@@ -34,6 +39,14 @@ class AuthSessionResponse(BaseModel):
     access_token: str
     refresh_token: str | None = None
     user: AuthUser
+
+
+class SignupResponse(BaseModel):
+    needs_confirmation: bool = False
+    access_token: str | None = None
+    refresh_token: str | None = None
+    user: AuthUser | None = None
+    message: str | None = None
 
 
 class MeResponse(BaseModel):
