@@ -217,12 +217,15 @@ def _apply_confidence(quotes: pd.DataFrame, history: pd.DataFrame) -> pd.DataFra
 
 
 def _filter_catalog_floor(quotes: pd.DataFrame) -> pd.DataFrame:
-    from config import CATALOG_MIN_PRICE
+    from config import catalog_price_floor
 
+    floor = catalog_price_floor()
+    if floor is None:
+        return quotes.copy()
     spot = pd.to_numeric(quotes.get("price"), errors="coerce")
     if "market_price" in quotes.columns:
         spot = spot.fillna(pd.to_numeric(quotes["market_price"], errors="coerce"))
-    return quotes.loc[spot >= float(CATALOG_MIN_PRICE)].copy()
+    return quotes.loc[spot >= float(floor)].copy()
 
 
 def attach_price_change_7d(quotes: pd.DataFrame, history: pd.DataFrame) -> pd.DataFrame:

@@ -9,11 +9,13 @@ from pokemon_tcg_client import (  # noqa: F401
     _pace_after_page,
     _pokemon_get,
     clean_cards,
+    fetch_all_sets,
     fetch_cards,
     fetch_cards_for_set,
     fetch_pokemon_card,
     fetch_sets_for_series,
     pokemontcg_image_url,
+    resolve_catalog_targets,
 )
 from pokewallet_client import (  # noqa: F401
     TCGRateLimitError,

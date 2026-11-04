@@ -50,13 +50,16 @@ def _match_card(by_set: dict[str, list], set_code: str, just_number: str):
 
 
 def _sets_prioritized_by_coverage(by_set: dict[str, list]) -> list[tuple[str, str]]:
-    """Prefer sets with more cards missing price_history (fill gaps first)."""
+    """Prefer sets with more cards missing price_history (fill gaps first).
+
+    Includes every set present in the DB (full catalog), not only the curated pin list.
+    """
     have_history = distinct_history_card_ids()
+    name_by_id = {sid: name for sid, name in catalog_sets()}
     scored: list[tuple[int, str, str]] = []
-    for set_code, set_name in catalog_sets():
-        cards = by_set.get(set_code) or []
+    for set_code, cards in by_set.items():
         missing = sum(1 for _n, card in cards if str(card.id) not in have_history)
-        scored.append((missing, set_code, set_name))
+        scored.append((missing, set_code, name_by_id.get(set_code, set_code)))
     scored.sort(key=lambda item: (-item[0], item[1]))
     return [(sid, name) for _m, sid, name in scored]
 
