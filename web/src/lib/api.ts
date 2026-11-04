@@ -421,16 +421,43 @@ export async function deletePortfolioLot(entryId: number | string): Promise<void
   }
 }
 
-export async function fetchBillingStatus(): Promise<{
+export type BillingStatus = {
   pro_open: boolean;
   checkout_url: string | null;
-}> {
+};
+
+export type BillingMe = {
+  pro_open: boolean;
+  is_pro: boolean;
+  reason: string;
+  checkout_url: string | null;
+  portal_url: string | null;
+  authenticated: boolean;
+  email?: string | null;
+  enforcement_ready?: boolean;
+};
+
+export async function fetchBillingStatus(): Promise<BillingStatus> {
   const res = await fetch(apiUrl("/api/billing/status"), {
     headers: { Accept: "application/json" },
     cache: "no-store",
   });
   if (!res.ok) {
     throw new Error(`Billing status failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function fetchBillingMe(): Promise<BillingMe> {
+  const res = await fetch(apiUrl("/api/billing/me"), {
+    headers: {
+      Accept: "application/json",
+      ...authHeaders(),
+    },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`Billing me failed (${res.status})`);
   }
   return res.json();
 }
