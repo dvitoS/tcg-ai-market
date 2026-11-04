@@ -1039,6 +1039,32 @@ a {
   gap: 0.55rem;
 }
 
+.auth-mode-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35rem;
+  padding: 0.25rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(12, 12, 12, 0.55);
+}
+
+.auth-mode-toggle button {
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.88rem;
+  padding: 0.55rem 0.65rem;
+  cursor: pointer;
+}
+
+.auth-mode-toggle button.is-active {
+  background: rgba(184, 115, 51, 0.16);
+  color: var(--text);
+}
+
 .alert-digest {
   margin: 0.85rem 0 1.15rem;
   padding: 1rem 1.05rem;

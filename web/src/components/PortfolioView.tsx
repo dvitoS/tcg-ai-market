@@ -64,7 +64,7 @@ function pnlClass(value?: number | null): string {
 }
 
 export function PortfolioView() {
-  const { user, loading: authLoading, login, logout, ensureDemoSession } = useAuth();
+  const { user, loading: authLoading, login, signup, logout, ensureDemoSession } = useAuth();
   const [lots, setLots] = useState<PortfolioLot[]>([]);
   const [summary, setSummary] = useState<PortfolioSummary>(EMPTY_SUMMARY);
   const [watch, setWatch] = useState<WatchlistItem[]>([]);
@@ -73,6 +73,7 @@ export function PortfolioView() {
   const [demo, setDemo] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("dev@local");
   const [password, setPassword] = useState("demo");
   const [thresholdPct, setThresholdPct] = useState(5);
@@ -164,11 +165,31 @@ export function PortfolioView() {
     event.preventDefault();
     setBusy(true);
     setError(null);
+    setNotice(null);
     try {
-      await login(email.trim(), password);
+      if (authMode === "signup") {
+        const outcome = await signup(email.trim(), password);
+        if (outcome.needsConfirmation) {
+          setNotice(
+            outcome.message ||
+              "Account created. Check your email to confirm, then sign in.",
+          );
+          setAuthMode("signin");
+          return;
+        }
+        setNotice(outcome.message || "Account created.");
+      } else {
+        await login(email.trim(), password);
+      }
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      setError(
+        err instanceof Error
+          ? err.message
+          : authMode === "signup"
+            ? "Sign up failed"
+            : "Login failed",
+      );
     } finally {
       setBusy(false);
     }
@@ -252,12 +273,46 @@ export function PortfolioView() {
       <section className="portfolio-page">
         <div className="explore-command">
           <p className="explore-command-eyebrow">Portfolio</p>
-          <h1 className="explore-title">Sign in</h1>
+          <h1 className="explore-title">
+            {authMode === "signup" ? "Create account" : "Sign in"}
+          </h1>
           <p className="explore-lede">
-            Portfolio and watchlist need a session. Local Soft Ink demo accepts any password.
+            {authMode === "signup"
+              ? "Create a Soft Ink account with email + password (Supabase Auth)."
+              : "Portfolio and watchlist need a session. Local Soft Ink demo accepts any password."}
           </p>
         </div>
         <form className="auth-card" onSubmit={onLogin}>
+          <div className="auth-mode-toggle" role="tablist" aria-label="Auth mode">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={authMode === "signin"}
+              className={authMode === "signin" ? "is-active" : undefined}
+              disabled={busy}
+              onClick={() => {
+                setAuthMode("signin");
+                setError(null);
+              }}
+            >
+              Sign in
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={authMode === "signup"}
+              className={authMode === "signup" ? "is-active" : undefined}
+              disabled={busy}
+              onClick={() => {
+                setAuthMode("signup");
+                setError(null);
+                if (email === "dev@local") setEmail("");
+                if (password === "demo") setPassword("");
+              }}
+            >
+              Create account
+            </button>
+          </div>
           <label>
             <span>Email</span>
             <input
@@ -265,47 +320,55 @@ export function PortfolioView() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              autoComplete="email"
             />
           </label>
           <label>
-            <span>Password</span>
+            <span>Password{authMode === "signup" ? " (min 6)" : ""}</span>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              minLength={authMode === "signup" ? 6 : undefined}
+              autoComplete={authMode === "signup" ? "new-password" : "current-password"}
             />
           </label>
           {error ? <p className="banner-error">{error}</p> : null}
+          {notice ? <p className="banner-ok">{notice}</p> : null}
           <div className="auth-actions">
             <button type="submit" className="btn-primary" disabled={busy}>
-              Sign in
+              {authMode === "signup" ? "Create account" : "Sign in"}
             </button>
-            <button
-              type="button"
-              className="btn-ghost"
-              disabled={busy}
-              onClick={() => {
-                void (async () => {
-                  setBusy(true);
-                  setError(null);
-                  try {
-                    const ok = await ensureDemoSession();
-                    if (!ok) {
-                      setError("Demo login is disabled in production. Sign in with your account.");
-                      return;
+            {authMode === "signin" ? (
+              <button
+                type="button"
+                className="btn-ghost"
+                disabled={busy}
+                onClick={() => {
+                  void (async () => {
+                    setBusy(true);
+                    setError(null);
+                    try {
+                      const ok = await ensureDemoSession();
+                      if (!ok) {
+                        setError(
+                          "Demo login is disabled in production. Sign in or create an account.",
+                        );
+                        return;
+                      }
+                      await load();
+                    } catch (err) {
+                      setError(err instanceof Error ? err.message : "Demo login failed");
+                    } finally {
+                      setBusy(false);
                     }
-                    await load();
-                  } catch (err) {
-                    setError(err instanceof Error ? err.message : "Demo login failed");
-                  } finally {
-                    setBusy(false);
-                  }
-                })();
-              }}
-            >
-              Continue as demo
-            </button>
+                  })();
+                }}
+              >
+                Continue as demo
+              </button>
+            ) : null}
           </div>
         </form>
       </section>

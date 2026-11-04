@@ -14,13 +14,20 @@ import {
   getAccessToken,
   loginRequest,
   setAccessToken,
+  signupRequest,
 } from "@/lib/api";
 import type { AuthUser } from "@/lib/types";
+
+type SignupOutcome = {
+  needsConfirmation: boolean;
+  message?: string | null;
+};
 
 type AuthContextValue = {
   user: AuthUser | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  signup: (email: string, password: string) => Promise<SignupOutcome>;
   logout: () => void;
   /** Local/demo only. Returns false in production when demo login is rejected. */
   ensureDemoSession: () => Promise<boolean>;
@@ -61,6 +68,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(session.user);
   }, []);
 
+  const signup = useCallback(async (email: string, password: string) => {
+    const result = await signupRequest(email, password);
+    if (result.access_token && result.user && !result.needs_confirmation) {
+      setAccessToken(result.access_token);
+      setUser(result.user);
+    }
+    return {
+      needsConfirmation: Boolean(result.needs_confirmation),
+      message: result.message,
+    };
+  }, []);
+
   const logout = useCallback(() => {
     setAccessToken(null);
     setUser(null);
@@ -81,8 +100,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [login, refresh]);
 
   const value = useMemo(
-    () => ({ user, loading, login, logout, ensureDemoSession }),
-    [user, loading, login, logout, ensureDemoSession],
+    () => ({ user, loading, login, signup, logout, ensureDemoSession }),
+    [user, loading, login, signup, logout, ensureDemoSession],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
