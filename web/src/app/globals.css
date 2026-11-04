@@ -1375,16 +1375,19 @@ a {
 
 .lot-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 0.9rem;
   margin-bottom: 1.75rem;
+  align-items: start;
 }
 
 .lot-card {
   position: relative;
   display: grid;
-  grid-template-columns: 92px 1fr;
+  grid-template-columns: 92px minmax(0, 1fr);
   gap: 0.75rem;
+  align-items: start;
+  width: 100%;
   padding: 0.75rem;
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -1402,16 +1405,27 @@ a {
 }
 
 .lot-art {
+  align-self: start;
+  width: 92px;
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid var(--border);
   background: var(--bg0);
+  line-height: 0;
 }
 
 .lot-art img {
   display: block;
   width: 100%;
   height: auto;
+  vertical-align: top;
+}
+
+.lot-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
 .lot-name {
