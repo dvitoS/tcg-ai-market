@@ -25,9 +25,11 @@ LOG = logging.getLogger("tcg.justtcg")
 JUSTTCG_API_V2_BASE_URL = "https://api.justtcg.com/v2"
 JUSTTCG_PSA10_HISTORY_INCLUDE = "periods.30d,periods.90d,periods.1y,price_history.90d"
 
-# In-process response cache — skip delay on identical GETs within one app session.
+# In-process response cache — skip delay on identical GETs/POSTs within one process.
 _GET_CACHE: dict[str, dict[str, Any]] = {}
+_POST_CACHE: dict[str, dict[str, Any]] = {}
 _GET_CACHE_MAX = 128
+_POST_CACHE_MAX = 64
 
 
 def _cache_key(base: str, path: str, params: dict[str, Any] | None) -> str:
@@ -35,8 +37,20 @@ def _cache_key(base: str, path: str, params: dict[str, Any] | None) -> str:
     return f"{base}|{path}|{items}"
 
 
+def _post_cache_key(path: str, payload: Any) -> str:
+    """Stable key for JSON-serializable batch bodies."""
+    import json
+
+    try:
+        body = json.dumps(payload, sort_keys=True, default=str)
+    except TypeError:
+        body = repr(payload)
+    return f"POST|{JUSTTCG_API_BASE_URL}|{path}|{body}"
+
+
 def clear_justtcg_cache() -> None:
     _GET_CACHE.clear()
+    _POST_CACHE.clear()
 
 
 class JustTCGRateLimitError(requests.HTTPError):
@@ -96,6 +110,11 @@ def _get_v2(path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
 
 
 def _post(path: str, payload: Any) -> dict[str, Any]:
+    key = _post_cache_key(path, payload)
+    cached = _POST_CACHE.get(key)
+    if cached is not None:
+        return cached
+
     sleep(JUSTTCG_REQUEST_DELAY_SECONDS)
     url = f"{JUSTTCG_API_BASE_URL.rstrip('/')}{path}"
     response = requests.post(url, json=payload, headers=_headers(), timeout=60)
@@ -104,7 +123,11 @@ def _post(path: str, payload: Any) -> dict[str, Any]:
         LOG.warning("JustTCG 429 (Retry-After=%s) — raising", retry or "?")
         raise JustTCGRateLimitError(response=response)
     response.raise_for_status()
-    return response.json()
+    data = response.json()
+    if len(_POST_CACHE) >= _POST_CACHE_MAX:
+        _POST_CACHE.pop(next(iter(_POST_CACHE)), None)
+    _POST_CACHE[key] = data
+    return data
 
 
 def extract_tcgplayer_product_id(card: dict[str, Any]) -> str | None:
@@ -225,15 +248,12 @@ def history_points_from_variant(variant: dict[str, Any] | None) -> list[dict[str
 
 
 def fetch_card_by_tcgplayer_id(tcgplayer_id: str) -> dict[str, Any] | None:
-    """Jedna karta po TCGplayer product id (POST batch, fallback GET)."""
+    """Jedna karta po TCGplayer product id (GET first for cache, POST fallback)."""
     tid = str(tcgplayer_id or "").strip()
     if not tid:
         return None
 
-    rows = batch_by_tcgplayer_ids([tid])
-    if rows:
-        return rows[0]
-
+    # Soft Ink detail remounts: GET hits the in-process cache; POST used to burn quota.
     payload = _get(
         "/cards",
         {
@@ -245,6 +265,10 @@ def fetch_card_by_tcgplayer_id(tcgplayer_id: str) -> dict[str, Any] | None:
         },
     )
     rows = list(payload.get("data") or [])
+    if rows:
+        return rows[0]
+
+    rows = batch_by_tcgplayer_ids([tid])
     return rows[0] if rows else None
 
 

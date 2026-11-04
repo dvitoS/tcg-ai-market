@@ -98,6 +98,7 @@ export type CardPriceSourcesResponse = {
     period_key?: string | null;
     sales_count?: number | null;
   };
+  cache?: "hit" | "miss" | null;
 };
 
 export type AuthUser = {

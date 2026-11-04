@@ -97,6 +97,7 @@ def card_price_sources(
     limit: int = Query(default=180, ge=7, le=730),
 ) -> CardPriceSourcesResponse:
     payload = build_card_price_sources(str(card_id), limit=limit)
+    cache_flag = payload.get("cache")
     return CardPriceSourcesResponse(
         card_id=str(payload["card_id"]),
         name=str(payload["name"]),
@@ -110,6 +111,7 @@ def card_price_sources(
         psa10=[HistoryPoint(**p) for p in payload.get("psa10") or []],
         psa10_error=payload.get("psa10_error"),
         psa10_stats=Psa10Stats(**(payload.get("psa10_stats") or {})),
+        cache=cache_flag if cache_flag in ("hit", "miss") else None,
     )
 
 

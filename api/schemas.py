@@ -169,6 +169,7 @@ class CardPriceSourcesResponse(BaseModel):
     psa10: list[HistoryPoint] = Field(default_factory=list)
     psa10_error: str | None = None
     psa10_stats: Psa10Stats = Field(default_factory=Psa10Stats)
+    cache: Literal["hit", "miss"] | None = None
 
 
 class SignalBoardResponse(BaseModel):
