@@ -29,7 +29,11 @@ def set_request_access_token(token: str | None) -> Token:
 
 
 def reset_request_access_token(token: Token) -> None:
-    _request_access_token.reset(token)
+    try:
+        _request_access_token.reset(token)
+    except ValueError:
+        # Token was set in another Context (threadpool / nested middleware).
+        _request_access_token.set(None)
 
 
 def get_request_access_token() -> str | None:

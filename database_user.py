@@ -294,8 +294,8 @@ def is_on_watchlist(card_id: str, *, user_id: str) -> bool:
     uid = str(user_id or "").strip()
     if not uid:
         return False
-    client = _user_data_client()
     try:
+        client = _user_data_client()
         response = (
             client.table("watchlist")
             .select("id")

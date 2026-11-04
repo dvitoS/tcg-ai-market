@@ -22,6 +22,14 @@ def test_health_ok() -> None:
     assert isinstance(body.get("creem_webhook_secret"), bool)
     assert isinstance(body.get("pro_checkout_url"), bool)
     assert isinstance(body.get("pro_open"), bool)
+    assert "git_sha" in body
+
+
+def test_health_reports_render_git_sha(monkeypatch) -> None:
+    monkeypatch.setenv("RENDER_GIT_COMMIT", "abc123deadbeef")
+    client = TestClient(app)
+    body = client.get("/api/health").json()
+    assert body["git_sha"] == "abc123deadbeef"
 
 
 def test_catalog_returns_items_from_demo_or_live() -> None:
