@@ -19,6 +19,20 @@ class HealthResponse(BaseModel):
     git_sha: str | None = None
 
 
+class DataHealthResponse(BaseModel):
+    """Process-wide JustTCG / Soft Ink price-source outcomes since API boot."""
+
+    live: int = 0
+    db: int = 0
+    empty: int = 0
+    fallback: int = 0
+    error: int = 0
+    cache_hit: int = 0
+    attempts: int = 0
+    miss_or_fallback_pct: float = 0.0
+    justtcg_configured: bool = False
+
+
 class LoginRequest(BaseModel):
     email: str
     password: str

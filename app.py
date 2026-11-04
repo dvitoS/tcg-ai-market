@@ -85,12 +85,13 @@ def render_data_health_expander() -> None:
     with st.expander(t("obs_title"), expanded=False):
         st.caption(t("obs_caption"))
         summary = justtcg_observability_summary()
-        c1, c2, c3, c4, c5 = st.columns(5)
+        c1, c2, c3, c4, c5, c6 = st.columns(6)
         c1.metric(t("obs_live"), int(summary.get("live", 0)))
-        c2.metric(t("obs_fallback"), int(summary.get("fallback", 0)))
-        c3.metric(t("obs_empty"), int(summary.get("empty", 0)))
-        c4.metric(t("obs_errors"), int(summary.get("error", 0)))
-        c5.metric(t("obs_miss_rate"), f"{float(summary.get('miss_or_fallback_pct', 0)):.0f}%")
+        c2.metric(t("obs_db"), int(summary.get("db", 0)))
+        c3.metric(t("obs_fallback"), int(summary.get("fallback", 0)))
+        c4.metric(t("obs_empty"), int(summary.get("empty", 0)))
+        c5.metric(t("obs_errors"), int(summary.get("error", 0)))
+        c6.metric(t("obs_miss_rate"), f"{float(summary.get('miss_or_fallback_pct', 0)):.0f}%")
         st.caption(f"{t('obs_cache')}: {int(summary.get('cache_hit', 0))}")
         if st.button(t("obs_reload_model"), key="reload_exchange_cache"):
             clear_exchange_cache()

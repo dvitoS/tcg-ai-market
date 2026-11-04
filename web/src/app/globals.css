@@ -2244,6 +2244,94 @@ a {
   }
 }
 
+.data-health {
+  margin-top: 2.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(42, 42, 42, 0.85);
+}
+
+.data-health-toggle {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  padding: 0.2rem 0;
+}
+
+.data-health-toggle:hover {
+  color: var(--text);
+}
+
+.data-health-body {
+  margin-top: 0.75rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: rgba(26, 26, 26, 0.72);
+}
+
+.data-health-caption,
+.data-health-key,
+.data-health-cache,
+.data-health-error,
+.data-health-notice {
+  margin: 0 0 0.55rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.data-health-error {
+  color: var(--sell);
+}
+
+.data-health-notice {
+  color: var(--buy);
+}
+
+.data-health-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr));
+  gap: 0.55rem;
+  margin: 0.65rem 0 0.75rem;
+}
+
+.data-health-metrics div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid rgba(42, 42, 42, 0.9);
+  border-radius: calc(var(--radius) - 2px);
+}
+
+.data-health-metrics span {
+  color: var(--muted);
+  font-size: 0.68rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.data-health-metrics strong {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 650;
+}
+
+.data-health-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.data-health-actions .btn-ghost {
+  padding: 0.3rem 0.65rem;
+  font-size: 0.75rem;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

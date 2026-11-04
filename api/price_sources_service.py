@@ -10,6 +10,7 @@ from typing import Any
 
 from api.catalog_service import load_board, load_card_history
 from justtcg_client import JustTCGRateLimitError, justtcg_api_key, normalize_card_number
+from services.prices import record_justtcg_event
 
 LOG = logging.getLogger("kestrel.api.price_sources")
 
@@ -116,6 +117,7 @@ def build_card_price_sources(card_id: str, *, limit: int = 180) -> dict[str, Any
     cached = _cache_get(cache_key)
     if cached is not None:
         cached["cache"] = "hit"
+        record_justtcg_event("cache_hit")
         return cached
 
     market = _points_from_rows(load_card_history(card_id, limit=limit))
@@ -134,11 +136,13 @@ def build_card_price_sources(card_id: str, *, limit: int = 180) -> dict[str, Any
     psa10_stats: dict[str, Any] = {}
     rate_limited = False
     use_db_nm = _market_history_is_fresh(market)
+    nm_outcome: str | None = None
 
     if has_key and use_db_nm:
         # Nightly JustTCG NM sync already populated price_history — don't re-burn quota.
         justtcg = list(market)
         justtcg_from_db = True
+        nm_outcome = "db"
         LOG.info("using DB NM history for %s (%s pts) — skip live JustTCG NM", card_id, len(market))
     elif has_key:
         try:
@@ -153,18 +157,28 @@ def build_card_price_sources(card_id: str, *, limit: int = 180) -> dict[str, Any
             if resolved:
                 tcp = str(resolved)
             justtcg = _points_from_rows(points)
+            if justtcg:
+                nm_outcome = "live"
+            else:
+                nm_outcome = "empty"
         except JustTCGRateLimitError as exc:
             rate_limited = True
             justtcg_error = "JustTCG rate limited — try again later."
+            nm_outcome = "error"
             LOG.warning("nm_history_for_card rate-limited for %s", card_id)
             _ = exc
         except Exception as exc:
             justtcg_error = str(exc)[:180]
+            nm_outcome = "error"
             LOG.info("nm_history_for_card failed for %s: %s", card_id, exc)
 
         if not justtcg and market:
             justtcg = list(market)
             justtcg_fallback = True
+            nm_outcome = "fallback"
+
+    if nm_outcome:
+        record_justtcg_event(nm_outcome)
 
     if has_key and not rate_limited:
         try:
