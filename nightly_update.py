@@ -76,16 +76,21 @@ def _report_error(phase: str, exc: BaseException) -> None:
 
 
 def refresh_card_catalog() -> int:
-    from api_client import clean_cards, fetch_cards
-    from config import CATALOG_MIN_PRICE, catalog_sets
+    from api_client import clean_cards, fetch_cards, resolve_catalog_targets
+    from config import catalog_price_floor
     from main import save_cards
 
-    sets = catalog_sets()
-    labels = ", ".join(f"{name} ({sid})" for sid, name in sets)
+    sets = resolve_catalog_targets()
+    floor = catalog_price_floor()
+    labels = ", ".join(f"{name} ({sid})" for sid, name in sets[:12])
+    if len(sets) > 12:
+        labels = f"{labels}, … (+{len(sets) - 12} more)"
+    floor_label = "none" if floor is None else f"${floor:.2f}"
     LOG.info(
-        "Korak 1/3: osvježavam katalog karata [%s], min $%.2f...",
+        "Korak 1/3: osvježavam katalog karata [%s setova: %s], min %s...",
+        len(sets),
         labels,
-        CATALOG_MIN_PRICE,
+        floor_label,
     )
     raw = fetch_cards(set_ids=list(sets), paginate=True)
     if not raw:
@@ -93,11 +98,11 @@ def refresh_card_catalog() -> int:
             "Katalog: nijedan set nije vraćen s pokemontcg.io "
             "(svi setovi pale ili prazan odgovor)."
         )
-    cleaned = clean_cards(raw, min_price=CATALOG_MIN_PRICE)
+    cleaned = clean_cards(raw, min_price=floor)
     if not cleaned:
         raise RuntimeError(
             f"Katalog: {len(raw)} sirovih karata, ali 0 nakon filtera "
-            f"min ${CATALOG_MIN_PRICE:.2f}."
+            f"(min {floor_label})."
         )
     saved = save_cards(cleaned)
     LOG.info("Katalog: %s očišćenih karata, %s spremljenih/ažuriranih u Supabase.", len(cleaned), saved)

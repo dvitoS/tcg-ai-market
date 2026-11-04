@@ -63,7 +63,7 @@ Do this once per environment — saves hours of Cloud debug later.
 | `SUPABASE_KEY` | **service_role** — catalog, nightly, `auth_sessions`, model/quotes write |
 | `SUPABASE_ANON_KEY` | **anon public** — login + portfolio/watchlist JWT/RLS |
 
-Optional: `JUSTTCG_API_KEY`, `TCG_API_KEY` (PokéWallet), eBay Browse keys, `EPN_CAMPID` (Partner Network click-out), `SUPABASE_DB_URL` (DDL), `CATALOG_SET_IDS` (override curated sets).
+Optional: `JUSTTCG_API_KEY`, `TCG_API_KEY` (PokéWallet), eBay Browse keys, `EPN_CAMPID` (Partner Network click-out), `SUPABASE_DB_URL` (DDL), `CATALOG_SET_IDS` (pin sets), `CATALOG_ALL_SETS=0` (curated fallback), `CATALOG_MIN_PRICE` (USD floor; default `0` = all cards).
 
 ### eBay Partner Network (EPN)
 
@@ -136,15 +136,15 @@ Nightly refreshes history (sets with **missing history first**; limited runs pre
 
 ### Catalog scale
 
-Default curated sets (pokemontcg.io ids): 151, Paldean Fates, Surging Sparks, Prismatic Evolutions, Evolving Skies, Lost Origin, Crown Zenith, Base, Hidden Fates — `$5+` floor.
+Default: **all** pokemontcg.io sets (~176) and **no** USD floor (`CATALOG_MIN_PRICE=0` keeps unpriced cards too). Nightly timeout is 6h to allow the full pull.
 
-Override without code change:
+Pin a subset or restore the old floor without code change:
 
 ```text
 CATALOG_SET_IDS=sv3pt5:151,sv8:Surging Sparks,swsh7:Evolving Skies
+CATALOG_ALL_SETS=0
+CATALOG_MIN_PRICE=5
 ```
-
-Keep the list curated — full SV+SWSH regularly times out mid-nightly.
 
 ## CI
 

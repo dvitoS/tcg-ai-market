@@ -292,9 +292,9 @@ def auth_disabled() -> bool:
 
 DEFAULT_SET_NAME = "Scarlet & Violet"
 DEFAULT_SET_ID = "sv1"
-# Curated market catalog (pokemontcg.io set IDs). Prefer this over full eras —
-# full SV+SWSH is 40+ sets and regularly times out / 500s mid-nightly.
-# Override via env CATALOG_SET_IDS="sv3pt5:151,swsh7:Evolving Skies,..."
+# Fallback curated list when CATALOG_ALL_SETS is off / all-sets fetch fails.
+# Default nightly pulls EVERY pokemontcg.io set (see catalog_all_sets_enabled).
+# Pin a subset via env CATALOG_SET_IDS="sv3pt5:151,swsh7:Evolving Skies,..."
 _DEFAULT_CATALOG_SETS: tuple[tuple[str, str], ...] = (
     ("sv3pt5", "151"),
     ("sv4pt5", "Paldean Fates"),
@@ -307,19 +307,34 @@ _DEFAULT_CATALOG_SETS: tuple[tuple[str, str], ...] = (
     ("sm115", "Hidden Fates"),
 )
 CATALOG_SETS: tuple[tuple[str, str], ...] = _DEFAULT_CATALOG_SETS
-# Keep for optional full-era pulls / fetch_sets_for_series default.
+# Used by fetch_sets_for_series when not pulling the full catalog.
 CATALOG_SERIES = (
     "Scarlet & Violet",
     "Sword & Shield",
     "Sun & Moon",
+    "XY",
+    "Black & White",
+    "HeartGold & SoulSilver",
+    "Platinum",
+    "Diamond & Pearl",
+    "EX",
+    "Neo",
+    "Gym",
     "Base",
+    "E-Card",
+    "POP",
+    "NP",
+    "Other",
+    "Mega Evolution",
 )
-# Only keep cards with a spot market price at or above this (USD).
-CATALOG_MIN_PRICE = 5.0
+# USD floor for catalog clean + board. 0 (default) = no floor, keep unpriced cards.
+CATALOG_MIN_PRICE = 0.0
+# When True (default) nightly/main pull every pokemontcg.io set unless CATALOG_SET_IDS is set.
+CATALOG_ALL_SETS = True
 
 
 def catalog_sets() -> tuple[tuple[str, str], ...]:
-    """Active catalog sets — env override for Cloud/Actions without code edits."""
+    """Pinned / fallback catalog sets — env override for Cloud/Actions without code edits."""
     raw = (
         _secret("CATALOG_SET_IDS") or os.getenv("CATALOG_SET_IDS", "") or ""
     ).strip()
@@ -339,6 +354,35 @@ def catalog_sets() -> tuple[tuple[str, str], ...]:
             # id-only — use id as display name
             parsed.append((piece, piece))
     return tuple(parsed) if parsed else CATALOG_SETS
+
+
+def catalog_all_sets_enabled() -> bool:
+    """True → resolve every pokemontcg.io set (unless CATALOG_SET_IDS pins a subset)."""
+    if (_secret("CATALOG_SET_IDS") or os.getenv("CATALOG_SET_IDS", "") or "").strip():
+        return False
+    raw = (
+        _secret("CATALOG_ALL_SETS") or os.getenv("CATALOG_ALL_SETS", "") or ""
+    ).strip().lower()
+    if raw in {"0", "false", "no", "off"}:
+        return False
+    if raw in {"1", "true", "yes", "on"}:
+        return True
+    return bool(CATALOG_ALL_SETS)
+
+
+def catalog_price_floor() -> float | None:
+    """Min USD for clean_cards / board. None = keep every card (including unpriced)."""
+    raw = (
+        _secret("CATALOG_MIN_PRICE") or os.getenv("CATALOG_MIN_PRICE", "") or ""
+    ).strip()
+    if raw != "":
+        try:
+            value = float(raw)
+        except ValueError:
+            value = float(CATALOG_MIN_PRICE)
+    else:
+        value = float(CATALOG_MIN_PRICE)
+    return None if value <= 0 else value
 # pokemontcg.io allows up to 250; one page covers each curated set (largest is ~237).
 PAGE_SIZE = 250
 POKEMON_TCG_MAX_PAGE_SIZE = 250

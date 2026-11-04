@@ -192,6 +192,68 @@ def _pokemon_get(
     raise RuntimeError("Dohvat s Pokémon TCG API-ja nije uspio.")
 
 
+def fetch_all_sets() -> list[dict[str, Any]]:
+    """Svi Pokémon TCG setovi s pokemontcg.io (paginirano, bez series filtera)."""
+    collected: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    page_size = min(PAGE_SIZE, POKEMON_TCG_MAX_PAGE_SIZE)
+    page = 1
+    print("Dohvaćam popis svih Pokémon TCG setova...")
+    while True:
+        print(f"  [napredak] all sets · stranica {page}...")
+        payload = _pokemon_get(
+            POKEMON_TCG_SETS_URL,
+            {
+                "page": page,
+                "pageSize": page_size,
+                "orderBy": "-releaseDate",
+            },
+            progress=f"sets all page {page}",
+        )
+        batch = payload.get("data") or []
+        if not batch:
+            break
+        for item in batch:
+            set_id = str(item.get("id") or "")
+            if not set_id or set_id in seen:
+                continue
+            seen.add(set_id)
+            collected.append(item)
+        total = int(payload.get("totalCount") or 0)
+        print(
+            f"  [napredak] all sets · stranica {page}: "
+            f"+{len(batch)} (ukupno {len(collected)}/{total or '?'})"
+        )
+        finished = (total and page * page_size >= total) or len(batch) < page_size
+        if finished:
+            break
+        _pace_after_page(len(batch), context=f"sets all page {page}")
+        page += 1
+    collected.sort(key=lambda item: str(item.get("releaseDate") or ""), reverse=True)
+    print(f"Pronađeno {len(collected)} setova (svi).")
+    return collected
+
+
+def resolve_catalog_targets() -> list[tuple[str, str]]:
+    """Aktivni (set_id, name) za nightly/main — svi setovi ili pinned lista."""
+    from config import catalog_all_sets_enabled, catalog_sets
+
+    if catalog_all_sets_enabled():
+        try:
+            rows = fetch_all_sets()
+            targets = [
+                (str(item["id"]), str(item.get("name") or item["id"]))
+                for item in rows
+                if item.get("id")
+            ]
+            if targets:
+                return targets
+            print("fetch_all_sets vratio 0 — fallback na curated catalog_sets().")
+        except Exception as exc:
+            print(f"fetch_all_sets failed ({exc}) — fallback na curated catalog_sets().")
+    return [(sid, name) for sid, name in catalog_sets()]
+
+
 def fetch_sets_for_series(series_names: list[str] | tuple[str, ...] | None = None) -> list[dict[str, Any]]:
     """Dohvaća setove za jednu ili više era (npr. Scarlet & Violet, Sword & Shield)."""
     names = list(series_names or CATALOG_SERIES)
@@ -490,7 +552,9 @@ def clean_cards(
             image_url = pokemontcg_image_url(str(card_id))
 
         market_price = _extract_market_price(card)
-        if min_price is not None and (market_price is None or market_price < float(min_price)):
+        # min_price <= 0 means "no floor" (same as None) so unpriced cards stay.
+        floor = None if min_price is None or float(min_price) <= 0 else float(min_price)
+        if floor is not None and (market_price is None or market_price < floor):
             below_min += 1
             continue
 

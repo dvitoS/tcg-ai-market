@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       refresh_catalog:
-        description: "Refresh curated catalog (default ~9 liquid sets · $5+; override via CATALOG_SET_IDS)"
+        description: "Refresh full catalog (all pokemontcg.io sets, no $ floor; pin via CATALOG_SET_IDS)"
         type: boolean
         default: true
       card_limit:

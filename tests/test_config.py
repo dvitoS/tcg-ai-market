@@ -86,3 +86,39 @@ def test_catalog_sets_env_override(config_mod, monkeypatch):
     monkeypatch.setattr(config_mod, "_secret", lambda name, default="": "")
     sets = config_mod.catalog_sets()
     assert sets == (("sv8", "Surging Sparks"), ("swsh7", "Evolving Skies"))
+
+
+def test_catalog_price_floor_disabled_by_default(config_mod, monkeypatch):
+    monkeypatch.delenv("CATALOG_MIN_PRICE", raising=False)
+    monkeypatch.setattr(config_mod, "_secret", lambda name, default="": "")
+    assert config_mod.catalog_price_floor() is None
+
+
+def test_catalog_price_floor_env(config_mod, monkeypatch):
+    monkeypatch.setenv("CATALOG_MIN_PRICE", "5")
+    monkeypatch.setattr(config_mod, "_secret", lambda name, default="": "")
+    assert config_mod.catalog_price_floor() == 5.0
+
+
+def test_catalog_all_sets_disabled_when_pinned(config_mod, monkeypatch):
+    monkeypatch.setenv("CATALOG_SET_IDS", "sv8:Surging Sparks")
+    monkeypatch.setattr(config_mod, "_secret", lambda name, default="": "")
+    assert config_mod.catalog_all_sets_enabled() is False
+
+
+def test_resolve_catalog_targets_uses_all_sets(monkeypatch, config_mod):
+    import pokemon_tcg_client as ptcg
+
+    monkeypatch.setattr(config_mod, "catalog_all_sets_enabled", lambda: True)
+    monkeypatch.setattr(
+        ptcg,
+        "fetch_all_sets",
+        lambda: [
+            {"id": "sv8", "name": "Surging Sparks"},
+            {"id": "base1", "name": "Base"},
+        ],
+    )
+    assert ptcg.resolve_catalog_targets() == [
+        ("sv8", "Surging Sparks"),
+        ("base1", "Base"),
+    ]
