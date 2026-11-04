@@ -7,9 +7,11 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { useLocale } from "@/components/LocaleProvider";
 import { PortfolioBarsChart } from "@/components/PortfolioBarsChart";
+import { PortfolioPerfChart } from "@/components/PortfolioPerfChart";
 import {
   deletePortfolioLot,
   fetchPortfolio,
+  fetchPortfolioPerformance,
   fetchWatchlist,
   fetchWatchlistAlerts,
   forgotPasswordRequest,
@@ -22,6 +24,7 @@ import {
 import { signalLabel } from "@/lib/i18n/messages";
 import type {
   PortfolioLot,
+  PortfolioPerfPoint,
   PortfolioSummary,
   WatchAlertItem,
   WatchlistItem,
@@ -60,6 +63,7 @@ export function PortfolioView() {
   const { user, loading: authLoading, login, signup, logout, ensureDemoSession } = useAuth();
   const [lots, setLots] = useState<PortfolioLot[]>([]);
   const [summary, setSummary] = useState<PortfolioSummary>(EMPTY_SUMMARY);
+  const [perfPoints, setPerfPoints] = useState<PortfolioPerfPoint[]>([]);
   const [watch, setWatch] = useState<WatchlistItem[]>([]);
   const [alerts, setAlerts] = useState<WatchAlertItem[]>([]);
   const [sureOnlyAllowed, setSureOnlyAllowed] = useState(true);
@@ -90,7 +94,7 @@ export function PortfolioView() {
     setBusy(true);
     setError(null);
     try {
-      const [portfolio, watchlist, digest] = await Promise.all([
+      const [portfolio, watchlist, digest, performance] = await Promise.all([
         fetchPortfolio({ include_sold: true }),
         fetchWatchlist(),
         fetchWatchlistAlerts({
@@ -98,10 +102,12 @@ export function PortfolioView() {
           sure_only: sureOnly,
           dismissed,
         }),
+        fetchPortfolioPerformance({ max_days: 120 }),
       ]);
       setLots(portfolio.items);
       setSummary(portfolio.summary);
-      setDemo(portfolio.demo || watchlist.demo || digest.demo);
+      setPerfPoints(performance.points || []);
+      setDemo(portfolio.demo || watchlist.demo || digest.demo || performance.demo);
       setWatch(watchlist.items);
       setAlerts(digest.items);
       setSureOnlyAllowed(digest.sure_only_allowed);
@@ -545,6 +551,7 @@ export function PortfolioView() {
         </div>
       </div>
 
+      <PortfolioPerfChart points={perfPoints} />
       <PortfolioBarsChart lots={openLots} />
 
       <div className="portfolio-section-head">

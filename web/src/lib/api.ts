@@ -9,6 +9,7 @@ import type {
   DealerStatus,
   EbayCompsResponse,
   PortfolioLot,
+  PortfolioPerformanceResponse,
   PortfolioResponse,
   ScannerResponse,
   WatchAlertsResponse,
@@ -310,6 +311,28 @@ export async function fetchPortfolio(
   });
   if (!res.ok) {
     throw new Error(`Portfolio failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function fetchPortfolioPerformance(
+  opts: { max_days?: number } = {},
+): Promise<PortfolioPerformanceResponse> {
+  const params = new URLSearchParams();
+  if (opts.max_days) params.set("max_days", String(opts.max_days));
+  const qs = params.toString();
+  const res = await fetch(
+    apiUrl(`/api/portfolio/performance${qs ? `?${qs}` : ""}`),
+    {
+      headers: {
+        Accept: "application/json",
+        ...authHeaders(),
+      },
+      cache: "no-store",
+    },
+  );
+  if (!res.ok) {
+    throw new Error(`Portfolio performance failed (${res.status})`);
   }
   return res.json();
 }

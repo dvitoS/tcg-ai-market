@@ -34,6 +34,21 @@ def test_portfolio_and_watchlist_demo_session() -> None:
     assert wbody["demo"] is True
 
 
+def test_portfolio_performance_demo_session() -> None:
+    client = TestClient(app)
+    resp = client.get("/api/portfolio/performance", params={"max_days": 90})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["demo"] is True
+    assert "points" in body
+    assert "days" in body
+    assert body["days"] == len(body["points"])
+    assert body["days"] >= 2
+    row = body["points"][0]
+    assert "date" in row and "invested" in row and "market_value" in row
+    assert float(row["invested"]) > 0
+
+
 def test_watchlist_add_and_remove_roundtrip() -> None:
     client = TestClient(app)
     catalog = client.get("/api/catalog", params={"limit": 1})

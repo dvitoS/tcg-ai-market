@@ -149,6 +149,18 @@ export type PortfolioResponse = {
   demo: boolean;
 };
 
+export type PortfolioPerfPoint = {
+  date: string;
+  invested: number;
+  market_value: number;
+};
+
+export type PortfolioPerformanceResponse = {
+  points: PortfolioPerfPoint[];
+  days: number;
+  demo: boolean;
+};
+
 export type WatchlistItem = {
   id?: number | string | null;
   card_id: string;
