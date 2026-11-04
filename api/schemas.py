@@ -347,6 +347,41 @@ class ScannerResponse(BaseModel):
     source: Literal["supabase", "demo", "empty"] = "empty"
 
 
+class RadarCard(CatalogCard):
+    side: Literal["UNDER", "OVER"] = "UNDER"
+    edge_pct: float | None = None
+    spot: float | None = None
+    fair_price: float | None = None
+    pred_lo_pct: float | None = None
+    pred_hi_pct: float | None = None
+    current_price: float | None = None
+    ai_target_price: float | None = None
+    expected_roi_pct: float | None = None
+
+
+class RadarStatus(BaseModel):
+    allowed: bool
+    reason: str = ""
+    checkout_url: str | None = None
+    forecast_days: int = 7
+    edge_floor: float = 0.0
+
+
+class RadarResponse(BaseModel):
+    forecast_days: int = 7
+    edge_floor: float = 0.0
+    min_edge: float = 0.0
+    scoped: int = 0
+    sure_scoped: int = 0
+    under_total: int = 0
+    over_total: int = 0
+    sets: list[str] = Field(default_factory=list)
+    rarities: list[str] = Field(default_factory=list)
+    underpriced: list[RadarCard] = Field(default_factory=list)
+    overpriced: list[RadarCard] = Field(default_factory=list)
+    source: Literal["supabase", "demo", "empty"] = "empty"
+
+
 class DealerRequest(BaseModel):
     csv_text: str
     fee_pct: float | None = None

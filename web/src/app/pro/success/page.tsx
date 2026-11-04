@@ -38,7 +38,10 @@ export default function ProSuccessPage() {
           : t("pro_success_lede")}
       </p>
       <div className="detail-actions">
-        <Link href="/dealer" className="btn-primary">
+        <Link href="/radar" className="btn-primary">
+          {t("pro_open_radar")}
+        </Link>
+        <Link href="/dealer" className="btn-ghost">
           {t("pro_open_dealer")}
         </Link>
         <Link href="/pro" className="btn-ghost">
