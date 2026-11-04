@@ -1,11 +1,15 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 
 import { AddLotForm } from "@/components/AddLotForm";
 import { EbayComps } from "@/components/EbayComps";
+import { useLocale } from "@/components/LocaleProvider";
 import { PriceChart } from "@/components/PriceChart";
 import { WatchToggle } from "@/components/WatchToggle";
 import { formatChange, formatMoney } from "@/lib/api";
+import { signalLabel } from "@/lib/i18n/messages";
 import type { CardDetailResponse, HistoryPoint } from "@/lib/types";
 
 function deltaClass(value?: number | null): string {
@@ -29,6 +33,7 @@ export function CardDetailView({
   detail: CardDetailResponse;
   points: HistoryPoint[];
 }) {
+  const { locale, t } = useLocale();
   const { card, pred_lo_pct, pred_hi_pct, explain } = detail;
   const prices = points.map((p) => p.price).filter((n) => Number.isFinite(n));
   const fromPoints = {
@@ -63,11 +68,12 @@ export function CardDetailView({
     pred_lo_pct != null && pred_hi_pct != null
       ? `${formatChange(pred_lo_pct, 1)} … ${formatChange(pred_hi_pct, 1)}`
       : null;
+  const signalText = signalLabel(locale, card.signal);
 
   return (
     <article className="detail-page">
       <Link href="/browse" className="detail-back">
-        ← Back to browse
+        {t("detail_back")}
       </Link>
 
       <div className="detail-layout">
@@ -84,7 +90,7 @@ export function CardDetailView({
               />
             </div>
             <div className="detail-hero-copy">
-              <p className="detail-kicker">Card detail</p>
+              <p className="detail-kicker">{t("detail_kicker")}</p>
               <h1 className="detail-name">{card.name}</h1>
               <p className="detail-meta">{meta}</p>
               <div className="detail-price">
@@ -92,25 +98,25 @@ export function CardDetailView({
               </div>
               <div className={`detail-hero-delta ${deltaClass(dayChange)}`}>
                 {formatChange(dayChange, 2)}
-                {showSignal ? ` · ${card.signal}` : ""}
+                {showSignal ? ` · ${signalText}` : ""}
               </div>
               <div className="detail-actions">
                 <WatchToggle cardId={card.id} />
                 <Link href="/portfolio#watchlist" className="btn-ghost">
-                  Open watchlist
+                  {t("detail_watchlist")}
                 </Link>
               </div>
               <div className="stat-row">
                 <div className="stat-chip">
-                  <span>Range min</span>
+                  <span>{t("detail_range_min")}</span>
                   <strong>{formatMoney(history.min_price, "USD", 0)}</strong>
                 </div>
                 <div className="stat-chip">
-                  <span>Range max</span>
+                  <span>{t("detail_range_max")}</span>
                   <strong>{formatMoney(history.max_price, "USD", 0)}</strong>
                 </div>
                 <div className="stat-chip">
-                  <span>Points</span>
+                  <span>{t("detail_points")}</span>
                   <strong>{history.points || points.length || "—"}</strong>
                 </div>
               </div>
@@ -124,13 +130,13 @@ export function CardDetailView({
 
           <section className="detail-ai-board">
             <div className="detail-ai-head">
-              <h2>AI prediction</h2>
+              <h2>{t("detail_ai_title")}</h2>
             </div>
-            <p className="ai-move-label">Expected move</p>
+            <p className="ai-move-label">{t("detail_expected")}</p>
             <p className={`ai-move-value ${deltaClass(card.expected_change_pct)}`}>
               {formatChange(card.expected_change_pct, 2)}
             </p>
-            <p className="ai-board-price-label">Predicted price</p>
+            <p className="ai-board-price-label">{t("detail_predicted")}</p>
             <p className="ai-board-price">
               {formatMoney(card.predicted_price, "USD", 2)}
               {card.expected_change_pct != null ? (
@@ -140,22 +146,22 @@ export function CardDetailView({
               ) : null}
             </p>
             {band ? (
-              <p className="ai-board-caption">Conformal band {band}</p>
+              <p className="ai-board-caption">{t("detail_band", { band })}</p>
             ) : (
-              <p className="ai-board-caption">Horizon forecast from the market board.</p>
+              <p className="ai-board-caption">{t("detail_horizon")}</p>
             )}
             {showSignal ? (
-              <div className={`signal-chip ${signalClass(card.signal)}`}>{card.signal}</div>
+              <div className={`signal-chip ${signalClass(card.signal)}`}>{signalText}</div>
             ) : (
-              <div className="ai-low-conf">Low confidence — treat as HOLD until more data lands.</div>
+              <div className="ai-low-conf">{t("detail_low_conf")}</div>
             )}
             {explain ? (
               <div className="ai-explain">
                 <p className="ai-conf">
-                  Confidence {explain.confidence_level}
+                  {t("detail_confidence", { level: explain.confidence_level })}
                   {explain.confidence_reason ? ` — ${explain.confidence_reason}` : ""}
                 </p>
-                <p className="ai-explain-title">Why this signal</p>
+                <p className="ai-explain-title">{t("detail_why")}</p>
                 {explain.rows.length > 0 ? (
                   <dl className="ai-explain-list">
                     {explain.rows.map((row) => (
@@ -166,9 +172,7 @@ export function CardDetailView({
                     ))}
                   </dl>
                 ) : (
-                  <p className="ai-board-caption">
-                    Need ~15 history points before feature explain unlocks.
-                  </p>
+                  <p className="ai-board-caption">{t("detail_explain_need")}</p>
                 )}
               </div>
             ) : null}

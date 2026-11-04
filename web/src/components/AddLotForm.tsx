@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
+import { useLocale } from "@/components/LocaleProvider";
 import { addPortfolioLot } from "@/lib/api";
 
 const CONDITIONS = ["NM", "LP", "MP", "HP", "DMG", "PSA 10", "PSA 9", "Other"];
@@ -18,6 +19,7 @@ export function AddLotForm({
   defaultPrice?: number | null;
 }) {
   const { user } = useAuth();
+  const { t } = useLocale();
   const [qty, setQty] = useState(1);
   const [price, setPrice] = useState(
     defaultPrice != null && Number.isFinite(defaultPrice) ? Number(defaultPrice) : 0,
@@ -53,11 +55,11 @@ export function AddLotForm({
   if (!user) {
     return (
       <section className="add-lot-panel">
-        <h2>Add to portfolio</h2>
+        <h2>{t("add_lot_title")}</h2>
         <p className="add-lot-hint">
-          Sign in to log a lot for {cardName}.{" "}
+          {t("add_lot_guest", { name: cardName })}{" "}
           <Link href="/portfolio" className="inline-link">
-            Open portfolio
+            {t("add_lot_open")}
           </Link>
         </p>
       </section>
@@ -66,11 +68,11 @@ export function AddLotForm({
 
   return (
     <section className="add-lot-panel">
-      <h2>Add to portfolio</h2>
-      <p className="add-lot-hint">Log quantity and cost basis for this card.</p>
+      <h2>{t("add_lot_title")}</h2>
+      <p className="add-lot-hint">{t("add_lot_hint")}</p>
       <form className="add-lot-form" onSubmit={onSubmit}>
         <label>
-          <span>Qty</span>
+          <span>{t("add_lot_qty")}</span>
           <input
             type="number"
             min={1}
@@ -81,7 +83,7 @@ export function AddLotForm({
           />
         </label>
         <label>
-          <span>Cost (USD)</span>
+          <span>{t("add_lot_cost")}</span>
           <input
             type="number"
             min={0.01}
@@ -92,7 +94,7 @@ export function AddLotForm({
           />
         </label>
         <label>
-          <span>Condition</span>
+          <span>{t("port_condition")}</span>
           <select value={condition} onChange={(e) => setCondition(e.target.value)}>
             {CONDITIONS.map((c) => (
               <option key={c} value={c}>
@@ -102,24 +104,24 @@ export function AddLotForm({
           </select>
         </label>
         <label>
-          <span>Grade</span>
+          <span>{t("add_lot_grade")}</span>
           <input
             type="text"
             value={grade}
             onChange={(e) => setGrade(e.target.value)}
-            placeholder="Optional"
+            placeholder={t("add_lot_optional")}
           />
         </label>
         <button type="submit" className="btn-primary" disabled={busy || price <= 0}>
-          {busy ? "Adding…" : "Add lot"}
+          {busy ? t("add_lot_busy") : t("add_lot_submit")}
         </button>
       </form>
       {error ? <p className="banner-error">{error}</p> : null}
       {done ? (
         <p className="add-lot-ok">
-          Added.{" "}
+          {t("add_lot_done")}{" "}
           <Link href="/portfolio" className="inline-link">
-            View portfolio
+            {t("add_lot_view")}
           </Link>
         </p>
       ) : null}

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
+import { useLocale } from "@/components/LocaleProvider";
 import {
   fetchDealerStatus,
   formatChange,
@@ -49,6 +50,7 @@ function ActionRow({ row }: { row: DealerRow }) {
 }
 
 export function DealerView() {
+  const { t } = useLocale();
   const { user, loading: authLoading } = useAuth();
   const [status, setStatus] = useState<DealerStatus | null>(null);
   const [csvText, setCsvText] = useState("");
@@ -115,18 +117,16 @@ export function DealerView() {
     return (
       <section className="dealer-page">
         <div className="explore-command">
-          <p className="explore-command-eyebrow">Dealer</p>
-          <h1 className="explore-title">Desk</h1>
-          <p className="explore-lede">
-            Sign in to score inventory against the Soft Ink market board.
-          </p>
+          <p className="explore-command-eyebrow">{t("dealer_eyebrow")}</p>
+          <h1 className="explore-title">{t("dealer_title")}</h1>
+          <p className="explore-lede">{t("dealer_signin_lede")}</p>
         </div>
         <div className="detail-actions">
           <Link href="/portfolio" className="btn-primary">
-            Sign in
+            {t("auth_sign_in")}
           </Link>
           <Link href="/pro" className="btn-ghost">
-            Soft Pro
+            {t("landing_cta_pro")}
           </Link>
         </div>
       </section>
@@ -136,28 +136,23 @@ export function DealerView() {
   return (
     <section className="dealer-page">
       <div className="explore-command">
-        <p className="explore-command-eyebrow">Dealer</p>
-        <h1 className="explore-title">Desk</h1>
-        <p className="explore-lede">
-          Upload inventory CSV, apply sell fee + shipping, and rank LIST / BUY MORE when the
-          conformal gate is green.
-        </p>
+        <p className="explore-command-eyebrow">{t("dealer_eyebrow")}</p>
+        <h1 className="explore-title">{t("dealer_title")}</h1>
+        <p className="explore-lede">{t("dealer_lede")}</p>
       </div>
 
       {status && !status.allowed ? (
         <div className="dealer-lock">
-          <p className="banner-error">Dealer desk is a Soft Pro surface.</p>
-          <p className="explore-lede">
-            Upgrade with the same email you use to sign in, then come back to score inventory.
-          </p>
+          <p className="banner-error">{t("dealer_locked")}</p>
+          <p className="explore-lede">{t("dealer_locked_lede")}</p>
           <div className="detail-actions">
             {status.checkout_url ? (
               <a href={status.checkout_url} className="btn-primary" rel="noreferrer">
-                Upgrade with Creem
+                {t("dealer_upgrade")}
               </a>
             ) : null}
             <Link href="/pro" className="btn-ghost">
-              Soft Pro details
+              {t("dealer_pro_details")}
             </Link>
           </div>
         </div>
@@ -167,7 +162,7 @@ export function DealerView() {
       <form className="dealer-form" onSubmit={onScore}>
         <div className="filter-row">
           <label>
-            <span>Sell fee %</span>
+            <span>{t("dealer_fee")}</span>
             <input
               type="number"
               min={0}
@@ -178,7 +173,7 @@ export function DealerView() {
             />
           </label>
           <label>
-            <span>Shipping USD</span>
+            <span>{t("dealer_ship")}</span>
             <input
               type="number"
               min={0}
@@ -189,7 +184,7 @@ export function DealerView() {
             />
           </label>
           <label>
-            <span>CSV file</span>
+            <span>{t("dealer_csv_file")}</span>
             <input
               type="file"
               accept=".csv,text/csv"
@@ -198,7 +193,7 @@ export function DealerView() {
           </label>
         </div>
         <label className="csv-label">
-          <span>Inventory CSV</span>
+          <span>{t("dealer_csv")}</span>
           <textarea
             value={csvText}
             onChange={(e) => setCsvText(e.target.value)}
@@ -208,7 +203,7 @@ export function DealerView() {
         </label>
         <div className="auth-actions">
           <button type="submit" className="btn-primary" disabled={busy || !csvText.trim()}>
-            Score desk
+            {t("dealer_score")}
           </button>
           {status?.sample_csv ? (
             <button
@@ -216,7 +211,7 @@ export function DealerView() {
               className="btn-ghost"
               onClick={() => setCsvText(status.sample_csv)}
             >
-              Load sample
+              {t("dealer_sample")}
             </button>
           ) : null}
         </div>
@@ -229,31 +224,31 @@ export function DealerView() {
         <>
           <div className="kpi-row">
             <div className="kpi-chip">
-              <span>Rows</span>
+              <span>{t("dealer_rows")}</span>
               <strong>{result.rows}</strong>
             </div>
             <div className="kpi-chip">
-              <span>Matched</span>
+              <span>{t("dealer_matched")}</span>
               <strong>{result.matched}</strong>
             </div>
             <div className="kpi-chip">
-              <span>Actions</span>
+              <span>{t("dealer_actions")}</span>
               <strong>{result.actionable}</strong>
             </div>
             <div className="kpi-chip">
-              <span>Inventory value</span>
+              <span>{t("dealer_inv_value")}</span>
               <strong>{formatMoney(result.inventory_value)}</strong>
             </div>
           </div>
           {result.unmatched ? (
-            <p className="result-count">{result.unmatched} unmatched rows</p>
+            <p className="result-count">{t("dealer_unmatched", { n: result.unmatched })}</p>
           ) : null}
 
           <div className="portfolio-section-head">
-            <h2>Actionable</h2>
+            <h2>{t("dealer_actionable")}</h2>
           </div>
           {actionable.length === 0 ? (
-            <p className="empty-state">No LIST / BUY MORE rows under this fee model.</p>
+            <p className="empty-state">{t("dealer_no_actions")}</p>
           ) : (
             <div className="dealer-list">
               {actionable.map((row, idx) => (
@@ -263,7 +258,7 @@ export function DealerView() {
           )}
 
           <div className="portfolio-section-head">
-            <h2>Full board</h2>
+            <h2>{t("dealer_full")}</h2>
           </div>
           <div className="dealer-list">
             {result.items.map((row, idx) => (

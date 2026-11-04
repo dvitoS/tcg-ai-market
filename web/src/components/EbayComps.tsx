@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { useLocale } from "@/components/LocaleProvider";
 import { fetchEbayComps, formatMoney } from "@/lib/api";
 import type { EbayCompsResponse, EbayListing } from "@/lib/types";
 
@@ -48,6 +49,7 @@ export function EbayComps({
   cardId: string;
   cardName: string;
 }) {
+  const { t } = useLocale();
   const [data, setData] = useState<EbayCompsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -81,13 +83,13 @@ export function EbayComps({
     .filter((n): n is number => n != null && Number.isFinite(n));
 
   return (
-    <section className="ebay-panel" aria-label={`eBay comps for ${cardName}`}>
+    <section className="ebay-panel" aria-label={`${t("ebay_title")} · ${cardName}`}>
       <div className="ebay-block">
         <div className="ebay-head">
-          <h2>eBay listings</h2>
+          <h2>{t("ebay_title")}</h2>
           <p>Active asks near this card.</p>
         </div>
-        {loading ? <p className="empty-state">Loading eBay…</p> : null}
+        {loading ? <p className="empty-state">{t("ebay_loading")}</p> : null}
         {error ? <p className="banner-error">{error}</p> : null}
         {!loading && data && !data.configured ? (
           <p className="empty-state">eBay credentials are not configured on the API.</p>
@@ -96,7 +98,7 @@ export function EbayComps({
           <p className="banner-error">{data.listings_error}</p>
         ) : null}
         {!loading && data?.configured && !data.listings_error && listings.length === 0 ? (
-          <p className="empty-state">No active eBay listings matched.</p>
+          <p className="empty-state">{t("ebay_empty")}</p>
         ) : null}
         {listings.length > 0 ? (
           <>

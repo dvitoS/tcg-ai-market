@@ -5,6 +5,7 @@ import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
+import { useLocale } from "@/components/LocaleProvider";
 import { PortfolioBarsChart } from "@/components/PortfolioBarsChart";
 import {
   deletePortfolioLot,
@@ -17,6 +18,7 @@ import {
   sellPortfolioLot,
   updatePortfolioLot,
 } from "@/lib/api";
+import { signalLabel } from "@/lib/i18n/messages";
 import type {
   PortfolioLot,
   PortfolioSummary,
@@ -64,6 +66,7 @@ function pnlClass(value?: number | null): string {
 }
 
 export function PortfolioView() {
+  const { locale, t } = useLocale();
   const { user, loading: authLoading, login, signup, logout, ensureDemoSession } = useAuth();
   const [lots, setLots] = useState<PortfolioLot[]>([]);
   const [summary, setSummary] = useState<PortfolioSummary>(EMPTY_SUMMARY);
@@ -265,25 +268,23 @@ export function PortfolioView() {
   }
 
   if (authLoading) {
-    return <p className="empty-state">Loading session…</p>;
+    return <p className="empty-state">{t("port_loading")}</p>;
   }
 
   if (!user) {
     return (
       <section className="portfolio-page">
         <div className="explore-command">
-          <p className="explore-command-eyebrow">Portfolio</p>
+          <p className="explore-command-eyebrow">{t("port_eyebrow")}</p>
           <h1 className="explore-title">
-            {authMode === "signup" ? "Create account" : "Sign in"}
+            {authMode === "signup" ? t("auth_create_account") : t("auth_sign_in")}
           </h1>
           <p className="explore-lede">
-            {authMode === "signup"
-              ? "Create a Soft Ink account with email + password (Supabase Auth)."
-              : "Portfolio and watchlist need a session. Local Soft Ink demo accepts any password."}
+            {authMode === "signup" ? t("auth_signup_lede") : t("auth_signin_lede")}
           </p>
         </div>
         <form className="auth-card" onSubmit={onLogin}>
-          <div className="auth-mode-toggle" role="tablist" aria-label="Auth mode">
+          <div className="auth-mode-toggle" role="tablist" aria-label={t("auth_mode")}>
             <button
               type="button"
               role="tab"
@@ -295,7 +296,7 @@ export function PortfolioView() {
                 setError(null);
               }}
             >
-              Sign in
+              {t("auth_sign_in")}
             </button>
             <button
               type="button"
@@ -310,11 +311,11 @@ export function PortfolioView() {
                 if (password === "demo") setPassword("");
               }}
             >
-              Create account
+              {t("auth_create_account")}
             </button>
           </div>
           <label>
-            <span>Email</span>
+            <span>{t("auth_email")}</span>
             <input
               type="email"
               value={email}
@@ -324,7 +325,7 @@ export function PortfolioView() {
             />
           </label>
           <label>
-            <span>Password{authMode === "signup" ? " (min 6)" : ""}</span>
+            <span>{authMode === "signup" ? t("auth_password_min") : t("auth_password")}</span>
             <input
               type="password"
               value={password}
@@ -338,7 +339,7 @@ export function PortfolioView() {
           {notice ? <p className="banner-ok">{notice}</p> : null}
           <div className="auth-actions">
             <button type="submit" className="btn-primary" disabled={busy}>
-              {authMode === "signup" ? "Create account" : "Sign in"}
+              {authMode === "signup" ? t("auth_create_account") : t("auth_sign_in")}
             </button>
             {authMode === "signin" ? (
               <button
@@ -352,9 +353,7 @@ export function PortfolioView() {
                     try {
                       const ok = await ensureDemoSession();
                       if (!ok) {
-                        setError(
-                          "Demo login is disabled in production. Sign in or create an account.",
-                        );
+                        setError(t("auth_demo_blocked"));
                         return;
                       }
                       await load();
@@ -366,7 +365,7 @@ export function PortfolioView() {
                   })();
                 }}
               >
-                Continue as demo
+                {t("auth_demo")}
               </button>
             ) : null}
           </div>
@@ -379,17 +378,17 @@ export function PortfolioView() {
     <section className="portfolio-page">
       <div className="portfolio-head">
         <div className="explore-command">
-          <p className="explore-command-eyebrow">Portfolio</p>
-          <h1 className="explore-title">Your book</h1>
+          <p className="explore-command-eyebrow">{t("port_eyebrow")}</p>
+          <h1 className="explore-title">{t("port_title")}</h1>
           <p className="explore-lede">
-            Mark-to-market lots and watchlist alerts — Soft Ink.
-            {demo ? " · demo session" : ""}
+            {t("port_lede")}
+            {demo ? ` · ${t("port_demo_session")}` : ""}
           </p>
         </div>
         <div className="portfolio-user">
           <span>{user.email || user.id}</span>
           <button type="button" className="btn-ghost" onClick={logout}>
-            Sign out
+            {t("auth_sign_out")}
           </button>
         </div>
       </div>
@@ -400,12 +399,12 @@ export function PortfolioView() {
       <div className="alert-digest" aria-live="polite">
         <div className="alert-digest-head">
           <div>
-            <h2>Alert digest · {alerts.length}</h2>
+            <h2>{t("alert_digest_title", { n: alerts.length })}</h2>
             <p className="alert-digest-caption">{alertCaption}</p>
           </div>
           <div className="alert-controls">
             <label className="alert-threshold">
-              <span>Threshold %</span>
+              <span>{t("alert_threshold")}</span>
               <input
                 type="number"
                 min={1}
@@ -438,15 +437,18 @@ export function PortfolioView() {
                   }
                 }}
               />
-              <span>Sure-only (conformal){sureOnlyAllowed ? "" : " · Pro"}</span>
+              <span>
+                {t("alert_sure_only")}
+                {sureOnlyAllowed ? "" : t("alert_sure_pro")}
+              </span>
             </label>
           </div>
         </div>
         {alerts.length === 0 ? (
           <p className="empty-state alert-digest-empty">
             {sureOnly
-              ? `No sure conformal BUY/SELL alerts above ${thresholdPct.toFixed(0)}% right now.`
-              : `No watchlist cards currently above ${thresholdPct.toFixed(0)}%.`}
+              ? t("alert_empty_sure", { n: thresholdPct.toFixed(0) })
+              : t("alert_empty", { n: thresholdPct.toFixed(0) })}
           </p>
         ) : (
           <ul className="alert-digest-list">
@@ -466,34 +468,36 @@ export function PortfolioView() {
                     writeDismissed(next);
                   }}
                 >
-                  Dismiss
+                  {t("alert_dismiss")}
                 </button>
               </li>
             ))}
           </ul>
         )}
         {alerts.length > 15 ? (
-          <p className="alert-digest-more">+{alerts.length - 15} more above threshold</p>
+          <p className="alert-digest-more">
+            {t("alert_more", { n: alerts.length - 15 })}
+          </p>
         ) : null}
       </div>
 
       <div className="kpi-row">
         <div className="kpi-chip">
-          <span>Value</span>
+          <span>{t("kpi_value")}</span>
           <strong>{formatMoney(summary.value)}</strong>
         </div>
         <div className="kpi-chip">
-          <span>Invested</span>
+          <span>{t("kpi_invested")}</span>
           <strong>{formatMoney(summary.invested)}</strong>
         </div>
         <div className={`kpi-chip ${pnlClass(summary.pnl)}`}>
-          <span>PnL</span>
+          <span>{t("kpi_pnl")}</span>
           <strong>
             {formatMoney(summary.pnl)} / {formatChange(summary.pnl_pct)}
           </strong>
         </div>
         <div className={`kpi-chip ${pnlClass(summary.outlook_pct)}`}>
-          <span>AI outlook</span>
+          <span>{t("kpi_outlook")}</span>
           <strong>
             {formatMoney(summary.outlook_value)} / {formatChange(summary.outlook_pct)}
           </strong>
@@ -503,19 +507,19 @@ export function PortfolioView() {
       <PortfolioBarsChart lots={openLots} />
 
       <div className="portfolio-section-head">
-        <h2>Open lots · {openLots.length}</h2>
+        <h2>{t("port_open_lots", { n: openLots.length })}</h2>
         <button type="button" className="btn-ghost" disabled={busy} onClick={() => void load()}>
-          Refresh
+          {t("port_refresh")}
         </button>
       </div>
 
       {openLots.length === 0 ? (
         <p className="empty-state">
-          No lots yet. Open a card from{" "}
+          {t("port_no_lots")}{" "}
           <Link href="/browse" className="inline-link">
-            Browse
+            {t("nav_browse")}
           </Link>{" "}
-          and start collecting.
+          {t("port_and_collect")}
         </p>
       ) : (
         <div className="lot-grid">
@@ -546,7 +550,7 @@ export function PortfolioView() {
                 </p>
                 {lot.signal ? (
                   <span className={`explore-card-signal signal-${lot.signal.toLowerCase()}`}>
-                    {lot.signal}
+                    {signalLabel(locale, lot.signal)}
                   </span>
                 ) : null}
                 <div className="lot-actions">
@@ -556,7 +560,7 @@ export function PortfolioView() {
                     disabled={busy}
                     onClick={() => beginEdit(lot)}
                   >
-                    Edit / sell
+                    {t("port_edit_sell")}
                   </button>
                   <button
                     type="button"
@@ -564,7 +568,7 @@ export function PortfolioView() {
                     disabled={busy}
                     onClick={() => void onRemoveLot(lot.id)}
                   >
-                    Remove
+                    {t("port_remove")}
                   </button>
                 </div>
               </div>
@@ -575,10 +579,10 @@ export function PortfolioView() {
 
       {editingId ? (
         <div className="lot-edit-panel">
-          <h2>Edit lot #{editingId}</h2>
+          <h2>{t("port_edit_lot", { id: editingId })}</h2>
           <form className="lot-edit-form" onSubmit={onSaveLot}>
             <label>
-              <span>Quantity</span>
+              <span>{t("port_qty")}</span>
               <input
                 type="number"
                 min={1}
@@ -589,7 +593,7 @@ export function PortfolioView() {
               />
             </label>
             <label>
-              <span>Purchase price</span>
+              <span>{t("port_purchase")}</span>
               <input
                 type="number"
                 min={0.0001}
@@ -600,7 +604,7 @@ export function PortfolioView() {
               />
             </label>
             <label>
-              <span>Condition</span>
+              <span>{t("port_condition")}</span>
               <select
                 value={editCondition}
                 disabled={busy}
@@ -615,7 +619,7 @@ export function PortfolioView() {
             </label>
             <div className="lot-edit-actions">
               <button type="submit" className="btn-primary" disabled={busy}>
-                Save lot
+                {t("port_save_lot")}
               </button>
               <button
                 type="button"
@@ -623,13 +627,13 @@ export function PortfolioView() {
                 disabled={busy}
                 onClick={() => setEditingId(null)}
               >
-                Cancel
+                {t("port_cancel")}
               </button>
             </div>
           </form>
           <form className="lot-sell-form" onSubmit={onSellLot}>
             <label>
-              <span>Sale price</span>
+              <span>{t("port_sale_price")}</span>
               <input
                 type="number"
                 min={0.0001}
@@ -640,7 +644,7 @@ export function PortfolioView() {
               />
             </label>
             <button type="submit" className="btn-primary" disabled={busy}>
-              Mark sold
+              {t("port_mark_sold")}
             </button>
           </form>
         </div>
@@ -649,7 +653,7 @@ export function PortfolioView() {
       {soldLots.length > 0 ? (
         <>
           <div className="portfolio-section-head">
-            <h2>Sold lots · {soldLots.length}</h2>
+            <h2>{t("port_sold_lots", { n: soldLots.length })}</h2>
           </div>
           <div className="sold-list">
             {soldLots.map((lot) => (
@@ -658,8 +662,11 @@ export function PortfolioView() {
                   {lot.name || lot.card_id}
                 </Link>
                 <span>
-                  {lot.quantity}× · cost {formatMoney(lot.purchase_price)} · sold{" "}
-                  {formatMoney(lot.sale_price)}
+                  {t("port_sold_meta", {
+                    qty: lot.quantity,
+                    cost: formatMoney(lot.purchase_price),
+                    sale: formatMoney(lot.sale_price),
+                  })}
                 </span>
                 <span className="lot-meta">{lot.sale_date || "—"}</span>
               </div>
@@ -669,10 +676,10 @@ export function PortfolioView() {
       ) : null}
 
       <div className="portfolio-section-head" id="watchlist">
-        <h2>Watchlist · {watch.length}</h2>
+        <h2>{t("port_watchlist", { n: watch.length })}</h2>
       </div>
       {watch.length === 0 ? (
-        <p className="empty-state">Watchlist is empty. Star cards from detail pages.</p>
+        <p className="empty-state">{t("port_watch_empty")}</p>
       ) : (
         <div className="watch-list">
           {watch.map((item) => (
@@ -697,7 +704,7 @@ export function PortfolioView() {
                 <strong>{formatMoney(item.market_price)}</strong>
                 <span className={pnlClass(item.expected_change_pct)}>
                   {formatChange(item.expected_change_pct)}
-                  {item.signal ? ` · ${item.signal}` : ""}
+                  {item.signal ? ` · ${signalLabel(locale, item.signal)}` : ""}
                 </span>
               </div>
               <button
@@ -706,7 +713,7 @@ export function PortfolioView() {
                 disabled={busy}
                 onClick={() => void onRemoveWatch(item.card_id)}
               >
-                Remove
+                {t("port_remove")}
               </button>
             </div>
           ))}

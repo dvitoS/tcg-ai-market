@@ -14,6 +14,7 @@ import {
   YAxis,
 } from "recharts";
 
+import { useLocale } from "@/components/LocaleProvider";
 import { fetchCardPriceSources, formatMoney } from "@/lib/api";
 import type { CardPriceSourcesResponse, HistoryPoint } from "@/lib/types";
 
@@ -28,12 +29,11 @@ const RANGES: { key: RangeKey; label: string; days: number | null }[] = [
 
 const SERIES_META: Record<
   SeriesKey,
-  { label: string; color: string; strokeDasharray?: string }
+  { color: string; strokeDasharray?: string }
 > = {
-  tcgplayer: { label: "TCGplayer (DB)", color: "#B87333" },
-  justtcg: { label: "JustTCG NM", color: "#5a9e9e" },
+  tcgplayer: { color: "#B87333" },
+  justtcg: { color: "#5a9e9e" },
   psa10: {
-    label: "PSA 10",
     color: "#c9a227",
     strokeDasharray: "6 4",
   },
@@ -111,6 +111,7 @@ export function PriceChart({
   points: HistoryPoint[];
   predictedPrice?: number | null;
 }) {
+  const { t } = useLocale();
   const [range, setRange] = useState<RangeKey>("1m");
   const [sources, setSources] = useState<CardPriceSourcesResponse | null>(null);
   const [loading, setLoading] = useState(Boolean(cardId));
@@ -120,6 +121,11 @@ export function PriceChart({
     justtcg: true,
     psa10: true,
   });
+  const seriesLabels: Record<SeriesKey, string> = {
+    tcgplayer: t("chart_series_tcg"),
+    justtcg: t("chart_series_just"),
+    psa10: t("chart_series_psa"),
+  };
 
   useEffect(() => {
     if (!cardId) {
@@ -172,8 +178,8 @@ export function PriceChart({
     return (
       <div className="chart-panel">
         <div className="chart-head">
-          <h2>Price history</h2>
-          <p>No history points for this card yet.</p>
+          <h2>{t("chart_title")}</h2>
+          <p>{t("chart_empty")}</p>
         </div>
       </div>
     );
@@ -187,8 +193,8 @@ export function PriceChart({
     <div className="chart-panel">
       <div className="chart-head">
         <div>
-          <h2>Price history</h2>
-          <p>TCGplayer · JustTCG NM · PSA 10</p>
+          <h2>{t("chart_title")}</h2>
+          <p>{t("chart_subtitle")}</p>
         </div>
         <div className="range-toggle" role="tablist" aria-label="Chart range">
           {RANGES.map((item) => (
@@ -227,7 +233,7 @@ export function PriceChart({
               aria-pressed={visible[key]}
             >
               <span className="chart-series-swatch" aria-hidden />
-              {meta.label}
+              {seriesLabels[key]}
               <span className="chart-series-count">{count}</span>
             </button>
           );
@@ -235,22 +241,16 @@ export function PriceChart({
       </div>
 
       {loading ? (
-        <p className="chart-sources-status">Loading JustTCG / PSA 10…</p>
+        <p className="chart-sources-status">{t("chart_loading")}</p>
       ) : null}
       {error ? (
-        <p className="chart-sources-status">
-          Multi-source unavailable ({error}). Showing TCGplayer DB.
-        </p>
+        <p className="chart-sources-status">{t("chart_fallback", { error })}</p>
       ) : null}
       {sources && !sources.justtcg_configured ? (
-        <p className="chart-sources-status">
-          JustTCG API key not configured — TCGplayer DB only.
-        </p>
+        <p className="chart-sources-status">{t("chart_no_key")}</p>
       ) : null}
       {sources?.justtcg_fallback ? (
-        <p className="chart-sources-status">
-          JustTCG: fallback to market series (no NM history).
-        </p>
+        <p className="chart-sources-status">{t("chart_just_fallback")}</p>
       ) : null}
       {sources?.justtcg_error ? (
         <p className="chart-sources-status">JustTCG: {sources.justtcg_error}</p>
@@ -313,7 +313,7 @@ export function PriceChart({
               <Area
                 type="monotone"
                 dataKey="tcgplayer"
-                name={SERIES_META.tcgplayer.label}
+                name={seriesLabels.tcgplayer}
                 stroke={SERIES_META.tcgplayer.color}
                 strokeWidth={2.2}
                 fill="url(#priceFill)"
@@ -331,7 +331,7 @@ export function PriceChart({
               <Line
                 type="monotone"
                 dataKey="justtcg"
-                name={SERIES_META.justtcg.label}
+                name={seriesLabels.justtcg}
                 stroke={SERIES_META.justtcg.color}
                 strokeWidth={2}
                 dot={false}
@@ -342,7 +342,7 @@ export function PriceChart({
               <Line
                 type="monotone"
                 dataKey="psa10"
-                name={SERIES_META.psa10.label}
+                name={seriesLabels.psa10}
                 stroke={SERIES_META.psa10.color}
                 strokeWidth={2}
                 strokeDasharray={SERIES_META.psa10.strokeDasharray}
