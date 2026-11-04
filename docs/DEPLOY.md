@@ -68,7 +68,10 @@ curl -s http://127.0.0.1:8000/api/health
 In Supabase → Authentication → URL configuration:
 
 - Site URL: `https://app.YOURDOMAIN.com`
-- Redirect URLs: `https://app.YOURDOMAIN.com/**`
+- Redirect URLs: `https://app.YOURDOMAIN.com/**`  
+  (include `https://app.YOURDOMAIN.com/auth/reset` for Soft Ink password recovery)
+
+API forgot-password uses `SOFT_INK_URL` (or the client-sent `redirect_to`) so recovery emails land on Soft Ink `/auth/reset`.
 
 ## 5. Creem checklist (approved)
 

@@ -5,19 +5,22 @@ from __future__ import annotations
 import logging
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 
 from api.demo_mode import demo_mode
 from api.deps import DEV_TOKEN, auth_client, optional_user, require_user
 from api.schemas import (
     AuthSessionResponse,
     AuthUser,
+    ForgotPasswordRequest,
+    ForgotPasswordResponse,
     LoginRequest,
     MeResponse,
     SignupRequest,
     SignupResponse,
+    UpdatePasswordRequest,
 )
-from config import DEV_USER_EMAIL, DEV_USER_ID
+from config import DEV_USER_EMAIL, DEV_USER_ID, get_soft_ink_url
 
 LOG = logging.getLogger("kestrel.api.auth")
 
@@ -168,6 +171,84 @@ def me(user: Annotated[dict | None, Depends(optional_user)]) -> MeResponse:
     if user is None:
         return MeResponse(authenticated=False, user=None)
     return MeResponse(authenticated=True, user=AuthUser(**user))
+
+
+@router.post("/forgot-password", response_model=ForgotPasswordResponse)
+def forgot_password(body: ForgotPasswordRequest) -> ForgotPasswordResponse:
+    """Send Supabase recovery email. Always returns ok (no email enumeration)."""
+    email = body.email.strip().lower()
+    if not email or "@" not in email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A valid email is required.",
+        )
+    message = (
+        "If an account exists for that email, a reset link is on the way. "
+        "Check your inbox and spam folder."
+    )
+    if demo_mode():
+        return ForgotPasswordResponse(ok=True, message=message)
+
+    redirect = (body.redirect_to or "").strip()
+    if not redirect:
+        base = get_soft_ink_url().rstrip("/")
+        redirect = f"{base}/auth/reset" if base else ""
+
+    try:
+        client = auth_client()
+        options = {"redirect_to": redirect} if redirect else None
+        client.auth.reset_password_for_email(email, options)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        LOG.info("forgot-password failed: %s", exc)
+        # Still opaque to the client.
+    return ForgotPasswordResponse(ok=True, message=message)
+
+
+@router.post("/update-password", response_model=ForgotPasswordResponse)
+def update_password(
+    body: UpdatePasswordRequest,
+    authorization: Annotated[str | None, Header()] = None,
+) -> ForgotPasswordResponse:
+    """Set a new password using a recovery (or active) Bearer access token."""
+    password = body.password
+    if len(password) < 6:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must be at least 6 characters.",
+        )
+    if demo_mode():
+        return ForgotPasswordResponse(
+            ok=True,
+            message="Password updated (demo). You can sign in with the new password.",
+        )
+
+    scheme, _, token = (authorization or "").partition(" ")
+    access = token.strip() if scheme.lower() == "bearer" else ""
+    if not access:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Recovery session required. Open the link from your email again.",
+        )
+
+    refresh = (body.refresh_token or "").strip() or access
+    try:
+        client = auth_client()
+        client.auth.set_session(access, refresh)
+        client.auth.update_user({"password": password})
+    except HTTPException:
+        raise
+    except Exception as exc:
+        LOG.info("update-password failed: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Could not update password. Request a new reset link.",
+        ) from exc
+    return ForgotPasswordResponse(
+        ok=True,
+        message="Password updated. You can sign in with the new password.",
+    )
 
 
 @router.post("/logout")

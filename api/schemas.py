@@ -29,6 +29,21 @@ class SignupRequest(BaseModel):
     password: str
 
 
+class ForgotPasswordRequest(BaseModel):
+    email: str
+    redirect_to: str | None = None
+
+
+class ForgotPasswordResponse(BaseModel):
+    ok: bool = True
+    message: str
+
+
+class UpdatePasswordRequest(BaseModel):
+    password: str
+    refresh_token: str | None = None
+
+
 class AuthUser(BaseModel):
     id: str
     email: str | None = None
