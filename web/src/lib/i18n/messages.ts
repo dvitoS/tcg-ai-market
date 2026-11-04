@@ -505,6 +505,7 @@ const hr: Dictionary = {
   detail_range_max: "Raspon max",
   detail_points: "Točke",
   detail_ai_title: "AI predikcija",
+  detail_ai_under_title: "AI · 7d outlook",
   detail_expected: "Očekivani pomak",
   detail_predicted: "Predviđena cijena",
   detail_band: "Conformal pojas {band}",
