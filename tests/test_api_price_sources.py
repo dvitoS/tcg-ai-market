@@ -6,10 +6,13 @@ from fastapi.testclient import TestClient
 
 from api.catalog_service import clear_board_cache
 from api.main import app
+from api.price_sources_service import clear_price_sources_cache
+from justtcg_client import JustTCGRateLimitError
 
 
 def setup_function() -> None:
     clear_board_cache()
+    clear_price_sources_cache()
 
 
 def test_card_price_sources_without_justtcg_key(monkeypatch) -> None:
@@ -114,3 +117,64 @@ def test_card_price_sources_justtcg_fallback_to_market(monkeypatch) -> None:
     assert body["justtcg_fallback"] is True
     assert len(body["justtcg"]) == 2
     assert body["justtcg"][0]["price"] == 3.25
+
+
+def test_card_price_sources_caches_live_justtcg(monkeypatch) -> None:
+    """Second Soft Ink detail view must not re-call JustTCG within the TTL."""
+    calls = {"nm": 0, "psa": 0}
+
+    def _nm(**kwargs):
+        calls["nm"] += 1
+        return ([{"date": "2024-01-01", "price": 9.0}], "tcp-1")
+
+    def _psa(**kwargs):
+        calls["psa"] += 1
+        return ([], "tcp-1", {"has_history_series": False, "sales_count": 0})
+
+    monkeypatch.setattr("api.price_sources_service.justtcg_api_key", lambda: "test-key")
+    monkeypatch.setattr("justtcg_client.nm_history_for_card", _nm)
+    monkeypatch.setattr("justtcg_client.psa10_history_for_card", _psa)
+    monkeypatch.setattr(
+        "api.price_sources_service.load_card_history",
+        lambda card_id, limit=180: [{"date": "2024-01-01", "price": 8.0}],
+    )
+
+    client = TestClient(app)
+    first = client.get("/api/cards/cache-card/sources")
+    second = client.get("/api/cards/cache-card/sources")
+    assert first.status_code == 200 and second.status_code == 200
+    assert first.json()["cache"] == "miss"
+    assert second.json()["cache"] == "hit"
+    assert calls == {"nm": 1, "psa": 1}
+    assert second.json()["justtcg"][0]["price"] == 9.0
+
+
+def test_card_price_sources_skips_psa10_after_nm_rate_limit(monkeypatch) -> None:
+    calls = {"psa": 0}
+
+    def _nm(**kwargs):
+        raise JustTCGRateLimitError(response=None)
+
+    def _psa(**kwargs):
+        calls["psa"] += 1
+        return ([], None, {})
+
+    monkeypatch.setattr("api.price_sources_service.justtcg_api_key", lambda: "test-key")
+    monkeypatch.setattr("justtcg_client.nm_history_for_card", _nm)
+    monkeypatch.setattr("justtcg_client.psa10_history_for_card", _psa)
+    monkeypatch.setattr(
+        "api.price_sources_service.load_card_history",
+        lambda card_id, limit=180: [{"date": "2024-01-01", "price": 1.0}],
+    )
+
+    client = TestClient(app)
+    res = client.get("/api/cards/rl-card/sources")
+    assert res.status_code == 200
+    body = res.json()
+    assert calls["psa"] == 0
+    assert "rate limited" in (body["justtcg_error"] or "").lower()
+    assert body["justtcg_fallback"] is True
+    assert body["cache"] == "miss"
+    # Rate-limited responses must not populate the TTL cache.
+    again = client.get("/api/cards/rl-card/sources")
+    assert again.json()["cache"] == "miss"
