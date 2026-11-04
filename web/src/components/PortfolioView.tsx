@@ -31,6 +31,12 @@ import type {
 } from "@/lib/types";
 
 import {
+  filterPortfolioLots,
+  uniqueLotRarities,
+  type LotSort,
+  type PnlFilter,
+} from "@/lib/portfolioFilters";
+import {
   dismissAlert,
   readDismissed,
   readSureOnly,
@@ -40,6 +46,13 @@ import {
 } from "@/lib/watchAlertPrefs";
 
 const CONDITIONS = ["NM", "LP", "MP", "HP", "DMG"];
+
+function parsePrice(raw: string): number | undefined {
+  const text = raw.trim();
+  if (!text) return undefined;
+  const n = Number(text);
+  return Number.isFinite(n) && n >= 0 ? n : undefined;
+}
 
 const EMPTY_SUMMARY: PortfolioSummary = {
   lots: 0,
@@ -82,6 +95,12 @@ export function PortfolioView() {
   const [editCondition, setEditCondition] = useState("NM");
   const [salePrice, setSalePrice] = useState(1);
   const [notice, setNotice] = useState<string | null>(null);
+  const [lotQuery, setLotQuery] = useState("");
+  const [lotRarity, setLotRarity] = useState("");
+  const [lotPnl, setLotPnl] = useState<PnlFilter>("all");
+  const [lotSort, setLotSort] = useState<LotSort>("value_desc");
+  const [lotMinPrice, setLotMinPrice] = useState("");
+  const [lotMaxPrice, setLotMaxPrice] = useState("");
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -137,6 +156,35 @@ export function PortfolioView() {
     () => lots.filter((lot) => String(lot.status || "").toLowerCase() === "sold"),
     [lots],
   );
+  const lotRarities = useMemo(() => uniqueLotRarities(openLots), [openLots]);
+  const filteredOpenLots = useMemo(
+    () =>
+      filterPortfolioLots(openLots, {
+        query: lotQuery,
+        rarity: lotRarity,
+        pnl: lotPnl,
+        sort: lotSort,
+        minPrice: parsePrice(lotMinPrice),
+        maxPrice: parsePrice(lotMaxPrice),
+      }),
+    [openLots, lotQuery, lotRarity, lotPnl, lotSort, lotMinPrice, lotMaxPrice],
+  );
+  const filtersActive =
+    Boolean(lotQuery.trim()) ||
+    Boolean(lotRarity) ||
+    lotPnl !== "all" ||
+    lotSort !== "value_desc" ||
+    Boolean(lotMinPrice.trim()) ||
+    Boolean(lotMaxPrice.trim());
+
+  function clearLotFilters() {
+    setLotQuery("");
+    setLotRarity("");
+    setLotPnl("all");
+    setLotSort("value_desc");
+    setLotMinPrice("");
+    setLotMaxPrice("");
+  }
 
   function beginEdit(lot: PortfolioLot) {
     setEditingId(String(lot.id));
@@ -570,59 +618,144 @@ export function PortfolioView() {
           {t("port_and_collect")}
         </p>
       ) : (
-        <div className="lot-grid">
-          {openLots.map((lot) => (
-            <article
-              key={String(lot.id)}
-              className={`lot-card${editingId === String(lot.id) ? " lot-card-active" : ""}`}
-            >
-              <Link href={`/cards/${encodeURIComponent(lot.card_id)}`} className="lot-art">
-                <Image
-                  src={lot.image_url || "/kestrel-logo.png"}
-                  alt={lot.name || lot.card_id}
-                  width={180}
-                  height={252}
-                />
-              </Link>
-              <div className="lot-body">
-                <Link href={`/cards/${encodeURIComponent(lot.card_id)}`} className="lot-name">
-                  {lot.name || lot.card_id}
-                </Link>
-                <p className="lot-meta">
-                  {lot.quantity}× · {lot.condition || "NM"}
-                  {lot.grade ? ` · ${lot.grade}` : ""}
-                </p>
-                <p className="lot-price">{formatMoney(lot.current_price)}</p>
-                <p className={`lot-pnl ${pnlClass(lot.pnl)}`}>
-                  {formatMoney(lot.pnl)} · {formatChange(lot.pnl_pct)}
-                </p>
-                {lot.signal ? (
-                  <span className={`explore-card-signal signal-${lot.signal.toLowerCase()}`}>
-                    {signalLabel(locale, lot.signal)}
-                  </span>
-                ) : null}
-                <div className="lot-actions">
-                  <button
-                    type="button"
-                    className="btn-ghost"
-                    disabled={busy}
-                    onClick={() => beginEdit(lot)}
-                  >
-                    {t("port_edit_sell")}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-ghost lot-remove"
-                    disabled={busy}
-                    onClick={() => void onRemoveLot(lot.id)}
-                  >
-                    {t("port_remove")}
-                  </button>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
+        <>
+          <div className="filter-row portfolio-lot-filters">
+            <label>
+              <span>{t("port_search")}</span>
+              <input
+                type="search"
+                value={lotQuery}
+                placeholder={t("port_search_ph")}
+                onChange={(e) => setLotQuery(e.target.value)}
+              />
+            </label>
+            <label>
+              <span>{t("port_rarity")}</span>
+              <select value={lotRarity} onChange={(e) => setLotRarity(e.target.value)}>
+                <option value="">{t("port_rarity_all")}</option>
+                {lotRarities.map((rarity) => (
+                  <option key={rarity} value={rarity}>
+                    {rarity}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span>{t("port_pnl_filter")}</span>
+              <select
+                value={lotPnl}
+                onChange={(e) => setLotPnl(e.target.value as PnlFilter)}
+              >
+                <option value="all">{t("port_pnl_all")}</option>
+                <option value="up">{t("port_pnl_up")}</option>
+                <option value="down">{t("port_pnl_down")}</option>
+              </select>
+            </label>
+            <label>
+              <span>{t("port_sort")}</span>
+              <select
+                value={lotSort}
+                onChange={(e) => setLotSort(e.target.value as LotSort)}
+              >
+                <option value="name">{t("port_sort_name")}</option>
+                <option value="value_desc">{t("port_sort_value_desc")}</option>
+                <option value="value_asc">{t("port_sort_value_asc")}</option>
+                <option value="pnl_desc">{t("port_sort_pnl_desc")}</option>
+                <option value="pnl_asc">{t("port_sort_pnl_asc")}</option>
+                <option value="qty_desc">{t("port_sort_qty_desc")}</option>
+              </select>
+            </label>
+            <label>
+              <span>{t("port_min_price")}</span>
+              <input
+                type="number"
+                min={0}
+                step={0.01}
+                value={lotMinPrice}
+                onChange={(e) => setLotMinPrice(e.target.value)}
+              />
+            </label>
+            <label>
+              <span>{t("port_max_price")}</span>
+              <input
+                type="number"
+                min={0}
+                step={0.01}
+                value={lotMaxPrice}
+                onChange={(e) => setLotMaxPrice(e.target.value)}
+              />
+            </label>
+            {filtersActive ? (
+              <button type="button" className="btn-ghost" onClick={clearLotFilters}>
+                {t("port_clear_filters")}
+              </button>
+            ) : null}
+          </div>
+          <p className="result-count">
+            {t("port_shown_of", {
+              n: filteredOpenLots.length,
+              total: openLots.length,
+            })}
+          </p>
+          {filteredOpenLots.length === 0 ? (
+            <p className="empty-state">{t("port_no_filter_hits")}</p>
+          ) : (
+            <div className="lot-grid">
+              {filteredOpenLots.map((lot) => (
+                <article
+                  key={String(lot.id)}
+                  className={`lot-card${editingId === String(lot.id) ? " lot-card-active" : ""}`}
+                >
+                  <Link href={`/cards/${encodeURIComponent(lot.card_id)}`} className="lot-art">
+                    <Image
+                      src={lot.image_url || "/kestrel-logo.png"}
+                      alt={lot.name || lot.card_id}
+                      width={180}
+                      height={252}
+                    />
+                  </Link>
+                  <div className="lot-body">
+                    <Link href={`/cards/${encodeURIComponent(lot.card_id)}`} className="lot-name">
+                      {lot.name || lot.card_id}
+                    </Link>
+                    <p className="lot-meta">
+                      {lot.quantity}× · {lot.condition || "NM"}
+                      {lot.grade ? ` · ${lot.grade}` : ""}
+                      {lot.rarity ? ` · ${lot.rarity}` : ""}
+                    </p>
+                    <p className="lot-price">{formatMoney(lot.current_price)}</p>
+                    <p className={`lot-pnl ${pnlClass(lot.pnl)}`}>
+                      {formatMoney(lot.pnl)} · {formatChange(lot.pnl_pct)}
+                    </p>
+                    {lot.signal ? (
+                      <span className={`explore-card-signal signal-${lot.signal.toLowerCase()}`}>
+                        {signalLabel(locale, lot.signal)}
+                      </span>
+                    ) : null}
+                    <div className="lot-actions">
+                      <button
+                        type="button"
+                        className="btn-ghost"
+                        disabled={busy}
+                        onClick={() => beginEdit(lot)}
+                      >
+                        {t("port_edit_sell")}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-ghost lot-remove"
+                        disabled={busy}
+                        onClick={() => void onRemoveLot(lot.id)}
+                      >
+                        {t("port_remove")}
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {editingId ? (
