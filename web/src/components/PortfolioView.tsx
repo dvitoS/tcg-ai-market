@@ -151,7 +151,24 @@ export function PortfolioView() {
               type="button"
               className="btn-ghost"
               disabled={busy}
-              onClick={() => void ensureDemoSession().then(load)}
+              onClick={() => {
+                void (async () => {
+                  setBusy(true);
+                  setError(null);
+                  try {
+                    const ok = await ensureDemoSession();
+                    if (!ok) {
+                      setError("Demo login is disabled in production. Sign in with your account.");
+                      return;
+                    }
+                    await load();
+                  } catch (err) {
+                    setError(err instanceof Error ? err.message : "Demo login failed");
+                  } finally {
+                    setBusy(false);
+                  }
+                })();
+              }}
             >
               Continue as demo
             </button>

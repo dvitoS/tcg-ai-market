@@ -49,7 +49,7 @@ function ActionRow({ row }: { row: DealerRow }) {
 }
 
 export function DealerView() {
-  const { user, loading: authLoading, ensureDemoSession } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [status, setStatus] = useState<DealerStatus | null>(null);
   const [csvText, setCsvText] = useState("");
   const [fee, setFee] = useState(13);
@@ -60,27 +60,31 @@ export function DealerView() {
 
   useEffect(() => {
     if (authLoading) return;
+    if (!user) {
+      setStatus(null);
+      return;
+    }
     async function boot() {
       try {
-        if (!user) await ensureDemoSession();
         const st = await fetchDealerStatus();
         setStatus(st);
         setFee(st.default_fee_pct);
         setShip(st.default_ship_usd);
         setCsvText(st.sample_csv);
+        setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Dealer unavailable");
       }
     }
     void boot();
-  }, [authLoading, user, ensureDemoSession]);
+  }, [authLoading, user]);
 
   async function onScore(event: FormEvent) {
     event.preventDefault();
+    if (!user) return;
     setBusy(true);
     setError(null);
     try {
-      if (!user) await ensureDemoSession();
       const scored = await scoreDealerCsv({
         csv_text: csvText,
         fee_pct: fee,
@@ -106,6 +110,28 @@ export function DealerView() {
 
   const actionable =
     result?.items.filter((row) => row.action === "LIST" || row.action === "BUY_MORE") || [];
+
+  if (!authLoading && !user) {
+    return (
+      <section className="dealer-page">
+        <div className="explore-command">
+          <p className="explore-command-eyebrow">Dealer</p>
+          <h1 className="explore-title">Desk</h1>
+          <p className="explore-lede">
+            Sign in to score inventory against the Soft Ink market board.
+          </p>
+        </div>
+        <div className="detail-actions">
+          <Link href="/portfolio" className="btn-primary">
+            Sign in
+          </Link>
+          <Link href="/pro" className="btn-ghost">
+            Soft Pro
+          </Link>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="dealer-page">
