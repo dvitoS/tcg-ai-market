@@ -135,4 +135,10 @@ def watch_status(
     card_id: str,
     user: Annotated[dict, Depends(require_user)],
 ) -> dict[str, bool]:
-    return {"watched": is_watched(user_id=str(user["id"]), card_id=card_id)}
+    try:
+        return {"watched": is_watched(user_id=str(user["id"]), card_id=card_id)}
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Watch status unavailable: {exc}",
+        ) from exc
