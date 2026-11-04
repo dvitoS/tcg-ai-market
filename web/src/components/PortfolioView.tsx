@@ -27,27 +27,16 @@ import type {
   WatchlistItem,
 } from "@/lib/types";
 
+import {
+  dismissAlert,
+  readDismissed,
+  readSureOnly,
+  readThresholdPct,
+  writeSureOnly,
+  writeThresholdPct,
+} from "@/lib/watchAlertPrefs";
+
 const CONDITIONS = ["NM", "LP", "MP", "HP", "DMG"];
-
-const ALERT_DISMISS_KEY = "kestrel_watch_alert_dismissed";
-const ALERT_THRESHOLD_KEY = "kestrel_watch_alert_threshold";
-const ALERT_SURE_KEY = "kestrel_watch_alert_sure_only";
-
-function readDismissed(): string[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem(ALERT_DISMISS_KEY);
-    const parsed = raw ? (JSON.parse(raw) as unknown) : [];
-    return Array.isArray(parsed) ? parsed.map(String) : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeDismissed(ids: string[]) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(ALERT_DISMISS_KEY, JSON.stringify(ids));
-}
 
 const EMPTY_SUMMARY: PortfolioSummary = {
   lots: 0,
@@ -92,10 +81,8 @@ export function PortfolioView() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const thr = Number(window.localStorage.getItem(ALERT_THRESHOLD_KEY) || "5");
-    setThresholdPct(Number.isFinite(thr) ? Math.min(50, Math.max(1, thr)) : 5);
-    const sureRaw = window.localStorage.getItem(ALERT_SURE_KEY);
-    setSureOnly(sureRaw == null ? true : sureRaw !== "0");
+    setThresholdPct(readThresholdPct());
+    setSureOnly(readSureOnly());
     setDismissed(readDismissed());
   }, []);
 
@@ -120,6 +107,7 @@ export function PortfolioView() {
       setSureOnlyAllowed(digest.sure_only_allowed);
       if (!digest.sure_only_allowed && sureOnly) {
         setSureOnly(false);
+        writeSureOnly(false);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load portfolio");
@@ -476,9 +464,7 @@ export function PortfolioView() {
                     ? Math.min(50, Math.max(1, next))
                     : 5;
                   setThresholdPct(clamped);
-                  if (typeof window !== "undefined") {
-                    window.localStorage.setItem(ALERT_THRESHOLD_KEY, String(clamped));
-                  }
+                  writeThresholdPct(clamped);
                 }}
               />
             </label>
@@ -490,9 +476,7 @@ export function PortfolioView() {
                 onChange={(e) => {
                   const next = e.target.checked;
                   setSureOnly(next);
-                  if (typeof window !== "undefined") {
-                    window.localStorage.setItem(ALERT_SURE_KEY, next ? "1" : "0");
-                  }
+                  writeSureOnly(next);
                 }}
               />
               <span>
@@ -521,9 +505,8 @@ export function PortfolioView() {
                   className="btn-ghost"
                   disabled={busy}
                   onClick={() => {
-                    const next = Array.from(new Set([...dismissed, alert.card_id]));
+                    const next = dismissAlert(alert.card_id);
                     setDismissed(next);
-                    writeDismissed(next);
                   }}
                 >
                   {t("alert_dismiss")}
