@@ -4,56 +4,7 @@ export const LOCALES: Locale[] = ["en", "hr"];
 
 export const LOCALE_STORAGE_KEY = "kestrel_locale";
 
-export type MessageKey =
-  | "nav_browse"
-  | "nav_signals"
-  | "nav_portfolio"
-  | "nav_scanner"
-  | "nav_dealer"
-  | "nav_pro"
-  | "brand_tagline"
-  | "auth_sign_in"
-  | "auth_sign_out"
-  | "nav_open_menu"
-  | "nav_close_menu"
-  | "nav_primary"
-  | "nav_mobile"
-  | "landing_headline"
-  | "landing_lede"
-  | "landing_cta_market"
-  | "landing_cta_pro"
-  | "landing_follow_title"
-  | "landing_follow_lede"
-  | "landing_follow_link"
-  | "explore_eyebrow"
-  | "explore_title"
-  | "explore_lede"
-  | "catalog_mode"
-  | "catalog_browse"
-  | "catalog_signals"
-  | "explore_search_ph"
-  | "explore_search_aria"
-  | "explore_search_btn"
-  | "explore_clear"
-  | "explore_set"
-  | "explore_all_sets"
-  | "explore_signal"
-  | "explore_all"
-  | "explore_min"
-  | "explore_max"
-  | "explore_any"
-  | "explore_results"
-  | "explore_demo"
-  | "explore_updating"
-  | "explore_empty"
-  | "explore_load_more"
-  | "signal_buy"
-  | "signal_sell"
-  | "signal_hold";
-
-type Dictionary = Record<MessageKey, string>;
-
-const en: Dictionary = {
+const en = {
   nav_browse: "Browse",
   nav_signals: "AI signals",
   nav_portfolio: "Portfolio",
@@ -101,7 +52,162 @@ const en: Dictionary = {
   signal_buy: "BUY",
   signal_sell: "SELL",
   signal_hold: "HOLD",
-};
+
+  // Portfolio / auth
+  port_eyebrow: "Portfolio",
+  port_title: "Your book",
+  port_lede: "Mark-to-market lots and watchlist alerts — Soft Ink.",
+  port_demo_session: "demo session",
+  port_loading: "Loading session…",
+  auth_create_account: "Create account",
+  auth_mode: "Auth mode",
+  auth_signup_lede: "Create a Soft Ink account with email + password (Supabase Auth).",
+  auth_signin_lede:
+    "Portfolio and watchlist need a session. Local Soft Ink demo accepts any password.",
+  auth_email: "Email",
+  auth_password: "Password",
+  auth_password_min: "Password (min 6)",
+  auth_demo: "Continue as demo",
+  auth_demo_blocked: "Demo login is disabled in production. Sign in or create an account.",
+  alert_digest_title: "Alert digest · {n}",
+  alert_threshold: "Threshold %",
+  alert_sure_only: "Sure-only (conformal)",
+  alert_sure_pro: " · Pro",
+  alert_empty_sure: "No sure conformal BUY/SELL alerts above {n}% right now.",
+  alert_empty: "No watchlist cards currently above {n}%.",
+  alert_dismiss: "Dismiss",
+  alert_more: "+{n} more above threshold",
+  kpi_value: "Value",
+  kpi_invested: "Invested",
+  kpi_pnl: "PnL",
+  kpi_outlook: "AI outlook",
+  port_open_lots: "Open lots · {n}",
+  port_refresh: "Refresh",
+  port_no_lots: "No lots yet. Open a card from",
+  port_and_collect: "and start collecting.",
+  port_edit_sell: "Edit / sell",
+  port_remove: "Remove",
+  port_edit_lot: "Edit lot #{id}",
+  port_qty: "Quantity",
+  port_purchase: "Purchase price",
+  port_condition: "Condition",
+  port_save_lot: "Save lot",
+  port_cancel: "Cancel",
+  port_sale_price: "Sale price",
+  port_mark_sold: "Mark sold",
+  port_sold_lots: "Sold lots · {n}",
+  port_sold_meta: "{qty}× · cost {cost} · sold {sale}",
+  port_watchlist: "Watchlist · {n}",
+  port_watch_empty: "Watchlist is empty. Star cards from detail pages.",
+
+  // Scanner
+  scan_eyebrow: "Scanner",
+  scan_title: "AI scan",
+  scan_lede:
+    "Rank the market board by expected {days}d ROI — opportunities and drop warnings.",
+  scan_search_ph: "Search name…",
+  scan_search_aria: "Search scanner",
+  scan_btn: "Scan",
+  scan_rarity: "Rarity",
+  scan_min_growth: "Min growth %",
+  scan_scoped_count: "{n} scoped",
+  scan_kpi_scoped: "Scoped",
+  scan_kpi_opps: "Top opps ≥ {n}%",
+  scan_kpi_warns: "Drop warnings",
+  scan_opps_title: "Top opportunities",
+  scan_opps_empty: "No opportunities at this growth floor / price range.",
+  scan_warns_title: "Drop warnings",
+  scan_warns_empty: "No negative ROI rows in this filter.",
+
+  // Dealer
+  dealer_eyebrow: "Dealer",
+  dealer_title: "Desk",
+  dealer_signin_lede: "Sign in to score inventory against the Soft Ink market board.",
+  dealer_lede:
+    "Upload inventory CSV, apply sell fee + shipping, and rank LIST / BUY MORE when the conformal gate is green.",
+  dealer_locked: "Dealer desk is a Soft Pro surface.",
+  dealer_locked_lede:
+    "Upgrade with the same email you use to sign in, then come back to score inventory.",
+  dealer_upgrade: "Upgrade with Creem",
+  dealer_pro_details: "Soft Pro details",
+  dealer_fee: "Sell fee %",
+  dealer_ship: "Shipping USD",
+  dealer_csv_file: "CSV file",
+  dealer_csv: "Inventory CSV",
+  dealer_score: "Score desk",
+  dealer_sample: "Load sample",
+  dealer_rows: "Rows",
+  dealer_matched: "Matched",
+  dealer_actions: "Actions",
+  dealer_inv_value: "Inventory value",
+  dealer_unmatched: "{n} unmatched rows",
+  dealer_actionable: "Actionable",
+  dealer_no_actions: "No LIST / BUY MORE rows under this fee model.",
+  dealer_full: "Full board",
+
+  // Pro
+  pro_eyebrow: "Kestrel Pro",
+  pro_title: "Dealer desk + sure signals",
+  pro_lede:
+    "Soft Pro unlocks inventory scoring, fee-aware LIST / BUY MORE, and higher-confidence alert surfaces. €7/mo after a 7-day trial via Creem.",
+  pro_open_note:
+    "Open beta is still on — Pro surfaces are unlocked for everyone. Checkout stays ready for when we flip the gate.",
+  pro_gated_note: "Pro is gated. Upgrade with the same email you use to sign in.",
+  pro_checkout_missing: "Checkout link not configured",
+  pro_open_dealer: "Open Dealer desk",
+  pro_f1: "CSV inventory × market board with sell fee + shipping",
+  pro_f2: "Conformal-gated LIST / BUY MORE actions",
+  pro_f3: "Entitlement tied to your checkout email after payment",
+
+  // Detail / watch / add lot / chart
+  detail_back: "← Back to browse",
+  detail_kicker: "Card detail",
+  detail_watchlist: "Open watchlist",
+  detail_range_min: "Range min",
+  detail_range_max: "Range max",
+  detail_points: "Points",
+  detail_ai_title: "AI prediction",
+  detail_expected: "Expected move",
+  detail_predicted: "Predicted price",
+  detail_band: "Conformal band {band}",
+  detail_horizon: "Horizon forecast from the market board.",
+  detail_low_conf: "Low confidence — treat as HOLD until more data lands.",
+  detail_confidence: "Confidence {level}",
+  detail_why: "Why this signal",
+  detail_explain_need: "Need ~15 history points before feature explain unlocks.",
+  watch_sign_in: "Sign in to watch",
+  watch_on: "Watching",
+  watch_add: "Add to watchlist",
+  add_lot_title: "Add to portfolio",
+  add_lot_guest: "Sign in to log a lot for {name}.",
+  add_lot_open: "Open portfolio",
+  add_lot_hint: "Log quantity and cost basis for this card.",
+  add_lot_qty: "Qty",
+  add_lot_cost: "Cost (USD)",
+  add_lot_grade: "Grade",
+  add_lot_optional: "Optional",
+  add_lot_busy: "Adding…",
+  add_lot_submit: "Add lot",
+  add_lot_done: "Added.",
+  add_lot_view: "View portfolio",
+  chart_title: "Price history",
+  chart_empty: "No history points for this card yet.",
+  chart_subtitle: "TCGplayer · JustTCG NM · PSA 10",
+  chart_loading: "Loading JustTCG / PSA 10…",
+  chart_fallback: "Multi-source unavailable ({error}). Showing TCGplayer DB.",
+  chart_no_key: "JustTCG API key not configured — TCGplayer DB only.",
+  chart_just_fallback: "JustTCG: fallback to market series (no NM history).",
+  chart_series_tcg: "TCGplayer (DB)",
+  chart_series_just: "JustTCG NM",
+  chart_series_psa: "PSA 10",
+  ebay_title: "eBay comps",
+  ebay_loading: "Loading eBay listings…",
+  ebay_empty: "No eBay listings right now.",
+} as const;
+
+export type MessageKey = keyof typeof en;
+
+type Dictionary = Record<MessageKey, string>;
 
 const hr: Dictionary = {
   nav_browse: "Pregled",
@@ -151,6 +257,152 @@ const hr: Dictionary = {
   signal_buy: "KUPI",
   signal_sell: "PRODAJ",
   signal_hold: "DRŽI",
+
+  port_eyebrow: "Portfelj",
+  port_title: "Tvoja knjiga",
+  port_lede: "Lotovi po tržištu i watchlist alerti — Soft Ink.",
+  port_demo_session: "demo sesija",
+  port_loading: "Učitavam sesiju…",
+  auth_create_account: "Kreiraj račun",
+  auth_mode: "Način prijave",
+  auth_signup_lede: "Kreiraj Soft Ink račun s emailom i lozinkom (Supabase Auth).",
+  auth_signin_lede:
+    "Portfelj i watchlist trebaju sesiju. Lokalni Soft Ink demo prihvaća bilo koju lozinku.",
+  auth_email: "Email",
+  auth_password: "Lozinka",
+  auth_password_min: "Lozinka (min. 6)",
+  auth_demo: "Nastavi kao demo",
+  auth_demo_blocked: "Demo prijava je isključena u produkciji. Prijavi se ili kreiraj račun.",
+  alert_digest_title: "Alert digest · {n}",
+  alert_threshold: "Prag %",
+  alert_sure_only: "Samo sure (conformal)",
+  alert_sure_pro: " · Pro",
+  alert_empty_sure: "Nema sure conformal KUPI/PRODAJ alerta iznad {n}% trenutno.",
+  alert_empty: "Nema watchlist karti iznad {n}% trenutno.",
+  alert_dismiss: "Odbaci",
+  alert_more: "+{n} još iznad praga",
+  kpi_value: "Vrijednost",
+  kpi_invested: "Uloženo",
+  kpi_pnl: "PnL",
+  kpi_outlook: "AI outlook",
+  port_open_lots: "Otvoreni lotovi · {n}",
+  port_refresh: "Osvježi",
+  port_no_lots: "Još nema lotova. Otvori kartu iz",
+  port_and_collect: "i počni skupljati.",
+  port_edit_sell: "Uredi / prodaj",
+  port_remove: "Ukloni",
+  port_edit_lot: "Uredi lot #{id}",
+  port_qty: "Količina",
+  port_purchase: "Nabavna cijena",
+  port_condition: "Stanje",
+  port_save_lot: "Spremi lot",
+  port_cancel: "Odustani",
+  port_sale_price: "Prodajna cijena",
+  port_mark_sold: "Označi prodano",
+  port_sold_lots: "Prodani lotovi · {n}",
+  port_sold_meta: "{qty}× · cost {cost} · sold {sale}",
+  port_watchlist: "Watchlist · {n}",
+  port_watch_empty: "Watchlist je prazan. Označi karte na detail stranicama.",
+
+  scan_eyebrow: "Skener",
+  scan_title: "AI sken",
+  scan_lede:
+    "Rangiraj board po očekivanom {days}d ROI — prilike i upozorenja na pad.",
+  scan_search_ph: "Traži ime…",
+  scan_search_aria: "Pretraži skener",
+  scan_btn: "Skeniraj",
+  scan_rarity: "Rijetkost",
+  scan_min_growth: "Min rast %",
+  scan_scoped_count: "{n} u opsegu",
+  scan_kpi_scoped: "U opsegu",
+  scan_kpi_opps: "Top prilike ≥ {n}%",
+  scan_kpi_warns: "Upozorenja",
+  scan_opps_title: "Top prilike",
+  scan_opps_empty: "Nema prilika za ovaj growth floor / raspon cijena.",
+  scan_warns_title: "Upozorenja na pad",
+  scan_warns_empty: "Nema negativnih ROI redova u ovom filteru.",
+
+  dealer_eyebrow: "Dealer",
+  dealer_title: "Stol",
+  dealer_signin_lede: "Prijavi se da ocijeniš inventar prema Soft Ink boardu.",
+  dealer_lede:
+    "Uploadaj inventar CSV, primijeni sell fee + shipping, i rangiraj LIST / BUY MORE kad je conformal gate zelen.",
+  dealer_locked: "Dealer stol je Soft Pro površina.",
+  dealer_locked_lede:
+    "Nadogradi s istim emailom koji koristiš za prijavu, pa se vrati ocijeniti inventar.",
+  dealer_upgrade: "Nadogradi s Creemom",
+  dealer_pro_details: "Soft Pro detalji",
+  dealer_fee: "Sell fee %",
+  dealer_ship: "Shipping USD",
+  dealer_csv_file: "CSV datoteka",
+  dealer_csv: "Inventar CSV",
+  dealer_score: "Ocijeni stol",
+  dealer_sample: "Učitaj uzorak",
+  dealer_rows: "Redovi",
+  dealer_matched: "Matchano",
+  dealer_actions: "Akcije",
+  dealer_inv_value: "Vrijednost inventara",
+  dealer_unmatched: "{n} neusklađenih redova",
+  dealer_actionable: "Actionable",
+  dealer_no_actions: "Nema LIST / BUY MORE redova za ovaj fee model.",
+  dealer_full: "Cijeli board",
+
+  pro_eyebrow: "Kestrel Pro",
+  pro_title: "Dealer stol + sure signali",
+  pro_lede:
+    "Soft Pro otključava scoring inventara, fee-aware LIST / BUY MORE i pouzdanije alerte. €7/mj nakon 7-dnevnog trial-a preko Creema.",
+  pro_open_note:
+    "Open beta je još uključena — Pro površine su otvorene svima. Checkout čeka kad zatvorimo gate.",
+  pro_gated_note: "Pro je zatvoren. Nadogradi s istim emailom koji koristiš za prijavu.",
+  pro_checkout_missing: "Checkout link nije konfiguriran",
+  pro_open_dealer: "Otvori Dealer stol",
+  pro_f1: "CSV inventar × market board s sell fee + shipping",
+  pro_f2: "Conformal-gated LIST / BUY MORE akcije",
+  pro_f3: "Entitlement vezan na checkout email nakon uplate",
+
+  detail_back: "← Natrag na pregled",
+  detail_kicker: "Detalj karte",
+  detail_watchlist: "Otvori watchlist",
+  detail_range_min: "Raspon min",
+  detail_range_max: "Raspon max",
+  detail_points: "Točke",
+  detail_ai_title: "AI predikcija",
+  detail_expected: "Očekivani pomak",
+  detail_predicted: "Predviđena cijena",
+  detail_band: "Conformal pojas {band}",
+  detail_horizon: "Horizon forecast s market boarda.",
+  detail_low_conf: "Niska pouzdanost — tretiraj kao DRŽI dok ne stigne više podataka.",
+  detail_confidence: "Pouzdanost {level}",
+  detail_why: "Zašto ovaj signal",
+  detail_explain_need: "Treba ~15 točaka povijesti prije AI explaina.",
+  watch_sign_in: "Prijavi se za watch",
+  watch_on: "Na watchlistu",
+  watch_add: "Dodaj na watchlist",
+  add_lot_title: "Dodaj u portfelj",
+  add_lot_guest: "Prijavi se da zabilježiš lot za {name}.",
+  add_lot_open: "Otvori portfelj",
+  add_lot_hint: "Zabilježi količinu i nabavnu cijenu za ovu kartu.",
+  add_lot_qty: "Kol.",
+  add_lot_cost: "Cost (USD)",
+  add_lot_grade: "Grade",
+  add_lot_optional: "Opcionalno",
+  add_lot_busy: "Dodajem…",
+  add_lot_submit: "Dodaj lot",
+  add_lot_done: "Dodano.",
+  add_lot_view: "Pogledaj portfelj",
+  chart_title: "Povijest cijene",
+  chart_empty: "Nema dovoljno price history za chart.",
+  chart_subtitle: "TCGplayer · JustTCG NM · PSA 10",
+  chart_loading: "Učitavam JustTCG / PSA 10…",
+  chart_fallback: "Multi-source nije dostupan ({error}). Prikazujem TCGplayer DB.",
+  chart_no_key: "JustTCG API key nije konfiguriran — samo TCGplayer DB.",
+  chart_just_fallback: "JustTCG: fallback na market seriju (nema NM history).",
+  chart_series_tcg: "TCGplayer (DB)",
+  chart_series_just: "JustTCG NM",
+  chart_series_psa: "PSA 10",
+  ebay_title: "eBay comps",
+  ebay_loading: "Učitavam eBay oglase…",
+  ebay_empty: "Nema eBay oglasa trenutno.",
 };
 
 export const MESSAGES: Record<Locale, Dictionary> = { en, hr };

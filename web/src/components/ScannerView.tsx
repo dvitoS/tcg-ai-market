@@ -6,6 +6,7 @@ import { FormEvent, useCallback, useEffect, useState, useTransition } from "reac
 
 import { CardSkeletonGrid } from "@/components/CardSkeletonGrid";
 import { ExploreCard } from "@/components/ExploreCard";
+import { useLocale } from "@/components/LocaleProvider";
 import { fetchScanner, formatChange, formatMoney } from "@/lib/api";
 import type { ScannerCard, ScannerResponse } from "@/lib/types";
 
@@ -59,6 +60,7 @@ function ScanRow({ card }: { card: ScannerCard }) {
 }
 
 export function ScannerView() {
+  const { t } = useLocale();
   const [data, setData] = useState<ScannerResponse>(EMPTY);
   const [query, setQuery] = useState("");
   const [submitted, setSubmitted] = useState("");
@@ -108,12 +110,11 @@ export function ScannerView() {
   return (
     <section className="scanner-page">
       <div className="explore-command">
-        <p className="explore-command-eyebrow">Scanner</p>
-        <h1 className="explore-title">AI scan</h1>
+        <p className="explore-command-eyebrow">{t("scan_eyebrow")}</p>
+        <h1 className="explore-title">{t("scan_title")}</h1>
         <p className="explore-lede">
-          Rank the market board by expected {data.forecast_days}d ROI — opportunities and drop
-          warnings.
-          {data.source === "demo" ? " · demo seed" : ""}
+          {t("scan_lede", { days: data.forecast_days })}
+          {data.source === "demo" ? ` · ${t("explore_demo")}` : ""}
         </p>
       </div>
 
@@ -122,19 +123,19 @@ export function ScannerView() {
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search name…"
-          aria-label="Search scanner"
+          placeholder={t("scan_search_ph")}
+          aria-label={t("scan_search_aria")}
         />
         <button type="submit" className="btn-primary">
-          Scan
+          {t("scan_btn")}
         </button>
       </form>
 
       <div className="filter-row">
         <label>
-          <span>Set</span>
+          <span>{t("explore_set")}</span>
           <select value={setName} onChange={(e) => setSetName(e.target.value)}>
-            <option value="">All sets</option>
+            <option value="">{t("explore_all_sets")}</option>
             {data.sets.map((name) => (
               <option key={name} value={name}>
                 {name}
@@ -143,9 +144,9 @@ export function ScannerView() {
           </select>
         </label>
         <label>
-          <span>Rarity</span>
+          <span>{t("scan_rarity")}</span>
           <select value={rarity} onChange={(e) => setRarity(e.target.value)}>
-            <option value="">All</option>
+            <option value="">{t("explore_all")}</option>
             {data.rarities.map((name) => (
               <option key={name} value={name}>
                 {name}
@@ -154,7 +155,7 @@ export function ScannerView() {
           </select>
         </label>
         <label>
-          <span>Min growth %</span>
+          <span>{t("scan_min_growth")}</span>
           <input
             type="number"
             min={0}
@@ -165,7 +166,7 @@ export function ScannerView() {
           />
         </label>
         <label>
-          <span>Min $</span>
+          <span>{t("explore_min")}</span>
           <input
             type="number"
             min={0}
@@ -177,7 +178,7 @@ export function ScannerView() {
           />
         </label>
         <label>
-          <span>Max $</span>
+          <span>{t("explore_max")}</span>
           <input
             type="number"
             min={0}
@@ -185,12 +186,12 @@ export function ScannerView() {
             inputMode="decimal"
             value={maxPrice}
             onChange={(e) => setMaxPrice(e.target.value)}
-            placeholder="Any"
+            placeholder={t("explore_any")}
           />
         </label>
         <p className="result-count">
-          {data.scoped} scoped
-          {pending ? " · updating…" : null}
+          {t("scan_scoped_count", { n: data.scoped })}
+          {pending ? ` · ${t("explore_updating")}` : null}
         </p>
       </div>
 
@@ -198,26 +199,26 @@ export function ScannerView() {
 
       <div className="kpi-row scanner-kpis">
         <div className="kpi-chip">
-          <span>Scoped</span>
+          <span>{t("scan_kpi_scoped")}</span>
           <strong>{data.scoped}</strong>
         </div>
         <div className="kpi-chip pnl-up">
-          <span>Top opps ≥ {data.min_growth.toFixed(0)}%</span>
+          <span>{t("scan_kpi_opps", { n: data.min_growth.toFixed(0) })}</span>
           <strong>{data.opp_total}</strong>
         </div>
         <div className="kpi-chip pnl-down">
-          <span>Drop warnings</span>
+          <span>{t("scan_kpi_warns")}</span>
           <strong>{data.warn_total}</strong>
         </div>
       </div>
 
       <div className="portfolio-section-head">
-        <h2>Top opportunities</h2>
+        <h2>{t("scan_opps_title")}</h2>
       </div>
       {pending && data.opportunities.length === 0 ? (
         <CardSkeletonGrid count={6} />
       ) : data.opportunities.length === 0 ? (
-        <p className="empty-state">No opportunities at this growth floor / price range.</p>
+        <p className="empty-state">{t("scan_opps_empty")}</p>
       ) : (
         <>
           <div className="explore-grid scanner-grid">
@@ -234,10 +235,10 @@ export function ScannerView() {
       )}
 
       <div className="portfolio-section-head">
-        <h2>Drop warnings</h2>
+        <h2>{t("scan_warns_title")}</h2>
       </div>
       {data.warnings.length === 0 ? (
-        <p className="empty-state">No negative ROI rows in this filter.</p>
+        <p className="empty-state">{t("scan_warns_empty")}</p>
       ) : (
         <div className="scan-list">
           {data.warnings.map((card) => (

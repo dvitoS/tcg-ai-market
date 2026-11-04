@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
+import { useLocale } from "@/components/LocaleProvider";
 import {
   addWatchlistCard,
   fetchWatchStatus,
@@ -12,6 +13,7 @@ import {
 
 export function WatchToggle({ cardId }: { cardId: string }) {
   const { user } = useAuth();
+  const { t } = useLocale();
   const [watched, setWatched] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -56,7 +58,7 @@ export function WatchToggle({ cardId }: { cardId: string }) {
   if (!user) {
     return (
       <Link href="/portfolio" className="btn-ghost watch-toggle">
-        Sign in to watch
+        {t("watch_sign_in")}
       </Link>
     );
   }
@@ -68,7 +70,7 @@ export function WatchToggle({ cardId }: { cardId: string }) {
       disabled={busy}
       onClick={() => void toggle()}
     >
-      {watched ? "Watching" : "Add to watchlist"}
+      {watched ? t("watch_on") : t("watch_add")}
     </button>
   );
 }
