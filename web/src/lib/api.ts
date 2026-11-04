@@ -10,6 +10,7 @@ import type {
   PortfolioLot,
   PortfolioResponse,
   ScannerResponse,
+  WatchAlertsResponse,
   WatchlistResponse,
 } from "./types";
 
@@ -313,6 +314,39 @@ export async function fetchWatchStatus(cardId: string): Promise<boolean> {
   if (!res.ok) return false;
   const body = (await res.json()) as { watched?: boolean };
   return Boolean(body.watched);
+}
+
+export type WatchAlertsQuery = {
+  threshold_pct?: number;
+  sure_only?: boolean;
+  dismissed?: string[];
+};
+
+export async function fetchWatchlistAlerts(
+  query: WatchAlertsQuery = {},
+): Promise<WatchAlertsResponse> {
+  const params = new URLSearchParams();
+  if (query.threshold_pct != null) {
+    params.set("threshold_pct", String(query.threshold_pct));
+  }
+  if (query.sure_only != null) {
+    params.set("sure_only", query.sure_only ? "true" : "false");
+  }
+  if (query.dismissed?.length) {
+    params.set("dismissed", query.dismissed.join(","));
+  }
+  const qs = params.toString();
+  const res = await fetch(apiUrl(`/api/watchlist/alerts${qs ? `?${qs}` : ""}`), {
+    headers: {
+      Accept: "application/json",
+      ...authHeaders(),
+    },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`Watchlist alerts failed (${res.status})`);
+  }
+  return res.json();
 }
 
 export type ScannerQuery = {

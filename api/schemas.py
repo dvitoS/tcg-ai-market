@@ -191,6 +191,29 @@ class AddWatchRequest(BaseModel):
     card_id: str
 
 
+class WatchAlertItem(BaseModel):
+    card_id: str
+    name: str
+    expected_pct: float = 0.0
+    price_change_pct: float | None = None
+    signal: str | None = None
+    price: float = 0.0
+    reason: Literal["ai", "price", "both"] | str = "ai"
+    conformal_ok: bool = True
+    sure: bool = False
+    body: str
+
+
+class WatchAlertsResponse(BaseModel):
+    items: list[WatchAlertItem]
+    threshold_pct: float = 5.0
+    sure_only: bool = False
+    sure_only_allowed: bool = True
+    watch_count: int = 0
+    demo: bool = False
+    source: Literal["supabase", "demo", "empty"] = "empty"
+
+
 class ScannerCard(CatalogCard):
     current_price: float | None = None
     ai_target_price: float | None = None

@@ -2,18 +2,44 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
 import {
   deletePortfolioLot,
   fetchPortfolio,
   fetchWatchlist,
+  fetchWatchlistAlerts,
   formatChange,
   formatMoney,
   removeWatchlistCard,
 } from "@/lib/api";
-import type { PortfolioLot, PortfolioSummary, WatchlistItem } from "@/lib/types";
+import type {
+  PortfolioLot,
+  PortfolioSummary,
+  WatchAlertItem,
+  WatchlistItem,
+} from "@/lib/types";
+
+const ALERT_DISMISS_KEY = "kestrel_watch_alert_dismissed";
+const ALERT_THRESHOLD_KEY = "kestrel_watch_alert_threshold";
+const ALERT_SURE_KEY = "kestrel_watch_alert_sure_only";
+
+function readDismissed(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(ALERT_DISMISS_KEY);
+    const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+    return Array.isArray(parsed) ? parsed.map(String) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeDismissed(ids: string[]) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(ALERT_DISMISS_KEY, JSON.stringify(ids));
+}
 
 const EMPTY_SUMMARY: PortfolioSummary = {
   lots: 0,
@@ -37,30 +63,61 @@ export function PortfolioView() {
   const [lots, setLots] = useState<PortfolioLot[]>([]);
   const [summary, setSummary] = useState<PortfolioSummary>(EMPTY_SUMMARY);
   const [watch, setWatch] = useState<WatchlistItem[]>([]);
+  const [alerts, setAlerts] = useState<WatchAlertItem[]>([]);
+  const [sureOnlyAllowed, setSureOnlyAllowed] = useState(true);
   const [demo, setDemo] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [email, setEmail] = useState("dev@local");
   const [password, setPassword] = useState("demo");
+  const [thresholdPct, setThresholdPct] = useState(5);
+  const [sureOnly, setSureOnly] = useState(true);
+  const [dismissed, setDismissed] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const thr = Number(window.localStorage.getItem(ALERT_THRESHOLD_KEY) || "5");
+    setThresholdPct(Number.isFinite(thr) ? Math.min(50, Math.max(1, thr)) : 5);
+    const sureRaw = window.localStorage.getItem(ALERT_SURE_KEY);
+    setSureOnly(sureRaw == null ? true : sureRaw !== "0");
+    setDismissed(readDismissed());
+  }, []);
 
   const load = useCallback(async () => {
     setBusy(true);
     setError(null);
     try {
-      const [portfolio, watchlist] = await Promise.all([
+      const [portfolio, watchlist, digest] = await Promise.all([
         fetchPortfolio(),
         fetchWatchlist(),
+        fetchWatchlistAlerts({
+          threshold_pct: thresholdPct,
+          sure_only: sureOnly,
+          dismissed,
+        }),
       ]);
       setLots(portfolio.items);
       setSummary(portfolio.summary);
-      setDemo(portfolio.demo || watchlist.demo);
+      setDemo(portfolio.demo || watchlist.demo || digest.demo);
       setWatch(watchlist.items);
+      setAlerts(digest.items);
+      setSureOnlyAllowed(digest.sure_only_allowed);
+      if (!digest.sure_only_allowed && sureOnly) {
+        setSureOnly(false);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load portfolio");
     } finally {
       setBusy(false);
     }
-  }, []);
+  }, [dismissed, sureOnly, thresholdPct]);
+
+  const alertCaption = useMemo(() => {
+    if (sureOnly) {
+      return `Sure-only · conformal BUY/SELL with |AI ROI| ≥ ${thresholdPct.toFixed(0)}%.`;
+    }
+    return `AI ROI or 7d price move ≥ ${thresholdPct.toFixed(0)}% on cards you watch.`;
+  }, [sureOnly, thresholdPct]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -198,6 +255,86 @@ export function PortfolioView() {
       </div>
 
       {error ? <p className="banner-error">{error}</p> : null}
+
+      <div className="alert-digest" aria-live="polite">
+        <div className="alert-digest-head">
+          <div>
+            <h2>Alert digest · {alerts.length}</h2>
+            <p className="alert-digest-caption">{alertCaption}</p>
+          </div>
+          <div className="alert-controls">
+            <label className="alert-threshold">
+              <span>Threshold %</span>
+              <input
+                type="number"
+                min={1}
+                max={50}
+                step={1}
+                value={thresholdPct}
+                disabled={busy}
+                onChange={(e) => {
+                  const next = Number(e.target.value);
+                  const clamped = Number.isFinite(next)
+                    ? Math.min(50, Math.max(1, next))
+                    : 5;
+                  setThresholdPct(clamped);
+                  if (typeof window !== "undefined") {
+                    window.localStorage.setItem(ALERT_THRESHOLD_KEY, String(clamped));
+                  }
+                }}
+              />
+            </label>
+            <label className="alert-sure">
+              <input
+                type="checkbox"
+                checked={sureOnly && sureOnlyAllowed}
+                disabled={busy || !sureOnlyAllowed}
+                onChange={(e) => {
+                  const next = e.target.checked;
+                  setSureOnly(next);
+                  if (typeof window !== "undefined") {
+                    window.localStorage.setItem(ALERT_SURE_KEY, next ? "1" : "0");
+                  }
+                }}
+              />
+              <span>Sure-only (conformal){sureOnlyAllowed ? "" : " · Pro"}</span>
+            </label>
+          </div>
+        </div>
+        {alerts.length === 0 ? (
+          <p className="empty-state alert-digest-empty">
+            {sureOnly
+              ? `No sure conformal BUY/SELL alerts above ${thresholdPct.toFixed(0)}% right now.`
+              : `No watchlist cards currently above ${thresholdPct.toFixed(0)}%.`}
+          </p>
+        ) : (
+          <ul className="alert-digest-list">
+            {alerts.slice(0, 15).map((alert) => (
+              <li key={alert.card_id} className={alert.sure ? "alert-sure-hit" : undefined}>
+                <Link href={`/cards/${encodeURIComponent(alert.card_id)}`}>
+                  {alert.sure ? "✓ " : ""}
+                  {alert.body}
+                </Link>
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  disabled={busy}
+                  onClick={() => {
+                    const next = Array.from(new Set([...dismissed, alert.card_id]));
+                    setDismissed(next);
+                    writeDismissed(next);
+                  }}
+                >
+                  Dismiss
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {alerts.length > 15 ? (
+          <p className="alert-digest-more">+{alerts.length - 15} more above threshold</p>
+        ) : null}
+      </div>
 
       <div className="kpi-row">
         <div className="kpi-chip">

@@ -132,6 +132,29 @@ export type WatchlistResponse = {
   demo: boolean;
 };
 
+export type WatchAlertItem = {
+  card_id: string;
+  name: string;
+  expected_pct: number;
+  price_change_pct?: number | null;
+  signal?: string | null;
+  price: number;
+  reason: "ai" | "price" | "both" | string;
+  conformal_ok: boolean;
+  sure: boolean;
+  body: string;
+};
+
+export type WatchAlertsResponse = {
+  items: WatchAlertItem[];
+  threshold_pct: number;
+  sure_only: boolean;
+  sure_only_allowed: boolean;
+  watch_count: number;
+  demo: boolean;
+  source: "supabase" | "demo" | "empty";
+};
+
 export type ScannerCard = CatalogCard & {
   current_price?: number | null;
   ai_target_price?: number | null;
