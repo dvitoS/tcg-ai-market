@@ -62,7 +62,7 @@ def _sets_prioritized_by_coverage(by_set: dict[str, list]) -> list[tuple[str, st
 
 
 def sync_justtcg_price_history(*, limit: int | None = None) -> dict[str, int]:
-    """Live sync: JustTCG NM + 30d history po curated catalog sets."""
+    """Live sync: JustTCG NM + history (JUSTTCG_HISTORY_DURATION) po curated catalog sets."""
     if not justtcg_api_key():
         raise RuntimeError("JUSTTCG_API_KEY nije postavljen.")
 
