@@ -12,6 +12,7 @@ import {
   fetchPortfolio,
   fetchWatchlist,
   fetchWatchlistAlerts,
+  forgotPasswordRequest,
   formatChange,
   formatMoney,
   removeWatchlistCard,
@@ -76,7 +77,7 @@ export function PortfolioView() {
   const [demo, setDemo] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
+  const [authMode, setAuthMode] = useState<"signin" | "signup" | "forgot">("signin");
   const [email, setEmail] = useState("dev@local");
   const [password, setPassword] = useState("demo");
   const [thresholdPct, setThresholdPct] = useState(5);
@@ -170,6 +171,16 @@ export function PortfolioView() {
     setError(null);
     setNotice(null);
     try {
+      if (authMode === "forgot") {
+        const origin =
+          typeof window !== "undefined" ? window.location.origin : "";
+        const result = await forgotPasswordRequest(
+          email.trim(),
+          origin ? `${origin}/auth/reset` : undefined,
+        );
+        setNotice(result.message);
+        return;
+      }
       if (authMode === "signup") {
         const outcome = await signup(email.trim(), password);
         if (outcome.needsConfirmation) {
@@ -191,7 +202,9 @@ export function PortfolioView() {
           ? err.message
           : authMode === "signup"
             ? "Sign up failed"
-            : "Login failed",
+            : authMode === "forgot"
+              ? "Could not start password reset"
+              : "Login failed",
       );
     } finally {
       setBusy(false);
@@ -277,43 +290,53 @@ export function PortfolioView() {
         <div className="explore-command">
           <p className="explore-command-eyebrow">{t("port_eyebrow")}</p>
           <h1 className="explore-title">
-            {authMode === "signup" ? t("auth_create_account") : t("auth_sign_in")}
+            {authMode === "signup"
+              ? t("auth_create_account")
+              : authMode === "forgot"
+                ? t("auth_forgot_title")
+                : t("auth_sign_in")}
           </h1>
           <p className="explore-lede">
-            {authMode === "signup" ? t("auth_signup_lede") : t("auth_signin_lede")}
+            {authMode === "signup"
+              ? t("auth_signup_lede")
+              : authMode === "forgot"
+                ? t("auth_forgot_lede")
+                : t("auth_signin_lede")}
           </p>
         </div>
         <form className="auth-card" onSubmit={onLogin}>
-          <div className="auth-mode-toggle" role="tablist" aria-label={t("auth_mode")}>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={authMode === "signin"}
-              className={authMode === "signin" ? "is-active" : undefined}
-              disabled={busy}
-              onClick={() => {
-                setAuthMode("signin");
-                setError(null);
-              }}
-            >
-              {t("auth_sign_in")}
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={authMode === "signup"}
-              className={authMode === "signup" ? "is-active" : undefined}
-              disabled={busy}
-              onClick={() => {
-                setAuthMode("signup");
-                setError(null);
-                if (email === "dev@local") setEmail("");
-                if (password === "demo") setPassword("");
-              }}
-            >
-              {t("auth_create_account")}
-            </button>
-          </div>
+          {authMode !== "forgot" ? (
+            <div className="auth-mode-toggle" role="tablist" aria-label={t("auth_mode")}>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={authMode === "signin"}
+                className={authMode === "signin" ? "is-active" : undefined}
+                disabled={busy}
+                onClick={() => {
+                  setAuthMode("signin");
+                  setError(null);
+                }}
+              >
+                {t("auth_sign_in")}
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={authMode === "signup"}
+                className={authMode === "signup" ? "is-active" : undefined}
+                disabled={busy}
+                onClick={() => {
+                  setAuthMode("signup");
+                  setError(null);
+                  if (email === "dev@local") setEmail("");
+                  if (password === "demo") setPassword("");
+                }}
+              >
+                {t("auth_create_account")}
+              </button>
+            </div>
+          ) : null}
           <label>
             <span>{t("auth_email")}</span>
             <input
@@ -324,48 +347,83 @@ export function PortfolioView() {
               autoComplete="email"
             />
           </label>
-          <label>
-            <span>{authMode === "signup" ? t("auth_password_min") : t("auth_password")}</span>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={authMode === "signup" ? 6 : undefined}
-              autoComplete={authMode === "signup" ? "new-password" : "current-password"}
-            />
-          </label>
+          {authMode !== "forgot" ? (
+            <label>
+              <span>{authMode === "signup" ? t("auth_password_min") : t("auth_password")}</span>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={authMode === "signup" ? 6 : undefined}
+                autoComplete={authMode === "signup" ? "new-password" : "current-password"}
+              />
+            </label>
+          ) : null}
           {error ? <p className="banner-error">{error}</p> : null}
           {notice ? <p className="banner-ok">{notice}</p> : null}
           <div className="auth-actions">
             <button type="submit" className="btn-primary" disabled={busy}>
-              {authMode === "signup" ? t("auth_create_account") : t("auth_sign_in")}
+              {authMode === "signup"
+                ? t("auth_create_account")
+                : authMode === "forgot"
+                  ? t("auth_forgot_submit")
+                  : t("auth_sign_in")}
             </button>
             {authMode === "signin" ? (
+              <>
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  disabled={busy}
+                  onClick={() => {
+                    setAuthMode("forgot");
+                    setError(null);
+                    setNotice(null);
+                    if (email === "dev@local") setEmail("");
+                  }}
+                >
+                  {t("auth_forgot")}
+                </button>
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  disabled={busy}
+                  onClick={() => {
+                    void (async () => {
+                      setBusy(true);
+                      setError(null);
+                      try {
+                        const ok = await ensureDemoSession();
+                        if (!ok) {
+                          setError(t("auth_demo_blocked"));
+                          return;
+                        }
+                        await load();
+                      } catch (err) {
+                        setError(err instanceof Error ? err.message : "Demo login failed");
+                      } finally {
+                        setBusy(false);
+                      }
+                    })();
+                  }}
+                >
+                  {t("auth_demo")}
+                </button>
+              </>
+            ) : null}
+            {authMode === "forgot" ? (
               <button
                 type="button"
                 className="btn-ghost"
                 disabled={busy}
                 onClick={() => {
-                  void (async () => {
-                    setBusy(true);
-                    setError(null);
-                    try {
-                      const ok = await ensureDemoSession();
-                      if (!ok) {
-                        setError(t("auth_demo_blocked"));
-                        return;
-                      }
-                      await load();
-                    } catch (err) {
-                      setError(err instanceof Error ? err.message : "Demo login failed");
-                    } finally {
-                      setBusy(false);
-                    }
-                  })();
+                  setAuthMode("signin");
+                  setError(null);
+                  setNotice(null);
                 }}
               >
-                {t("auth_demo")}
+                {t("auth_forgot_back")}
               </button>
             ) : null}
           </div>

@@ -224,6 +224,60 @@ export async function signupRequest(
   return res.json();
 }
 
+export async function forgotPasswordRequest(
+  email: string,
+  redirectTo?: string,
+): Promise<{ ok: boolean; message: string }> {
+  const res = await fetch(apiUrl("/api/auth/forgot-password"), {
+    method: "POST",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email,
+      redirect_to: redirectTo || undefined,
+    }),
+  });
+  if (!res.ok) {
+    let detail = "Could not start password reset";
+    try {
+      const body = (await res.json()) as { detail?: string };
+      if (body.detail) detail = body.detail;
+    } catch {
+      /* ignore */
+    }
+    throw new Error(detail);
+  }
+  return res.json();
+}
+
+export async function updatePasswordRequest(
+  password: string,
+  opts: { accessToken: string; refreshToken?: string | null } ,
+): Promise<{ ok: boolean; message: string }> {
+  const res = await fetch(apiUrl("/api/auth/update-password"), {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${opts.accessToken}`,
+    },
+    body: JSON.stringify({
+      password,
+      refresh_token: opts.refreshToken || undefined,
+    }),
+  });
+  if (!res.ok) {
+    let detail = "Could not update password";
+    try {
+      const body = (await res.json()) as { detail?: string };
+      if (body.detail) detail = body.detail;
+    } catch {
+      /* ignore */
+    }
+    throw new Error(detail);
+  }
+  return res.json();
+}
+
 export async function fetchMe(token?: string | null): Promise<{
   authenticated: boolean;
   user: AuthUser | null;
