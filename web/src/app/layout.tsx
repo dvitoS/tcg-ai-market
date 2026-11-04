@@ -4,6 +4,7 @@ import { DM_Sans, Fraunces } from "next/font/google";
 import { AuthProvider } from "@/components/AuthProvider";
 import { LocaleProvider } from "@/components/LocaleProvider";
 import { SiteHeader } from "@/components/SiteHeader";
+import { WatchAlertBanners } from "@/components/WatchAlertBanners";
 
 import "./globals.css";
 
@@ -37,6 +38,7 @@ export default function RootLayout({
           <AuthProvider>
             <div className="app-shell">
               <SiteHeader />
+              <WatchAlertBanners />
               <main>{children}</main>
             </div>
           </AuthProvider>
