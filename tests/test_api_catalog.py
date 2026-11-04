@@ -63,6 +63,12 @@ def test_card_detail_and_history_roundtrip() -> None:
     assert body["card"]["id"] == card_id
     assert "history" in body
     assert "points" in body["history"]
+    assert "explain" in body
+    explain = body["explain"]
+    assert explain["confidence_level"] in {"low", "medium", "high"}
+    assert isinstance(explain["confidence_ok"], bool)
+    assert isinstance(explain["rows"], list)
+    assert explain["horizon_days"] >= 1
     history = client.get(f"/api/cards/{card_id}/history")
     assert history.status_code == 200
     hist = history.json()
@@ -71,6 +77,11 @@ def test_card_detail_and_history_roundtrip() -> None:
     if hist["points"]:
         assert hist["stats"]["points"] == len(hist["points"])
         assert hist["stats"]["last_price"] is not None
+    if len(hist["points"]) >= 15:
+        assert len(explain["rows"]) >= 5
+        labels = {row["label"] for row in explain["rows"]}
+        assert "Why this signal" not in labels
+        assert "Expected move" in labels or "7d return" in labels
 
 
 def test_signals_board_shape() -> None:
