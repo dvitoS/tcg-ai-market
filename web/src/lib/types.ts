@@ -193,3 +193,36 @@ export type DealerResponse = {
   source: "supabase" | "demo" | "empty";
   demo: boolean;
 };
+
+export type EbayListing = {
+  item_id?: string | null;
+  title?: string | null;
+  price?: number | null;
+  currency?: string | null;
+  condition?: string | null;
+  url?: string | null;
+  image?: string | null;
+  seller?: string | null;
+  sold_date?: string | null;
+  comp_source?: string | null;
+  is_sold?: boolean | null;
+};
+
+export type EbayCompsResponse = {
+  card_id: string;
+  configured: boolean;
+  epn: boolean;
+  listings: EbayListing[];
+  listings_error?: string | null;
+  sold: EbayListing[];
+  sold_hint?: string | null;
+  sold_stats: {
+    min?: number | null;
+    median?: number | null;
+    max?: number | null;
+    n: number;
+    is_sold: boolean;
+  };
+  sold_fallback_active: boolean;
+  active_fallback: EbayListing[];
+};

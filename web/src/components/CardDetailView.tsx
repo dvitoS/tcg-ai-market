@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { AddLotForm } from "@/components/AddLotForm";
+import { EbayComps } from "@/components/EbayComps";
 import { PriceChart } from "@/components/PriceChart";
 import { WatchToggle } from "@/components/WatchToggle";
 import { formatChange, formatMoney } from "@/lib/api";
@@ -153,6 +154,7 @@ export function CardDetailView({
 
         <aside className="detail-side">
           <PriceChart points={points} predictedPrice={card.predicted_price} />
+          <EbayComps cardId={card.id} cardName={card.name} />
         </aside>
       </div>
     </article>

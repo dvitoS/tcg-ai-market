@@ -246,3 +246,38 @@ class DealerResponse(BaseModel):
     ship_usd: float = 4.0
     source: Literal["supabase", "demo", "empty"] = "empty"
     demo: bool = False
+
+
+class EbayListing(BaseModel):
+    item_id: str | None = None
+    title: str | None = None
+    price: float | None = None
+    currency: str | None = "USD"
+    condition: str | None = None
+    url: str | None = None
+    image: str | None = None
+    seller: str | None = None
+    sold_date: str | None = None
+    comp_source: str | None = None
+    is_sold: bool | None = None
+
+
+class EbaySoldStats(BaseModel):
+    min: float | None = None
+    median: float | None = None
+    max: float | None = None
+    n: int = 0
+    is_sold: bool = False
+
+
+class EbayCompsResponse(BaseModel):
+    card_id: str
+    configured: bool = False
+    epn: bool = False
+    listings: list[EbayListing] = Field(default_factory=list)
+    listings_error: str | None = None
+    sold: list[EbayListing] = Field(default_factory=list)
+    sold_hint: str | None = None
+    sold_stats: EbaySoldStats = Field(default_factory=EbaySoldStats)
+    sold_fallback_active: bool = False
+    active_fallback: list[EbayListing] = Field(default_factory=list)

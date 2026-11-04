@@ -1,4 +1,4 @@
-"""Card detail + price history."""
+"""Card detail + price history + eBay comps."""
 
 from __future__ import annotations
 
@@ -9,9 +9,13 @@ from api.schemas import (
     CardDetailResponse,
     CardHistoryResponse,
     CatalogCard,
+    EbayCompsResponse,
+    EbayListing,
+    EbaySoldStats,
     HistoryPoint,
     HistoryStats,
 )
+from services.ebay_listings import build_ebay_detail_payload
 
 router = APIRouter(prefix="/cards", tags=["cards"])
 
@@ -62,4 +66,41 @@ def card_history(
         card_id=str(card_id),
         points=points,
         stats=HistoryStats(**history_stats(raw)),
+    )
+
+
+@router.get("/{card_id}/ebay", response_model=EbayCompsResponse)
+def card_ebay_comps(
+    card_id: str,
+    limit: int = Query(default=8, ge=1, le=20),
+) -> EbayCompsResponse:
+    board, _source = load_board()
+    name = str(card_id)
+    set_name = ""
+    if board is not None and not board.empty:
+        hits = board[board["id"].astype(str) == str(card_id)]
+        if not hits.empty:
+            row = hits.iloc[0]
+            name = str(row.get("name") or card_id)
+            set_name = str(row.get("set_name") or "")
+
+    payload = build_ebay_detail_payload(
+        card_id=str(card_id),
+        name=name,
+        set_name=set_name,
+        limit=limit,
+    )
+    return EbayCompsResponse(
+        card_id=str(card_id),
+        configured=bool(payload.get("configured")),
+        epn=bool(payload.get("epn")),
+        listings=[EbayListing(**r) for r in (payload.get("listings") or []) if isinstance(r, dict)],
+        listings_error=payload.get("listings_error"),
+        sold=[EbayListing(**r) for r in (payload.get("sold") or []) if isinstance(r, dict)],
+        sold_hint=payload.get("sold_hint"),
+        sold_stats=EbaySoldStats(**(payload.get("sold_stats") or {})),
+        sold_fallback_active=bool(payload.get("sold_fallback_active")),
+        active_fallback=[
+            EbayListing(**r) for r in (payload.get("active_fallback") or []) if isinstance(r, dict)
+        ],
     )

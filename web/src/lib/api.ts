@@ -6,6 +6,7 @@ import type {
   CatalogResponse,
   DealerResponse,
   DealerStatus,
+  EbayCompsResponse,
   PortfolioLot,
   PortfolioResponse,
   ScannerResponse,
@@ -140,6 +141,23 @@ export async function fetchCardHistory(
     throw new Error(`Card history failed (${res.status})`);
   }
   return res.json() as Promise<CardHistoryResponse>;
+}
+
+export async function fetchEbayComps(
+  cardId: string,
+  limit = 8,
+): Promise<EbayCompsResponse> {
+  const res = await fetch(
+    apiUrl(`/api/cards/${encodeURIComponent(cardId)}/ebay?limit=${limit}`),
+    {
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+    },
+  );
+  if (!res.ok) {
+    throw new Error(`eBay comps failed (${res.status})`);
+  }
+  return res.json();
 }
 
 export async function loginRequest(
