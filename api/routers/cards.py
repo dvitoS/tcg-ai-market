@@ -5,13 +5,16 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Query, status
 
 from api.catalog_service import history_stats, load_board, load_card_history, row_to_card
+from api.explain_service import build_card_explain
 from api.schemas import (
     CardDetailResponse,
+    CardExplain,
     CardHistoryResponse,
     CatalogCard,
     EbayCompsResponse,
     EbayListing,
     EbaySoldStats,
+    ExplainRow,
     HistoryPoint,
     HistoryStats,
 )
@@ -46,11 +49,27 @@ def card_detail(card_id: str) -> CardDetailResponse:
     card = CatalogCard(**row_to_card(row))
     pred_lo_f, pred_hi_f = _pred_band(row)
     points = load_card_history(card_id, limit=180)
+    stats = history_stats(points)
+    explain_payload = build_card_explain(
+        points=points,
+        last_price=stats.get("last_price") if stats.get("last_price") is not None else card.price,
+        predicted_price=card.predicted_price,
+        pred_lo_pct=pred_lo_f,
+        pred_hi_pct=pred_hi_f,
+    )
     return CardDetailResponse(
         card=card,
         pred_lo_pct=pred_lo_f,
         pred_hi_pct=pred_hi_f,
-        history=HistoryStats(**history_stats(points)),
+        history=HistoryStats(**stats),
+        explain=CardExplain(
+            confidence_level=str(explain_payload["confidence_level"]),
+            confidence_ok=bool(explain_payload["confidence_ok"]),
+            confidence_reason=str(explain_payload["confidence_reason"]),
+            hold_band_pct=float(explain_payload["hold_band_pct"]),
+            horizon_days=int(explain_payload["horizon_days"]),
+            rows=[ExplainRow(**r) for r in explain_payload["rows"]],
+        ),
         source=source,
     )
 

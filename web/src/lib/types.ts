@@ -52,11 +52,26 @@ export type HistoryStats = {
   last_date?: string | null;
 };
 
+export type ExplainRow = {
+  label: string;
+  value: string;
+};
+
+export type CardExplain = {
+  confidence_level: string;
+  confidence_ok: boolean;
+  confidence_reason: string;
+  hold_band_pct: number;
+  horizon_days: number;
+  rows: ExplainRow[];
+};
+
 export type CardDetailResponse = {
   card: CatalogCard;
   pred_lo_pct?: number | null;
   pred_hi_pct?: number | null;
   history: HistoryStats;
+  explain?: CardExplain;
   source: "supabase" | "demo" | "empty";
 };
 

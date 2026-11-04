@@ -29,7 +29,7 @@ export function CardDetailView({
   detail: CardDetailResponse;
   points: HistoryPoint[];
 }) {
-  const { card, pred_lo_pct, pred_hi_pct } = detail;
+  const { card, pred_lo_pct, pred_hi_pct, explain } = detail;
   const prices = points.map((p) => p.price).filter((n) => Number.isFinite(n));
   const fromPoints = {
     points: points.length,
@@ -149,6 +149,29 @@ export function CardDetailView({
             ) : (
               <div className="ai-low-conf">Low confidence — treat as HOLD until more data lands.</div>
             )}
+            {explain ? (
+              <div className="ai-explain">
+                <p className="ai-conf">
+                  Confidence {explain.confidence_level}
+                  {explain.confidence_reason ? ` — ${explain.confidence_reason}` : ""}
+                </p>
+                <p className="ai-explain-title">Why this signal</p>
+                {explain.rows.length > 0 ? (
+                  <dl className="ai-explain-list">
+                    {explain.rows.map((row) => (
+                      <div key={row.label} className="ai-explain-row">
+                        <dt>{row.label}</dt>
+                        <dd>{row.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                ) : (
+                  <p className="ai-board-caption">
+                    Need ~15 history points before feature explain unlocks.
+                  </p>
+                )}
+              </div>
+            ) : null}
           </section>
         </div>
 

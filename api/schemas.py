@@ -93,11 +93,26 @@ class HistoryStats(BaseModel):
     last_date: str | None = None
 
 
+class ExplainRow(BaseModel):
+    label: str
+    value: str
+
+
+class CardExplain(BaseModel):
+    confidence_level: str = "low"
+    confidence_ok: bool = False
+    confidence_reason: str = ""
+    hold_band_pct: float = 0.0
+    horizon_days: int = 7
+    rows: list[ExplainRow] = Field(default_factory=list)
+
+
 class CardDetailResponse(BaseModel):
     card: CatalogCard
     pred_lo_pct: float | None = None
     pred_hi_pct: float | None = None
     history: HistoryStats = Field(default_factory=HistoryStats)
+    explain: CardExplain = Field(default_factory=CardExplain)
     source: Literal["supabase", "demo", "empty"] = "empty"
 
 
