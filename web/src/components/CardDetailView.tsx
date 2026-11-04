@@ -79,15 +79,38 @@ export function CardDetailView({
       <div className="detail-layout">
         <div className="detail-main">
           <section className="detail-hero-card">
-            <div className="detail-hero-art">
-              <Image
-                src={image}
-                alt={card.name}
-                width={420}
-                height={586}
-                priority
-                className="detail-hero-img"
-              />
+            <div className="detail-hero-left">
+              <div className="detail-hero-art">
+                <Image
+                  src={image}
+                  alt={card.name}
+                  width={420}
+                  height={586}
+                  priority
+                  className="detail-hero-img"
+                  sizes="(max-width: 720px) 55vw, 200px"
+                  style={{ width: "100%", height: "auto" }}
+                />
+              </div>
+              <aside className="detail-hero-under" aria-label={t("detail_ai_under_title")}>
+                <p className="detail-under-label">{t("detail_ai_under_title")}</p>
+                <p className={`detail-under-move ${deltaClass(card.expected_change_pct)}`}>
+                  {formatChange(card.expected_change_pct, 2)}
+                </p>
+                <p className="detail-under-price">
+                  {t("detail_predicted")}: {formatMoney(card.predicted_price, "USD", 2)}
+                </p>
+                {band ? (
+                  <p className="detail-under-caption">{t("detail_band", { band })}</p>
+                ) : (
+                  <p className="detail-under-caption">{t("detail_horizon")}</p>
+                )}
+                {showSignal ? (
+                  <div className={`signal-chip ${signalClass(card.signal)}`}>{signalText}</div>
+                ) : (
+                  <div className="ai-low-conf">{t("detail_low_conf")}</div>
+                )}
+              </aside>
             </div>
             <div className="detail-hero-copy">
               <p className="detail-kicker">{t("detail_kicker")}</p>
@@ -128,40 +151,16 @@ export function CardDetailView({
             </div>
           </section>
 
-          <section className="detail-ai-board">
-            <div className="detail-ai-head">
-              <h2>{t("detail_ai_title")}</h2>
-            </div>
-            <p className="ai-move-label">{t("detail_expected")}</p>
-            <p className={`ai-move-value ${deltaClass(card.expected_change_pct)}`}>
-              {formatChange(card.expected_change_pct, 2)}
-            </p>
-            <p className="ai-board-price-label">{t("detail_predicted")}</p>
-            <p className="ai-board-price">
-              {formatMoney(card.predicted_price, "USD", 2)}
-              {card.expected_change_pct != null ? (
-                <span className="ai-board-delta">
-                  {formatChange(card.expected_change_pct, 2)}
-                </span>
-              ) : null}
-            </p>
-            {band ? (
-              <p className="ai-board-caption">{t("detail_band", { band })}</p>
-            ) : (
-              <p className="ai-board-caption">{t("detail_horizon")}</p>
-            )}
-            {showSignal ? (
-              <div className={`signal-chip ${signalClass(card.signal)}`}>{signalText}</div>
-            ) : (
-              <div className="ai-low-conf">{t("detail_low_conf")}</div>
-            )}
-            {explain ? (
+          {explain ? (
+            <section className="detail-ai-board">
+              <div className="detail-ai-head">
+                <h2>{t("detail_why")}</h2>
+              </div>
               <div className="ai-explain">
                 <p className="ai-conf">
                   {t("detail_confidence", { level: explain.confidence_level })}
                   {explain.confidence_reason ? ` — ${explain.confidence_reason}` : ""}
                 </p>
-                <p className="ai-explain-title">{t("detail_why")}</p>
                 {explain.rows.length > 0 ? (
                   <dl className="ai-explain-list">
                     {explain.rows.map((row) => (
@@ -175,8 +174,8 @@ export function CardDetailView({
                   <p className="ai-board-caption">{t("detail_explain_need")}</p>
                 )}
               </div>
-            ) : null}
-          </section>
+            </section>
+          ) : null}
         </div>
 
         <aside className="detail-side">
