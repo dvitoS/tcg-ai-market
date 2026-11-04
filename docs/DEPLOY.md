@@ -1,12 +1,11 @@
 # Kestrel deploy + custom domain (Creem)
 
-Goal: public Soft Ink web on **your** domain (not `*.streamlit.app`), so Creem / payments accept the store URL.
+Goal: public Soft Ink web on **your** domain, so Creem / payments accept the store URL.
 
 ```
-Users  →  https://app.YOURDOMAIN.com     (Vercel — Soft Ink Next.js in /web)  ← primary
+Users  →  https://app.YOURDOMAIN.com     (Vercel — Soft Ink Next.js in /web)
        →  https://api.YOURDOMAIN.com     (Railway/Render — FastAPI in /api)
        →  Supabase (Auth + Postgres)
-Optional legacy: Streamlit Community Cloud until you turn it off (set SOFT_INK_URL there for a banner).
 ```
 
 ## 1. Domain
@@ -94,16 +93,14 @@ After Creem accepts your custom domain:
 7. Smoke: locked Dealer shows **Upgrade** → pay → land on `/pro/success` →
    sign in with checkout email → Dealer unlocks.
 
-## 6. Cutover order
+## 6. Go-live smoke
 
-1. API live + `/api/health` green with real Supabase.
+1. API live + `/api/health` green with real Supabase (`source: supabase`).
 2. Soft Ink live on custom domain talking to API.
 3. Smoke: Landing → Browse → Detail → Portfolio login → Scanner → Dealer sample CSV → Pro.
-4. Creem product + webhook + `PRO_CHECKOUT_URL` (section 5).
-5. On Streamlit Cloud Secrets set `SOFT_INK_URL=https://app.YOURDOMAIN.com` (migration banner).
-6. When Soft Ink smoke is green: turn off Streamlit Community Cloud (or unlisted + stop).
+4. Creem product + webhook + `PRO_CHECKOUT_URL` (section 5); lock with `PRO_OPEN=0` when charging.
 
 ## 7. Secrets never to commit
 
-- `.env`, `web/.env.local`, Streamlit secrets
+- `.env`, `web/.env.local`
 - `SUPABASE_KEY` (service_role) only on API host — never in Vercel browser env
