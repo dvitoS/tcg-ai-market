@@ -19,6 +19,8 @@ from api.portfolio_service import (
     list_watchlist,
     portfolio_summary,
     remove_watch,
+    sell_lot,
+    update_lot,
 )
 from api.schemas import (
     AddLotRequest,
@@ -26,6 +28,8 @@ from api.schemas import (
     PortfolioLot,
     PortfolioResponse,
     PortfolioSummary,
+    SellLotRequest,
+    UpdateLotRequest,
     WatchAlertItem,
     WatchAlertsResponse,
     WatchlistItem,
@@ -86,6 +90,65 @@ def create_lot(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=f"Could not add lot: {exc}",
         ) from exc
+    return PortfolioLot(**lot)
+
+
+@router.patch("/portfolio/lots/{entry_id}", response_model=PortfolioLot)
+def patch_lot(
+    entry_id: int,
+    body: UpdateLotRequest,
+    user: Annotated[dict, Depends(require_user)],
+    authorization: Annotated[str | None, Header()] = None,
+) -> PortfolioLot:
+    token = bearer_from_authorization(authorization)
+    try:
+        lot = update_lot(
+            user_id=str(user["id"]),
+            entry_id=entry_id,
+            quantity=body.quantity,
+            purchase_price=body.purchase_price,
+            condition=body.condition,
+            grade=body.grade,
+            purchase_date=body.purchase_date,
+            access_token=token,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Could not update lot: {exc}",
+        ) from exc
+    if lot is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lot not found.")
+    return PortfolioLot(**lot)
+
+
+@router.post("/portfolio/lots/{entry_id}/sell", response_model=PortfolioLot)
+def mark_lot_sold(
+    entry_id: int,
+    body: SellLotRequest,
+    user: Annotated[dict, Depends(require_user)],
+    authorization: Annotated[str | None, Header()] = None,
+) -> PortfolioLot:
+    token = bearer_from_authorization(authorization)
+    try:
+        lot = sell_lot(
+            user_id=str(user["id"]),
+            entry_id=entry_id,
+            sale_price=body.sale_price,
+            sale_date=body.sale_date,
+            access_token=token,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Could not sell lot: {exc}",
+        ) from exc
+    if lot is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Lot not found.")
     return PortfolioLot(**lot)
 
 

@@ -81,6 +81,8 @@ export type PortfolioLot = {
   condition?: string | null;
   grade?: string | null;
   status?: string;
+  sale_price?: number | null;
+  sale_date?: string | null;
   name?: string | null;
   rarity?: string | null;
   set_name?: string | null;

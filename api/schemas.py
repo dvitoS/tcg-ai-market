@@ -167,6 +167,19 @@ class AddLotRequest(BaseModel):
     purchase_date: str | None = None
 
 
+class UpdateLotRequest(BaseModel):
+    quantity: int | None = None
+    purchase_price: float | None = None
+    condition: str | None = None
+    grade: str | None = None
+    purchase_date: str | None = None
+
+
+class SellLotRequest(BaseModel):
+    sale_price: float
+    sale_date: str | None = None
+
+
 class WatchlistItem(BaseModel):
     id: int | str | None = None
     user_id: str | None = None
