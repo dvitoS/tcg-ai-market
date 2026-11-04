@@ -61,10 +61,20 @@ def _as_dict(value: Any) -> dict[str, Any]:
 
 
 def _email_from_object(obj: dict[str, Any]) -> str | None:
-    customer = _as_dict(obj.get("customer"))
-    email = str(customer.get("email") or "").strip().lower()
-    if email:
-        return email
+    """Best-effort customer email from Creem checkout / subscription payloads."""
+    customer = obj.get("customer")
+    if isinstance(customer, dict):
+        email = str(customer.get("email") or "").strip().lower()
+        if email:
+            return email
+    # Some payloads nest customer under order or subscription.
+    for nest_key in ("order", "subscription"):
+        nested = _as_dict(obj.get(nest_key))
+        nested_customer = nested.get("customer")
+        if isinstance(nested_customer, dict):
+            email = str(nested_customer.get("email") or "").strip().lower()
+            if email:
+                return email
     meta = _as_dict(obj.get("metadata"))
     for key in ("email", "user_email", "customer_email"):
         alt = str(meta.get(key) or "").strip().lower()

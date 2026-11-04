@@ -101,6 +101,11 @@ def grant_pro_entitlement(
     if creem_checkout_id:
         row["creem_checkout_id"] = creem_checkout_id
 
+    # Prefer insert → update: more reliable than PostgREST on_conflict with
+    # a unique index that may not be exposed as a constraint name.
+    merged = _grant_manual_merge(row)
+    if merged is not None:
+        return merged
     try:
         res = (
             _client()
@@ -111,10 +116,8 @@ def grant_pro_entitlement(
         data = getattr(res, "data", None) or []
         return data[0] if data else row
     except Exception as exc:
-        # Unique index is on lower(email); PostgREST upsert needs a UNIQUE
-        # constraint name. Fall back to select+update/insert when needed.
-        LOG.info("pro_entitlements upsert failed (%s); trying manual merge", exc)
-        return _grant_manual_merge(row)
+        LOG.exception("pro_entitlements upsert failed for %s: %s", key, exc)
+        return None
 
 
 def _grant_manual_merge(row: dict[str, Any]) -> dict[str, Any] | None:

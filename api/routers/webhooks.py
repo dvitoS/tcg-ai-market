@@ -24,7 +24,11 @@ async def creem_webhook(request: Request) -> dict:
         )
 
     raw = await request.body()
-    signature = request.headers.get("creem-signature")
+    signature = (
+        request.headers.get("creem-signature")
+        or request.headers.get("Creem-Signature")
+        or request.headers.get("x-creem-signature")
+    )
     if not verify_creem_signature(raw, signature, secret):
         LOG.warning("Rejected Creem webhook: bad signature")
         raise HTTPException(
@@ -46,6 +50,17 @@ async def creem_webhook(request: Request) -> dict:
             detail="Webhook payload must be an object.",
         )
 
+    event_type = str(payload.get("eventType") or payload.get("event_type") or "")
+    event_id = str(payload.get("id") or "")
+    LOG.info("Creem webhook received id=%s type=%s", event_id, event_type)
+
     result = handle_creem_event(payload)
     LOG.info("Creem webhook handled: %s", result)
+
+    # Non-ok grants must not ack 200 — Creem only retries on non-2xx.
+    if not result.get("ok", False) and result.get("action") in {"grant", "revoke"}:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=result,
+        )
     return result
