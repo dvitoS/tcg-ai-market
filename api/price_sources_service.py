@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import threading
 import time
+from datetime import date, timedelta
 from typing import Any
 
 from api.catalog_service import load_board, load_card_history
@@ -12,13 +13,15 @@ from justtcg_client import JustTCGRateLimitError, justtcg_api_key, normalize_car
 
 LOG = logging.getLogger("kestrel.api.price_sources")
 
-# Soft Ink used to live-call JustTCG on every card detail mount (no TTL).
-# Free tier is ~100 req/day — cache successful (and empty) live payloads in-process.
+# Soft Ink used to live-call JustTCG NM+PSA on every card detail mount.
+# Nightly already writes JustTCG NM into price_history — prefer that for NM.
 _SOURCES_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
 _SOURCES_CACHE_LOCK = threading.Lock()
 _SOURCES_CACHE_TTL_SECONDS = 45 * 60
 _SOURCES_CACHE_EMPTY_TTL_SECONDS = 15 * 60
 _SOURCES_CACHE_MAX = 256
+_DB_NM_MIN_POINTS = 7
+_DB_NM_MAX_AGE_DAYS = 3
 
 
 def clear_price_sources_cache() -> None:
@@ -40,6 +43,17 @@ def _points_from_rows(rows: list[dict[str, Any]] | None) -> list[dict[str, Any]]
             continue
     out.sort(key=lambda p: p["date"])
     return out
+
+
+def _market_history_is_fresh(market: list[dict[str, Any]]) -> bool:
+    """True when nightly/DB NM series is usable — skip a live JustTCG NM call."""
+    if len(market) < _DB_NM_MIN_POINTS:
+        return False
+    try:
+        last = date.fromisoformat(str(market[-1]["date"])[:10])
+    except (TypeError, ValueError, KeyError):
+        return False
+    return last >= date.today() - timedelta(days=_DB_NM_MAX_AGE_DAYS)
 
 
 def _resolve_tcp_from_board(card_id: str) -> tuple[str, str, str | None]:
@@ -114,12 +128,19 @@ def build_card_price_sources(card_id: str, *, limit: int = 180) -> dict[str, Any
     justtcg: list[dict[str, Any]] = []
     justtcg_error: str | None = None
     justtcg_fallback = False
+    justtcg_from_db = False
     psa10: list[dict[str, Any]] = []
     psa10_error: str | None = None
     psa10_stats: dict[str, Any] = {}
     rate_limited = False
+    use_db_nm = _market_history_is_fresh(market)
 
-    if has_key:
+    if has_key and use_db_nm:
+        # Nightly JustTCG NM sync already populated price_history — don't re-burn quota.
+        justtcg = list(market)
+        justtcg_from_db = True
+        LOG.info("using DB NM history for %s (%s pts) — skip live JustTCG NM", card_id, len(market))
+    elif has_key:
         try:
             from justtcg_client import nm_history_for_card
 
@@ -136,7 +157,6 @@ def build_card_price_sources(card_id: str, *, limit: int = 180) -> dict[str, Any
             rate_limited = True
             justtcg_error = "JustTCG rate limited — try again later."
             LOG.warning("nm_history_for_card rate-limited for %s", card_id)
-            # Avoid a second live call (PSA10) that would also 429.
             _ = exc
         except Exception as exc:
             justtcg_error = str(exc)[:180]
@@ -146,27 +166,27 @@ def build_card_price_sources(card_id: str, *, limit: int = 180) -> dict[str, Any
             justtcg = list(market)
             justtcg_fallback = True
 
-        if not rate_limited:
-            try:
-                from justtcg_client import psa10_history_for_card
+    if has_key and not rate_limited:
+        try:
+            from justtcg_client import psa10_history_for_card
 
-                points, resolved, stats = psa10_history_for_card(
-                    tcgplayer_id=tcp,
-                    name=name,
-                    number=number or None,
-                    set_name=set_name or None,
-                )
-                if resolved:
-                    tcp = str(resolved)
-                psa10 = _points_from_rows(points)
-                psa10_stats = dict(stats or {})
-            except JustTCGRateLimitError:
-                rate_limited = True
-                psa10_error = "JustTCG rate limited — try again later."
-                LOG.warning("psa10_history_for_card rate-limited for %s", card_id)
-            except Exception as exc:
-                psa10_error = str(exc)[:180]
-                LOG.info("psa10_history_for_card failed for %s: %s", card_id, exc)
+            points, resolved, stats = psa10_history_for_card(
+                tcgplayer_id=tcp,
+                name=name,
+                number=number or None,
+                set_name=set_name or None,
+            )
+            if resolved:
+                tcp = str(resolved)
+            psa10 = _points_from_rows(points)
+            psa10_stats = dict(stats or {})
+        except JustTCGRateLimitError:
+            rate_limited = True
+            psa10_error = "JustTCG rate limited — try again later."
+            LOG.warning("psa10_history_for_card rate-limited for %s", card_id)
+        except Exception as exc:
+            psa10_error = str(exc)[:180]
+            LOG.info("psa10_history_for_card failed for %s: %s", card_id, exc)
 
     payload = {
         "card_id": card_id,
@@ -177,6 +197,7 @@ def build_card_price_sources(card_id: str, *, limit: int = 180) -> dict[str, Any
         "tcgplayer": market,
         "justtcg": justtcg,
         "justtcg_fallback": justtcg_fallback,
+        "justtcg_from_db": justtcg_from_db,
         "justtcg_error": justtcg_error,
         "psa10": psa10,
         "psa10_error": psa10_error,
@@ -188,15 +209,13 @@ def build_card_price_sources(card_id: str, *, limit: int = 180) -> dict[str, Any
         "cache": "miss",
     }
 
-    # Don't cache rate-limited / hard-error payloads — allow a later retry.
-    if has_key and not rate_limited and justtcg_error is None and psa10_error is None:
-        has_live = (bool(justtcg) and not justtcg_fallback) or bool(psa10)
+    # Cache DB-first + successful live payloads. Skip 429 / hard errors.
+    if not rate_limited and justtcg_error is None and psa10_error is None:
         ttl = (
             _SOURCES_CACHE_TTL_SECONDS
-            if has_live
+            if (justtcg or psa10 or market)
             else _SOURCES_CACHE_EMPTY_TTL_SECONDS
         )
-        # Cache hits and empty/fallback misses so Soft Ink remounts don't re-burn quota.
         _cache_put(cache_key, {k: v for k, v in payload.items() if k != "cache"}, ttl=ttl)
 
     return payload

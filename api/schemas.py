@@ -165,6 +165,7 @@ class CardPriceSourcesResponse(BaseModel):
     tcgplayer: list[HistoryPoint] = Field(default_factory=list)
     justtcg: list[HistoryPoint] = Field(default_factory=list)
     justtcg_fallback: bool = False
+    justtcg_from_db: bool = False
     justtcg_error: str | None = None
     psa10: list[HistoryPoint] = Field(default_factory=list)
     psa10_error: str | None = None

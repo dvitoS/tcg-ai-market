@@ -90,6 +90,7 @@ export type CardPriceSourcesResponse = {
   tcgplayer: HistoryPoint[];
   justtcg: HistoryPoint[];
   justtcg_fallback: boolean;
+  justtcg_from_db?: boolean;
   justtcg_error?: string | null;
   psa10: HistoryPoint[];
   psa10_error?: string | null;

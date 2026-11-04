@@ -149,6 +149,50 @@ def test_card_price_sources_caches_live_justtcg(monkeypatch) -> None:
     assert second.json()["justtcg"][0]["price"] == 9.0
 
 
+def test_card_price_sources_uses_fresh_db_nm_without_live_call(monkeypatch) -> None:
+    """Fresh nightly price_history should skip live JustTCG NM (quota)."""
+    from datetime import date, timedelta
+
+    calls = {"nm": 0, "psa": 0}
+    today = date.today()
+    market = [
+        {"date": (today - timedelta(days=i)).isoformat(), "price": 10.0 + i}
+        for i in range(14, -1, -1)
+    ]
+
+    def _nm(**kwargs):
+        calls["nm"] += 1
+        return ([{"date": today.isoformat(), "price": 99.0}], "tcp-db")
+
+    def _psa(**kwargs):
+        calls["psa"] += 1
+        return (
+            [{"date": today.isoformat(), "price": 50.0}],
+            "tcp-db",
+            {"has_history_series": True, "period_key": "30d", "sales_count": 3},
+        )
+
+    monkeypatch.setattr("api.price_sources_service.justtcg_api_key", lambda: "test-key")
+    monkeypatch.setattr("justtcg_client.nm_history_for_card", _nm)
+    monkeypatch.setattr("justtcg_client.psa10_history_for_card", _psa)
+    monkeypatch.setattr(
+        "api.price_sources_service.load_card_history",
+        lambda card_id, limit=180: market,
+    )
+
+    client = TestClient(app)
+    res = client.get("/api/cards/fresh-db-card/sources")
+    assert res.status_code == 200
+    body = res.json()
+    assert calls["nm"] == 0
+    assert calls["psa"] == 1
+    assert body["justtcg_from_db"] is True
+    assert body["justtcg_fallback"] is False
+    assert len(body["justtcg"]) == 15
+    assert body["justtcg"][-1]["price"] == market[-1]["price"]
+    assert len(body["psa10"]) == 1
+
+
 def test_card_price_sources_skips_psa10_after_nm_rate_limit(monkeypatch) -> None:
     calls = {"psa": 0}
 
