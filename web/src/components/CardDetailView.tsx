@@ -176,7 +176,11 @@ export function CardDetailView({
         </div>
 
         <aside className="detail-side">
-          <PriceChart points={points} predictedPrice={card.predicted_price} />
+          <PriceChart
+            cardId={card.id}
+            points={points}
+            predictedPrice={card.predicted_price}
+          />
           <EbayComps cardId={card.id} cardName={card.name} />
         </aside>
       </div>

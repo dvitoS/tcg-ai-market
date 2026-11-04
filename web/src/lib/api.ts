@@ -2,6 +2,7 @@ import type {
   AuthUser,
   CardDetailResponse,
   CardHistoryResponse,
+  CardPriceSourcesResponse,
   CatalogMode,
   CatalogResponse,
   DealerResponse,
@@ -142,6 +143,23 @@ export async function fetchCardHistory(
     throw new Error(`Card history failed (${res.status})`);
   }
   return res.json() as Promise<CardHistoryResponse>;
+}
+
+export async function fetchCardPriceSources(
+  cardId: string,
+  limit = 180,
+): Promise<CardPriceSourcesResponse> {
+  const res = await fetch(
+    apiUrl(`/api/cards/${encodeURIComponent(cardId)}/sources?limit=${limit}`),
+    {
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+    },
+  );
+  if (!res.ok) {
+    throw new Error(`Card price sources failed (${res.status})`);
+  }
+  return res.json() as Promise<CardPriceSourcesResponse>;
 }
 
 export async function fetchEbayComps(

@@ -6,10 +6,12 @@ from fastapi import APIRouter, HTTPException, Query, status
 
 from api.catalog_service import history_stats, load_board, load_card_history, row_to_card
 from api.explain_service import build_card_explain
+from api.price_sources_service import build_card_price_sources
 from api.schemas import (
     CardDetailResponse,
     CardExplain,
     CardHistoryResponse,
+    CardPriceSourcesResponse,
     CatalogCard,
     EbayCompsResponse,
     EbayListing,
@@ -17,6 +19,7 @@ from api.schemas import (
     ExplainRow,
     HistoryPoint,
     HistoryStats,
+    Psa10Stats,
 )
 from services.ebay_listings import build_ebay_detail_payload
 
@@ -85,6 +88,28 @@ def card_history(
         card_id=str(card_id),
         points=points,
         stats=HistoryStats(**history_stats(raw)),
+    )
+
+
+@router.get("/{card_id}/sources", response_model=CardPriceSourcesResponse)
+def card_price_sources(
+    card_id: str,
+    limit: int = Query(default=180, ge=7, le=730),
+) -> CardPriceSourcesResponse:
+    payload = build_card_price_sources(str(card_id), limit=limit)
+    return CardPriceSourcesResponse(
+        card_id=str(payload["card_id"]),
+        name=str(payload["name"]),
+        set_name=payload.get("set_name"),
+        tcgplayer_id=payload.get("tcgplayer_id"),
+        justtcg_configured=bool(payload.get("justtcg_configured")),
+        tcgplayer=[HistoryPoint(**p) for p in payload.get("tcgplayer") or []],
+        justtcg=[HistoryPoint(**p) for p in payload.get("justtcg") or []],
+        justtcg_fallback=bool(payload.get("justtcg_fallback")),
+        justtcg_error=payload.get("justtcg_error"),
+        psa10=[HistoryPoint(**p) for p in payload.get("psa10") or []],
+        psa10_error=payload.get("psa10_error"),
+        psa10_stats=Psa10Stats(**(payload.get("psa10_stats") or {})),
     )
 
 
