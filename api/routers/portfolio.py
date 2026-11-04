@@ -6,6 +6,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 
+from api.alerts_service import collect_user_watchlist_alerts
 from api.demo_mode import demo_mode
 from api.deps import require_user
 from api.portfolio_service import (
@@ -25,6 +26,8 @@ from api.schemas import (
     PortfolioLot,
     PortfolioResponse,
     PortfolioSummary,
+    WatchAlertItem,
+    WatchAlertsResponse,
     WatchlistItem,
     WatchlistResponse,
 )
@@ -115,6 +118,44 @@ def get_watchlist(
     return WatchlistResponse(
         items=[WatchlistItem(**row) for row in items],
         demo=demo_mode(),
+    )
+
+
+@router.get("/watchlist/alerts", response_model=WatchAlertsResponse)
+def get_watchlist_alerts(
+    user: Annotated[dict, Depends(require_user)],
+    authorization: Annotated[str | None, Header()] = None,
+    threshold_pct: float = Query(default=5.0, ge=1.0, le=50.0),
+    sure_only: bool = Query(default=True),
+    dismissed: str | None = Query(
+        default=None,
+        description="Comma-separated card ids to hide from the digest.",
+    ),
+) -> WatchAlertsResponse:
+    token = bearer_from_authorization(authorization)
+    dismissed_ids = [part.strip() for part in (dismissed or "").split(",") if part.strip()]
+    try:
+        payload = collect_user_watchlist_alerts(
+            user_id=str(user["id"]),
+            threshold_pct=threshold_pct,
+            sure_only=sure_only,
+            access_token=token,
+            dismissed=dismissed_ids,
+            user=user,
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Watchlist alerts unavailable: {exc}",
+        ) from exc
+    return WatchAlertsResponse(
+        items=[WatchAlertItem(**row) for row in payload["items"]],
+        threshold_pct=float(payload["threshold_pct"]),
+        sure_only=bool(payload["sure_only"]),
+        sure_only_allowed=bool(payload["sure_only_allowed"]),
+        watch_count=int(payload["watch_count"]),
+        demo=bool(payload["demo"]),
+        source=payload["source"],
     )
 
 

@@ -6,9 +6,7 @@ import logging
 from dataclasses import dataclass
 
 import pandas as pd
-import streamlit as st
 
-from i18n import signal_label, t
 from trading_signals import SIGNAL_BUY, SIGNAL_SELL
 
 LOG = logging.getLogger("tcg.alerts")
@@ -29,7 +27,14 @@ class WatchAlert:
     sure: bool = False
 
 
+def _streamlit():
+    import streamlit as st
+
+    return st
+
+
 def _dismissed() -> set[str]:
+    st = _streamlit()
     raw = st.session_state.setdefault("_watch_alert_dismissed", set())
     if not isinstance(raw, set):
         raw = set(raw)
@@ -42,7 +47,7 @@ def dismiss_watch_alert(card_id: str) -> None:
 
 
 def clear_watch_alert_dismissals() -> None:
-    st.session_state["_watch_alert_dismissed"] = set()
+    _streamlit().session_state["_watch_alert_dismissed"] = set()
 
 
 def _cell(q, key: str, default=None):
@@ -168,6 +173,8 @@ def collect_watchlist_alerts(
 
 
 def _alert_body(alert: WatchAlert, *, money_fmt) -> str:
+    from i18n import signal_label, t
+
     if alert.reason == "price" and alert.price_change_pct is not None:
         return t(
             "alert_watch_body_price",
@@ -193,8 +200,16 @@ def _alert_body(alert: WatchAlert, *, money_fmt) -> str:
     )
 
 
+def alert_body_text(alert: WatchAlert, *, money_fmt) -> str:
+    """Public helper for Soft Ink / API digest lines (no Streamlit)."""
+    return _alert_body(alert, money_fmt=money_fmt)
+
+
 def render_watchlist_alerts(alerts: list[WatchAlert], *, money_fmt) -> None:
     """Show dismissible banners for active watchlist alerts."""
+    st = _streamlit()
+    from i18n import t
+
     if not alerts:
         return
     for alert in alerts[:5]:
@@ -226,6 +241,9 @@ def render_watchlist_digest(
     sure_only: bool = False,
 ) -> None:
     """In-app digest panel (portfolio) — denser than top banners."""
+    st = _streamlit()
+    from i18n import t
+
     if not alerts:
         empty_key = "alert_digest_empty_sure" if sure_only else "alert_digest_empty"
         st.caption(t(empty_key, pct=threshold_pct))
@@ -250,6 +268,9 @@ def safe_collect_and_render_alerts(
     sure_only: bool = True,
 ) -> None:
     """Load watchlist + render alerts; log failures instead of silent pass."""
+    st = _streamlit()
+    from i18n import t
+
     if not user_id:
         return
     try:
