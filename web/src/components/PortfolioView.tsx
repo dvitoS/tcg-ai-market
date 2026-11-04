@@ -5,6 +5,7 @@ import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
+import { PortfolioBarsChart } from "@/components/PortfolioBarsChart";
 import {
   deletePortfolioLot,
   fetchPortfolio,
@@ -13,6 +14,8 @@ import {
   formatChange,
   formatMoney,
   removeWatchlistCard,
+  sellPortfolioLot,
+  updatePortfolioLot,
 } from "@/lib/api";
 import type {
   PortfolioLot,
@@ -20,6 +23,8 @@ import type {
   WatchAlertItem,
   WatchlistItem,
 } from "@/lib/types";
+
+const CONDITIONS = ["NM", "LP", "MP", "HP", "DMG"];
 
 const ALERT_DISMISS_KEY = "kestrel_watch_alert_dismissed";
 const ALERT_THRESHOLD_KEY = "kestrel_watch_alert_threshold";
@@ -73,6 +78,12 @@ export function PortfolioView() {
   const [thresholdPct, setThresholdPct] = useState(5);
   const [sureOnly, setSureOnly] = useState(true);
   const [dismissed, setDismissed] = useState<string[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editQty, setEditQty] = useState(1);
+  const [editCost, setEditCost] = useState(1);
+  const [editCondition, setEditCondition] = useState("NM");
+  const [salePrice, setSalePrice] = useState(1);
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -88,7 +99,7 @@ export function PortfolioView() {
     setError(null);
     try {
       const [portfolio, watchlist, digest] = await Promise.all([
-        fetchPortfolio(),
+        fetchPortfolio({ include_sold: true }),
         fetchWatchlist(),
         fetchWatchlistAlerts({
           threshold_pct: thresholdPct,
@@ -119,6 +130,30 @@ export function PortfolioView() {
     return `AI ROI or 7d price move ≥ ${thresholdPct.toFixed(0)}% on cards you watch.`;
   }, [sureOnly, thresholdPct]);
 
+  const openLots = useMemo(
+    () => lots.filter((lot) => String(lot.status || "open").toLowerCase() !== "sold"),
+    [lots],
+  );
+  const soldLots = useMemo(
+    () => lots.filter((lot) => String(lot.status || "").toLowerCase() === "sold"),
+    [lots],
+  );
+
+  function beginEdit(lot: PortfolioLot) {
+    setEditingId(String(lot.id));
+    setEditQty(Math.max(1, Number(lot.quantity) || 1));
+    setEditCost(Math.max(0.0001, Number(lot.purchase_price) || 1));
+    const cond = String(lot.condition || "NM");
+    setEditCondition(CONDITIONS.includes(cond) ? cond : "NM");
+    setSalePrice(
+      Math.max(
+        0.0001,
+        Number(lot.current_price ?? lot.market_price ?? lot.purchase_price) || 1,
+      ),
+    );
+    setNotice(null);
+  }
+
   useEffect(() => {
     if (authLoading) return;
     if (!user) return;
@@ -141,11 +176,53 @@ export function PortfolioView() {
 
   async function onRemoveLot(id: number | string) {
     setBusy(true);
+    setNotice(null);
     try {
       await deletePortfolioLot(id);
+      if (editingId === String(id)) setEditingId(null);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not remove lot");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onSaveLot(event: FormEvent) {
+    event.preventDefault();
+    if (!editingId) return;
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      await updatePortfolioLot(editingId, {
+        quantity: editQty,
+        purchase_price: editCost,
+        condition: editCondition,
+      });
+      setNotice("Lot updated.");
+      setEditingId(null);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not update lot");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onSellLot(event: FormEvent) {
+    event.preventDefault();
+    if (!editingId) return;
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      await sellPortfolioLot(editingId, { sale_price: salePrice });
+      setNotice("Lot marked sold.");
+      setEditingId(null);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not sell lot");
     } finally {
       setBusy(false);
     }
@@ -255,6 +332,7 @@ export function PortfolioView() {
       </div>
 
       {error ? <p className="banner-error">{error}</p> : null}
+      {notice ? <p className="banner-ok">{notice}</p> : null}
 
       <div className="alert-digest" aria-live="polite">
         <div className="alert-digest-head">
@@ -359,14 +437,16 @@ export function PortfolioView() {
         </div>
       </div>
 
+      <PortfolioBarsChart lots={openLots} />
+
       <div className="portfolio-section-head">
-        <h2>Open lots · {summary.lots}</h2>
+        <h2>Open lots · {openLots.length}</h2>
         <button type="button" className="btn-ghost" disabled={busy} onClick={() => void load()}>
           Refresh
         </button>
       </div>
 
-      {lots.length === 0 ? (
+      {openLots.length === 0 ? (
         <p className="empty-state">
           No lots yet. Open a card from{" "}
           <Link href="/" className="inline-link">
@@ -376,8 +456,11 @@ export function PortfolioView() {
         </p>
       ) : (
         <div className="lot-grid">
-          {lots.map((lot) => (
-            <article key={String(lot.id)} className="lot-card">
+          {openLots.map((lot) => (
+            <article
+              key={String(lot.id)}
+              className={`lot-card${editingId === String(lot.id) ? " lot-card-active" : ""}`}
+            >
               <Link href={`/cards/${encodeURIComponent(lot.card_id)}`} className="lot-art">
                 <Image
                   src={lot.image_url || "/kestrel-logo.png"}
@@ -403,19 +486,124 @@ export function PortfolioView() {
                     {lot.signal}
                   </span>
                 ) : null}
-                <button
-                  type="button"
-                  className="btn-ghost lot-remove"
-                  disabled={busy}
-                  onClick={() => void onRemoveLot(lot.id)}
-                >
-                  Remove
-                </button>
+                <div className="lot-actions">
+                  <button
+                    type="button"
+                    className="btn-ghost"
+                    disabled={busy}
+                    onClick={() => beginEdit(lot)}
+                  >
+                    Edit / sell
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-ghost lot-remove"
+                    disabled={busy}
+                    onClick={() => void onRemoveLot(lot.id)}
+                  >
+                    Remove
+                  </button>
+                </div>
               </div>
             </article>
           ))}
         </div>
       )}
+
+      {editingId ? (
+        <div className="lot-edit-panel">
+          <h2>Edit lot #{editingId}</h2>
+          <form className="lot-edit-form" onSubmit={onSaveLot}>
+            <label>
+              <span>Quantity</span>
+              <input
+                type="number"
+                min={1}
+                step={1}
+                value={editQty}
+                disabled={busy}
+                onChange={(e) => setEditQty(Math.max(1, Number(e.target.value) || 1))}
+              />
+            </label>
+            <label>
+              <span>Purchase price</span>
+              <input
+                type="number"
+                min={0.0001}
+                step={0.01}
+                value={editCost}
+                disabled={busy}
+                onChange={(e) => setEditCost(Math.max(0.0001, Number(e.target.value) || 0.0001))}
+              />
+            </label>
+            <label>
+              <span>Condition</span>
+              <select
+                value={editCondition}
+                disabled={busy}
+                onChange={(e) => setEditCondition(e.target.value)}
+              >
+                {CONDITIONS.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="lot-edit-actions">
+              <button type="submit" className="btn-primary" disabled={busy}>
+                Save lot
+              </button>
+              <button
+                type="button"
+                className="btn-ghost"
+                disabled={busy}
+                onClick={() => setEditingId(null)}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+          <form className="lot-sell-form" onSubmit={onSellLot}>
+            <label>
+              <span>Sale price</span>
+              <input
+                type="number"
+                min={0.0001}
+                step={0.01}
+                value={salePrice}
+                disabled={busy}
+                onChange={(e) => setSalePrice(Math.max(0.0001, Number(e.target.value) || 0.0001))}
+              />
+            </label>
+            <button type="submit" className="btn-primary" disabled={busy}>
+              Mark sold
+            </button>
+          </form>
+        </div>
+      ) : null}
+
+      {soldLots.length > 0 ? (
+        <>
+          <div className="portfolio-section-head">
+            <h2>Sold lots · {soldLots.length}</h2>
+          </div>
+          <div className="sold-list">
+            {soldLots.map((lot) => (
+              <div key={String(lot.id)} className="sold-row">
+                <Link href={`/cards/${encodeURIComponent(lot.card_id)}`} className="lot-name">
+                  {lot.name || lot.card_id}
+                </Link>
+                <span>
+                  {lot.quantity}× · cost {formatMoney(lot.purchase_price)} · sold{" "}
+                  {formatMoney(lot.sale_price)}
+                </span>
+                <span className="lot-meta">{lot.sale_date || "—"}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      ) : null}
 
       <div className="portfolio-section-head" id="watchlist">
         <h2>Watchlist · {watch.length}</h2>

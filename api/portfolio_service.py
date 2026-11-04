@@ -306,6 +306,115 @@ def delete_lot(*, user_id: str, entry_id: int, access_token: str | None = None) 
         return bool(delete_portfolio_position(int(entry_id), user_id=user_id))
 
 
+def _find_demo_lot(user_id: str, entry_id: int) -> dict[str, Any] | None:
+    for lot in _DEMO_LOTS.get(user_id) or []:
+        if int(lot.get("id") or 0) == int(entry_id):
+            return lot
+    return None
+
+
+def update_lot(
+    *,
+    user_id: str,
+    entry_id: int,
+    quantity: int | None = None,
+    purchase_price: float | None = None,
+    condition: str | None = None,
+    grade: str | None = None,
+    purchase_date: str | None = None,
+    access_token: str | None = None,
+) -> dict[str, Any] | None:
+    if demo_mode():
+        with _LOCK:
+            _seed_demo_user(user_id)
+            lot = _find_demo_lot(user_id, entry_id)
+            if lot is None:
+                return None
+            if str(lot.get("status") or "open").lower() == "sold":
+                raise ValueError("Sold lots cannot be edited.")
+            if quantity is not None:
+                if int(quantity) < 1:
+                    raise ValueError("Quantity must be at least 1.")
+                lot["quantity"] = int(quantity)
+            if purchase_price is not None:
+                if float(purchase_price) <= 0:
+                    raise ValueError("Purchase price must be greater than zero.")
+                lot["purchase_price"] = float(purchase_price)
+            if condition is not None:
+                lot["condition"] = (condition or "NM").strip() or "NM"
+            if grade is not None:
+                lot["grade"] = (grade or "").strip()
+            if purchase_date is not None:
+                lot["purchase_date"] = str(purchase_date)
+            return enrich_lots([dict(lot)])[0]
+
+    from database_user import load_portfolio_lots, update_portfolio_position
+
+    with _bind_user_jwt(access_token):
+        ok = update_portfolio_position(
+            int(entry_id),
+            user_id=user_id,
+            quantity=quantity,
+            purchase_price=purchase_price,
+            condition=condition,
+            grade=grade,
+            purchase_date=purchase_date,
+        )
+        if not ok:
+            return None
+        frame = load_portfolio_lots(user_id=user_id, include_sold=True)
+    if frame is None or frame.empty:
+        return None
+    hit = frame[frame["id"].astype(int) == int(entry_id)]
+    if hit.empty:
+        return None
+    return enrich_lots(hit.to_dict(orient="records"))[0]
+
+
+def sell_lot(
+    *,
+    user_id: str,
+    entry_id: int,
+    sale_price: float,
+    sale_date: str | None = None,
+    access_token: str | None = None,
+) -> dict[str, Any] | None:
+    if float(sale_price) <= 0:
+        raise ValueError("Sale price must be greater than zero.")
+    sold_on = sale_date or date.today().isoformat()
+    if demo_mode():
+        with _LOCK:
+            _seed_demo_user(user_id)
+            lot = _find_demo_lot(user_id, entry_id)
+            if lot is None:
+                return None
+            if str(lot.get("status") or "open").lower() == "sold":
+                raise ValueError("Lot already sold.")
+            lot["status"] = "sold"
+            lot["sale_price"] = float(sale_price)
+            lot["sale_date"] = sold_on
+            return enrich_lots([dict(lot)])[0]
+
+    from database_user import load_portfolio_lots, sell_portfolio_position
+
+    with _bind_user_jwt(access_token):
+        ok = sell_portfolio_position(
+            int(entry_id),
+            user_id=user_id,
+            sale_price=float(sale_price),
+            sale_date=sold_on,
+        )
+        if not ok:
+            return None
+        frame = load_portfolio_lots(user_id=user_id, include_sold=True)
+    if frame is None or frame.empty:
+        return None
+    hit = frame[frame["id"].astype(int) == int(entry_id)]
+    if hit.empty:
+        return None
+    return enrich_lots(hit.to_dict(orient="records"))[0]
+
+
 def list_watchlist(*, user_id: str, access_token: str | None = None) -> list[dict[str, Any]]:
     if demo_mode():
         with _LOCK:

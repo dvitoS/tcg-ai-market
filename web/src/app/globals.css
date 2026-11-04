@@ -466,6 +466,15 @@ a {
   margin-bottom: 1rem;
 }
 
+.banner-ok {
+  border: 1px solid rgba(90, 175, 120, 0.35);
+  border-radius: var(--radius);
+  background: rgba(26, 26, 26, 0.8);
+  color: #b6e0c4;
+  padding: 0.9rem 1rem;
+  margin-bottom: 1rem;
+}
+
 .detail-page {
   display: grid;
   gap: 1.1rem;
@@ -1175,6 +1184,112 @@ a {
   margin-top: 0.55rem;
   padding: 0.35rem 0.65rem;
   font-size: 0.78rem;
+}
+
+.lot-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.55rem;
+}
+
+.lot-actions .btn-ghost {
+  padding: 0.35rem 0.65rem;
+  font-size: 0.78rem;
+}
+
+.lot-card-active {
+  border-color: rgba(184, 115, 51, 0.55);
+  box-shadow: var(--shadow-soft);
+}
+
+.lot-edit-panel {
+  margin: 0 0 1.75rem;
+  padding: 1rem 1.05rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: rgba(26, 26, 26, 0.88);
+}
+
+.lot-edit-panel h2 {
+  margin: 0 0 0.75rem;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+}
+
+.lot-edit-form,
+.lot-sell-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  align-items: end;
+}
+
+.lot-edit-form {
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.lot-edit-form label,
+.lot-sell-form label {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.lot-edit-form label span,
+.lot-sell-form label span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.lot-edit-form input,
+.lot-edit-form select,
+.lot-sell-form input {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg0);
+  color: var(--text);
+  font: inherit;
+  padding: 0.5rem 0.65rem;
+  min-width: 7rem;
+}
+
+.lot-edit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.portfolio-bars {
+  margin: 0.35rem 0 1.25rem;
+}
+
+.sold-list {
+  display: grid;
+  gap: 0.45rem;
+  margin-bottom: 1.75rem;
+}
+
+.sold-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.6fr) auto;
+  gap: 0.55rem 1rem;
+  align-items: center;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(26, 26, 26, 0.65);
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+@media (max-width: 720px) {
+  .sold-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 .watch-list {

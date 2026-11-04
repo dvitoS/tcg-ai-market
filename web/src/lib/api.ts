@@ -193,8 +193,13 @@ export async function fetchMe(token?: string | null): Promise<{
   return res.json();
 }
 
-export async function fetchPortfolio(): Promise<PortfolioResponse> {
-  const res = await fetch(apiUrl("/api/portfolio"), {
+export async function fetchPortfolio(
+  opts: { include_sold?: boolean } = {},
+): Promise<PortfolioResponse> {
+  const params = new URLSearchParams();
+  if (opts.include_sold) params.set("include_sold", "true");
+  const qs = params.toString();
+  const res = await fetch(apiUrl(`/api/portfolio${qs ? `?${qs}` : ""}`), {
     headers: {
       Accept: "application/json",
       ...authHeaders(),
@@ -227,6 +232,52 @@ export async function addPortfolioLot(body: {
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
     throw new Error(detail || `Could not add lot (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function updatePortfolioLot(
+  entryId: number | string,
+  body: {
+    quantity?: number;
+    purchase_price?: number;
+    condition?: string;
+    grade?: string | null;
+    purchase_date?: string | null;
+  },
+): Promise<PortfolioLot> {
+  const res = await fetch(apiUrl(`/api/portfolio/lots/${entryId}`), {
+    method: "PATCH",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    throw new Error(detail || `Could not update lot (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function sellPortfolioLot(
+  entryId: number | string,
+  body: { sale_price: number; sale_date?: string | null },
+): Promise<PortfolioLot> {
+  const res = await fetch(apiUrl(`/api/portfolio/lots/${entryId}/sell`), {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    throw new Error(detail || `Could not sell lot (${res.status})`);
   }
   return res.json();
 }
