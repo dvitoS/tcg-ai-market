@@ -1960,40 +1960,27 @@ a {
   position: absolute;
   inset: 0;
   z-index: 0;
-  background:
-    radial-gradient(ellipse 55% 60% at 70% 40%, rgba(184, 115, 51, 0.22), transparent 70%),
-    linear-gradient(135deg, #14110e 0%, #0c0c0c 55%, #12100e 100%);
+  background: #0c0c0c;
+  overflow: hidden;
 }
 
 .landing-hero-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
-  object-position: center 18%;
-  transform: scale(1.04);
-  animation: landing-drift 18s ease-in-out infinite alternate;
-  opacity: 0.78;
-  filter: saturate(0.92) contrast(1.05);
-}
-
-.landing-hero-plane.is-fallback .landing-hero-img.is-mark {
-  object-fit: contain;
-  object-position: 72% 42%;
-  width: min(42vw, 420px) !important;
-  height: min(42vw, 420px) !important;
-  left: auto !important;
-  right: 8%;
-  top: 18% !important;
-  bottom: auto !important;
-  opacity: 0.28;
-  filter: none;
-  animation: landing-rise 1.2s ease both;
+  object-position: center right;
+  transform: scale(1.02);
+  animation: landing-drift 22s ease-in-out infinite alternate;
 }
 
 .landing-hero-veil {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(90deg, rgba(12, 12, 12, 0.92) 0%, rgba(12, 12, 12, 0.72) 42%, rgba(12, 12, 12, 0.28) 100%),
-    linear-gradient(180deg, rgba(12, 12, 12, 0.35) 0%, rgba(12, 12, 12, 0.15) 40%, rgba(12, 12, 12, 0.88) 100%);
+    linear-gradient(90deg, rgba(12, 12, 12, 0.78) 0%, rgba(12, 12, 12, 0.42) 46%, rgba(12, 12, 12, 0.12) 100%),
+    linear-gradient(180deg, rgba(12, 12, 12, 0.18) 0%, rgba(12, 12, 12, 0.08) 45%, rgba(12, 12, 12, 0.72) 100%);
   pointer-events: none;
 }
 
@@ -2116,12 +2103,12 @@ a {
   }
 
   .landing-hero-img {
-    object-position: center 12%;
+    object-position: 72% center;
   }
 
   .landing-hero-veil {
     background:
-      linear-gradient(180deg, rgba(12, 12, 12, 0.45) 0%, rgba(12, 12, 12, 0.55) 35%, rgba(12, 12, 12, 0.94) 100%);
+      linear-gradient(180deg, rgba(12, 12, 12, 0.35) 0%, rgba(12, 12, 12, 0.55) 40%, rgba(12, 12, 12, 0.92) 100%);
   }
 
   .landing-hero-copy {
