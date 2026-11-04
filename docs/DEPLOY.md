@@ -3,10 +3,10 @@
 Goal: public Soft Ink web on **your** domain (not `*.streamlit.app`), so Creem / payments accept the store URL.
 
 ```
-Users  →  https://app.YOURDOMAIN.com     (Vercel — Next.js in /web)
+Users  →  https://app.YOURDOMAIN.com     (Vercel — Soft Ink Next.js in /web)  ← primary
        →  https://api.YOURDOMAIN.com     (Railway/Render — FastAPI in /api)
        →  Supabase (Auth + Postgres)
-Streamlit can stay up until cutover.
+Optional legacy: Streamlit Community Cloud until you turn it off (set SOFT_INK_URL there for a banner).
 ```
 
 ## 1. Domain
@@ -94,10 +94,11 @@ After Creem accepts your custom domain:
 ## 6. Cutover order
 
 1. API live + `/api/health` green with real Supabase.
-2. Web live on custom domain talking to API.
-3. Smoke: Browse → Detail → Portfolio login → Scanner → Dealer sample CSV.
+2. Soft Ink live on custom domain talking to API.
+3. Smoke: Landing → Browse → Detail → Portfolio login → Scanner → Dealer sample CSV → Pro.
 4. Creem product + webhook + `PRO_CHECKOUT_URL` (section 5).
-5. Later: turn down Streamlit Community Cloud when Soft Ink replaces it.
+5. On Streamlit Cloud Secrets set `SOFT_INK_URL=https://app.YOURDOMAIN.com` (migration banner).
+6. When Soft Ink smoke is green: turn off Streamlit Community Cloud (or unlisted + stop).
 
 ## 7. Secrets never to commit
 

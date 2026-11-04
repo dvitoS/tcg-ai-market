@@ -65,6 +65,8 @@ _TEXT: dict[str, str] = {
         "explore_end": "End of results",
         "explore_empty": "No cards match these filters.",
         "brand_tagline": "Spot. Signal. Act.",
+        "soft_ink_banner": "Soft Ink is the primary Kestrel UI. This Streamlit app is legacy until cutover.",
+        "soft_ink_open": "Open Soft Ink",
         "badge_live": "Live JustTCG",
         "badge_saved": "Saved history",
         "badge_spot": "Spot only",

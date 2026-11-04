@@ -253,6 +253,14 @@ def _is_streamlit_cloud() -> bool:
     return Path("/mount/src").exists()
 
 
+def get_soft_ink_url() -> str:
+    """Public Soft Ink (Next.js) URL for Streamlit migration banner.
+
+    Prefers SOFT_INK_URL, then KESTREL_WEB_URL. Empty → no banner.
+    """
+    return _clean_secret_value(_secret("SOFT_INK_URL") or _secret("KESTREL_WEB_URL"))
+
+
 def auth_disabled() -> bool:
     """True when AUTH_DISABLED=1/true — bypass login for local development.
 

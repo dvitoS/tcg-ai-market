@@ -4,33 +4,15 @@ Pokémon TCG market signals — price history, XGBoost forecasts, portfolio/watc
 
 *(Repo folder may still be `tcg-ai-market`; product name is **Kestrel**.)*
 
-## Local
+## Local (Soft Ink — primary)
 
 ```bash
 python -m venv venv
 # Windows: .\venv\Scripts\activate
-pip install -r requirements-dev.txt
+pip install -r requirements.txt -r requirements-api.txt -r requirements-dev.txt
 cp .env.example .env   # fill keys
-streamlit run app.py
-```
 
-- `AUTH_DISABLED=1` skips login for single-user local work (ignored on Streamlit Cloud).
-- Tests: `pytest -q`
-
-## Web rewrite (Next.js + FastAPI) — in progress
-
-Streamlit stays the production UI until cutover. New surface:
-
-| Path | Role |
-|------|------|
-| `api/` | FastAPI over existing `services/` + `market_quotes` (falls back to `data/seed_tcg_market.db` demo) |
-| `web/` | Next.js Soft Ink — Browse, detail + chart, portfolio/watchlist, scanner, dealer |
-
-Without Supabase Auth credentials the API runs in **demo mode** (seeded lots + watchlist). With `SUPABASE_URL` + `SUPABASE_ANON_KEY`, login uses real Supabase email/password.
-
-```bash
 # API (repo root)
-pip install -r requirements.txt -r requirements-api.txt
 PYTHONPATH=. uvicorn api.main:app --reload --port 8000
 
 # Web (second terminal)
@@ -40,13 +22,23 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:3000` (Portfolio at `/portfolio`). Docs: `http://127.0.0.1:8000/docs`.
+Open `http://localhost:3000`. API docs: `http://127.0.0.1:8000/docs`. Tests: `pytest -q`.
+
+| Path | Role |
+|------|------|
+| `web/` | Soft Ink (Next.js) — **primary UI**: landing, browse, detail, portfolio, scanner, dealer, Pro |
+| `api/` | FastAPI over existing `services/` + `market_quotes` (demo seed without Supabase) |
+| `app.py` | Legacy Streamlit — keep until Community Cloud is turned off |
+
+Without Supabase Auth credentials the API runs in **demo mode**. With `SUPABASE_URL` + `SUPABASE_ANON_KEY`, Soft Ink login uses real email/password.
+
+Legacy local Streamlit: `AUTH_DISABLED=1 streamlit run app.py` (ignored on Streamlit Cloud). Optional migration banner: set `SOFT_INK_URL` (or `KESTREL_WEB_URL`) in `.env` / Secrets.
 
 ### Deploy + custom domain (Creem)
 
 See **[docs/DEPLOY.md](docs/DEPLOY.md)** — Vercel (`web/`) + Railway/Render API (`Dockerfile.api`, `railway.api.toml`) + `app.` / `api.` DNS so Creem accepts your store URL instead of `*.streamlit.app`.
 
-## Deploy checklist (Streamlit Cloud)
+## Deploy checklist (legacy Streamlit Cloud)
 
 Do this once per environment — saves hours of Cloud debug later.
 
