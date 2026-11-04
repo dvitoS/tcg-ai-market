@@ -9,6 +9,8 @@ import type {
   DealerResponse,
   DealerStatus,
   EbayCompsResponse,
+  RadarResponse,
+  RadarStatus,
   PortfolioLot,
   PortfolioPerformanceResponse,
   PortfolioResponse,
@@ -592,6 +594,53 @@ export async function fetchDealerStatus(): Promise<DealerStatus> {
   });
   if (!res.ok) {
     throw new Error(`Dealer status failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export type RadarQuery = {
+  q?: string;
+  set?: string;
+  rarity?: string;
+  min_price?: number;
+  max_price?: number;
+  min_edge?: number;
+  limit?: number;
+};
+
+export async function fetchRadarStatus(): Promise<RadarStatus> {
+  const res = await fetch(apiUrl("/api/radar/status"), {
+    headers: {
+      Accept: "application/json",
+      ...authHeaders(),
+    },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`Radar status failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function fetchRadar(query: RadarQuery = {}): Promise<RadarResponse> {
+  const params = new URLSearchParams();
+  if (query.q) params.set("q", query.q);
+  if (query.set) params.set("set", query.set);
+  if (query.rarity) params.set("rarity", query.rarity);
+  if (query.min_price != null) params.set("min_price", String(query.min_price));
+  if (query.max_price != null) params.set("max_price", String(query.max_price));
+  if (query.min_edge != null) params.set("min_edge", String(query.min_edge));
+  if (query.limit != null) params.set("limit", String(query.limit));
+  const res = await fetch(apiUrl(`/api/radar?${params.toString()}`), {
+    headers: {
+      Accept: "application/json",
+      ...authHeaders(),
+    },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const detail = await res.text();
+    throw new Error(detail || `Radar failed (${res.status})`);
   }
   return res.json();
 }

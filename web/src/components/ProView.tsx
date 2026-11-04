@@ -69,7 +69,10 @@ export function ProView({
       <div className="detail-actions">
         {isPro ? (
           <>
-            <Link href="/dealer" className="btn-primary">
+            <Link href="/radar" className="btn-primary">
+              {t("pro_open_radar")}
+            </Link>
+            <Link href="/dealer" className="btn-ghost">
               {t("pro_open_dealer")}
             </Link>
             {portalUrl ? (
@@ -89,6 +92,9 @@ export function ProView({
                 {t("pro_checkout_missing")}
               </span>
             )}
+            <Link href="/radar" className="btn-ghost">
+              {t("pro_open_radar")}
+            </Link>
             <Link href="/dealer" className="btn-ghost">
               {t("pro_open_dealer")}
             </Link>

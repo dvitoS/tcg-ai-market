@@ -233,6 +233,41 @@ export type ScannerResponse = {
   source: "supabase" | "demo" | "empty";
 };
 
+export type RadarCard = CatalogCard & {
+  side: "UNDER" | "OVER";
+  edge_pct?: number | null;
+  spot?: number | null;
+  fair_price?: number | null;
+  pred_lo_pct?: number | null;
+  pred_hi_pct?: number | null;
+  current_price?: number | null;
+  ai_target_price?: number | null;
+  expected_roi_pct?: number | null;
+};
+
+export type RadarStatus = {
+  allowed: boolean;
+  reason: string;
+  checkout_url?: string | null;
+  forecast_days: number;
+  edge_floor: number;
+};
+
+export type RadarResponse = {
+  forecast_days: number;
+  edge_floor: number;
+  min_edge: number;
+  scoped: number;
+  sure_scoped: number;
+  under_total: number;
+  over_total: number;
+  sets: string[];
+  rarities: string[];
+  underpriced: RadarCard[];
+  overpriced: RadarCard[];
+  source: "supabase" | "demo" | "empty";
+};
+
 export type DealerStatus = {
   allowed: boolean;
   reason: string;

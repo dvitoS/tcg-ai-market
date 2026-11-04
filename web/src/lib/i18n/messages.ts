@@ -9,6 +9,7 @@ const en = {
   nav_signals: "AI signals",
   nav_portfolio: "Portfolio",
   nav_scanner: "Scanner",
+  nav_radar: "Radar",
   nav_dealer: "Dealer",
   nav_pro: "Pro",
   brand_tagline: "Spot. Signal. Act.",
@@ -25,7 +26,7 @@ const en = {
   landing_cta_pro: "Soft Pro",
   landing_follow_title: "From signal to desk",
   landing_follow_lede:
-    "One path: browse the board, read the AI explain, hold a portfolio, scan movers, export dealer CSV.",
+    "One path: browse the board, read the AI explain, hold a portfolio, catch Deal Radar edges, export dealer CSV.",
   landing_follow_link: "Jump to AI signals →",
   explore_eyebrow: "Browse market",
   explore_title: "Market",
@@ -164,6 +165,29 @@ const en = {
   scan_warns_title: "Drop warnings",
   scan_warns_empty: "No negative ROI rows in this filter.",
 
+  // Deal Radar (Soft Pro)
+  radar_eyebrow: "Soft Pro",
+  radar_title: "Deal Radar",
+  radar_lede:
+    "Conformal-gated mispricing for the next {days}d — spot below the AI fair band (UNDER) or stretched above it (OVER).",
+  radar_signin_lede: "Sign in to open Deal Radar against the Soft Ink market board.",
+  radar_locked: "Deal Radar is a Soft Pro surface.",
+  radar_locked_lede:
+    "Upgrade with the same email you use to sign in, then come back for UNDER / OVER edges.",
+  radar_loading: "Loading Deal Radar…",
+  radar_error: "Deal Radar failed",
+  radar_search_ph: "Search name…",
+  radar_search_aria: "Search Deal Radar",
+  radar_btn: "Scan",
+  radar_min_edge: "Min edge %",
+  radar_kpi_sure: "Sure rows",
+  radar_kpi_under: "Underpriced",
+  radar_kpi_over: "Overpriced",
+  radar_under_title: "Underpriced (buy edge)",
+  radar_under_empty: "No UNDER rows at this edge floor / price range.",
+  radar_over_title: "Overpriced (trim edge)",
+  radar_over_empty: "No OVER rows at this edge floor / price range.",
+
   // Dealer
   dealer_eyebrow: "Dealer",
   dealer_title: "Desk",
@@ -194,30 +218,31 @@ const en = {
 
   // Pro
   pro_eyebrow: "Kestrel Pro",
-  pro_title: "Dealer desk + sure signals",
+  pro_title: "Deal Radar + dealer desk",
   pro_title_active: "You're on Soft Pro",
   pro_lede:
-    "Soft Pro unlocks inventory scoring, fee-aware LIST / BUY MORE, and higher-confidence alert surfaces. €7/mo after a 7-day trial via Creem.",
+    "Soft Pro unlocks Deal Radar mispricing, inventory scoring, fee-aware LIST / BUY MORE, and sure-only alerts. €7/mo after a 7-day trial via Creem.",
   pro_lede_active:
-    "Dealer desk and sure-only alerts are unlocked on this account. Manage billing in Creem if you need to cancel or update payment.",
+    "Deal Radar, Dealer desk, and sure-only alerts are unlocked on this account. Manage billing in Creem if you need to cancel or update payment.",
   pro_open_note:
     "Open beta is still on — Pro surfaces are unlocked for everyone. Checkout stays ready for when we flip the gate.",
   pro_gated_note: "Pro is gated. Upgrade with the same email you use to sign in.",
   pro_active_note: "Active Soft Pro for {email}.",
   pro_checkout_missing: "Checkout link not configured",
   pro_open_dealer: "Open Dealer desk",
+  pro_open_radar: "Open Deal Radar",
   pro_manage: "Manage subscription",
   pro_status_error: "Could not load Pro status.",
   pro_status_link: "Pro status",
   pro_success_title: "You're in",
   pro_success_lede:
-    "Payment received. Sign in with the same email you used at checkout so Dealer desk unlocks on this account.",
+    "Payment received. Sign in with the same email you used at checkout so Deal Radar and Dealer unlock on this account.",
   pro_success_active_title: "Soft Pro unlocked",
   pro_success_active_lede:
-    "This account has an active Soft Pro entitlement. Open Dealer desk to score inventory.",
-  pro_f1: "CSV inventory × market board with sell fee + shipping",
-  pro_f2: "Conformal-gated LIST / BUY MORE actions",
-  pro_f3: "Entitlement tied to your checkout email after payment",
+    "This account has an active Soft Pro entitlement. Open Deal Radar for UNDER / OVER edges, or Dealer to score inventory.",
+  pro_f1: "Deal Radar — conformal UNDER / OVER edges vs AI fair band",
+  pro_f2: "CSV inventory × market board with sell fee + shipping",
+  pro_f3: "Sure-only alerts + entitlement tied to checkout email",
 
   // Detail / watch / add lot / chart
   detail_back: "← Back to browse",
@@ -292,6 +317,7 @@ const hr: Dictionary = {
   nav_signals: "AI signali",
   nav_portfolio: "Portfelj",
   nav_scanner: "Skener",
+  nav_radar: "Radar",
   nav_dealer: "Dealer",
   nav_pro: "Pro",
   brand_tagline: "Uoči. Signal. Djeluj.",
@@ -308,7 +334,7 @@ const hr: Dictionary = {
   landing_cta_pro: "Soft Pro",
   landing_follow_title: "Od signala do stola",
   landing_follow_lede:
-    "Jedan put: pregledaj board, pročitaj AI explain, vodi portfelj, skeniraj movers, izvezi dealer CSV.",
+    "Jedan put: pregledaj board, pročitaj AI explain, vodi portfelj, uhvati Deal Radar edgeove, izvezi dealer CSV.",
   landing_follow_link: "Idi na AI signale →",
   explore_eyebrow: "Pregled tržišta",
   explore_title: "Tržište",
@@ -445,6 +471,28 @@ const hr: Dictionary = {
   scan_warns_title: "Upozorenja na pad",
   scan_warns_empty: "Nema negativnih ROI redova u ovom filteru.",
 
+  radar_eyebrow: "Soft Pro",
+  radar_title: "Deal Radar",
+  radar_lede:
+    "Conformal mispricing za sljedećih {days}d — spot ispod AI fair banda (UNDER) ili rastegnut iznad (OVER).",
+  radar_signin_lede: "Prijavi se da otvoriš Deal Radar prema Soft Ink boardu.",
+  radar_locked: "Deal Radar je Soft Pro površina.",
+  radar_locked_lede:
+    "Nadogradi s istim emailom koji koristiš za prijavu, pa se vrati za UNDER / OVER edgeove.",
+  radar_loading: "Učitavam Deal Radar…",
+  radar_error: "Deal Radar nije uspio",
+  radar_search_ph: "Traži ime…",
+  radar_search_aria: "Pretraži Deal Radar",
+  radar_btn: "Skeniraj",
+  radar_min_edge: "Min edge %",
+  radar_kpi_sure: "Sure redovi",
+  radar_kpi_under: "Underpriced",
+  radar_kpi_over: "Overpriced",
+  radar_under_title: "Underpriced (buy edge)",
+  radar_under_empty: "Nema UNDER redova za ovaj edge floor / raspon cijena.",
+  radar_over_title: "Overpriced (trim edge)",
+  radar_over_empty: "Nema OVER redova za ovaj edge floor / raspon cijena.",
+
   dealer_eyebrow: "Dealer",
   dealer_title: "Stol",
   dealer_signin_lede: "Prijavi se da ocijeniš inventar prema Soft Ink boardu.",
@@ -473,30 +521,31 @@ const hr: Dictionary = {
   dealer_download_actionable: "Preuzmi actionable CSV",
 
   pro_eyebrow: "Kestrel Pro",
-  pro_title: "Dealer stol + sure signali",
+  pro_title: "Deal Radar + dealer stol",
   pro_title_active: "Na Soft Pro si",
   pro_lede:
-    "Soft Pro otključava scoring inventara, fee-aware LIST / BUY MORE i pouzdanije alerte. €7/mj nakon 7-dnevnog trial-a preko Creema.",
+    "Soft Pro otključava Deal Radar mispricing, scoring inventara, fee-aware LIST / BUY MORE i sure-only alerte. €7/mj nakon 7-dnevnog trial-a preko Creema.",
   pro_lede_active:
-    "Dealer stol i sure-only alerti su otključani na ovom računu. Billing upravljaj u Creemu ako trebaš otkazati ili promijeniti karticu.",
+    "Deal Radar, Dealer stol i sure-only alerti su otključani na ovom računu. Billing upravljaj u Creemu ako trebaš otkazati ili promijeniti karticu.",
   pro_open_note:
     "Open beta je još uključena — Pro površine su otvorene svima. Checkout čeka kad zatvorimo gate.",
   pro_gated_note: "Pro je zatvoren. Nadogradi s istim emailom koji koristiš za prijavu.",
   pro_active_note: "Aktivni Soft Pro za {email}.",
   pro_checkout_missing: "Checkout link nije konfiguriran",
   pro_open_dealer: "Otvori Dealer stol",
+  pro_open_radar: "Otvori Deal Radar",
   pro_manage: "Upravljaj pretplatom",
   pro_status_error: "Ne mogu učitati Pro status.",
   pro_status_link: "Pro status",
   pro_success_title: "Uspješno",
   pro_success_lede:
-    "Plaćanje primljeno. Prijavi se istim emailom kao na checkoutu da se Dealer stol otključa na ovom računu.",
+    "Plaćanje primljeno. Prijavi se istim emailom kao na checkoutu da se Deal Radar i Dealer otključaju na ovom računu.",
   pro_success_active_title: "Soft Pro otključan",
   pro_success_active_lede:
-    "Ovaj račun ima aktivni Soft Pro entitlement. Otvori Dealer stol za scoring inventara.",
-  pro_f1: "CSV inventar × market board s sell fee + shipping",
-  pro_f2: "Conformal-gated LIST / BUY MORE akcije",
-  pro_f3: "Entitlement vezan na checkout email nakon uplate",
+    "Ovaj račun ima aktivni Soft Pro entitlement. Otvori Deal Radar za UNDER / OVER edgeove ili Dealer za scoring inventara.",
+  pro_f1: "Deal Radar — conformal UNDER / OVER edgeovi vs AI fair band",
+  pro_f2: "CSV inventar × market board s sell fee + shipping",
+  pro_f3: "Sure-only alerti + entitlement vezan na checkout email",
 
   detail_back: "← Natrag na pregled",
   detail_kicker: "Detalj karte",

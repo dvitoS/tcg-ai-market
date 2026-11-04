@@ -828,7 +828,21 @@ a {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.55rem;
-  margin-top: 1rem;
+  margin-top: 0.85rem;
+}
+
+.detail-hero-copy .stat-row {
+  gap: 0.85rem 1.1rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: transparent;
+}
+
+.detail-hero-copy .stat-chip {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
 }
 
 .stat-chip {
@@ -1705,8 +1719,32 @@ a {
 }
 
 .scanner-page,
+.radar-page,
 .dealer-page {
   animation: rise 0.55s ease both;
+}
+
+.radar-side {
+  margin: 0 0 0.12rem;
+  color: var(--muted);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.radar-row.radar-under {
+  border-color: rgba(70, 160, 110, 0.28);
+}
+
+.radar-row.radar-over {
+  border-color: rgba(196, 90, 80, 0.28);
+}
+
+.section-title {
+  margin: 1.15rem 0 0.55rem;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 1.15rem;
+  font-weight: 600;
 }
 
 .scanner-search {
