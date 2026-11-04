@@ -1,6 +1,12 @@
+"use client";
+
 import Link from "next/link";
 
+import { useLocale } from "@/components/LocaleProvider";
+
 export function MarketingLanding() {
+  const { t } = useLocale();
+
   return (
     <div className="landing">
       <section className="landing-hero" aria-label="Kestrel">
@@ -18,17 +24,14 @@ export function MarketingLanding() {
 
         <div className="landing-hero-copy">
           <p className="landing-brand">Kestrel</p>
-          <h1 className="landing-headline">Spot. Signal. Act.</h1>
-          <p className="landing-lede">
-            Pokémon TCG market prices and AI forecasts — browse, watch, and
-            move before the print run cools.
-          </p>
+          <h1 className="landing-headline">{t("landing_headline")}</h1>
+          <p className="landing-lede">{t("landing_lede")}</p>
           <div className="landing-ctas">
             <Link href="/browse" className="btn-primary landing-cta">
-              Open market
+              {t("landing_cta_market")}
             </Link>
             <Link href="/pro" className="btn-ghost landing-cta">
-              Soft Pro
+              {t("landing_cta_pro")}
             </Link>
           </div>
         </div>
@@ -36,14 +39,11 @@ export function MarketingLanding() {
 
       <section className="landing-follow" aria-labelledby="landing-follow-title">
         <h2 id="landing-follow-title" className="landing-follow-title">
-          From signal to desk
+          {t("landing_follow_title")}
         </h2>
-        <p className="landing-follow-lede">
-          One path: browse the board, read the AI explain, hold a portfolio,
-          scan movers, export dealer CSV.
-        </p>
+        <p className="landing-follow-lede">{t("landing_follow_lede")}</p>
         <Link href="/browse#signals" className="landing-follow-link">
-          Jump to AI signals →
+          {t("landing_follow_link")}
         </Link>
       </section>
     </div>

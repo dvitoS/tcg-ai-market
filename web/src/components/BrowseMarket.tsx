@@ -4,7 +4,9 @@ import { FormEvent, useCallback, useEffect, useMemo, useState, useTransition } f
 
 import { CardSkeletonGrid } from "@/components/CardSkeletonGrid";
 import { ExploreCard } from "@/components/ExploreCard";
+import { useLocale } from "@/components/LocaleProvider";
 import { fetchCatalog } from "@/lib/api";
+import { signalLabel } from "@/lib/i18n/messages";
 import type { CatalogCard, CatalogMeta, CatalogMode } from "@/lib/types";
 
 const BATCH = 24;
@@ -29,6 +31,7 @@ export function BrowseMarket({
   initialMeta,
   initialError = null,
 }: Props) {
+  const { locale, t } = useLocale();
   const [mode, setMode] = useState<CatalogMode>("browse");
   const [query, setQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
@@ -99,14 +102,12 @@ export function BrowseMarket({
   return (
     <section className="browse">
       <div className="explore-command">
-        <p className="explore-command-eyebrow">Browse market</p>
-        <h1 className="explore-title">Market</h1>
-        <p className="explore-lede">
-          Pokémon TCG prices and AI signals — art-first, mobile-ready.
-        </p>
+        <p className="explore-command-eyebrow">{t("explore_eyebrow")}</p>
+        <h1 className="explore-title">{t("explore_title")}</h1>
+        <p className="explore-lede">{t("explore_lede")}</p>
       </div>
 
-      <div className="mode-toggle" role="tablist" aria-label="Catalog mode">
+      <div className="mode-toggle" role="tablist" aria-label={t("catalog_mode")}>
         <button
           type="button"
           role="tab"
@@ -114,7 +115,7 @@ export function BrowseMarket({
           className={mode === "browse" ? "is-active" : ""}
           onClick={() => setMode("browse")}
         >
-          Browse
+          {t("catalog_browse")}
         </button>
         <button
           type="button"
@@ -124,7 +125,7 @@ export function BrowseMarket({
           onClick={() => setMode("signals")}
           id="signals"
         >
-          AI signals
+          {t("catalog_signals")}
         </button>
       </div>
 
@@ -133,22 +134,22 @@ export function BrowseMarket({
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search name, set, or id…"
-          aria-label="Search cards"
+          placeholder={t("explore_search_ph")}
+          aria-label={t("explore_search_aria")}
         />
         <button type="submit" className="btn-primary">
-          Search
+          {t("explore_search_btn")}
         </button>
         <button type="button" className="btn-ghost" onClick={onClear}>
-          Clear
+          {t("explore_clear")}
         </button>
       </form>
 
       <div className="filter-row">
         <label>
-          <span>Set</span>
+          <span>{t("explore_set")}</span>
           <select value={setName} onChange={(e) => setSetName(e.target.value)}>
-            <option value="">All sets</option>
+            <option value="">{t("explore_all_sets")}</option>
             {sets.map((name) => (
               <option key={name} value={name}>
                 {name}
@@ -158,17 +159,17 @@ export function BrowseMarket({
         </label>
         {mode === "signals" ? (
           <label>
-            <span>Signal</span>
+            <span>{t("explore_signal")}</span>
             <select value={signal} onChange={(e) => setSignal(e.target.value)}>
-              <option value="">All</option>
-              <option value="BUY">BUY</option>
-              <option value="SELL">SELL</option>
-              <option value="HOLD">HOLD</option>
+              <option value="">{t("explore_all")}</option>
+              <option value="BUY">{signalLabel(locale, "BUY")}</option>
+              <option value="SELL">{signalLabel(locale, "SELL")}</option>
+              <option value="HOLD">{signalLabel(locale, "HOLD")}</option>
             </select>
           </label>
         ) : null}
         <label>
-          <span>Min $</span>
+          <span>{t("explore_min")}</span>
           <input
             type="number"
             min={0}
@@ -180,7 +181,7 @@ export function BrowseMarket({
           />
         </label>
         <label>
-          <span>Max $</span>
+          <span>{t("explore_max")}</span>
           <input
             type="number"
             min={0}
@@ -188,13 +189,13 @@ export function BrowseMarket({
             inputMode="decimal"
             value={maxPrice}
             onChange={(e) => setMaxPrice(e.target.value)}
-            placeholder="Any"
+            placeholder={t("explore_any")}
           />
         </label>
         <p className="result-count">
-          {total} cards
-          {meta.source === "demo" ? " · demo seed" : null}
-          {pending ? " · updating…" : null}
+          {t("explore_results", { n: total })}
+          {meta.source === "demo" ? ` · ${t("explore_demo")}` : null}
+          {pending ? ` · ${t("explore_updating")}` : null}
         </p>
       </div>
 
@@ -203,7 +204,7 @@ export function BrowseMarket({
       {pending && items.length === 0 ? (
         <CardSkeletonGrid />
       ) : items.length === 0 ? (
-        <p className="empty-state">No cards match these filters. Try clearing price or set.</p>
+        <p className="empty-state">{t("explore_empty")}</p>
       ) : (
         <div className={`explore-grid ${pending ? "is-pending" : ""}`}>
           {items.map((card) => (
@@ -220,7 +221,7 @@ export function BrowseMarket({
             disabled={pending}
             onClick={() => load(items.length, true)}
           >
-            Load more
+            {t("explore_load_more")}
           </button>
         </div>
       ) : null}
