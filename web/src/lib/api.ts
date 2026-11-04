@@ -5,6 +5,7 @@ import type {
   CardPriceSourcesResponse,
   CatalogMode,
   CatalogResponse,
+  DataHealthResponse,
   DealerResponse,
   DealerStatus,
   EbayCompsResponse,
@@ -585,6 +586,29 @@ export async function scoreDealerCsv(input: {
   if (!res.ok) {
     const detail = await res.text();
     throw new Error(detail || `Dealer score failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function fetchDataHealth(): Promise<DataHealthResponse> {
+  const res = await fetch(apiUrl("/api/data-health"), {
+    headers: { Accept: "application/json" },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`Data health failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function resetDataHealth(): Promise<DataHealthResponse> {
+  const res = await fetch(apiUrl("/api/data-health/reset"), {
+    method: "POST",
+    headers: { Accept: "application/json" },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`Data health reset failed (${res.status})`);
   }
   return res.json();
 }

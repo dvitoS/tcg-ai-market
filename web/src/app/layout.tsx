@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { DM_Sans, Fraunces } from "next/font/google";
 
 import { AuthProvider } from "@/components/AuthProvider";
+import { DataHealthPanel } from "@/components/DataHealthPanel";
 import { LocaleProvider } from "@/components/LocaleProvider";
 import { SiteHeader } from "@/components/SiteHeader";
 import { WatchAlertBanners } from "@/components/WatchAlertBanners";
@@ -40,6 +41,7 @@ export default function RootLayout({
               <SiteHeader />
               <WatchAlertBanners />
               <main>{children}</main>
+              <DataHealthPanel />
             </div>
           </AuthProvider>
         </LocaleProvider>

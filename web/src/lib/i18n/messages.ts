@@ -251,6 +251,22 @@ const en = {
   ebay_title: "eBay comps",
   ebay_loading: "Loading eBay listings…",
   ebay_empty: "No eBay listings right now.",
+  obs_title: "Data health",
+  obs_caption:
+    "JustTCG outcomes on this API process. High fallback % means matching or rate limits need attention.",
+  obs_live: "Live OK",
+  obs_db: "DB NM",
+  obs_fallback: "DB fallback",
+  obs_empty: "Empty",
+  obs_errors: "Errors",
+  obs_cache: "Cache hits",
+  obs_miss_rate: "Miss/fallback",
+  obs_key_on: "JustTCG key configured",
+  obs_key_off: "JustTCG key missing",
+  obs_refresh: "Refresh",
+  obs_reset: "Clear cache + counters",
+  obs_reset_done: "Cleared.",
+  obs_load_error: "Could not load data health.",
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -499,6 +515,22 @@ const hr: Dictionary = {
   ebay_title: "eBay comps",
   ebay_loading: "Učitavam eBay oglase…",
   ebay_empty: "Nema eBay oglasa trenutno.",
+  obs_title: "Data health",
+  obs_caption:
+    "JustTCG ishodi na ovom API procesu. Visok fallback % znači matching ili rate limit.",
+  obs_live: "Live OK",
+  obs_db: "DB NM",
+  obs_fallback: "DB fallback",
+  obs_empty: "Prazno",
+  obs_errors: "Greške",
+  obs_cache: "Cache hitovi",
+  obs_miss_rate: "Miss/fallback",
+  obs_key_on: "JustTCG key postavljen",
+  obs_key_off: "JustTCG key nedostaje",
+  obs_refresh: "Osvježi",
+  obs_reset: "Očisti cache + brojače",
+  obs_reset_done: "Očišćeno.",
+  obs_load_error: "Ne mogu učitati data health.",
 };
 
 export const MESSAGES: Record<Locale, Dictionary> = { en, hr };

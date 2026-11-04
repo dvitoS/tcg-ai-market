@@ -307,3 +307,15 @@ export type EbayCompsResponse = {
   sold_fallback_active: boolean;
   active_fallback: EbayListing[];
 };
+
+export type DataHealthResponse = {
+  live: number;
+  db: number;
+  empty: number;
+  fallback: number;
+  error: number;
+  cache_hit: number;
+  attempts: number;
+  miss_or_fallback_pct: number;
+  justtcg_configured: boolean;
+};

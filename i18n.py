@@ -137,6 +137,7 @@ _TEXT: dict[str, str] = {
         "obs_title": "Data health (this session)",
         "obs_caption": "JustTCG fetch outcomes while you browse. High fallback % means matching or rate limits need attention.",
         "obs_live": "Live OK",
+        "obs_db": "DB NM",
         "obs_fallback": "DB fallback",
         "obs_empty": "Empty",
         "obs_errors": "Errors",
