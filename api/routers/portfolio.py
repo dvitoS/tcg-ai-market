@@ -17,6 +17,7 @@ from api.portfolio_service import (
     is_watched,
     list_portfolio,
     list_watchlist,
+    portfolio_performance,
     portfolio_summary,
     remove_watch,
     sell_lot,
@@ -26,6 +27,8 @@ from api.schemas import (
     AddLotRequest,
     AddWatchRequest,
     PortfolioLot,
+    PortfolioPerformanceResponse,
+    PortfolioPerfPoint,
     PortfolioResponse,
     PortfolioSummary,
     SellLotRequest,
@@ -62,6 +65,31 @@ def get_portfolio(
         items=[PortfolioLot(**row) for row in items],
         summary=summary,
         demo=demo_mode(),
+    )
+
+
+@router.get("/portfolio/performance", response_model=PortfolioPerformanceResponse)
+def get_portfolio_performance(
+    user: Annotated[dict, Depends(require_user)],
+    authorization: Annotated[str | None, Header()] = None,
+    max_days: int = Query(default=120, ge=14, le=365),
+) -> PortfolioPerformanceResponse:
+    token = bearer_from_authorization(authorization)
+    try:
+        payload = portfolio_performance(
+            user_id=str(user["id"]),
+            max_days=max_days,
+            access_token=token,
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Portfolio performance unavailable: {exc}",
+        ) from exc
+    return PortfolioPerformanceResponse(
+        points=[PortfolioPerfPoint(**row) for row in payload["points"]],
+        days=int(payload["days"]),
+        demo=bool(payload["demo"]),
     )
 
 

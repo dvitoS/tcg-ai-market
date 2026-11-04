@@ -116,6 +116,8 @@ const en = {
   port_sold_meta: "{qty}× · cost {cost} · sold {sale}",
   port_watchlist: "Watchlist · {n}",
   port_watch_empty: "Watchlist is empty. Star cards from detail pages.",
+  port_perf_title: "Performance",
+  port_perf_lede: "Book value vs cost basis over time.",
 
   // Scanner
   scan_eyebrow: "Scanner",
@@ -337,6 +339,8 @@ const hr: Dictionary = {
   port_sold_meta: "{qty}× · cost {cost} · sold {sale}",
   port_watchlist: "Watchlist · {n}",
   port_watch_empty: "Watchlist je prazan. Označi karte na detail stranicama.",
+  port_perf_title: "Performansa",
+  port_perf_lede: "Vrijednost knjige vs nabavna cijena kroz vrijeme.",
 
   scan_eyebrow: "Skener",
   scan_title: "AI sken",

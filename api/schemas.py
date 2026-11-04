@@ -222,6 +222,18 @@ class PortfolioResponse(BaseModel):
     demo: bool = False
 
 
+class PortfolioPerfPoint(BaseModel):
+    date: str
+    invested: float
+    market_value: float
+
+
+class PortfolioPerformanceResponse(BaseModel):
+    points: list[PortfolioPerfPoint]
+    days: int = 0
+    demo: bool = False
+
+
 class AddLotRequest(BaseModel):
     card_id: str
     quantity: int = 1

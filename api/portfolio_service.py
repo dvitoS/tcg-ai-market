@@ -6,14 +6,18 @@ import itertools
 import logging
 import threading
 from contextlib import contextmanager
-from datetime import date
+from datetime import date, timedelta
+from pathlib import Path
 from typing import Any, Iterator
+
+import pandas as pd
 
 from pokemon_tcg_client import pokemontcg_image_url
 
-from api.catalog_service import load_board, row_to_card
+from api.catalog_service import SEED_DB, load_board, row_to_card
 from api.demo_mode import demo_mode
 from database_clients import reset_request_access_token, set_request_access_token
+from services.portfolio_timeseries import portfolio_timeseries
 
 LOG = logging.getLogger("kestrel.api.portfolio")
 
@@ -67,7 +71,8 @@ def _seed_demo_user(user_id: str) -> None:
                     "card_id": card["id"],
                     "quantity": 1 if price > 1.5 else 2,
                     "purchase_price": round(price * 0.92, 4),
-                    "purchase_date": date.today().isoformat(),
+                    # Backdate so Soft Ink / Streamlit performance charts have a window.
+                    "purchase_date": (date.today() - timedelta(days=75 - len(picks) * 12)).isoformat(),
                     "condition": "NM",
                     "grade": "",
                     "status": "open",
@@ -493,3 +498,73 @@ def is_watched(*, user_id: str, card_id: str, access_token: str | None = None) -
 
     with _bind_user_jwt(access_token):
         return bool(is_on_watchlist(card_id, user_id=user_id))
+
+
+def _history_from_seed(card_ids: list[str]) -> pd.DataFrame:
+    empty = pd.DataFrame(columns=["card_id", "date", "price"])
+    if not card_ids or not Path(SEED_DB).is_file():
+        return empty
+    try:
+        import sqlite3
+
+        placeholders = ",".join("?" for _ in card_ids)
+        with sqlite3.connect(SEED_DB) as conn:
+            frame = pd.read_sql_query(
+                f"SELECT card_id, date, price FROM price_history "
+                f"WHERE card_id IN ({placeholders}) ORDER BY date",
+                conn,
+                params=card_ids,
+            )
+        return frame if frame is not None and not frame.empty else empty
+    except Exception as exc:
+        LOG.info("seed history load failed: %s", exc)
+        return empty
+
+
+def load_history_for_cards(card_ids: list[str]) -> pd.DataFrame:
+    """Price history for portfolio card ids (Supabase, then seed SQLite)."""
+    ids = [str(c).strip() for c in card_ids if str(c).strip()]
+    empty = pd.DataFrame(columns=["card_id", "date", "price"])
+    if not ids:
+        return empty
+    try:
+        from database_catalog import load_history_frame
+
+        hist = load_history_frame(card_ids=ids)
+        if hist is not None and not hist.empty:
+            cols = [c for c in ("card_id", "date", "price") if c in hist.columns]
+            return hist[cols].copy()
+    except Exception as exc:
+        LOG.info("supabase history for portfolio failed: %s", exc)
+    return _history_from_seed(ids)
+
+
+def portfolio_performance(
+    *,
+    user_id: str,
+    max_days: int = 120,
+    access_token: str | None = None,
+) -> dict[str, Any]:
+    """Daily invested cost vs mark-to-market for the user's lots."""
+    max_days = max(14, min(int(max_days or 120), 365))
+    lots = list_portfolio(user_id=user_id, include_sold=True, access_token=access_token)
+    if not lots:
+        return {"points": [], "days": 0, "demo": demo_mode()}
+
+    lots_frame = pd.DataFrame(lots)
+    card_ids = sorted({str(r.get("card_id")) for r in lots if r.get("card_id")})
+    history = load_history_for_cards(card_ids)
+    series = portfolio_timeseries(lots_frame, history, max_days=max_days)
+    points: list[dict[str, Any]] = []
+    if series is not None and not series.empty:
+        for row in series.itertuples(index=False):
+            day = row.date
+            date_str = day.strftime("%Y-%m-%d") if hasattr(day, "strftime") else str(day)[:10]
+            points.append(
+                {
+                    "date": date_str,
+                    "invested": round(float(row.invested), 4),
+                    "market_value": round(float(row.market_value), 4),
+                }
+            )
+    return {"points": points, "days": len(points), "demo": demo_mode()}
