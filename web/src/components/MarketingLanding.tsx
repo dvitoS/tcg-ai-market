@@ -1,32 +1,17 @@
-import Image from "next/image";
 import Link from "next/link";
 
-type Props = {
-  heroImageUrl?: string | null;
-  heroCardName?: string | null;
-};
-
-export function MarketingLanding({ heroImageUrl, heroCardName }: Props) {
-  const hasArt = Boolean(heroImageUrl);
-  const art = heroImageUrl || "/kestrel-logo.png";
-  const artAlt = heroCardName
-    ? `${heroCardName} — market art`
-    : "Kestrel";
-
+export function MarketingLanding() {
   return (
     <div className="landing">
       <section className="landing-hero" aria-label="Kestrel">
-        <div
-          className={`landing-hero-plane${hasArt ? "" : " is-fallback"}`}
-          aria-hidden={!hasArt}
-        >
-          <Image
-            src={art}
-            alt={artAlt}
-            fill
-            priority
-            sizes="100vw"
-            className={`landing-hero-img${hasArt ? "" : " is-mark"}`}
+        <div className="landing-hero-plane" aria-hidden>
+          <img
+            src="/kestrel-hero.svg"
+            alt=""
+            className="landing-hero-img"
+            width={1920}
+            height={1080}
+            decoding="async"
           />
           <div className="landing-hero-veil" />
         </div>
