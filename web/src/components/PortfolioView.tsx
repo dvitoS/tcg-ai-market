@@ -512,7 +512,7 @@ export function PortfolioView() {
       {openLots.length === 0 ? (
         <p className="empty-state">
           No lots yet. Open a card from{" "}
-          <Link href="/" className="inline-link">
+          <Link href="/browse" className="inline-link">
             Browse
           </Link>{" "}
           and start collecting.

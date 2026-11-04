@@ -8,8 +8,8 @@ import { useEffect, useId, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 
 const NAV = [
-  { href: "/", label: "Browse" },
-  { href: "/#signals", label: "AI signals" },
+  { href: "/browse", label: "Browse" },
+  { href: "/browse#signals", label: "AI signals" },
   { href: "/portfolio", label: "Portfolio" },
   { href: "/scanner", label: "Scanner" },
   { href: "/dealer", label: "Dealer" },
@@ -17,8 +17,8 @@ const NAV = [
 ] as const;
 
 function linkActive(pathname: string, href: string): boolean {
-  if (href === "/" || href.startsWith("/#")) {
-    return pathname === "/";
+  if (href.startsWith("/browse")) {
+    return pathname === "/browse" || pathname.startsWith("/browse/");
   }
   return pathname === href || pathname.startsWith(`${href}/`);
 }
