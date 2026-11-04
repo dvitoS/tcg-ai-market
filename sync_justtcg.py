@@ -62,7 +62,7 @@ def _sets_prioritized_by_coverage(by_set: dict[str, list]) -> list[tuple[str, st
 
 
 def sync_justtcg_price_history(*, limit: int | None = None) -> dict[str, int]:
-    """Live sync: JustTCG NM + 30d history po curated catalog sets."""
+    """Live sync: JustTCG NM + history (JUSTTCG_HISTORY_DURATION) po curated catalog sets."""
     if not justtcg_api_key():
         raise RuntimeError("JUSTTCG_API_KEY nije postavljen.")
 
@@ -148,9 +148,20 @@ def sync_justtcg_price_history(*, limit: int | None = None) -> dict[str, int]:
                         continue
 
                     if points:
-                        written = replace_card_history(card.id, points)
-                        saved += written
-                        have_history.add(str(card.id))
+                        # Never wipe a multi-day series with spot-only / tiny payloads.
+                        # Soft Ink charts look "broken" when nightly replace leaves 1–2 pts.
+                        min_points = 7
+                        already = str(card.id) in have_history
+                        if len(points) < min_points and already:
+                            skipped += 1
+                            print(
+                                f"  skip weak history {card.id} · {len(points)} pts "
+                                f"(keep existing)"
+                            )
+                        else:
+                            written = replace_card_history(card.id, points)
+                            saved += written
+                            have_history.add(str(card.id))
                     if price is not None:
                         update_card_market_price(card.id, price, tcgplayer_id=tcp)
 

@@ -107,6 +107,7 @@ def card_price_sources(
         tcgplayer=[HistoryPoint(**p) for p in payload.get("tcgplayer") or []],
         justtcg=[HistoryPoint(**p) for p in payload.get("justtcg") or []],
         justtcg_fallback=bool(payload.get("justtcg_fallback")),
+        justtcg_from_db=bool(payload.get("justtcg_from_db")),
         justtcg_error=payload.get("justtcg_error"),
         psa10=[HistoryPoint(**p) for p in payload.get("psa10") or []],
         psa10_error=payload.get("psa10_error"),

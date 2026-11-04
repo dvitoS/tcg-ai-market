@@ -249,6 +249,9 @@ export function PriceChart({
       {sources && !sources.justtcg_configured ? (
         <p className="chart-sources-status">{t("chart_no_key")}</p>
       ) : null}
+      {sources?.justtcg_from_db ? (
+        <p className="chart-sources-status">{t("chart_just_from_db")}</p>
+      ) : null}
       {sources?.justtcg_fallback ? (
         <p className="chart-sources-status">{t("chart_just_fallback")}</p>
       ) : null}
