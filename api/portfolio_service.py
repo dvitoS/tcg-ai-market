@@ -122,6 +122,116 @@ def _quotes_by_id() -> dict[str, dict[str, Any]]:
     return out
 
 
+def _board_encoding_by_id() -> dict[str, dict[str, Any]]:
+    """Raw board rows keyed by card id (includes rarity/supertype encodings)."""
+    board, _ = load_board()
+    if board is None or board.empty:
+        return {}
+    out: dict[str, dict[str, Any]] = {}
+    for _, row in board.iterrows():
+        card_id = str(row.get("id") or row.get("card_id") or "")
+        if not card_id:
+            continue
+        out[card_id] = row.to_dict()
+    return out
+
+
+def _fallback_board_model():
+    try:
+        from services.model_store import load_model_artifact
+
+        loaded = load_model_artifact()
+        if loaded is None:
+            return None
+        return loaded[0]
+    except Exception as exc:
+        LOG.info("board model unavailable for portfolio outlook: %s", exc)
+        return None
+
+
+def _attach_lot_outlook(lots: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Attach 30d (preferred) ADD/TRIM/HOLD coach fields; fall back to 7d board model."""
+    if not lots:
+        return lots
+    try:
+        import math
+
+        import pandas as pd
+
+        from services.portfolio_outlook import enrich_portfolio_outlook
+    except Exception as exc:
+        LOG.info("portfolio outlook import failed: %s", exc)
+        return lots
+
+    encodings = _board_encoding_by_id()
+    rows: list[dict[str, Any]] = []
+    for lot in lots:
+        card_id = str(lot.get("card_id") or "")
+        enc = encodings.get(card_id) or {}
+        rows.append(
+            {
+                **lot,
+                "card_id": card_id,
+                "quantity": int(lot.get("quantity") or 0),
+                "current_price": float(lot.get("current_price") or lot.get("market_price") or 0.0),
+                "rarity_encoded": enc.get("rarity_encoded"),
+                "supertype_encoded": enc.get("supertype_encoded"),
+            }
+        )
+    frame = pd.DataFrame(rows)
+    card_ids = sorted({str(r["card_id"]) for r in rows if r.get("card_id")})
+    try:
+        history = load_history_for_cards(card_ids)
+    except Exception as exc:
+        LOG.info("portfolio outlook history load failed: %s", exc)
+        history = pd.DataFrame(columns=["card_id", "date", "price"])
+
+    try:
+        enriched, info = enrich_portfolio_outlook(
+            frame,
+            history,
+            fallback_model=_fallback_board_model(),
+        )
+    except Exception as exc:
+        LOG.info("enrich_portfolio_outlook failed: %s", exc)
+        return lots
+
+    horizon = int(info.get("horizon_days") or 30)
+
+    def _finite(value: Any) -> float | None:
+        try:
+            num = float(value)
+        except (TypeError, ValueError):
+            return None
+        return num if math.isfinite(num) else None
+
+    out: list[dict[str, Any]] = []
+    for row in enriched.to_dict(orient="records"):
+        outlook_value = _finite(row.get("outlook_value"))
+        payload = {
+            **row,
+            "outlook_value": outlook_value
+            if outlook_value is not None
+            else row.get("outlook_value"),
+            "outlook_roi_pct": _finite(row.get("outlook_roi_pct")),
+            "outlook_lo_pct": _finite(row.get("outlook_lo_pct")),
+            "outlook_hi_pct": _finite(row.get("outlook_hi_pct")),
+            "outlook_conformal_ok": bool(row.get("outlook_conformal_ok")),
+            "lot_action": str(row.get("lot_action") or "HOLD").upper(),
+            "is_top_ai": bool(row.get("is_top_ai")),
+            "outlook_horizon_days": horizon,
+        }
+        # Drop helper encodings from API payload.
+        payload.pop("rarity_encoded", None)
+        payload.pop("supertype_encoded", None)
+        payload.pop("outlook_price", None)
+        payload.pop("week_price", None)
+        payload.pop("week_value", None)
+        payload.pop("week_roi_pct", None)
+        out.append(payload)
+    return out
+
+
 def enrich_lots(lots: list[dict[str, Any]]) -> list[dict[str, Any]]:
     quotes = _quotes_by_id()
     enriched: list[dict[str, Any]] = []
@@ -163,9 +273,12 @@ def enrich_lots(lots: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "expected_change_pct": quote.get("expected_change_pct"),
                 "predicted_price": predicted_f,
                 "outlook_value": qty * predicted_f,
+                "lot_action": "HOLD",
+                "outlook_conformal_ok": False,
+                "is_top_ai": False,
             }
         )
-    return enriched
+    return _attach_lot_outlook(enriched)
 
 
 def enrich_watch(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -201,6 +314,12 @@ def portfolio_summary(lots: list[dict[str, Any]]) -> dict[str, Any]:
     pnl_pct = (pnl / invested * 100.0) if invested > 0 else 0.0
     outlook = float(sum(float(l.get("outlook_value") or 0.0) for l in open_lots))
     outlook_pct = ((outlook - value) / value * 100.0) if value > 0 else 0.0
+    horizons = [
+        int(l.get("outlook_horizon_days"))
+        for l in open_lots
+        if l.get("outlook_horizon_days") is not None
+    ]
+    horizon = horizons[0] if horizons else 7
     return {
         "lots": len(open_lots),
         "value": value,
@@ -209,6 +328,7 @@ def portfolio_summary(lots: list[dict[str, Any]]) -> dict[str, Any]:
         "pnl_pct": pnl_pct,
         "outlook_value": outlook,
         "outlook_pct": outlook_pct,
+        "outlook_horizon_days": horizon,
     }
 
 

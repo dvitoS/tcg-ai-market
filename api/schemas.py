@@ -206,6 +206,13 @@ class PortfolioLot(BaseModel):
     expected_change_pct: float | None = None
     predicted_price: float | None = None
     outlook_value: float | None = None
+    outlook_roi_pct: float | None = None
+    outlook_lo_pct: float | None = None
+    outlook_hi_pct: float | None = None
+    outlook_conformal_ok: bool | None = None
+    outlook_horizon_days: int | None = None
+    lot_action: str | None = None
+    is_top_ai: bool | None = None
 
 
 class PortfolioSummary(BaseModel):
@@ -216,6 +223,7 @@ class PortfolioSummary(BaseModel):
     pnl_pct: float = 0.0
     outlook_value: float = 0.0
     outlook_pct: float = 0.0
+    outlook_horizon_days: int = 7
 
 
 class PortfolioResponse(BaseModel):

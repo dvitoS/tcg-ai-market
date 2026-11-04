@@ -49,6 +49,7 @@ const EMPTY_SUMMARY: PortfolioSummary = {
   pnl_pct: 0,
   outlook_value: 0,
   outlook_pct: 0,
+  outlook_horizon_days: 7,
 };
 
 function pnlClass(value?: number | null): string {
@@ -56,6 +57,20 @@ function pnlClass(value?: number | null): string {
   if (value > 0.01) return "pnl-up";
   if (value < -0.01) return "pnl-down";
   return "";
+}
+
+function lotActionKey(action?: string | null): "port_lot_action_add" | "port_lot_action_trim" | "port_lot_action_hold" {
+  const raw = String(action || "HOLD").toUpperCase();
+  if (raw === "ADD") return "port_lot_action_add";
+  if (raw === "TRIM") return "port_lot_action_trim";
+  return "port_lot_action_hold";
+}
+
+function lotActionClass(action?: string | null): string {
+  const raw = String(action || "HOLD").toUpperCase();
+  if (raw === "ADD") return "lot-action-add";
+  if (raw === "TRIM") return "lot-action-trim";
+  return "lot-action-hold";
 }
 
 export function PortfolioView() {
@@ -544,7 +559,11 @@ export function PortfolioView() {
           </strong>
         </div>
         <div className={`kpi-chip ${pnlClass(summary.outlook_pct)}`}>
-          <span>{t("kpi_outlook")}</span>
+          <span>
+            {t("kpi_outlook_days", {
+              days: summary.outlook_horizon_days || 7,
+            })}
+          </span>
           <strong>
             {formatMoney(summary.outlook_value)} / {formatChange(summary.outlook_pct)}
           </strong>
@@ -596,7 +615,32 @@ export function PortfolioView() {
                 <p className={`lot-pnl ${pnlClass(lot.pnl)}`}>
                   {formatMoney(lot.pnl)} · {formatChange(lot.pnl_pct)}
                 </p>
-                {lot.signal ? (
+                {lot.lot_action ? (
+                  <div className="lot-coach">
+                    <span
+                      className={`lot-coach-badge ${lotActionClass(lot.lot_action)}${
+                        lot.is_top_ai ? " is-top" : ""
+                      }`}
+                    >
+                      {t(lotActionKey(lot.lot_action))}
+                    </span>
+                    <span className="lot-coach-line">
+                      {lot.outlook_conformal_ok &&
+                      lot.outlook_roi_pct != null &&
+                      lot.outlook_lo_pct != null &&
+                      lot.outlook_hi_pct != null
+                        ? t("port_lot_outlook", {
+                            pct: formatChange(lot.outlook_roi_pct),
+                            days: lot.outlook_horizon_days || summary.outlook_horizon_days || 30,
+                            lo: formatChange(lot.outlook_lo_pct),
+                            hi: formatChange(lot.outlook_hi_pct),
+                          })
+                        : t("port_lot_outlook_uncertain", {
+                            days: lot.outlook_horizon_days || summary.outlook_horizon_days || 30,
+                          })}
+                    </span>
+                  </div>
+                ) : lot.signal ? (
                   <span className={`explore-card-signal signal-${lot.signal.toLowerCase()}`}>
                     {signalLabel(locale, lot.signal)}
                   </span>

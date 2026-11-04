@@ -1427,6 +1427,49 @@ a {
   font-size: 0.8rem;
 }
 
+.lot-coach {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.55rem;
+  margin-top: 0.4rem;
+}
+
+.lot-coach-badge {
+  display: inline-flex;
+  padding: 0.16rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.lot-coach-badge.lot-action-add {
+  color: var(--buy);
+  border-color: rgba(90, 175, 120, 0.4);
+}
+
+.lot-coach-badge.lot-action-trim {
+  color: var(--sell);
+  border-color: rgba(208, 114, 114, 0.4);
+}
+
+.lot-coach-badge.lot-action-hold {
+  color: var(--hold);
+  border-color: rgba(196, 163, 90, 0.4);
+}
+
+.lot-coach-badge.is-top {
+  box-shadow: 0 0 0 1px rgba(196, 163, 90, 0.35);
+}
+
+.lot-coach-line {
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.3;
+}
+
 .lot-price {
   margin: 0.35rem 0 0;
   font-family: var(--font-display);
