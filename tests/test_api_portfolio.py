@@ -26,6 +26,14 @@ def test_portfolio_and_watchlist_demo_session() -> None:
     assert body["summary"]["lots"] == len(
         [i for i in body["items"] if str(i.get("status") or "open") != "sold"]
     )
+    assert "outlook_horizon_days" in body["summary"]
+    assert int(body["summary"]["outlook_horizon_days"]) in (7, 30)
+    open_items = [i for i in body["items"] if str(i.get("status") or "open") != "sold"]
+    if open_items:
+        lot = open_items[0]
+        assert lot.get("lot_action") in {"ADD", "TRIM", "HOLD"}
+        assert "outlook_conformal_ok" in lot
+        assert "outlook_horizon_days" in lot
 
     watch = client.get("/api/watchlist")
     assert watch.status_code == 200

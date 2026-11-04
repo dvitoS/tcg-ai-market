@@ -133,6 +133,13 @@ export type PortfolioLot = {
   expected_change_pct?: number | null;
   predicted_price?: number | null;
   outlook_value?: number | null;
+  outlook_roi_pct?: number | null;
+  outlook_lo_pct?: number | null;
+  outlook_hi_pct?: number | null;
+  outlook_conformal_ok?: boolean | null;
+  outlook_horizon_days?: number | null;
+  lot_action?: string | null;
+  is_top_ai?: boolean | null;
 };
 
 export type PortfolioSummary = {
@@ -143,6 +150,7 @@ export type PortfolioSummary = {
   pnl_pct: number;
   outlook_value: number;
   outlook_pct: number;
+  outlook_horizon_days?: number;
 };
 
 export type PortfolioResponse = {
