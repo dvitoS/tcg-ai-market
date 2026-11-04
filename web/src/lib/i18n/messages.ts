@@ -227,6 +227,7 @@ const en = {
   detail_range_max: "Range max",
   detail_points: "Points",
   detail_ai_title: "AI prediction",
+  detail_ai_under_title: "AI · 7d outlook",
   detail_expected: "Expected move",
   detail_predicted: "Predicted price",
   detail_band: "Conformal band {band}",
