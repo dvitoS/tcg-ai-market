@@ -770,6 +770,7 @@ a {
 .detail-hero-under .signal-chip,
 .detail-hero-under .ai-low-conf {
   margin-top: 0.55rem;
+  width: fit-content;
 }
 
 .detail-kicker {
