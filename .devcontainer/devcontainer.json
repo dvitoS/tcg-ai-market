@@ -1,12 +1,16 @@
 {
-  "name": "Python 3",
-  // Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-  "image": "mcr.microsoft.com/devcontainers/python:1-3.11-bookworm",
+  "name": "Kestrel Soft Ink",
+  "image": "mcr.microsoft.com/devcontainers/python:1-3.12-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "22"
+    }
+  },
   "customizations": {
     "codespaces": {
       "openFiles": [
         "README.md",
-        "app.py"
+        "docs/DEPLOY.md"
       ]
     },
     "vscode": {
@@ -17,17 +21,20 @@
       ]
     }
   },
-  "updateContentCommand": "[ -f packages.txt ] && sudo apt update && sudo apt upgrade -y && sudo xargs apt install -y <packages.txt; [ -f requirements.txt ] && pip3 install --user -r requirements.txt; pip3 install --user streamlit; echo '✅ Packages installed and Requirements met'",
+  "updateContentCommand": "sudo apt-get update && sudo apt-get install -y libgomp1 && pip3 install --user -r requirements.txt -r requirements-api.txt -r requirements-dev.txt && (cd web && npm install)",
   "postAttachCommand": {
-    "server": "streamlit run app.py --server.enableCORS false --server.enableXsrfProtection false"
+    "api": "PYTHONPATH=. uvicorn api.main:app --reload --host 0.0.0.0 --port 8000",
+    "web": "cd web && npm run dev -- --hostname 0.0.0.0 --port 3000"
   },
   "portsAttributes": {
-    "8501": {
-      "label": "Application",
+    "3000": {
+      "label": "Soft Ink",
       "onAutoForward": "openPreview"
+    },
+    "8000": {
+      "label": "API",
+      "onAutoForward": "notify"
     }
   },
-  "forwardPorts": [
-    8501
-  ]
+  "forwardPorts": [3000, 8000]
 }
