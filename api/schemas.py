@@ -15,6 +15,8 @@ class HealthResponse(BaseModel):
     creem_webhook_secret: bool = False
     pro_checkout_url: bool = False
     pro_open: bool = True
+    # Deploy fingerprint (Render sets RENDER_GIT_COMMIT).
+    git_sha: str | None = None
 
 
 class LoginRequest(BaseModel):

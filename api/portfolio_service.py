@@ -5,15 +5,36 @@ from __future__ import annotations
 import itertools
 import logging
 import threading
+from contextlib import contextmanager
 from datetime import date
-from typing import Any
+from typing import Any, Iterator
 
 from pokemon_tcg_client import pokemontcg_image_url
 
 from api.catalog_service import load_board, row_to_card
 from api.demo_mode import demo_mode
+from database_clients import reset_request_access_token, set_request_access_token
 
 LOG = logging.getLogger("kestrel.api.portfolio")
+
+
+@contextmanager
+def _bind_user_jwt(access_token: str | None) -> Iterator[None]:
+    """Bind Bearer in *this* sync thread so RLS client sees Soft Ink JWT."""
+    raw = str(access_token or "").strip() or None
+    ctx = set_request_access_token(raw)
+    try:
+        yield
+    finally:
+        reset_request_access_token(ctx)
+
+
+def bearer_from_authorization(authorization: str | None) -> str | None:
+    scheme, _, token = (authorization or "").partition(" ")
+    if scheme.lower() != "bearer":
+        return None
+    raw = token.strip()
+    return raw or None
 
 _LOCK = threading.Lock()
 _LOT_SEQ = itertools.count(1)
@@ -186,7 +207,12 @@ def portfolio_summary(lots: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def list_portfolio(*, user_id: str, include_sold: bool = False) -> list[dict[str, Any]]:
+def list_portfolio(
+    *,
+    user_id: str,
+    include_sold: bool = False,
+    access_token: str | None = None,
+) -> list[dict[str, Any]]:
     if demo_mode():
         with _LOCK:
             _seed_demo_user(user_id)
@@ -197,8 +223,8 @@ def list_portfolio(*, user_id: str, include_sold: bool = False) -> list[dict[str
 
     from database_user import load_portfolio_lots
 
-    # Requires request Bearer JWT (ContextVar), Streamlit session, or AUTH_DISABLED.
-    frame = load_portfolio_lots(user_id=user_id, include_sold=include_sold)
+    with _bind_user_jwt(access_token):
+        frame = load_portfolio_lots(user_id=user_id, include_sold=include_sold)
     if frame is None or frame.empty:
         return []
     return enrich_lots(frame.to_dict(orient="records"))
@@ -213,6 +239,7 @@ def add_lot(
     condition: str = "NM",
     grade: str | None = None,
     purchase_date: str | None = None,
+    access_token: str | None = None,
 ) -> dict[str, Any]:
     if int(quantity) < 1:
         raise ValueError("Quantity must be at least 1.")
@@ -246,16 +273,17 @@ def add_lot(
 
     from database_user import add_portfolio_position, load_portfolio_lots
 
-    add_portfolio_position(
-        card_id,
-        int(quantity),
-        float(purchase_price),
-        user_id=user_id,
-        purchase_date=payload["purchase_date"],
-        condition=payload["condition"],
-        grade=payload["grade"] or None,
-    )
-    frame = load_portfolio_lots(user_id=user_id, include_sold=True)
+    with _bind_user_jwt(access_token):
+        add_portfolio_position(
+            card_id,
+            int(quantity),
+            float(purchase_price),
+            user_id=user_id,
+            purchase_date=payload["purchase_date"],
+            condition=payload["condition"],
+            grade=payload["grade"] or None,
+        )
+        frame = load_portfolio_lots(user_id=user_id, include_sold=True)
     if frame is None or frame.empty:
         return enrich_lots([payload])[0]
     hit = frame[frame["card_id"].astype(str) == card_id].tail(1)
@@ -264,7 +292,7 @@ def add_lot(
     return enrich_lots(hit.to_dict(orient="records"))[0]
 
 
-def delete_lot(*, user_id: str, entry_id: int) -> bool:
+def delete_lot(*, user_id: str, entry_id: int, access_token: str | None = None) -> bool:
     if demo_mode():
         with _LOCK:
             lots = _DEMO_LOTS.get(user_id) or []
@@ -274,10 +302,11 @@ def delete_lot(*, user_id: str, entry_id: int) -> bool:
             return removed
     from database_user import delete_portfolio_position
 
-    return bool(delete_portfolio_position(int(entry_id), user_id=user_id))
+    with _bind_user_jwt(access_token):
+        return bool(delete_portfolio_position(int(entry_id), user_id=user_id))
 
 
-def list_watchlist(*, user_id: str) -> list[dict[str, Any]]:
+def list_watchlist(*, user_id: str, access_token: str | None = None) -> list[dict[str, Any]]:
     if demo_mode():
         with _LOCK:
             _seed_demo_user(user_id)
@@ -286,13 +315,14 @@ def list_watchlist(*, user_id: str) -> list[dict[str, Any]]:
 
     from database_user import load_watchlist
 
-    frame = load_watchlist(user_id=user_id)
+    with _bind_user_jwt(access_token):
+        frame = load_watchlist(user_id=user_id)
     if frame is None or frame.empty:
         return []
     return enrich_watch(frame.to_dict(orient="records"))
 
 
-def add_watch(*, user_id: str, card_id: str) -> dict[str, Any]:
+def add_watch(*, user_id: str, card_id: str, access_token: str | None = None) -> dict[str, Any]:
     card_id = str(card_id).strip()
     if not card_id:
         raise ValueError("card_id required")
@@ -320,15 +350,16 @@ def add_watch(*, user_id: str, card_id: str) -> dict[str, Any]:
 
     from database_user import add_watchlist_card, load_watchlist
 
-    add_watchlist_card(card_id, user_id=user_id)
-    frame = load_watchlist(user_id=user_id)
+    with _bind_user_jwt(access_token):
+        add_watchlist_card(card_id, user_id=user_id)
+        frame = load_watchlist(user_id=user_id)
     hit = frame[frame["card_id"].astype(str) == card_id] if frame is not None and not frame.empty else None
     if hit is None or hit.empty:
         return enrich_watch([row])[0]
     return enrich_watch(hit.to_dict(orient="records"))[0]
 
 
-def remove_watch(*, user_id: str, card_id: str) -> bool:
+def remove_watch(*, user_id: str, card_id: str, access_token: str | None = None) -> bool:
     card_id = str(card_id).strip()
     if demo_mode():
         with _LOCK:
@@ -339,10 +370,11 @@ def remove_watch(*, user_id: str, card_id: str) -> bool:
             return removed
     from database_user import remove_watchlist_card
 
-    return bool(remove_watchlist_card(card_id, user_id=user_id))
+    with _bind_user_jwt(access_token):
+        return bool(remove_watchlist_card(card_id, user_id=user_id))
 
 
-def is_watched(*, user_id: str, card_id: str) -> bool:
+def is_watched(*, user_id: str, card_id: str, access_token: str | None = None) -> bool:
     card_id = str(card_id).strip()
     if demo_mode():
         with _LOCK:
@@ -350,4 +382,5 @@ def is_watched(*, user_id: str, card_id: str) -> bool:
             return any(str(r.get("card_id")) == card_id for r in (_DEMO_WATCH.get(user_id) or []))
     from database_user import is_on_watchlist
 
-    return bool(is_on_watchlist(card_id, user_id=user_id))
+    with _bind_user_jwt(access_token):
+        return bool(is_on_watchlist(card_id, user_id=user_id))

@@ -57,11 +57,12 @@ def test_watchlist_add_and_remove_roundtrip() -> None:
 
 
 def test_middleware_binds_bearer_access_token() -> None:
-    """Authorization Bearer must be visible to database_clients during the request."""
+    """ASGI middleware exposes Authorization Bearer via ContextVar."""
     seen: dict[str, str | None] = {"token": None}
 
-    def _capture_status(*, user_id: str, card_id: str) -> bool:
+    def _capture_status(*, user_id: str, card_id: str, access_token: str | None = None) -> bool:
         seen["token"] = get_request_access_token()
+        seen["passed"] = access_token
         return False
 
     with patch("api.routers.portfolio.is_watched", side_effect=_capture_status):
@@ -77,6 +78,28 @@ def test_middleware_binds_bearer_access_token() -> None:
     assert resp.status_code == 200
     assert resp.json() == {"watched": False}
     assert seen["token"] == "user-jwt-abc"
+    assert seen["passed"] == "user-jwt-abc"
+
+
+def test_is_watched_binds_access_token_in_sync_thread(monkeypatch) -> None:
+    """Explicit access_token must win inside portfolio_service (thread-safe RLS)."""
+    import database_user as du
+
+    from api import portfolio_service
+
+    seen: dict[str, str | None] = {}
+
+    def _fake_is_on_watchlist(card_id: str, *, user_id: str) -> bool:
+        seen["token"] = get_request_access_token()
+        return True
+
+    monkeypatch.setattr(portfolio_service, "demo_mode", lambda: False)
+    monkeypatch.setattr(du, "is_on_watchlist", _fake_is_on_watchlist)
+
+    assert portfolio_service.is_watched(
+        user_id="u1", card_id="swsh7-218", access_token="sync-jwt"
+    )
+    assert seen["token"] == "sync-jwt"
 
 
 def test_watch_status_maps_jwt_client_failure_to_503_with_cors(monkeypatch) -> None:
