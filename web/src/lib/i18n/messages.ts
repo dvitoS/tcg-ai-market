@@ -163,6 +163,8 @@ const en = {
   dealer_actionable: "Actionable",
   dealer_no_actions: "No LIST / BUY MORE rows under this fee model.",
   dealer_full: "Full board",
+  dealer_download: "Download scored CSV",
+  dealer_download_actionable: "Download actionable CSV",
 
   // Pro
   pro_eyebrow: "Kestrel Pro",
@@ -385,6 +387,8 @@ const hr: Dictionary = {
   dealer_actionable: "Actionable",
   dealer_no_actions: "Nema LIST / BUY MORE redova za ovaj fee model.",
   dealer_full: "Cijeli board",
+  dealer_download: "Preuzmi scored CSV",
+  dealer_download_actionable: "Preuzmi actionable CSV",
 
   pro_eyebrow: "Kestrel Pro",
   pro_title: "Dealer stol + sure signali",
