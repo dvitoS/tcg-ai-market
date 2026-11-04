@@ -66,7 +66,7 @@ export function CardDetailView({
 
   return (
     <article className="detail-page">
-      <Link href="/" className="detail-back">
+      <Link href="/browse" className="detail-back">
         ← Back to browse
       </Link>
 

@@ -1,42 +1,32 @@
-import { BrowseMarket } from "@/components/BrowseMarket";
+import { MarketingLanding } from "@/components/MarketingLanding";
 import { fetchCatalog } from "@/lib/api";
-import type { CatalogMeta } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-const EMPTY_META: CatalogMeta = {
-  total: 0,
-  sets: [],
-  signals: {},
-  price_min: 0,
-  price_max: 100,
-  source: "empty",
-};
-
 export default async function HomePage() {
-  let items = [] as Awaited<ReturnType<typeof fetchCatalog>>["items"];
-  let total = 0;
-  let meta = EMPTY_META;
-  let error: string | null = null;
+  let heroImageUrl: string | null = null;
+  let heroCardName: string | null = null;
 
   try {
-    const data = await fetchCatalog({ mode: "browse", limit: 24, offset: 0 });
-    items = data.items;
-    total = data.total;
-    meta = data.meta;
-  } catch (err) {
-    error =
-      err instanceof Error
-        ? `${err.message}. Start the API: PYTHONPATH=. uvicorn api.main:app --port 8000`
-        : "Failed to reach Kestrel API";
+    const data = await fetchCatalog({
+      mode: "browse",
+      limit: 12,
+      offset: 0,
+      sort: "price_desc",
+    });
+    const withArt = data.items.find((card) => Boolean(card.image_url));
+    if (withArt?.image_url) {
+      heroImageUrl = withArt.image_url;
+      heroCardName = withArt.name;
+    }
+  } catch {
+    // Landing still renders with brand mark fallback.
   }
 
   return (
-    <BrowseMarket
-      initialItems={items}
-      initialTotal={total}
-      initialMeta={meta}
-      initialError={error}
+    <MarketingLanding
+      heroImageUrl={heroImageUrl}
+      heroCardName={heroCardName}
     />
   );
 }

@@ -20,7 +20,8 @@ const fraunces = Fraunces({
 
 export const metadata: Metadata = {
   title: "Kestrel — Spot. Signal. Act.",
-  description: "Pokémon TCG market signals — browse prices and AI forecasts.",
+  description:
+    "Kestrel Soft Ink — Pokémon TCG market prices, AI signals, portfolio, and dealer tools.",
 };
 
 export default function RootLayout({

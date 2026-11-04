@@ -100,7 +100,7 @@ export function BrowseMarket({
     <section className="browse">
       <div className="explore-command">
         <p className="explore-command-eyebrow">Browse market</p>
-        <h1 className="explore-title">Kestrel</h1>
+        <h1 className="explore-title">Market</h1>
         <p className="explore-lede">
           Pokémon TCG prices and AI signals — art-first, mobile-ready.
         </p>
