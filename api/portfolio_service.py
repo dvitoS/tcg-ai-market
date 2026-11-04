@@ -197,7 +197,7 @@ def list_portfolio(*, user_id: str, include_sold: bool = False) -> list[dict[str
 
     from database_user import load_portfolio_lots
 
-    # Requires Streamlit JWT path OR AUTH_DISABLED service role.
+    # Requires request Bearer JWT (ContextVar), Streamlit session, or AUTH_DISABLED.
     frame = load_portfolio_lots(user_id=user_id, include_sold=include_sold)
     if frame is None or frame.empty:
         return []

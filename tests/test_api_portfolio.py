@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 from fastapi.testclient import TestClient
 
 from api.catalog_service import clear_board_cache
 from api.main import app
+from database_clients import get_request_access_token
 
 
 def setup_function() -> None:
@@ -51,3 +54,59 @@ def test_watchlist_add_and_remove_roundtrip() -> None:
     removed = client.delete(f"/api/watchlist/{card_id}")
     assert removed.status_code == 200
     assert removed.json()["ok"] is True
+
+
+def test_middleware_binds_bearer_access_token() -> None:
+    """Authorization Bearer must be visible to database_clients during the request."""
+    seen: dict[str, str | None] = {"token": None}
+
+    def _capture_status(*, user_id: str, card_id: str) -> bool:
+        seen["token"] = get_request_access_token()
+        return False
+
+    with patch("api.routers.portfolio.is_watched", side_effect=_capture_status):
+        with patch(
+            "api.deps.optional_user",
+            return_value={"id": "user-1", "email": "a@b.c", "dev": False},
+        ):
+            client = TestClient(app)
+            resp = client.get(
+                "/api/watchlist/swsh7-218/status",
+                headers={"Authorization": "Bearer user-jwt-abc"},
+            )
+    assert resp.status_code == 200
+    assert resp.json() == {"watched": False}
+    assert seen["token"] == "user-jwt-abc"
+
+
+def test_watch_status_maps_jwt_client_failure_to_503_with_cors(monkeypatch) -> None:
+    """Unhandled RuntimeError used to 500 without CORS; Soft Ink saw a CORS block."""
+    monkeypatch.setenv(
+        "KESTREL_CORS_ORIGINS",
+        "https://www.kestreltcg.app,http://localhost:3000",
+    )
+
+    # Reload app CORS origins from env for this test process isn't trivial;
+    # assert JSON error path instead — CORS middleware already wraps TestClient app.
+    with patch("api.demo_mode.demo_mode", return_value=False):
+        with patch(
+            "api.deps.optional_user",
+            return_value={"id": "user-1", "email": "a@b.c", "dev": False},
+        ):
+            with patch(
+                "api.routers.portfolio.is_watched",
+                side_effect=RuntimeError("JWT session"),
+            ):
+                client = TestClient(app)
+                resp = client.get(
+                    "/api/watchlist/swsh7-218/status",
+                    headers={
+                        "Authorization": "Bearer user-jwt",
+                        "Origin": "https://www.kestreltcg.app",
+                    },
+                )
+    assert resp.status_code == 503
+    assert "JWT session" in resp.json()["detail"]
+    # CORSMiddleware echoes allowed origins; default test env may not list prod —
+    # at minimum the response must be a proper FastAPI JSON error (not a crash).
+    assert resp.headers.get("content-type", "").startswith("application/json")

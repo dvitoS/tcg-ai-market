@@ -9,10 +9,12 @@ from __future__ import annotations
 import logging
 import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from api.routers import auth, billing, cards, catalog, dealer, health, portfolio, scanner, webhooks
+from database_clients import reset_request_access_token, set_request_access_token
 
 LOG = logging.getLogger("kestrel.api")
 logging.basicConfig(level=logging.INFO)
@@ -31,6 +33,24 @@ _origins = [
     ).split(",")
     if o.strip()
 ]
+
+
+class BindBearerAccessTokenMiddleware(BaseHTTPMiddleware):
+    """Expose Authorization Bearer to database_user via ContextVar (RLS JWT)."""
+
+    async def dispatch(self, request: Request, call_next):
+        authorization = request.headers.get("authorization") or ""
+        scheme, _, token = authorization.partition(" ")
+        raw = token.strip() if scheme.lower() == "bearer" else ""
+        ctx = set_request_access_token(raw or None)
+        try:
+            return await call_next(request)
+        finally:
+            reset_request_access_token(ctx)
+
+
+# Bind Bearer first (inner); CORS last so it stays outermost and covers error responses.
+app.add_middleware(BindBearerAccessTokenMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_origins or ["*"],

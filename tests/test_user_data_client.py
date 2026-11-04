@@ -39,6 +39,38 @@ def test_user_data_client_allows_service_when_auth_disabled(monkeypatch, fake_st
     assert database._user_data_client() is service
 
 
+def test_request_access_token_context_prefers_bearer(monkeypatch, fake_st):
+    """FastAPI Soft Ink binds Bearer → get_user_supabase skips Streamlit session."""
+    import database_clients
+
+    fake_client = MagicMock(name="bearer-client")
+    monkeypatch.setattr(
+        database_clients,
+        "_client_for_access_token",
+        lambda token: fake_client if token == "user-jwt" else None,
+    )
+
+    tok = database_clients.set_request_access_token("user-jwt")
+    try:
+        assert database_clients.get_request_access_token() == "user-jwt"
+        assert database_clients.get_user_supabase() is fake_client
+    finally:
+        database_clients.reset_request_access_token(tok)
+
+    assert database_clients.get_request_access_token() is None
+
+
+def test_user_data_client_uses_request_bearer_when_auth_enabled(monkeypatch, fake_st):
+    import database
+    import database_clients
+
+    fake_client = MagicMock(name="bearer-client")
+    monkeypatch.setattr(database_clients, "get_user_supabase", lambda: fake_client)
+    monkeypatch.setattr("config.auth_disabled", lambda: False)
+
+    assert database._user_data_client() is fake_client
+
+
 def test_user_data_client_mode_anonymous_without_login(monkeypatch, fake_st):
     import auth
     import database

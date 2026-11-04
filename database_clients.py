@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextvars import ContextVar, Token
 from dataclasses import dataclass
 from datetime import date, datetime
 from functools import lru_cache
@@ -13,6 +14,26 @@ if TYPE_CHECKING:
     from supabase import Client
 
 PAGE = 1000
+
+# FastAPI (and other non-Streamlit) callers bind the Bearer access token here
+# so portfolio/watchlist RLS uses the same JWT that authenticated the request.
+_request_access_token: ContextVar[str | None] = ContextVar(
+    "kestrel_request_access_token", default=None
+)
+
+
+def set_request_access_token(token: str | None) -> Token:
+    """Bind a user JWT for the current request/task. Return token for reset()."""
+    cleaned = str(token or "").strip() or None
+    return _request_access_token.set(cleaned)
+
+
+def reset_request_access_token(token: Token) -> None:
+    _request_access_token.reset(token)
+
+
+def get_request_access_token() -> str | None:
+    return _request_access_token.get()
 
 def _supabase_api():
     """Lazy import — keeps module load working if supabase wheels are mid-install."""
@@ -98,33 +119,85 @@ def last_user_supabase_error() -> str:
         return ""
 
 
-def get_user_supabase():
-    """Authed anon client with the signed-in user's JWT (portfolio/watchlist RLS).
-
-    Returns None when anon key or session tokens are missing.
-    Production callers must NOT fall back to service_role for user tables.
-    """
-    try:
-        import streamlit as st
-
-        from auth import SESSION_ACCESS_KEY, SESSION_REFRESH_KEY, refresh_session
-        from config import _clean_secret_value, get_supabase_auth_credentials
-    except Exception:
-        return None
+def _anon_credentials_ok() -> tuple[str, str] | None:
+    """Return (url, anon_key) when usable for user JWT clients; else None."""
+    from config import _clean_secret_value, get_supabase_auth_credentials
 
     url, anon = get_supabase_auth_credentials()
     has_anon = bool(_clean_secret_value(_secret("SUPABASE_ANON_KEY")))
     if not url or not anon or not has_anon:
         return None
+    if jwt_role_claim(anon) == "service_role":
+        return None
+    return url, anon
 
-    role = jwt_role_claim(anon)
-    if role == "service_role":
+
+def _client_for_access_token(access: str):
+    """Anon + user JWT client for PostgREST RLS (FastAPI Bearer or Streamlit session)."""
+    creds = _anon_credentials_ok()
+    if creds is None:
+        return None
+    url, anon = creds
+    access = str(access or "").strip()
+    if not access:
+        return None
+    try:
+        _, create_client = _supabase_api()
+        client = create_client(url, anon)
+        # PostgREST Authorization — enough for portfolio/watchlist table ops.
         try:
-            st.session_state[_JWT_FAIL_KEY] = (
-                "SUPABASE_ANON_KEY looks like service_role — use the anon public key."
-            )
+            client.postgrest.auth(access)
         except Exception:
-            pass
+            # Older clients: set_session still stamps the JWT on requests.
+            client.auth.set_session(access, access)
+        return client
+    except Exception as exc:
+        import logging
+
+        logging.getLogger("tcg.database").warning(
+            "Bearer user supabase client failed: %s", exc
+        )
+        return None
+
+
+def get_user_supabase():
+    """Authed anon client with the signed-in user's JWT (portfolio/watchlist RLS).
+
+    Prefer FastAPI request Bearer (ContextVar), then Streamlit session tokens.
+    Returns None when anon key or session tokens are missing.
+    Production callers must NOT fall back to service_role for user tables.
+    """
+    # Soft Ink / FastAPI: Authorization Bearer bound for this request.
+    request_token = get_request_access_token()
+    if request_token:
+        client = _client_for_access_token(request_token)
+        if client is not None:
+            return client
+        return None
+
+    try:
+        import streamlit as st
+
+        from auth import SESSION_ACCESS_KEY, SESSION_REFRESH_KEY, refresh_session
+    except Exception:
+        return None
+
+    if _anon_credentials_ok() is None:
+        role = None
+        try:
+            from config import get_supabase_auth_credentials
+
+            _, anon = get_supabase_auth_credentials()
+            role = jwt_role_claim(anon)
+        except Exception:
+            role = None
+        if role == "service_role":
+            try:
+                st.session_state[_JWT_FAIL_KEY] = (
+                    "SUPABASE_ANON_KEY looks like service_role — use the anon public key."
+                )
+            except Exception:
+                pass
         return None
 
     refresh_session()
@@ -133,6 +206,9 @@ def get_user_supabase():
     if not access:
         return None
     try:
+        from config import get_supabase_auth_credentials
+
+        url, anon = get_supabase_auth_credentials()
         _, create_client = _supabase_api()
         client = create_client(url, anon)
         # Prefer real refresh token; access-as-refresh is a last resort for legacy sessions.
@@ -166,7 +242,7 @@ def get_user_supabase():
 def _user_data_client():
     """Client for portfolio/watchlist.
 
-    - Prefer JWT (anon key + user session) so RLS enforces auth.uid().
+    - Prefer JWT (anon key + user session / Bearer) so RLS enforces auth.uid().
     - Service-role allowed only when AUTH_DISABLED (local single-user).
     """
     from config import auth_disabled
@@ -194,6 +270,14 @@ def user_data_client_mode() -> str:
         from config import _clean_secret_value, auth_disabled
     except Exception:
         return "anonymous"
+    # FastAPI Soft Ink request with Bearer already bound.
+    if get_request_access_token():
+        has_anon = bool(_clean_secret_value(_secret("SUPABASE_ANON_KEY")))
+        if not has_anon:
+            return "missing_anon"
+        if get_user_supabase() is not None:
+            return "jwt"
+        return "jwt_failed"
     if not auth_mod.is_authenticated():
         return "anonymous"
     if auth_disabled() and not auth_mod.has_jwt_tokens():
