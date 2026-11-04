@@ -11,6 +11,7 @@ import {
   formatMoney,
   scoreDealerCsv,
 } from "@/lib/api";
+import { downloadDealerCsv } from "@/lib/dealerCsv";
 import type { DealerResponse, DealerRow, DealerStatus } from "@/lib/types";
 
 function actionClass(action: string): string {
@@ -243,6 +244,29 @@ export function DealerView() {
           {result.unmatched ? (
             <p className="result-count">{t("dealer_unmatched", { n: result.unmatched })}</p>
           ) : null}
+
+          <div className="auth-actions dealer-download-actions">
+            <button
+              type="button"
+              className="btn-primary"
+              disabled={result.items.length === 0}
+              onClick={() =>
+                downloadDealerCsv(result.items, "dealer_desk_actions.csv")
+              }
+            >
+              {t("dealer_download")}
+            </button>
+            <button
+              type="button"
+              className="btn-ghost"
+              disabled={actionable.length === 0}
+              onClick={() =>
+                downloadDealerCsv(actionable, "dealer_desk_actionable.csv")
+              }
+            >
+              {t("dealer_download_actionable")}
+            </button>
+          </div>
 
           <div className="portfolio-section-head">
             <h2>{t("dealer_actionable")}</h2>
