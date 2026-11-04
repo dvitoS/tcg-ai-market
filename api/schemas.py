@@ -135,6 +135,27 @@ class CardHistoryResponse(BaseModel):
     stats: HistoryStats = Field(default_factory=HistoryStats)
 
 
+class Psa10Stats(BaseModel):
+    has_history_series: bool = False
+    period_key: str | None = None
+    sales_count: int | float | None = None
+
+
+class CardPriceSourcesResponse(BaseModel):
+    card_id: str
+    name: str
+    set_name: str | None = None
+    tcgplayer_id: str | None = None
+    justtcg_configured: bool = False
+    tcgplayer: list[HistoryPoint] = Field(default_factory=list)
+    justtcg: list[HistoryPoint] = Field(default_factory=list)
+    justtcg_fallback: bool = False
+    justtcg_error: str | None = None
+    psa10: list[HistoryPoint] = Field(default_factory=list)
+    psa10_error: str | None = None
+    psa10_stats: Psa10Stats = Field(default_factory=Psa10Stats)
+
+
 class SignalBoardResponse(BaseModel):
     buys: list[CatalogCard]
     sells: list[CatalogCard]

@@ -81,6 +81,25 @@ export type CardHistoryResponse = {
   stats: HistoryStats;
 };
 
+export type CardPriceSourcesResponse = {
+  card_id: string;
+  name: string;
+  set_name?: string | null;
+  tcgplayer_id?: string | null;
+  justtcg_configured: boolean;
+  tcgplayer: HistoryPoint[];
+  justtcg: HistoryPoint[];
+  justtcg_fallback: boolean;
+  justtcg_error?: string | null;
+  psa10: HistoryPoint[];
+  psa10_error?: string | null;
+  psa10_stats: {
+    has_history_series: boolean;
+    period_key?: string | null;
+    sales_count?: number | null;
+  };
+};
+
 export type AuthUser = {
   id: string;
   email?: string | null;
