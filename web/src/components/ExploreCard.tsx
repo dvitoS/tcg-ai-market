@@ -1,7 +1,11 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 
+import { useLocale } from "@/components/LocaleProvider";
 import { formatChange, formatMoney } from "@/lib/api";
+import { signalLabel } from "@/lib/i18n/messages";
 import type { CatalogCard } from "@/lib/types";
 
 function changeClass(value?: number | null): string {
@@ -18,8 +22,10 @@ export function ExploreCard({
   card: CatalogCard;
   showSignal?: boolean;
 }) {
+  const { locale } = useLocale();
   const meta = [card.set_name, card.rarity].filter(Boolean).join(" · ");
   const image = card.image_url || "/kestrel-logo.png";
+  const signalClass = (card.signal || "").toLowerCase();
 
   return (
     <Link href={`/cards/${encodeURIComponent(card.id)}`} className="explore-card">
@@ -40,8 +46,8 @@ export function ExploreCard({
         {formatChange(card.expected_change_pct)}
       </div>
       {showSignal && card.signal ? (
-        <div className={`explore-card-signal signal-${card.signal.toLowerCase()}`}>
-          {card.signal}
+        <div className={`explore-card-signal signal-${signalClass}`}>
+          {signalLabel(locale, card.signal)}
         </div>
       ) : null}
     </Link>
