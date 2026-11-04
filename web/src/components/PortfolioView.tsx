@@ -727,10 +727,13 @@ export function PortfolioView() {
                 >
                   <Link href={`/cards/${encodeURIComponent(lot.card_id)}`} className="lot-art">
                     <Image
+                      className="lot-art-img"
                       src={lot.image_url || "/kestrel-logo.png"}
                       alt={lot.name || lot.card_id}
-                      width={180}
-                      height={252}
+                      width={245}
+                      height={342}
+                      sizes="(max-width: 720px) 45vw, 180px"
+                      style={{ width: "100%", height: "auto" }}
                     />
                   </Link>
                   <div className="lot-body">
