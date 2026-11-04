@@ -35,7 +35,7 @@ def dealer_status(user: Annotated[dict, Depends(require_user)]) -> dict[str, Any
     allowed = _pro_allowed(user)
     return {
         "allowed": allowed,
-        "reason": "demo" if demo_mode() or user.get("dev") else pro_gate_reason(),
+        "reason": "demo" if demo_mode() or user.get("dev") else pro_gate_reason(user),
         "checkout_url": pro_checkout_url(),
         "default_fee_pct": DEFAULT_SELL_FEE_PCT,
         "default_ship_usd": DEFAULT_SHIP_USD,

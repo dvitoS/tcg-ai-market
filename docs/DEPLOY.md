@@ -88,10 +88,13 @@ After Creem accepts your custom domain:
    `subscription.canceled`, `subscription.expired`, `subscription.past_due`.  
    Copy signing secret → Render: `CREEM_WEBHOOK_SECRET=whsec_...`
 6. **Lock open beta** (when ready to charge): Render `PRO_OPEN=0`.
-   Paid emails land in `pro_entitlements` via webhook; optional ops override:
-   `PRO_EMAILS=you@example.com`.
+   With `PRO_CHECKOUT_URL` and/or `CREEM_WEBHOOK_SECRET` set, unpaid users
+   are locked (no empty-allowlist fail-open). Paid emails land in
+   `pro_entitlements` via webhook; optional ops override: `PRO_EMAILS=you@example.com`.
+   Optional: `CREEM_PORTAL_URL` for Soft Ink “Manage subscription”.
 7. Smoke: locked Dealer shows **Upgrade** → pay → land on `/pro/success` →
-   sign in with checkout email → Dealer unlocks.
+   sign in with checkout email → `/pro` shows You’re Pro → Dealer unlocks.
+   Check `GET /api/billing/me` (`is_pro: true`, `reason: entitlement`).
 
 ## 6. Go-live smoke
 

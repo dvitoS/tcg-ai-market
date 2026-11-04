@@ -195,13 +195,26 @@ const en = {
   // Pro
   pro_eyebrow: "Kestrel Pro",
   pro_title: "Dealer desk + sure signals",
+  pro_title_active: "You're on Soft Pro",
   pro_lede:
     "Soft Pro unlocks inventory scoring, fee-aware LIST / BUY MORE, and higher-confidence alert surfaces. €7/mo after a 7-day trial via Creem.",
+  pro_lede_active:
+    "Dealer desk and sure-only alerts are unlocked on this account. Manage billing in Creem if you need to cancel or update payment.",
   pro_open_note:
     "Open beta is still on — Pro surfaces are unlocked for everyone. Checkout stays ready for when we flip the gate.",
   pro_gated_note: "Pro is gated. Upgrade with the same email you use to sign in.",
+  pro_active_note: "Active Soft Pro for {email}.",
   pro_checkout_missing: "Checkout link not configured",
   pro_open_dealer: "Open Dealer desk",
+  pro_manage: "Manage subscription",
+  pro_status_error: "Could not load Pro status.",
+  pro_status_link: "Pro status",
+  pro_success_title: "You're in",
+  pro_success_lede:
+    "Payment received. Sign in with the same email you used at checkout so Dealer desk unlocks on this account.",
+  pro_success_active_title: "Soft Pro unlocked",
+  pro_success_active_lede:
+    "This account has an active Soft Pro entitlement. Open Dealer desk to score inventory.",
   pro_f1: "CSV inventory × market board with sell fee + shipping",
   pro_f2: "Conformal-gated LIST / BUY MORE actions",
   pro_f3: "Entitlement tied to your checkout email after payment",
@@ -460,13 +473,26 @@ const hr: Dictionary = {
 
   pro_eyebrow: "Kestrel Pro",
   pro_title: "Dealer stol + sure signali",
+  pro_title_active: "Na Soft Pro si",
   pro_lede:
     "Soft Pro otključava scoring inventara, fee-aware LIST / BUY MORE i pouzdanije alerte. €7/mj nakon 7-dnevnog trial-a preko Creema.",
+  pro_lede_active:
+    "Dealer stol i sure-only alerti su otključani na ovom računu. Billing upravljaj u Creemu ako trebaš otkazati ili promijeniti karticu.",
   pro_open_note:
     "Open beta je još uključena — Pro površine su otvorene svima. Checkout čeka kad zatvorimo gate.",
   pro_gated_note: "Pro je zatvoren. Nadogradi s istim emailom koji koristiš za prijavu.",
+  pro_active_note: "Aktivni Soft Pro za {email}.",
   pro_checkout_missing: "Checkout link nije konfiguriran",
   pro_open_dealer: "Otvori Dealer stol",
+  pro_manage: "Upravljaj pretplatom",
+  pro_status_error: "Ne mogu učitati Pro status.",
+  pro_status_link: "Pro status",
+  pro_success_title: "Uspješno",
+  pro_success_lede:
+    "Plaćanje primljeno. Prijavi se istim emailom kao na checkoutu da se Dealer stol otključa na ovom računu.",
+  pro_success_active_title: "Soft Pro otključan",
+  pro_success_active_lede:
+    "Ovaj račun ima aktivni Soft Pro entitlement. Otvori Dealer stol za scoring inventara.",
   pro_f1: "CSV inventar × market board s sell fee + shipping",
   pro_f2: "Conformal-gated LIST / BUY MORE akcije",
   pro_f3: "Entitlement vezan na checkout email nakon uplate",
