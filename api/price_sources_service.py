@@ -254,13 +254,9 @@ def build_card_price_sources(card_id: str, *, limit: int = 180) -> dict[str, Any
         "cache": "miss",
     }
 
-    # Cache DB-first + successful live payloads. Skip 429 / hard errors.
-    if (
-        not rate_limited
-        and justtcg_error is None
-        and psa10_error is None
-        and psa9_error is None
-    ):
+    # Cache DB-first + successful live payloads. Skip 429 / hard NM+PSA10 errors.
+    # PSA 9 is additive — a soft PSA 9 miss must not poison the cache entry.
+    if not rate_limited and justtcg_error is None and psa10_error is None:
         ttl = (
             _SOURCES_CACHE_TTL_SECONDS
             if (justtcg or psa10 or psa9 or market)

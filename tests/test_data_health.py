@@ -67,6 +67,11 @@ def test_price_sources_records_db_and_cache(monkeypatch) -> None:
         "psa10_history_for_card",
         lambda **_k: ([], "123", {"has_history_series": False}),
     )
+    monkeypatch.setattr(
+        jtcg,
+        "psa9_history_for_card",
+        lambda **_k: ([], "123", {"has_history_series": False}),
+    )
 
     first = pss.build_card_price_sources("sv3-1", limit=90)
     assert first["justtcg_from_db"] is True
