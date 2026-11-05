@@ -450,6 +450,19 @@ class TradeResponse(BaseModel):
     source: Literal["supabase", "demo", "empty"] = "empty"
 
 
+class TradeShareCreated(BaseModel):
+    id: str
+    path: str
+    url: str | None = None
+
+
+class TradeShareView(TradeResponse):
+    """Public share payload — live re-score plus Soft Pro CTA."""
+
+    checkout_url: str | None = None
+    share_id: str = ""
+
+
 class DealerRequest(BaseModel):
     csv_text: str
     fee_pct: float | None = None

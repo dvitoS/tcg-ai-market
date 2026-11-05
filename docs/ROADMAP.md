@@ -29,10 +29,10 @@ Last updated: 2026-11-05. Living doc — ship order can move; the wedge should n
 
 These close conversion loops and plug the biggest holes vs Collectr / PriceCharting without diluting the AI wedge.
 
-### 1. Shareable Trade & Radar links
+### 1. Shareable Trade & Radar links — Trade shipped
 **Why:** Viral loop. Collectr/TCGplayer share collections; nobody shares a *fairness verdict* for a proposed trade.
-**Ship:** Public read-only `/trade/s/{id}` and `/radar?share=…` snapshots (spot + AI fair + verdict). Copy-link CTA on both desks.
-**Pro gate:** Create/edit free for signed-in; share pages public with Kestrel branding + Soft Pro CTA.
+**Ship:** ~~Public read-only `/trade/s/{id}`~~ (signed payload, live re-score, Soft Pro CTA). Radar `?share=…` still open.
+**Pro gate:** Create share = Soft Pro (same as score); view = public.
 
 ### 2. Portfolio equity curve + AI overlay
 **Why:** Collectr’s stock-chart is the retention hook we still lack.
@@ -83,4 +83,4 @@ These close conversion loops and plug the biggest holes vs Collectr / PriceChart
 
 ## Suggested next move
 
-Start with **#1 Shareable Trade links** — smallest surface, strongest demo for Soft Pro, reuses Trade Analyzer scoring already shipped.
+**#2 Portfolio equity curve + AI overlay** — Collectr retention hook; Soft Ink already has lots + `market_quotes`.
