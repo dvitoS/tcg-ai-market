@@ -783,11 +783,18 @@ a {
   width: 100%;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: rgba(12, 12, 12, 0.45);
-  color: inherit;
+  background: #141414;
+  color: var(--text);
+  color-scheme: dark;
   padding: 0.45rem 0.55rem;
   font-size: 0.92rem;
   font-variant-numeric: tabular-nums;
+}
+
+/* Native <option> popups often ignore page theme — force readable contrast. */
+.grade-ev-inputs option {
+  background-color: #1b1b1b;
+  color: #f3f3f3;
 }
 
 .grade-ev-chart-block {
