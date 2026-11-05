@@ -10,7 +10,7 @@ import { useLocale } from "@/components/LocaleProvider";
 import { PriceChart } from "@/components/PriceChart";
 import { WatchToggle } from "@/components/WatchToggle";
 import { formatChange, formatMoney } from "@/lib/api";
-import { signalLabel } from "@/lib/i18n/messages";
+import { decisionOneLiner, signalLabel } from "@/lib/i18n/messages";
 import type { CardDetailResponse, HistoryPoint } from "@/lib/types";
 
 function deltaClass(value?: number | null): string {
@@ -70,6 +70,17 @@ export function CardDetailView({
       ? `${formatChange(pred_lo_pct, 1)} … ${formatChange(pred_hi_pct, 1)}`
       : null;
   const signalText = signalLabel(locale, card.signal);
+  const signalKey = (card.signal || "").toUpperCase();
+  const detailSide =
+    signalKey === "BUY" || signalKey === "KUPI"
+      ? "UNDER"
+      : signalKey === "SELL" || signalKey === "PRODAJ"
+        ? "OVER"
+        : null;
+  const decision =
+    showSignal && detailSide
+      ? decisionOneLiner(locale, detailSide, card.expected_change_pct)
+      : null;
 
   return (
     <article className="detail-page">
@@ -102,14 +113,19 @@ export function CardDetailView({
                   {t("detail_predicted")}: {formatMoney(card.predicted_price, "USD", 2)}
                 </p>
                 {band ? (
-                  <p className="detail-under-caption">{t("detail_band", { band })}</p>
+                  <p className="detail-under-caption" title={t("glossary_band_tip")}>
+                    {t("detail_band", { band })}
+                  </p>
                 ) : (
                   <p className="detail-under-caption">{t("detail_horizon")}</p>
                 )}
+                {decision ? <p className="decision-line">{decision}</p> : null}
                 {showSignal ? (
                   <div className={`signal-chip ${signalClass(card.signal)}`}>{signalText}</div>
                 ) : (
-                  <div className="ai-low-conf">{t("detail_low_conf")}</div>
+                  <div className="ai-low-conf" title={t("glossary_unsure_tip")}>
+                    {t("detail_low_conf")}
+                  </div>
                 )}
               </aside>
             </div>

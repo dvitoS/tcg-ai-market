@@ -2793,6 +2793,23 @@ a {
   font-size: 1.05rem;
 }
 
+.decision-line {
+  margin: 0.35rem 0 0;
+  color: var(--accent-2);
+  font-size: 0.86rem;
+  line-height: 1.35;
+  max-width: 36rem;
+}
+
+.radar-row .decision-line {
+  margin-top: 0.2rem;
+}
+
+.deal-of-day-cta.btn-primary {
+  margin-top: 1rem;
+  display: inline-flex;
+}
+
 .pro-success-page .detail-actions,
 .pro-page .detail-actions {
   margin-top: 1.5rem;

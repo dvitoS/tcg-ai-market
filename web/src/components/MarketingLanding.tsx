@@ -28,9 +28,9 @@ export function MarketingLanding() {
           <h1 className="landing-headline">{t("landing_headline")}</h1>
           <p className="landing-lede">{t("landing_lede")}</p>
           <div className="landing-ctas">
-            <Link href="/browse" className="btn-primary landing-cta">
+            <a href="#deal-of-day" className="btn-primary landing-cta">
               {t("landing_cta_market")}
-            </Link>
+            </a>
             <Link href="/pro" className="btn-ghost landing-cta">
               {t("landing_cta_pro")}
             </Link>
@@ -38,7 +38,7 @@ export function MarketingLanding() {
         </div>
       </section>
 
-      <DealOfTheDay limit={3} variant="landing" />
+      <DealOfTheDay limit={5} variant="landing" />
 
       <section className="landing-follow" aria-labelledby="landing-follow-title">
         <h2 id="landing-follow-title" className="landing-follow-title">
