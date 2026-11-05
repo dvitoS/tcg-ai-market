@@ -37,7 +37,7 @@ See **[docs/DEPLOY.md](docs/DEPLOY.md)** — Vercel (`web/`) + Railway/Render AP
 
 ### Product roadmap
 
-See **[docs/ROADMAP.md](docs/ROADMAP.md)** — shipped baseline, next 3, Soft Pro depth, and explicit non-goals.
+See **[docs/ROADMAP.md](docs/ROADMAP.md)** — shipped baseline, next 3, Kestrel Pro depth, and explicit non-goals.
 
 ## Supabase setup
 
@@ -49,7 +49,7 @@ Run SQL **once, in order** (SQL Editor), then **Project Settings → API → Rel
 4. `supabase_model_artifacts.sql` — persisted XGBoost  
 5. `supabase_market_quotes.sql` — fast catalog boot (+ encodings + 7d price move)  
 6. `supabase_ebay_liquidity.sql` — daily eBay active-depth snapshots for model features  
-7. `supabase_pro_entitlements.sql` — Soft Pro grants from Creem webhooks  
+7. `supabase_pro_entitlements.sql` — Kestrel Pro grants from Creem webhooks  
 
 Never set `AUTH_DISABLED=1` in production. After a model feature change, trigger a **nightly retrain** (or wait for schedule) so `market_quotes` match `FEATURE_COLUMNS`.
 
@@ -91,7 +91,7 @@ Without SMTP/Discord, nightly skips those quietly; in-app digest still works.
 
 Nav → **Dealer**. Upload inventory CSV (`card_id`/`id` or `name`, optional `quantity`/`cost`). The desk joins your rows to the live 7d AI board, applies sell fee + shipping, and ranks **LIST / BUY MORE / HOLD** only when the conformal gate is green. Download scored CSV from the full table.
 
-### Soft Pro gate (Creem)
+### Kestrel Pro gate (Creem)
 
 Dealer desk is a Pro surface. Lock open beta with `PRO_OPEN=0`.
 

@@ -1,4 +1,4 @@
-"""Deal Radar — Soft Pro conformal mispricing desk."""
+"""Kestrel Radar — Kestrel Pro conformal mispricing desk."""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ def _pro_allowed(user: dict[str, Any]) -> bool:
 def radar_preview(
     limit: int = Query(default=5, ge=1, le=8),
 ) -> RadarPreviewResponse:
-    """Public Soft Pro teaser — top conformal UNDER edges only."""
+    """Public Kestrel Pro teaser — top conformal UNDER edges only."""
     payload = build_radar(min_edge=0, limit=int(limit))
     return RadarPreviewResponse(
         forecast_days=int(payload.get("forecast_days") or 7),
@@ -62,7 +62,7 @@ def radar_board(
     if not _pro_allowed(user):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Deal Radar requires Soft Pro.",
+            detail="Kestrel Radar requires Kestrel Pro.",
         )
     defaults = radar_defaults()
     edge = float(min_edge) if min_edge is not None else float(defaults["edge_floor"])

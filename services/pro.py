@@ -1,4 +1,4 @@
-"""Soft Pro entitlement (Creem + env allowlist).
+"""Kestrel Pro entitlement (Creem + env allowlist).
 
 - ``PRO_OPEN=1`` (default) → everyone is Pro (open beta).
 - ``PRO_OPEN=0`` → require env allowlist and/or ``pro_entitlements`` (Creem webhook).
@@ -155,7 +155,7 @@ def pro_gate_reason(user: dict[str, Any] | None = None) -> str:
 
 
 def billing_snapshot(user: dict[str, Any] | None = None) -> dict[str, Any]:
-    """Public + per-user Soft Pro status for Soft Ink billing UI."""
+    """Public + per-user Kestrel Pro status for Soft Ink billing UI."""
     raw = _resolve_user(user) if user is not None else (user or {})
     authenticated = bool(raw and (raw.get("id") or raw.get("email")))
     allowed = bool(is_pro_user(raw if authenticated else None)) if authenticated else False

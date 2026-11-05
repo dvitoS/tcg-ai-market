@@ -1,4 +1,4 @@
-"""Creem webhook verification + Soft Pro grant handlers."""
+"""Creem webhook verification + Kestrel Pro grant handlers."""
 
 from __future__ import annotations
 

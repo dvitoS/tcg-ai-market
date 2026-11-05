@@ -15,10 +15,10 @@ Last updated: 2026-11-05. Living doc — ship order can move; the wedge should n
 | Card detail | Multi-source chart, eBay comps, 7d AI outlook, Grading EV, Trade deep-links |
 | Portfolio + watchlist | Lots, alerts (banner + email + Discord), filters |
 | Scanner | Opportunity scan over catalog |
-| **Kestrel Radar** `/radar` | Conformal UNDER/OVER mispricing desk (Soft Pro gate) |
+| **Kestrel Radar** `/radar` | Conformal UNDER/OVER mispricing desk (Kestrel Pro gate) |
 | **Trade Analyzer** `/trade` | Two-sided fair / you-ahead / them-ahead |
 | Dealer desk | CSV import/export, pro tools |
-| Soft Pro | Creem billing, entitlements, `/pro` teaser radar |
+| Kestrel Pro | Creem billing, entitlements, `/pro` teaser radar |
 | Search suggest | Recent + catalog typeahead (portaled overlay) |
 | i18n | EN + HR |
 | Ops | Data health panel, deploy docs, nightly train / quotes |
@@ -31,8 +31,8 @@ These close conversion loops and plug the biggest holes vs Collectr / PriceChart
 
 ### 1. Shareable Trade & Radar links — Trade shipped
 **Why:** Viral loop. Collectr/TCGplayer share collections; nobody shares a *fairness verdict* for a proposed trade.
-**Ship:** ~~Public read-only `/trade/s/{id}`~~ (signed payload, live re-score, Soft Pro CTA). Radar `?share=…` still open.
-**Pro gate:** Create share = Soft Pro (same as score); view = public.
+**Ship:** ~~Public read-only `/trade/s/{id}`~~ (signed payload, live re-score, Kestrel Pro CTA). Radar `?share=…` still open.
+**Pro gate:** Create share = Kestrel Pro (same as score); view = public.
 
 ### 2. Portfolio equity curve + AI overlay — shipped
 **Why:** Collectr’s stock-chart is the retention hook we still lack.
@@ -44,13 +44,13 @@ These close conversion loops and plug the biggest holes vs Collectr / PriceChart
 
 ---
 
-## Next — Soft Pro depth
+## Next — Kestrel Pro depth
 
 | # | Item | Competitive note |
 | --- | --- | --- |
 | 4 | **Deal of the Day** public feed — shipped | Landing + `/pro` reuse `/api/radar/preview` |
 | 5 | **Alert channels** (Telegram / push / WhatsApp Business) | Collectr has push; we only have email + Discord |
-| 6 | **Model trust panel** | Soft Pro: calibration, conformal coverage, 30d backtest on Radar calls |
+| 6 | **Model trust panel** | Kestrel Pro: calibration, conformal coverage, 30d backtest on Radar calls |
 | 7 | **Grading EV v2** | PSA 9/10 pops, fee presets by service, break-even sensitivity chart |
 | 8 | **Trade report PDF / image** | One-tap share for Discord groups / local shops |
 | 9 | **Set completion / binder checklist** | Dex/Collectr hygiene — % complete, missing list, buy-cost to finish |
@@ -82,4 +82,4 @@ These close conversion loops and plug the biggest holes vs Collectr / PriceChart
 
 ## Suggested next move
 
-**#5 Alert channels (Telegram / push)** — beyond email + Discord for Soft Pro retention.
+**#5 Alert channels (Telegram / push)** — beyond email + Discord for Kestrel Pro retention.

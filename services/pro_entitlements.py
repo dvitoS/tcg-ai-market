@@ -1,4 +1,4 @@
-"""Persist Soft Pro grants (Creem webhooks + manual ops)."""
+"""Persist Kestrel Pro grants (Creem webhooks + manual ops)."""
 
 from __future__ import annotations
 

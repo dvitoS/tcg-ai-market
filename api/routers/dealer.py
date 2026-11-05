@@ -51,7 +51,7 @@ def dealer_score(
     if not _pro_allowed(user):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Dealer desk requires Pro.",
+            detail="Dealer desk requires Kestrel Pro.",
         )
     try:
         inventory = parse_inventory_csv(body.csv_text)
