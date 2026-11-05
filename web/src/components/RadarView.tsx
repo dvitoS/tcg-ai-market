@@ -23,6 +23,11 @@ import {
   formatMoney,
 } from "@/lib/api";
 import {
+  decisionOneLiner,
+  sideLabel,
+  sideTipKey,
+} from "@/lib/i18n/messages";
+import {
   buildRadarShareUrl,
   decodeRadarShare,
   type RadarShareFilters,
@@ -53,11 +58,15 @@ const EMPTY: RadarResponse = {
 };
 
 function RadarRow({ card }: { card: RadarCard }) {
+  const { t, locale } = useLocale();
   const band =
     card.pred_lo_pct != null && card.pred_hi_pct != null
       ? `${formatChange(card.pred_lo_pct, 1)}…${formatChange(card.pred_hi_pct, 1)}`
       : null;
   const edgeUp = (card.edge_pct ?? 0) >= 0;
+  const verdict = decisionOneLiner(locale, card.side, card.edge_pct);
+  const fair = formatMoney(card.fair_price ?? card.predicted_price);
+  const edge = formatChange(card.edge_pct);
   return (
     <Link
       href={`/cards/${encodeURIComponent(card.id)}`}
@@ -72,19 +81,26 @@ function RadarRow({ card }: { card: RadarCard }) {
         />
       </div>
       <div>
-        <div className="radar-side">{card.side}</div>
+        <div className="radar-side" title={t(sideTipKey(card.side))}>
+          {sideLabel(locale, card.side)}
+        </div>
         <div className="lot-name">{card.name}</div>
         <div className="lot-meta">
-          {[card.set_name, card.rarity, band ? `PI ${band}` : null]
-            .filter(Boolean)
-            .join(" · ")}
+          {[card.set_name, card.rarity].filter(Boolean).join(" · ")}
         </div>
+        {verdict ? (
+          <div className="decision-line lot-meta">{verdict}</div>
+        ) : band ? (
+          <div className="lot-meta" title={t("glossary_band_tip")}>
+            {t("landing_dotd_band", { band })}
+          </div>
+        ) : null}
       </div>
       <div className="scan-metrics">
         <strong>{formatMoney(card.spot ?? card.price)}</strong>
-        <span>fair {formatMoney(card.fair_price ?? card.predicted_price)}</span>
-        <span className={edgeUp ? "pnl-up" : "pnl-down"}>
-          edge {formatChange(card.edge_pct)}
+        <span title={t("glossary_fair_tip")}>{t("metric_fair", { price: fair })}</span>
+        <span className={edgeUp ? "pnl-up" : "pnl-down"} title={t("glossary_edge_tip")}>
+          {t("metric_edge", { pct: edge })}
         </span>
       </div>
     </Link>

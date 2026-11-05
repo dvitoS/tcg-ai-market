@@ -6,6 +6,11 @@ import { useEffect, useState } from "react";
 
 import { useLocale } from "@/components/LocaleProvider";
 import { fetchRadarPreview, formatChange, formatMoney } from "@/lib/api";
+import {
+  decisionOneLiner,
+  sideLabel,
+  sideTipKey,
+} from "@/lib/i18n/messages";
 import type { RadarCard, RadarPreviewResponse } from "@/lib/types";
 
 function bandLabel(card: RadarCard): string | null {
@@ -14,6 +19,43 @@ function bandLabel(card: RadarCard): string | null {
   if (lo == null || hi == null) return null;
   if (!Number.isFinite(Number(lo)) || !Number.isFinite(Number(hi))) return null;
   return `${formatChange(Number(lo), 1)}…${formatChange(Number(hi), 1)}`;
+}
+
+function TeaserRow({ card }: { card: RadarCard }) {
+  const { t, locale } = useLocale();
+  const fair = formatMoney(card.fair_price ?? card.predicted_price);
+  const edge = formatChange(card.edge_pct);
+  return (
+    <Link
+      href={`/cards/${encodeURIComponent(card.id)}`}
+      className="scan-row radar-row radar-under"
+    >
+      <div className="scan-art">
+        <Image
+          src={card.image_url || "/kestrel-logo.png"}
+          alt={card.name}
+          width={48}
+          height={67}
+        />
+      </div>
+      <div>
+        <div className="radar-side" title={t(sideTipKey(card.side || "UNDER"))}>
+          {sideLabel(locale, card.side || "UNDER")}
+        </div>
+        <div className="lot-name">{card.name}</div>
+        <div className="lot-meta">
+          {[card.set_name, card.rarity].filter(Boolean).join(" · ")}
+        </div>
+      </div>
+      <div className="scan-metrics">
+        <strong>{formatMoney(card.spot ?? card.price)}</strong>
+        <span title={t("glossary_fair_tip")}>{t("metric_fair", { price: fair })}</span>
+        <span className="pnl-up" title={t("glossary_edge_tip")}>
+          {t("metric_edge", { pct: edge })}
+        </span>
+      </div>
+    </Link>
+  );
 }
 
 export function DealOfTheDay({
@@ -25,7 +67,7 @@ export function DealOfTheDay({
   variant?: "landing" | "pro";
   className?: string;
 }) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const [preview, setPreview] = useState<RadarPreviewResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -74,9 +116,18 @@ export function DealOfTheDay({
   const ctaHref = variant === "pro" ? "/radar" : "/pro";
   const ctaLabel =
     variant === "pro" ? t("pro_demo_open") : t("landing_dotd_cta");
+  const featuredVerdict = featured
+    ? decisionOneLiner(locale, featured.side || "UNDER", featured.edge_pct)
+    : null;
+  const featuredBand = featured ? bandLabel(featured) : null;
+  const featuredFair = featured
+    ? formatMoney(featured.fair_price ?? featured.predicted_price)
+    : "";
+  const featuredEdge = featured ? formatChange(featured.edge_pct) : "";
 
   return (
     <section
+      id={variant === "landing" ? "deal-of-day" : undefined}
       className={`deal-of-day ${variant === "landing" ? "landing-dotd" : "pro-demo"} ${className}`.trim()}
       aria-label={title}
     >
@@ -109,22 +160,30 @@ export function DealOfTheDay({
             />
           </div>
           <div className="deal-of-day-copy">
-            <div className="radar-side">UNDER</div>
+            <div
+              className="radar-side"
+              title={t(sideTipKey(featured.side || "UNDER"))}
+            >
+              {sideLabel(locale, featured.side || "UNDER")}
+            </div>
             <div className="lot-name">{featured.name}</div>
             <div className="lot-meta">
               {[featured.set_name, featured.rarity].filter(Boolean).join(" · ")}
             </div>
+            {featuredVerdict ? (
+              <p className="decision-line">{featuredVerdict}</p>
+            ) : null}
             <div className="deal-of-day-metrics">
               <strong>{formatMoney(featured.spot ?? featured.price)}</strong>
-              <span>
-                fair {formatMoney(featured.fair_price ?? featured.predicted_price)}
+              <span title={t("glossary_fair_tip")}>
+                {t("metric_fair", { price: featuredFair })}
               </span>
-              <span className="pnl-up">
-                edge {formatChange(featured.edge_pct)}
+              <span className="pnl-up" title={t("glossary_edge_tip")}>
+                {t("metric_edge", { pct: featuredEdge })}
               </span>
-              {bandLabel(featured) ? (
-                <span className="lot-meta">
-                  {t("landing_dotd_band", { band: bandLabel(featured) || "" })}
+              {featuredBand ? (
+                <span className="lot-meta" title={t("glossary_band_tip")}>
+                  {t("landing_dotd_band", { band: featuredBand })}
                 </span>
               ) : null}
             </div>
@@ -135,41 +194,20 @@ export function DealOfTheDay({
       {rest.length > 0 ? (
         <div className="scan-list deal-of-day-list">
           {rest.map((card) => (
-            <Link
-              key={card.id}
-              href={`/cards/${encodeURIComponent(card.id)}`}
-              className="scan-row radar-row radar-under"
-            >
-              <div className="scan-art">
-                <Image
-                  src={card.image_url || "/kestrel-logo.png"}
-                  alt={card.name}
-                  width={48}
-                  height={67}
-                />
-              </div>
-              <div>
-                <div className="radar-side">UNDER</div>
-                <div className="lot-name">{card.name}</div>
-                <div className="lot-meta">
-                  {[card.set_name, card.rarity].filter(Boolean).join(" · ")}
-                </div>
-              </div>
-              <div className="scan-metrics">
-                <strong>{formatMoney(card.spot ?? card.price)}</strong>
-                <span>
-                  fair {formatMoney(card.fair_price ?? card.predicted_price)}
-                </span>
-                <span className="pnl-up">edge {formatChange(card.edge_pct)}</span>
-              </div>
-            </Link>
+            <TeaserRow key={card.id} card={card} />
           ))}
         </div>
       ) : null}
 
-      <Link href={ctaHref} className="btn-ghost deal-of-day-cta">
-        {ctaLabel}
-      </Link>
+      {!loading && !error && rows.length > 0 ? (
+        <Link href={ctaHref} className="btn-primary deal-of-day-cta">
+          {ctaLabel}
+        </Link>
+      ) : (
+        <Link href={ctaHref} className="btn-ghost deal-of-day-cta">
+          {ctaLabel}
+        </Link>
+      )}
     </section>
   );
 }

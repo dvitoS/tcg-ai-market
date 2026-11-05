@@ -21,24 +21,47 @@ const en = {
   nav_close_menu: "Close menu",
   nav_primary: "Primary",
   nav_mobile: "Mobile",
-  landing_headline: "Spot. Signal. Act.",
+  landing_headline: "Should you buy — or pass?",
   landing_lede:
-    "Pokémon TCG market prices and AI forecasts — browse, watch, and move before the print run cools.",
-  landing_cta_market: "Open market",
+    "Kestrel scores spot vs a sure AI fair band for Pokémon TCG — buy, sell, trade, or grade with a clear call, not vibes.",
+  landing_cta_market: "See today’s deal",
   landing_cta_pro: "Kestrel Pro",
   landing_dotd_eyebrow: "Deal of the Day",
-  landing_dotd_title: "Today’s UNDER edge",
+  landing_dotd_title: "Today’s underpriced picks",
   landing_dotd_lede:
-    "Live conformal mispricing from the Soft Ink board — spot vs AI fair, refreshed with the market.",
+    "A free taste of the desk: cards selling under Kestrel’s sure fair band. Pro unlocks the full Radar with filters.",
   landing_dotd_loading: "Loading today’s deal…",
-  landing_dotd_empty: "No UNDER edges on the board yet — check back after the next forecast run.",
+  landing_dotd_empty: "No underpriced picks on the board yet — check back after the next forecast run.",
   landing_dotd_error: "Could not load Deal of the Day.",
-  landing_dotd_cta: "Unlock Kestrel Radar",
-  landing_dotd_band: "fair band {band}",
+  landing_dotd_cta: "Unlock full Kestrel Radar",
+  landing_dotd_band: "Sure band {band}",
   landing_follow_title: "From signal to desk",
   landing_follow_lede:
-    "One path: browse the board, read the AI explain, hold a portfolio, catch Kestrel Radar edges, export dealer CSV.",
+    "Browse the board, read the plain-language call, hold a portfolio, then open Radar and Trade when you are ready to act.",
   landing_follow_link: "Jump to AI signals →",
+  // Plain-language desk glossary (Phase A)
+  glossary_under: "Underpriced",
+  glossary_over: "Overpriced",
+  glossary_under_tip:
+    "Spot sits below Kestrel’s sure fair band — a candidate to buy or hold.",
+  glossary_over_tip:
+    "Spot sits above Kestrel’s sure fair band — a candidate to trim or pass.",
+  glossary_edge: "Edge",
+  glossary_edge_tip:
+    "How far spot is from the sure fair band (conservative side of the forecast).",
+  glossary_fair: "Fair",
+  glossary_fair_tip: "Kestrel’s AI fair price for this card on the current board.",
+  glossary_band: "Sure band",
+  glossary_band_tip:
+    "The range where the model is confident enough to call the deal “sure.” Outside it we stay quiet.",
+  glossary_sure: "Sure",
+  glossary_sure_tip: "Confidence and band gates both green — we show the call.",
+  glossary_unsure: "Unsure",
+  glossary_unsure_tip: "Band or confidence is weak — treat as HOLD, not a trade signal.",
+  decision_under: "Selling ~{pct}% under Kestrel’s fair band (sure).",
+  decision_over: "Selling ~{pct}% over Kestrel’s fair band (sure).",
+  metric_fair: "fair {price}",
+  metric_edge: "edge {pct}",
   explore_eyebrow: "Browse market",
   explore_title: "Market",
   explore_lede: "Pokémon TCG prices and AI signals — art-first, mobile-ready.",
@@ -206,11 +229,11 @@ const en = {
   radar_eyebrow: "Kestrel",
   radar_title: "Kestrel Radar",
   radar_lede:
-    "Conformal-gated mispricing for the next {days}d — spot below the AI fair band (UNDER) or stretched above it (OVER).",
+    "Sure calls for the next {days}d — buying cheap vs the fair band (underpriced) or trimming rich spots (overpriced).",
   radar_signin_lede: "Sign in to open Kestrel Radar against the Soft Ink market board.",
   radar_locked: "Kestrel Radar is a Kestrel Pro surface.",
   radar_locked_lede:
-    "Upgrade with the same email you use to sign in, then come back for UNDER / OVER edges.",
+    "Upgrade with the same email you use to sign in, then come back for underpriced / overpriced calls.",
   radar_loading: "Loading Kestrel Radar…",
   radar_error: "Kestrel Radar failed",
   radar_search_ph: "Search name…",
@@ -220,10 +243,10 @@ const en = {
   radar_kpi_sure: "Sure rows",
   radar_kpi_under: "Underpriced",
   radar_kpi_over: "Overpriced",
-  radar_under_title: "Underpriced (buy edge)",
-  radar_under_empty: "No UNDER rows at this edge floor / price range.",
-  radar_over_title: "Overpriced (trim edge)",
-  radar_over_empty: "No OVER rows at this edge floor / price range.",
+  radar_under_title: "Underpriced — buy candidates",
+  radar_under_empty: "No underpriced rows at this edge floor / price range.",
+  radar_over_title: "Overpriced — trim candidates",
+  radar_over_empty: "No overpriced rows at this edge floor / price range.",
   radar_share_copy: "Copy share link",
   radar_share_busy: "Copying…",
   radar_share_copied: "Share link copied — filters travel with the URL.",
@@ -288,7 +311,7 @@ const en = {
   trade_v_them_ahead: "They are ahead",
   trade_net_spot: "Spot net {value} ({pct}) for you",
   trade_net_ai: "AI fair net {value} ({pct}) for you",
-  trade_band_note: "Fair band ±{n}% on your give total",
+  trade_band_note: "Fair when the gap stays within ±{n}% of your give total",
   trade_seed_you: "Added {n} card(s) to You give from the link.",
   trade_seed_them: "Added {n} card(s) to They give from the link.",
   trade_share_copy: "Copy share link",
@@ -360,14 +383,14 @@ const en = {
   pro_success_active_title: "Kestrel Pro unlocked",
   pro_success_active_lede:
     "This account has an active Kestrel Pro entitlement. Open Kestrel Radar, Trade Analyzer, or Dealer.",
-  pro_f1: "Kestrel Radar — conformal UNDER / OVER edges vs AI fair band",
+  pro_f1: "Kestrel Radar — sure underpriced / overpriced calls vs the fair band",
   pro_f2: "Trade Analyzer — spot + AI fair on both sides of a deal",
   pro_f3: "Dealer CSV desk + sure-only alerts",
   pro_demo_eyebrow: "Live Kestrel Radar",
-  pro_demo_title: "Top UNDER edges right now",
+  pro_demo_title: "Top underpriced picks right now",
   pro_demo_lede:
-    "Public teaser from the conformal board. Kestrel Pro unlocks the full Kestrel Radar desk with filters.",
-  pro_demo_empty: "No UNDER edges on the board yet — check back after the next forecast run.",
+    "Free teaser from today’s sure board. Kestrel Pro unlocks the full Radar desk with filters and trust.",
+  pro_demo_empty: "No underpriced picks on the board yet — check back after the next forecast run.",
   pro_demo_loading: "Loading radar teaser…",
   pro_demo_error: "Could not load radar teaser.",
   pro_demo_open: "Open full Kestrel Radar",
@@ -385,9 +408,9 @@ const en = {
   detail_ai_under_title: "AI · 7d outlook",
   detail_expected: "Expected move",
   detail_predicted: "Predicted price",
-  detail_band: "Conformal band {band}",
+  detail_band: "Sure band {band}",
   detail_horizon: "Horizon forecast from the market board.",
-  detail_low_conf: "Low confidence — treat as HOLD until more data lands.",
+  detail_low_conf: "Unsure call — treat as HOLD until more data lands.",
   detail_confidence: "Confidence {level}",
   detail_why: "Why this signal",
   detail_explain_need: "Need ~15 history points before feature explain unlocks.",
@@ -509,24 +532,46 @@ const hr: Dictionary = {
   nav_close_menu: "Zatvori izbornik",
   nav_primary: "Glavna navigacija",
   nav_mobile: "Mobilna navigacija",
-  landing_headline: "Uoči. Signal. Djeluj.",
+  landing_headline: "Kupiti — ili propustiti?",
   landing_lede:
-    "Pokémon TCG tržišne cijene i AI prognoze — pregledaj, prati i reagraj dok je otisak još vruć.",
-  landing_cta_market: "Otvori tržište",
+    "Kestrel mjeri spot naspram sigurnog AI fair pojasa za Pokémon TCG — kupi, prodaj, tradeaj ili gradeaj s jasnim pozivom, ne po osjećaju.",
+  landing_cta_market: "Pogledaj današnji deal",
   landing_cta_pro: "Kestrel Pro",
   landing_dotd_eyebrow: "Deal of the Day",
-  landing_dotd_title: "Današnji UNDER edge",
+  landing_dotd_title: "Današnji podcijenjeni pickovi",
   landing_dotd_lede:
-    "Live conformal mispricing sa Soft Ink boarda — spot vs AI fair, osvježeno s tržištem.",
+    "Besplatni okus stola: karte ispod Kestrelovog sure fair pojasa. Pro otključava cijeli Radar s filterima.",
   landing_dotd_loading: "Učitavam današnji deal…",
-  landing_dotd_empty: "Nema UNDER edgeova na boardu — provjeri nakon idućeg forecast runa.",
+  landing_dotd_empty: "Nema podcijenjenih pickova na boardu — provjeri nakon idućeg forecast runa.",
   landing_dotd_error: "Ne mogu učitati Deal of the Day.",
-  landing_dotd_cta: "Otključaj Kestrel Radar",
-  landing_dotd_band: "fair band {band}",
+  landing_dotd_cta: "Otključaj cijeli Kestrel Radar",
+  landing_dotd_band: "Sure pojas {band}",
   landing_follow_title: "Od signala do stola",
   landing_follow_lede:
-    "Jedan put: pregledaj board, pročitaj AI explain, vodi portfelj, uhvati Kestrel Radar edgeove, izvezi dealer CSV.",
+    "Pregledaj board, pročitaj jednostavan poziv, vodi portfelj, pa otvori Radar i Trade kad si spreman djelovati.",
   landing_follow_link: "Idi na AI signale →",
+  glossary_under: "Podcijenjeno",
+  glossary_over: "Precijenjeno",
+  glossary_under_tip:
+    "Spot je ispod Kestrelovog sure fair pojasa — kandidat za kupnju ili držanje.",
+  glossary_over_tip:
+    "Spot je iznad Kestrelovog sure fair pojasa — kandidat za trim ili pass.",
+  glossary_edge: "Edge",
+  glossary_edge_tip:
+    "Koliko je spot udaljen od sure fair pojasa (konzervativna strana forecasta).",
+  glossary_fair: "Fair",
+  glossary_fair_tip: "Kestrelova AI fair cijena za ovu kartu na trenutnom boardu.",
+  glossary_band: "Sure pojas",
+  glossary_band_tip:
+    "Raspon u kojem je model dovoljno siguran da poziv nazove „sure“. Izvan njega šutimo.",
+  glossary_sure: "Sure",
+  glossary_sure_tip: "Confidence i pojas su zeleni — prikazujemo poziv.",
+  glossary_unsure: "Nesigurno",
+  glossary_unsure_tip: "Pojas ili confidence su slabi — tretiraj kao DRŽI, ne kao trade signal.",
+  decision_under: "Prodaje se ~{pct}% ispod Kestrelovog fair pojasa (sure).",
+  decision_over: "Prodaje se ~{pct}% iznad Kestrelovog fair pojasa (sure).",
+  metric_fair: "fair {price}",
+  metric_edge: "edge {pct}",
   explore_eyebrow: "Pregled tržišta",
   explore_title: "Tržište",
   explore_lede: "Pokémon TCG cijene i AI signali — art-first, spremno za mobitel.",
@@ -691,11 +736,11 @@ const hr: Dictionary = {
   radar_eyebrow: "Kestrel",
   radar_title: "Kestrel Radar",
   radar_lede:
-    "Conformal mispricing za sljedećih {days}d — spot ispod AI fair banda (UNDER) ili rastegnut iznad (OVER).",
+    "Sure pozivi za sljedećih {days}d — kupnja jeftino vs fair pojas (podcijenjeno) ili trim bogatih spotova (precijenjeno).",
   radar_signin_lede: "Prijavi se da otvoriš Kestrel Radar prema Soft Ink boardu.",
   radar_locked: "Kestrel Radar je Kestrel Pro površina.",
   radar_locked_lede:
-    "Nadogradi s istim emailom koji koristiš za prijavu, pa se vrati za UNDER / OVER edgeove.",
+    "Nadogradi s istim emailom koji koristiš za prijavu, pa se vrati za podcijenjene / precijenjene pozive.",
   radar_loading: "Učitavam Kestrel Radar…",
   radar_error: "Kestrel Radar nije uspio",
   radar_search_ph: "Traži ime…",
@@ -703,12 +748,12 @@ const hr: Dictionary = {
   radar_btn: "Skeniraj",
   radar_min_edge: "Min edge %",
   radar_kpi_sure: "Sure redovi",
-  radar_kpi_under: "Underpriced",
-  radar_kpi_over: "Overpriced",
-  radar_under_title: "Underpriced (buy edge)",
-  radar_under_empty: "Nema UNDER redova za ovaj edge floor / raspon cijena.",
-  radar_over_title: "Overpriced (trim edge)",
-  radar_over_empty: "Nema OVER redova za ovaj edge floor / raspon cijena.",
+  radar_kpi_under: "Podcijenjeno",
+  radar_kpi_over: "Precijenjeno",
+  radar_under_title: "Podcijenjeno — kandidati za kupnju",
+  radar_under_empty: "Nema podcijenjenih redova za ovaj edge floor / raspon cijena.",
+  radar_over_title: "Precijenjeno — kandidati za trim",
+  radar_over_empty: "Nema precijenjenih redova za ovaj edge floor / raspon cijena.",
   radar_share_copy: "Kopiraj share link",
   radar_share_busy: "Kopiram…",
   radar_share_copied: "Share link kopiran — filteri idu s URL-om.",
@@ -771,7 +816,7 @@ const hr: Dictionary = {
   trade_v_them_ahead: "Oni su ispred",
   trade_net_spot: "Spot neto {value} ({pct}) za tebe",
   trade_net_ai: "AI fair neto {value} ({pct}) za tebe",
-  trade_band_note: "Fair band ±{n}% na tvoj give total",
+  trade_band_note: "Pošteno dok je razlika unutar ±{n}% tvog give totala",
   trade_seed_you: "Dodano {n} kart(a/e) u Ti daješ iz linka.",
   trade_seed_them: "Dodano {n} kart(a/e) u Oni daju iz linka.",
   trade_share_copy: "Kopiraj share link",
@@ -841,14 +886,14 @@ const hr: Dictionary = {
   pro_success_active_title: "Kestrel Pro otključan",
   pro_success_active_lede:
     "Ovaj račun ima aktivni Kestrel Pro entitlement. Otvori Kestrel Radar, Trade Analyzer ili Dealer.",
-  pro_f1: "Kestrel Radar — conformal UNDER / OVER edgeovi vs AI fair band",
+  pro_f1: "Kestrel Radar — sure podcijenjeni / precijenjeni pozivi vs fair pojas",
   pro_f2: "Trade Analyzer — spot + AI fair na obje strane tradea",
   pro_f3: "Dealer CSV stol + sure-only alerti",
   pro_demo_eyebrow: "Live Kestrel Radar",
-  pro_demo_title: "Top UNDER edgeovi sada",
+  pro_demo_title: "Top podcijenjeni pickovi sada",
   pro_demo_lede:
-    "Javni teaser s conformal boarda. Kestrel Pro otključava cijeli Kestrel Radar stol s filterima.",
-  pro_demo_empty: "Nema UNDER edgeova na boardu — provjeri nakon idućeg forecast runa.",
+    "Besplatni teaser s današnjeg sure boarda. Kestrel Pro otključava cijeli Radar stol s filterima i trustom.",
+  pro_demo_empty: "Nema podcijenjenih pickova na boardu — provjeri nakon idućeg forecast runa.",
   pro_demo_loading: "Učitavam radar teaser…",
   pro_demo_error: "Ne mogu učitati radar teaser.",
   pro_demo_open: "Otvori cijeli Kestrel Radar",
@@ -865,9 +910,9 @@ const hr: Dictionary = {
   detail_ai_under_title: "AI · 7d outlook",
   detail_expected: "Očekivani pomak",
   detail_predicted: "Predviđena cijena",
-  detail_band: "Conformal pojas {band}",
+  detail_band: "Sure pojas {band}",
   detail_horizon: "Horizon forecast s market boarda.",
-  detail_low_conf: "Niska pouzdanost — tretiraj kao DRŽI dok ne stigne više podataka.",
+  detail_low_conf: "Nesiguran poziv — tretiraj kao DRŽI dok ne stigne više podataka.",
   detail_confidence: "Pouzdanost {level}",
   detail_why: "Zašto ovaj signal",
   detail_explain_need: "Treba ~15 točaka povijesti prije AI explaina.",
@@ -994,4 +1039,31 @@ export function signalLabel(locale: Locale, signal?: string | null): string {
     return translate(locale, "signal_hold");
   }
   return signal || "—";
+}
+
+export function sideLabel(locale: Locale, side?: string | null): string {
+  const key = (side || "").toUpperCase();
+  if (key === "UNDER") return translate(locale, "glossary_under");
+  if (key === "OVER") return translate(locale, "glossary_over");
+  return side || "—";
+}
+
+export function sideTipKey(side?: string | null): "glossary_under_tip" | "glossary_over_tip" {
+  return (side || "").toUpperCase() === "OVER"
+    ? "glossary_over_tip"
+    : "glossary_under_tip";
+}
+
+/** One-line desk verdict, e.g. "Selling ~12% under Kestrel’s fair band (sure)." */
+export function decisionOneLiner(
+  locale: Locale,
+  side: string | null | undefined,
+  edgePct: number | null | undefined,
+): string | null {
+  if (edgePct == null || !Number.isFinite(Number(edgePct))) return null;
+  const abs = Math.abs(Number(edgePct));
+  const pct = abs >= 10 ? abs.toFixed(0) : abs.toFixed(1);
+  const key =
+    (side || "").toUpperCase() === "OVER" ? "decision_over" : "decision_under";
+  return translate(locale, key, { pct });
 }

@@ -45,15 +45,15 @@ Last updated: 2026-11-05. Living doc — ship order can move; the wedge should n
 
 These close the loop we actually need before marketing spend. Do **not** reorder into Collectr features first.
 
-### Phase A — Clarity + free teaser *(ship first)*
+### Phase A — Clarity + free teaser *(shipping)*
 
 **Goal:** a visitor understands the desk without jargon; free users taste Pro without a full live board.
 
 | ID | Item | Ship |
 | --- | --- | --- |
-| A1 | **Plain-language decision copy** | EN+HR tooltips / one-liners for UNDER, OVER, edge, conformal band, sure vs unsure. Example: *“Selling ~15% under Kestrel’s fair band (sure).”* Surface on Radar rows, Deal of the Day, card detail, Trade summary. |
-| A2 | **Free teaser hardening** | Keep / grow Deal of the Day + `/api/radar/preview` (≈3–5 UNDER cards). Clear Pro CTA → full Radar. No delayed-24h AI tier; no full free board. |
-| A3 | **Landing “10-second wedge”** | Hero + one sample verdict that reads without opening Pro. Brand first; one CTA to Deal / Trade / Pro. |
+| A1 | **Plain-language decision copy** | EN+HR glossary + one-liners (*“Selling ~15% under Kestrel’s fair band (sure).”*) on Radar rows, Deal of the Day, card detail; Trade fair-band note plain. |
+| A2 | **Free teaser hardening** | Deal of the Day shows up to 5 UNDER picks, primary Pro CTA, same plain vocabulary as Radar. |
+| A3 | **Landing “10-second wedge”** | Hero asks buy-or-pass; primary CTA scrolls to `#deal-of-day`; brand stays first. |
 
 **Exit check:** cold visitor can explain what Kestrel does after one screen; free teaser loads fast and matches Pro vocabulary.
 
@@ -110,6 +110,6 @@ Ship these **after** A–C show Pro trial→paid and returning Radar/Trade use. 
 
 ## Suggested next move
 
-**Phase A1 + A2** — plain-language decision copy on Radar / Deal / Trade, then tighten the free teaser CTA.  
-Immediately after: **Phase B1 (#8 Trade report PDF / image)**.  
+**Phase A shipping** — plain-language desk copy + free teaser + landing 10s wedge (this PR track).  
+Next after merge: **Phase B1 (#8 Trade report PDF / image)**.  
 Parallel ops track: **Phase C1 JustTCG set matching** so shares and teasers don’t advertise bad spots.
