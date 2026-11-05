@@ -34,6 +34,7 @@ export function SiteHeader() {
       { href: "/portfolio", labelKey: "nav_portfolio" },
       { href: "/scanner", labelKey: "nav_scanner" },
       { href: "/radar", labelKey: "nav_radar" },
+      { href: "/trade", labelKey: "nav_trade" },
       { href: "/dealer", labelKey: "nav_dealer" },
       { href: "/pro", labelKey: "nav_pro" },
     ],

@@ -268,6 +268,57 @@ export type RadarResponse = {
   source: "supabase" | "demo" | "empty";
 };
 
+export type TradeLineIn = {
+  card_id: string;
+  quantity: number;
+};
+
+export type TradeLineOut = TradeLineIn & {
+  matched: boolean;
+  name?: string | null;
+  set_name?: string | null;
+  image_url?: string | null;
+  spot?: number | null;
+  fair_price?: number | null;
+  expected_change_pct?: number | null;
+  pred_lo_pct?: number | null;
+  pred_hi_pct?: number | null;
+  signal?: string | null;
+  conformal_ok: boolean;
+  line_spot?: number | null;
+  line_fair?: number | null;
+};
+
+export type TradeSide = {
+  lines: TradeLineOut[];
+  matched: number;
+  unmatched: number;
+  spot_total: number;
+  fair_total: number;
+  cards: number;
+};
+
+export type TradeStatus = {
+  allowed: boolean;
+  reason: string;
+  checkout_url?: string | null;
+  fair_band_pct: number;
+};
+
+export type TradeResponse = {
+  you: TradeSide;
+  them: TradeSide;
+  net_spot_usd: number;
+  net_fair_usd: number;
+  net_spot_pct: number;
+  net_fair_pct: number;
+  spot_verdict: string;
+  ai_verdict: string;
+  verdict: string;
+  fair_band_pct: number;
+  source: "supabase" | "demo" | "empty";
+};
+
 export type DealerStatus = {
   allowed: boolean;
   reason: string;

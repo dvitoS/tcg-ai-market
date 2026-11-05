@@ -11,6 +11,9 @@ import type {
   EbayCompsResponse,
   RadarResponse,
   RadarStatus,
+  TradeLineIn,
+  TradeResponse,
+  TradeStatus,
   PortfolioLot,
   PortfolioPerformanceResponse,
   PortfolioResponse,
@@ -641,6 +644,41 @@ export async function fetchRadar(query: RadarQuery = {}): Promise<RadarResponse>
   if (!res.ok) {
     const detail = await res.text();
     throw new Error(detail || `Radar failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function fetchTradeStatus(): Promise<TradeStatus> {
+  const res = await fetch(apiUrl("/api/trade/status"), {
+    headers: {
+      Accept: "application/json",
+      ...authHeaders(),
+    },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`Trade status failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function scoreTrade(input: {
+  you: TradeLineIn[];
+  them: TradeLineIn[];
+  fair_band_pct?: number;
+}): Promise<TradeResponse> {
+  const res = await fetch(apiUrl("/api/trade/score"), {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const detail = await res.text();
+    throw new Error(detail || `Trade score failed (${res.status})`);
   }
   return res.json();
 }
