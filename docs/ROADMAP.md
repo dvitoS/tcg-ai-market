@@ -4,6 +4,8 @@
 
 Last updated: 2026-11-05. Living doc — ship order can move; the wedge should not.
 
+**North star for the next stretch:** make the wedge obvious in ~10 seconds for a non-Pro visitor (*fair / not fair — here’s why*), then earn Pro with shareable verdicts and trustworthy spots — **not** by becoming another binder scanner.
+
 ---
 
 ## Already shipped (baseline)
@@ -21,65 +23,93 @@ Last updated: 2026-11-05. Living doc — ship order can move; the wedge should n
 | Kestrel Pro | Creem billing, entitlements, `/pro` teaser radar |
 | Search suggest | Recent + catalog typeahead (portaled overlay) |
 | i18n | EN + HR |
-| Ops | Data health panel, deploy docs, nightly train / quotes |
+| Ops | Data health panel, deploy docs, nightly train / quotes + catalog gap-fill |
+| Soft Ink chrome | Global copper thin scrollbars, art-first browse |
 
----
+### Shipped from earlier “next 3” / Pro depth
 
-## Now — next 3 (ship order)
-
-These close conversion loops and plug the biggest holes vs Collectr / PriceCharting without diluting the AI wedge.
-
-### 1. Shareable Trade & Radar links — shipped
-**Why:** Viral loop. Collectr/TCGplayer share collections; nobody shares a *fairness verdict* for a proposed trade.
-**Ship:** ~~Public read-only `/trade/s/{id}`~~ (signed payload, live re-score, Kestrel Pro CTA). ~~Radar `?share=` filter deeplink~~ (client token; Pro copy CTA).
-**Pro gate:** Create share = Kestrel Pro (same as score); Trade view = public; Radar still Pro-gated on open.
-
-### 2. Portfolio equity curve + AI overlay — shipped
-**Why:** Collectr’s stock-chart is the retention hook we still lack.
-**Ship:** ~~Daily MTM from `price_history`~~ (already live) + ~~today’s AI fair reference line~~ + ~~drawdown callouts with conformal TRIM count~~. Historical AI series still deferred (no quote snapshots).
-
-### 3. Condition & printing on lots — shipped
-**Why:** TCGplayer prices are condition/printing-specific; our spots are mostly raw-NM. Wrong condition = wrong Radar / Trade / Grading EV.
-**Ship:** ~~`printing` on lots~~ + ~~fixed NM multipliers (LP/MP/HP/DMG × Normal/Reverse/Holo)~~ applied in portfolio MTM, equity curve, Trade lines, and Grading EV. JustTCG variant IDs still deferred.
-
----
-
-## Next — Kestrel Pro depth
-
-| # | Item | Competitive note |
+| # | Item | Notes |
 | --- | --- | --- |
-| 4 | **Deal of the Day** public feed — shipped | Landing + `/pro` reuse `/api/radar/preview` |
-| 5 | **Alert channels** (Telegram / push / WhatsApp Business) | Deferred — email + Discord for now |
-| 6 | **Model trust panel** — shipped | Kestrel Pro on `/radar`: retrain calibration, conformal coverage, Radar-call hit rate |
-| 7 | **Grading EV v2** — shipped | Live PSA 9 + sales depth, service fee presets, break-even sensitivity chart |
-| 8 | **Trade report PDF / image** | One-tap share for Discord groups / local shops |
-| 9 | **Set completion / binder checklist** — shipped | Soft Ink `/binder` + `/api/binder`: % complete, missing list, buy-cost to finish |
-| 10 | **Sealed product quotes** — shipped | Portfolio add-by-quote (JustTCG / demo seed); synthetic `sealed:{id}` catalog rows |
+| 1 | Shareable Trade & Radar links | `/trade/s/{id}` + Radar `?share=` |
+| 2 | Portfolio equity curve + AI overlay | MTM + fair line + conformal TRIM callouts |
+| 3 | Condition & printing on lots | Fixed NM multipliers; JustTCG variant IDs still deferred |
+| 4 | Deal of the Day public feed | Landing + `/pro` reuse `/api/radar/preview` |
+| 6 | Model trust panel | Retrain calibration, conformal coverage, hit rate |
+| 7 | Grading EV v2 | PSA 9 + fees + break-even chart |
+| 9 | Set completion / binder checklist | Soft Ink `/binder` |
+| 10 | Sealed product quotes | JustTCG / demo seed → `sealed:{id}` |
 
 ---
 
-## Later — market expansion
+## Now — conversion & trust (ship order)
 
-| # | Item | Note |
+These close the loop we actually need before marketing spend. Do **not** reorder into Collectr features first.
+
+### Phase A — Clarity + free teaser *(ship first)*
+
+**Goal:** a visitor understands the desk without jargon; free users taste Pro without a full live board.
+
+| ID | Item | Ship |
 | --- | --- | --- |
-| 11 | Real camera OCR scan | Today’s Scanner is catalog search; photo ID is table-stakes on mobile |
-| 12 | Cardmarket / EU pricing | HR/EU users; dual-currency spots |
-| 13 | Japanese / Asian print lanes | Cardbase / Dex territory — only if data partner exists |
-| 14 | Multi-TCG (One Piece, Lorcana) | After Pokémon Pro retention is proven |
-| 15 | PWA + installable Soft Ink | Bridge until native |
-| 16 | Seller inventory sync (TCGplayer / CSV auto) | Dealer desk automation |
-| 17 | Social / shared watchlists | Nice-to-have; not the wedge |
+| A1 | **Plain-language decision copy** | EN+HR tooltips / one-liners for UNDER, OVER, edge, conformal band, sure vs unsure. Example: *“Selling ~15% under Kestrel’s fair band (sure).”* Surface on Radar rows, Deal of the Day, card detail, Trade summary. |
+| A2 | **Free teaser hardening** | Keep / grow Deal of the Day + `/api/radar/preview` (≈3–5 UNDER cards). Clear Pro CTA → full Radar. No delayed-24h AI tier; no full free board. |
+| A3 | **Landing “10-second wedge”** | Hero + one sample verdict that reads without opening Pro. Brand first; one CTA to Deal / Trade / Pro. |
+
+**Exit check:** cold visitor can explain what Kestrel does after one screen; free teaser loads fast and matches Pro vocabulary.
+
+### Phase B — Shareable verdicts *(viral loop)*
+
+**Goal:** Discord / local shops share a *fairness verdict*, not a spreadsheet.
+
+| ID | Item | Ship |
+| --- | --- | --- |
+| B1 | **#8 Trade report PDF / image** | One-tap export from `/trade` (+ public `/trade/s/{id}`): sides, fair totals, you-ahead/them-ahead, Kestrel watermark + Pro CTA. |
+| B2 | **Binder share card (lite)** | Read-only visual summary of set completion (% / missing count / buy-cost) — **no** dealer margins or private P&L. Deep-link or image; Pro CTA optional. |
+| B3 | **Radar share polish** | Keep `?share=` filters; add plain-language blurb in copied text so shares make sense outside the app. |
+
+**Exit check:** someone can post a Trade or binder verdict in Discord without a Pro account to *view*; create/export stays Pro-gated where it already is.
+
+### Phase C — Data trust *(stop lying spots)*
+
+**Goal:** Radar / Trade / Grading EV sit on spots we trust enough to market.
+
+| ID | Item | Ship |
+| --- | --- | --- |
+| C1 | **JustTCG set matching fix** | Kill bad resolves to `alternate-art-promos-pokemon` and similar; golden tests for set → JustTCG id. |
+| C2 | **Spot / history QA panel** | Data health: % cards with fresh JustTCG history, unmatched sets, sure-row count after nightly. |
+| C3 | **Nightly SLO** | Gap-fill catalog + drip JustTCG stays under timeout; board (`market_quotes`) refreshes every green run; cold Radar path stays usable (cache / warm if needed). |
+| C4 | **Variant IDs (stretch)** | JustTCG printing/condition variants when matching is stable — replaces coarse NM multipliers where possible. |
+
+**Exit check:** random Radar UNDER spots survive manual TCGplayer/eBay sniff test; unmatched-set rate tracked and trending down.
+
+### Phase D — Reach only after Pro retention *(later)*
+
+Ship these **after** A–C show Pro trial→paid and returning Radar/Trade use. Do not pull forward to “grow top of funnel.”
+
+| ID | Item | Note |
+| --- | --- | --- |
+| D1 | PWA + installable Soft Ink | Bridge before native; home-screen + offline shell |
+| D2 | Camera OCR scan | Photo ID → card → **same** fair/edge desk (OCR is input, not the product) |
+| D3 | #5 Alert channels | Telegram / push (email + Discord already live) |
+| D4 | Cardmarket / EU pricing | HR/EU dual-currency spots |
+| D5 | Seller inventory sync | TCGplayer / CSV auto for dealer desk |
+| D6 | Multi-TCG / JP lanes | Only with a data partner + proven Pokémon Pro retention |
 
 ---
 
 ## Explicit non-goals (for now)
 
-- Full marketplace / checkout (we deep-link to eBay / TCGplayer)
+- Full marketplace / checkout (deep-link eBay / TCGplayer)
 - Sports cards
-- Replacing Collectr as a binder scanner first — we win on **decision quality**, then catch up on collection hygiene
+- **Becoming Collectr first** — binder scanner / album social without decision wedge
+- **Casual Mode vs Investor Mode** dual UI — one desk, clearer copy instead
+- **24–48h delayed AI freemium** — wrong lever; use capped live teaser instead
+- Native app before PWA + proven OCR need
 
 ---
 
 ## Suggested next move
 
-**#8 Trade report PDF / image** — one-tap share for Discord groups / local shops. Then **#5 Alert channels** (Telegram / push).
+**Phase A1 + A2** — plain-language decision copy on Radar / Deal / Trade, then tighten the free teaser CTA.  
+Immediately after: **Phase B1 (#8 Trade report PDF / image)**.  
+Parallel ops track: **Phase C1 JustTCG set matching** so shares and teasers don’t advertise bad spots.
