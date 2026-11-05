@@ -218,6 +218,11 @@ const en = {
   trust_trained: "Last trained {when}",
   trust_loading: "Loading model trust…",
   trust_error: "Model trust failed",
+  trust_error_not_found:
+    "Trust API is not on this backend yet — hard-refresh after the API redeploy finishes.",
+  trust_error_auth: "Sign in again to load model trust.",
+  trust_error_pro: "Model trust requires Kestrel Pro.",
+  trust_retry: "Retry",
   trust_kpi_direction: "Direction hit",
   trust_kpi_rmse_naive: "RMSE vs naive",
   trust_kpi_coverage: "Band coverage",
@@ -644,6 +649,11 @@ const hr: Dictionary = {
   trust_trained: "Zadnji train {when}",
   trust_loading: "Učitavam model trust…",
   trust_error: "Model trust nije uspio",
+  trust_error_not_found:
+    "Trust API još nije na ovom backendu — hard-refresh nakon što API redeploy završi.",
+  trust_error_auth: "Prijavi se ponovno da učitaš model trust.",
+  trust_error_pro: "Model trust zahtijeva Kestrel Pro.",
+  trust_retry: "Pokušaj ponovno",
   trust_kpi_direction: "Direction hit",
   trust_kpi_rmse_naive: "RMSE vs naive",
   trust_kpi_coverage: "Band coverage",
