@@ -2343,6 +2343,143 @@ a {
   border-color: rgba(196, 90, 80, 0.35);
 }
 
+.trade-verdict.trade-fair {
+  border-color: rgba(184, 115, 51, 0.35);
+}
+
+.trade-report-export {
+  margin-top: 0.85rem;
+  display: grid;
+  gap: 0.45rem;
+  justify-items: start;
+}
+
+.trade-share-card-host {
+  position: fixed;
+  left: -12000px;
+  top: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.trade-share-card {
+  width: 720px;
+  box-sizing: border-box;
+  padding: 1.25rem 1.35rem 1.1rem;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background:
+    radial-gradient(ellipse 70% 45% at 0% 0%, rgba(184, 115, 51, 0.1), transparent 55%),
+    linear-gradient(180deg, #181818 0%, #121212 100%);
+  color: var(--text);
+  font-family: var(--font-ui);
+}
+
+.trade-share-card-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-bottom: 1rem;
+}
+
+.trade-share-card-mark {
+  border-radius: 9px;
+}
+
+.trade-share-card-kestrel {
+  margin: 0;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 1.35rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.trade-share-card-tag {
+  margin: 0.1rem 0 0;
+  color: var(--accent-2);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.trade-share-card-board {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.trade-report-side {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(26, 26, 26, 0.7);
+  padding: 0.7rem 0.8rem;
+}
+
+.trade-report-side-head h3 {
+  margin: 0 0 0.15rem;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 0.98rem;
+}
+
+.trade-report-side-head p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.trade-report-lines {
+  list-style: none;
+  margin: 0.55rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.trade-report-lines li {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.trade-report-name {
+  font-weight: 600;
+  font-size: 0.86rem;
+}
+
+.trade-report-meta,
+.trade-report-empty,
+.trade-report-more {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.trade-share-card .trade-verdict {
+  margin-top: 0;
+}
+
+.trade-share-card .trade-verdict p {
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.trade-share-card-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.35rem 0.75rem;
+  margin-top: 0.85rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid rgba(42, 42, 42, 0.9);
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.trade-share-card-url {
+  color: var(--accent-2);
+  word-break: break-all;
+}
+
 @media (max-width: 720px) {
   .trade-board {
     grid-template-columns: 1fr;

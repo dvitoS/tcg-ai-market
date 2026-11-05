@@ -8,6 +8,7 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { useLocale } from "@/components/LocaleProvider";
 import { SearchSuggest } from "@/components/SearchSuggest";
+import { TradeReportExport } from "@/components/TradeReportExport";
 import {
   createTradeShare,
   fetchTradeStatus,
@@ -470,26 +471,29 @@ export function TradeView() {
       {shareNote ? <p className="pro-open-note">{shareNote}</p> : null}
 
       {result ? (
-        <div className={`trade-verdict ${verdictClass(result.verdict)}`}>
-          <p className="trade-verdict-label">{t("trade_verdict")}</p>
-          <h2>{t(verdictLabelKey(result.verdict))}</h2>
-          <p className="explore-lede">
-            {t("trade_net_spot", {
-              value: formatMoney(result.net_spot_usd),
-              pct: formatChange(result.net_spot_pct),
-            })}
-          </p>
-          <p className="explore-lede">
-            {t("trade_net_ai", {
-              value: formatMoney(result.net_fair_usd),
-              pct: formatChange(result.net_fair_pct),
-            })}
-          </p>
-          <p className="lot-meta">
-            {t("trade_band_note", { n: result.fair_band_pct })}
-            {result.source === "demo" ? ` · ${t("explore_demo")}` : ""}
-          </p>
-        </div>
+        <>
+          <div className={`trade-verdict ${verdictClass(result.verdict)}`}>
+            <p className="trade-verdict-label">{t("trade_verdict")}</p>
+            <h2>{t(verdictLabelKey(result.verdict))}</h2>
+            <p className="explore-lede">
+              {t("trade_net_spot", {
+                value: formatMoney(result.net_spot_usd),
+                pct: formatChange(result.net_spot_pct),
+              })}
+            </p>
+            <p className="explore-lede">
+              {t("trade_net_ai", {
+                value: formatMoney(result.net_fair_usd),
+                pct: formatChange(result.net_fair_pct),
+              })}
+            </p>
+            <p className="lot-meta">
+              {t("trade_band_note", { n: result.fair_band_pct })}
+              {result.source === "demo" ? ` · ${t("explore_demo")}` : ""}
+            </p>
+          </div>
+          <TradeReportExport trade={result} />
+        </>
       ) : null}
     </section>
   );

@@ -63,9 +63,9 @@ These close the loop we actually need before marketing spend. Do **not** reorder
 
 | ID | Item | Ship |
 | --- | --- | --- |
-| B1 | **#8 Trade report PDF / image** | One-tap export from `/trade` (+ public `/trade/s/{id}`): sides, fair totals, you-ahead/them-ahead, Kestrel watermark + Pro CTA. |
+| B1 | **#8 Trade report PDF / image** — shipping | One-tap PNG export from `/trade` (+ public `/trade/s/{id}`): sides, fair totals, verdict, Kestrel watermark. |
 | B2 | **Binder share card (lite)** | Read-only visual summary of set completion (% / missing count / buy-cost) — **no** dealer margins or private P&L. Deep-link or image; Pro CTA optional. |
-| B3 | **Radar share polish** | Keep `?share=` filters; add plain-language blurb in copied text so shares make sense outside the app. |
+| B3 | **Radar share polish** — shipping | Keep `?share=`; clipboard includes plain-language blurb + filter URL. |
 
 **Exit check:** someone can post a Trade or binder verdict in Discord without a Pro account to *view*; create/export stays Pro-gated where it already is.
 
@@ -110,6 +110,6 @@ Ship these **after** A–C show Pro trial→paid and returning Radar/Trade use. 
 
 ## Suggested next move
 
-**Phase A shipping** — plain-language desk copy + free teaser + landing 10s wedge (this PR track).  
-Next after merge: **Phase B1 (#8 Trade report PDF / image)**.  
-Parallel ops track: **Phase C1 JustTCG set matching** so shares and teasers don’t advertise bad spots.
+**Phase B1 + B3 shipping** — Trade report PNG + Radar share blurb.  
+Next: **B2 binder share card (lite)**.  
+Parallel ops: **Phase C1 JustTCG set matching**.

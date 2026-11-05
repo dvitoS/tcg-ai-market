@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { useLocale } from "@/components/LocaleProvider";
+import { TradeReportExport } from "@/components/TradeReportExport";
 import { fetchTradeShare, formatChange, formatMoney } from "@/lib/api";
 import type { TradeShareView as TradeSharePayload, TradeSide } from "@/lib/types";
 
@@ -75,6 +76,11 @@ export function TradeShareView({ shareId }: { shareId: string }) {
   const { t } = useLocale();
   const [data, setData] = useState<TradeSharePayload | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [shareUrl, setShareUrl] = useState(`/trade/s/${shareId}`);
+
+  useEffect(() => {
+    setShareUrl(`${window.location.origin}/trade/s/${shareId}`);
+  }, [shareId]);
 
   useEffect(() => {
     let alive = true;
@@ -166,6 +172,8 @@ export function TradeShareView({ shareId }: { shareId: string }) {
           </Link>
         )}
       </div>
+
+      <TradeReportExport trade={data} shareUrl={shareUrl} />
     </section>
   );
 }

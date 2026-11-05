@@ -249,8 +249,10 @@ const en = {
   radar_over_empty: "No overpriced rows at this edge floor / price range.",
   radar_share_copy: "Copy share link",
   radar_share_busy: "Copying…",
-  radar_share_copied: "Share link copied — filters travel with the URL.",
+  radar_share_copied: "Share text copied — plain verdict + filter link.",
   radar_share_error: "Could not copy share link",
+  radar_share_blurb:
+    "Kestrel Radar — sure underpriced / overpriced calls vs the fair band.",
 
   // Model trust (Kestrel Pro — on Radar)
   trust_eyebrow: "Model trust",
@@ -329,6 +331,13 @@ const en = {
   trade_share_live: "Prices refreshed live",
   trade_share_empty_side: "No cards on this side.",
   trade_share_unmatched: "unmatched",
+  trade_export_image: "Save image",
+  trade_export_busy: "Saving…",
+  trade_export_done: "Trade report image downloaded.",
+  trade_export_error: "Could not save trade report image",
+  trade_export_tag: "Trade report",
+  trade_export_watermark: "Kestrel · fair vs spot · kestreltcg.app",
+  trade_export_more: "+{n} more",
 
   // Dealer
   dealer_eyebrow: "Dealer",
@@ -756,8 +765,10 @@ const hr: Dictionary = {
   radar_over_empty: "Nema precijenjenih redova za ovaj edge floor / raspon cijena.",
   radar_share_copy: "Kopiraj share link",
   radar_share_busy: "Kopiram…",
-  radar_share_copied: "Share link kopiran — filteri idu s URL-om.",
+  radar_share_copied: "Share tekst kopiran — plain verdict + filter link.",
   radar_share_error: "Nisam uspio kopirati share link",
+  radar_share_blurb:
+    "Kestrel Radar — sure podcijenjeni / precijenjeni pozivi vs fair pojas.",
 
   trust_eyebrow: "Model trust",
   trust_title: "Kako forecast zarađuje povjerenje",
@@ -834,6 +845,13 @@ const hr: Dictionary = {
   trade_share_live: "Cijene osvježene uživo",
   trade_share_empty_side: "Nema karata na ovoj strani.",
   trade_share_unmatched: "nije matchano",
+  trade_export_image: "Spremi sliku",
+  trade_export_busy: "Spremam…",
+  trade_export_done: "Trade report slika preuzeta.",
+  trade_export_error: "Nisam uspio spremiti trade report sliku",
+  trade_export_tag: "Trade report",
+  trade_export_watermark: "Kestrel · fair vs spot · kestreltcg.app",
+  trade_export_more: "+još {n}",
 
   dealer_eyebrow: "Dealer",
   dealer_title: "Stol",

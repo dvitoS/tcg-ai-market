@@ -230,7 +230,7 @@ export function RadarView() {
         min_price: parsePrice(minPrice),
         max_price: parsePrice(maxPrice),
       });
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(`${t("radar_share_blurb")}\n${url}`);
       setShareNote(t("radar_share_copied"));
     } catch (err) {
       setError(err instanceof Error ? err.message : t("radar_share_error"));
