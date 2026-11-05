@@ -517,3 +517,43 @@ export type DataHealthResponse = {
   miss_or_fallback_pct: number;
   justtcg_configured: boolean;
 };
+
+export type BinderSetSummary = {
+  set_name: string;
+  set_id?: string | null;
+  total: number;
+  owned: number;
+  missing: number;
+  pct: number;
+  missing_cost: number;
+};
+
+export type BinderSetsResponse = {
+  sets: BinderSetSummary[];
+  source: "supabase" | "demo" | "empty";
+  demo: boolean;
+};
+
+export type BinderMissingCard = {
+  id: string;
+  name: string;
+  number?: string | null;
+  rarity?: string | null;
+  price?: number | null;
+  image_url?: string | null;
+};
+
+export type BinderResponse = {
+  set_name: string;
+  set_id?: string | null;
+  total: number;
+  owned: number;
+  missing: number;
+  pct_complete: number;
+  missing_cost: number;
+  missing_unpriced: number;
+  owned_ids: string[];
+  missing_cards: BinderMissingCard[];
+  source: "supabase" | "demo" | "empty";
+  demo: boolean;
+};

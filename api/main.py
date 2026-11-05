@@ -16,6 +16,7 @@ from api.bearer_middleware import BindBearerAccessTokenMiddleware
 from api.routers import (
     auth,
     billing,
+    binder,
     cards,
     catalog,
     dealer,
@@ -63,6 +64,7 @@ app.include_router(auth.router, prefix="/api")
 app.include_router(catalog.router, prefix="/api")
 app.include_router(cards.router, prefix="/api")
 app.include_router(portfolio.router, prefix="/api")
+app.include_router(binder.router, prefix="/api")
 app.include_router(scanner.router, prefix="/api")
 app.include_router(radar.router, prefix="/api")
 app.include_router(trust.router, prefix="/api")
