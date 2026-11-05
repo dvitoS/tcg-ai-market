@@ -20,6 +20,7 @@ def load_portfolio_lots(*, user_id: str, include_sold: bool = True) -> pd.DataFr
         "purchase_price",
         "purchase_date",
         "condition",
+        "printing",
         "grade",
         "status",
         "sale_price",
@@ -37,7 +38,7 @@ def load_portfolio_lots(*, user_id: str, include_sold: bool = True) -> pd.DataFr
     start = 0
     columns = (
         "id,user_id,card_id,quantity,purchase_price,purchase_date,"
-        "condition,grade,status,sale_price,sale_date,"
+        "condition,printing,grade,status,sale_price,sale_date,"
         "cards(name,rarity,market_price,image_url)"
     )
     while True:
@@ -51,19 +52,34 @@ def load_portfolio_lots(*, user_id: str, include_sold: bool = True) -> pd.DataFr
         try:
             response = query.execute()
         except Exception:
-            # Older schema without condition/status columns.
-            columns = (
-                "id,user_id,card_id,quantity,purchase_price,purchase_date,"
-                "cards(name,rarity,market_price,image_url)"
-            )
-            response = (
-                client.table("portfolio")
-                .select(columns)
-                .eq("user_id", uid)
-                .order("id")
-                .range(start, start + PAGE - 1)
-                .execute()
-            )
+            # Older schema without printing / condition / status columns.
+            try:
+                columns = (
+                    "id,user_id,card_id,quantity,purchase_price,purchase_date,"
+                    "condition,grade,status,sale_price,sale_date,"
+                    "cards(name,rarity,market_price,image_url)"
+                )
+                response = (
+                    client.table("portfolio")
+                    .select(columns)
+                    .eq("user_id", uid)
+                    .order("id")
+                    .range(start, start + PAGE - 1)
+                    .execute()
+                )
+            except Exception:
+                columns = (
+                    "id,user_id,card_id,quantity,purchase_price,purchase_date,"
+                    "cards(name,rarity,market_price,image_url)"
+                )
+                response = (
+                    client.table("portfolio")
+                    .select(columns)
+                    .eq("user_id", uid)
+                    .order("id")
+                    .range(start, start + PAGE - 1)
+                    .execute()
+                )
         batch = list(response.data or [])
         rows.extend(batch)
         if len(batch) < PAGE:
@@ -85,6 +101,7 @@ def load_portfolio_lots(*, user_id: str, include_sold: bool = True) -> pd.DataFr
                 "purchase_price": row.get("purchase_price"),
                 "purchase_date": row.get("purchase_date"),
                 "condition": row.get("condition") or "NM",
+                "printing": row.get("printing") or "Normal",
                 "grade": row.get("grade") or "",
                 "status": status,
                 "sale_price": row.get("sale_price"),
@@ -106,8 +123,11 @@ def add_portfolio_position(
     user_id: str,
     purchase_date: str | None = None,
     condition: str = "NM",
+    printing: str = "Normal",
     grade: str | None = None,
 ) -> None:
+    from services.lot_price_adjust import normalize_condition, normalize_printing
+
     uid = str(user_id or "").strip()
     if not uid:
         raise ValueError("Sign in required to add portfolio lots.")
@@ -122,7 +142,8 @@ def add_portfolio_position(
         "quantity": int(quantity),
         "purchase_price": float(purchase_price),
         "purchase_date": purchase_date or date.today().isoformat(),
-        "condition": (condition or "NM").strip() or "NM",
+        "condition": normalize_condition(condition),
+        "printing": normalize_printing(printing),
         "status": "open",
     }
     if grade:
@@ -130,16 +151,20 @@ def add_portfolio_position(
     try:
         client.table("portfolio").insert(payload).execute()
     except Exception:
-        # Fallback for DBs that have not run the condition/status migration yet.
-        client.table("portfolio").insert(
-            {
-                "user_id": uid,
-                "card_id": card_id,
-                "quantity": int(quantity),
-                "purchase_price": float(purchase_price),
-                "purchase_date": purchase_date or date.today().isoformat(),
-            }
-        ).execute()
+        # Fallback for DBs that have not run printing / condition migrations yet.
+        try:
+            slim = {k: v for k, v in payload.items() if k != "printing"}
+            client.table("portfolio").insert(slim).execute()
+        except Exception:
+            client.table("portfolio").insert(
+                {
+                    "user_id": uid,
+                    "card_id": card_id,
+                    "quantity": int(quantity),
+                    "purchase_price": float(purchase_price),
+                    "purchase_date": purchase_date or date.today().isoformat(),
+                }
+            ).execute()
 
 
 def update_portfolio_position(
@@ -150,8 +175,11 @@ def update_portfolio_position(
     purchase_price: float | None = None,
     purchase_date: str | None = None,
     condition: str | None = None,
+    printing: str | None = None,
     grade: str | None = None,
 ) -> bool:
+    from services.lot_price_adjust import normalize_condition, normalize_printing
+
     uid = str(user_id or "").strip()
     if not uid:
         return False
@@ -167,7 +195,9 @@ def update_portfolio_position(
     if purchase_date is not None:
         payload["purchase_date"] = str(purchase_date)
     if condition is not None:
-        payload["condition"] = str(condition).strip() or "NM"
+        payload["condition"] = normalize_condition(condition)
+    if printing is not None:
+        payload["printing"] = normalize_printing(printing)
     if grade is not None:
         payload["grade"] = str(grade).strip()
     if not payload:

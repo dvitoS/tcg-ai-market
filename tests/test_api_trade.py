@@ -87,8 +87,12 @@ def test_encode_decode_trade_share_roundtrip() -> None:
         fair_band_pct=3.0,
     )
     decoded = decode_trade_share(token)
-    assert decoded["you"] == [{"card_id": "a", "quantity": 2}]
-    assert decoded["them"] == [{"card_id": "b", "quantity": 1}]
+    assert decoded["you"] == [
+        {"card_id": "a", "quantity": 2, "condition": "NM", "printing": "Normal"}
+    ]
+    assert decoded["them"] == [
+        {"card_id": "b", "quantity": 1, "condition": "NM", "printing": "Normal"}
+    ]
     assert decoded["fair_band_pct"] == 3.0
 
 

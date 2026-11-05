@@ -39,6 +39,7 @@ create table if not exists public.portfolio (
     purchase_price double precision not null check (purchase_price > 0),
     purchase_date text not null,
     condition text default 'NM',
+    printing text default 'Normal',
     grade text,
     status text not null default 'open',
     sale_price double precision,
@@ -48,6 +49,7 @@ create table if not exists public.portfolio (
 -- Existing projects: add user_id if the table already existed without it.
 alter table public.portfolio add column if not exists user_id uuid references auth.users (id) on delete cascade;
 alter table public.portfolio add column if not exists condition text default 'NM';
+alter table public.portfolio add column if not exists printing text default 'Normal';
 alter table public.portfolio add column if not exists grade text;
 alter table public.portfolio add column if not exists status text not null default 'open';
 alter table public.portfolio add column if not exists sale_price double precision;

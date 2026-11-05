@@ -41,6 +41,8 @@ def portfolio_timeseries(
         .ffill()
     )
 
+    from services.lot_price_adjust import lot_price_factor
+
     lot_rows: list[dict] = []
     for row in lots.itertuples(index=False):
         start = _parse_lot_date(getattr(row, "purchase_date", None))
@@ -50,11 +52,16 @@ def portfolio_timeseries(
         end = _parse_lot_date(getattr(row, "sale_date", None)) if status == "sold" else None
         if status == "sold" and end is None:
             continue
+        factor = lot_price_factor(
+            condition=getattr(row, "condition", "NM"),
+            printing=getattr(row, "printing", "Normal"),
+        )
         lot_rows.append(
             {
                 "card_id": str(row.card_id),
                 "qty": float(row.quantity or 0),
                 "cost": float(row.purchase_price or 0),
+                "factor": float(factor),
                 "start": start,
                 "end": end,
             }
@@ -95,7 +102,7 @@ def portfolio_timeseries(
                 else np.nan
             )
             if px is not None and not pd.isna(px):
-                value += lot["qty"] * float(px)
+                value += lot["qty"] * float(px) * float(lot["factor"])
             else:
                 value += lot["qty"] * lot["cost"]
         invested_vals.append(invested)

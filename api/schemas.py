@@ -202,6 +202,7 @@ class PortfolioLot(BaseModel):
     purchase_price: float
     purchase_date: str | None = None
     condition: str | None = "NM"
+    printing: str | None = "Normal"
     grade: str | None = None
     status: str = "open"
     sale_price: float | None = None
@@ -210,6 +211,8 @@ class PortfolioLot(BaseModel):
     rarity: str | None = None
     set_name: str | None = None
     image_url: str | None = None
+    nm_market_price: float | None = None
+    price_factor: float | None = None
     market_price: float | None = None
     current_price: float | None = None
     invested: float | None = None
@@ -280,6 +283,7 @@ class AddLotRequest(BaseModel):
     quantity: int = 1
     purchase_price: float
     condition: str = "NM"
+    printing: str = "Normal"
     grade: str | None = None
     purchase_date: str | None = None
 
@@ -288,6 +292,7 @@ class UpdateLotRequest(BaseModel):
     quantity: int | None = None
     purchase_price: float | None = None
     condition: str | None = None
+    printing: str | None = None
     grade: str | None = None
     purchase_date: str | None = None
 
@@ -411,6 +416,8 @@ class RadarPreviewResponse(BaseModel):
 class TradeLineIn(BaseModel):
     card_id: str
     quantity: int = 1
+    condition: str = "NM"
+    printing: str = "Normal"
 
 
 class TradeRequest(BaseModel):
@@ -422,6 +429,9 @@ class TradeRequest(BaseModel):
 class TradeLineOut(BaseModel):
     card_id: str
     quantity: int = 1
+    condition: str = "NM"
+    printing: str = "Normal"
+    price_factor: float = 1.0
     matched: bool = False
     name: str | None = None
     set_name: str | None = None

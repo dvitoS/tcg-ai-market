@@ -74,6 +74,7 @@ def _seed_demo_user(user_id: str) -> None:
                     # Backdate so Soft Ink / Streamlit performance charts have a window.
                     "purchase_date": (date.today() - timedelta(days=75 - len(picks) * 12)).isoformat(),
                     "condition": "NM",
+                    "printing": "Normal",
                     "grade": "",
                     "status": "open",
                     "sale_price": None,
@@ -233,6 +234,13 @@ def _attach_lot_outlook(lots: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def enrich_lots(lots: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    from services.lot_price_adjust import (
+        adjust_nm_price,
+        lot_price_factor,
+        normalize_condition,
+        normalize_printing,
+    )
+
     quotes = _quotes_by_id()
     enriched: list[dict[str, Any]] = []
     for lot in lots:
@@ -240,29 +248,40 @@ def enrich_lots(lots: list[dict[str, Any]]) -> list[dict[str, Any]]:
         quote = quotes.get(card_id) or {}
         qty = int(lot.get("quantity") or 0)
         cost = float(lot.get("purchase_price") or 0.0)
-        spot = quote.get("price")
-        if spot is None:
-            spot = lot.get("market_price")
+        condition = normalize_condition(lot.get("condition"))
+        printing = normalize_printing(lot.get("printing"))
+        factor = lot_price_factor(condition=condition, printing=printing)
+        nm_spot = quote.get("price")
+        if nm_spot is None:
+            nm_spot = lot.get("market_price")
         try:
-            spot_f = float(spot) if spot is not None else 0.0
+            nm_spot_f = float(nm_spot) if nm_spot is not None else 0.0
         except (TypeError, ValueError):
-            spot_f = 0.0
+            nm_spot_f = 0.0
+        spot_f = float(adjust_nm_price(nm_spot_f, condition=condition, printing=printing) or 0.0)
         invested = qty * cost
         market_value = qty * spot_f
         pnl = market_value - invested
         pnl_pct = (pnl / invested * 100.0) if invested > 0 else 0.0
         predicted = quote.get("predicted_price")
         try:
-            predicted_f = float(predicted) if predicted is not None else spot_f
+            predicted_nm = float(predicted) if predicted is not None else nm_spot_f
         except (TypeError, ValueError):
-            predicted_f = spot_f
+            predicted_nm = nm_spot_f
+        predicted_f = float(
+            adjust_nm_price(predicted_nm, condition=condition, printing=printing) or 0.0
+        )
         enriched.append(
             {
                 **lot,
+                "condition": condition,
+                "printing": printing,
                 "name": lot.get("name") or quote.get("name"),
                 "rarity": lot.get("rarity") or quote.get("rarity"),
                 "set_name": quote.get("set_name"),
                 "image_url": _image(card_id, lot.get("image_url") or quote.get("image_url")),
+                "nm_market_price": nm_spot_f,
+                "price_factor": factor,
                 "market_price": spot_f,
                 "current_price": spot_f,
                 "invested": invested,
@@ -362,10 +381,13 @@ def add_lot(
     quantity: int,
     purchase_price: float,
     condition: str = "NM",
+    printing: str = "Normal",
     grade: str | None = None,
     purchase_date: str | None = None,
     access_token: str | None = None,
 ) -> dict[str, Any]:
+    from services.lot_price_adjust import normalize_condition, normalize_printing
+
     if int(quantity) < 1:
         raise ValueError("Quantity must be at least 1.")
     if float(purchase_price) <= 0:
@@ -379,7 +401,8 @@ def add_lot(
         "quantity": int(quantity),
         "purchase_price": float(purchase_price),
         "purchase_date": purchase_date or date.today().isoformat(),
-        "condition": (condition or "NM").strip() or "NM",
+        "condition": normalize_condition(condition),
+        "printing": normalize_printing(printing),
         "grade": (grade or "").strip(),
         "status": "open",
         "sale_price": None,
@@ -406,6 +429,7 @@ def add_lot(
             user_id=user_id,
             purchase_date=payload["purchase_date"],
             condition=payload["condition"],
+            printing=payload["printing"],
             grade=payload["grade"] or None,
         )
         frame = load_portfolio_lots(user_id=user_id, include_sold=True)
@@ -445,10 +469,13 @@ def update_lot(
     quantity: int | None = None,
     purchase_price: float | None = None,
     condition: str | None = None,
+    printing: str | None = None,
     grade: str | None = None,
     purchase_date: str | None = None,
     access_token: str | None = None,
 ) -> dict[str, Any] | None:
+    from services.lot_price_adjust import normalize_condition, normalize_printing
+
     if demo_mode():
         with _LOCK:
             _seed_demo_user(user_id)
@@ -466,7 +493,9 @@ def update_lot(
                     raise ValueError("Purchase price must be greater than zero.")
                 lot["purchase_price"] = float(purchase_price)
             if condition is not None:
-                lot["condition"] = (condition or "NM").strip() or "NM"
+                lot["condition"] = normalize_condition(condition)
+            if printing is not None:
+                lot["printing"] = normalize_printing(printing)
             if grade is not None:
                 lot["grade"] = (grade or "").strip()
             if purchase_date is not None:
@@ -482,6 +511,7 @@ def update_lot(
             quantity=quantity,
             purchase_price=purchase_price,
             condition=condition,
+            printing=printing,
             grade=grade,
             purchase_date=purchase_date,
         )

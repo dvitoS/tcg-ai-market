@@ -23,6 +23,12 @@ import type {
   TradeSide,
   TradeStatus,
 } from "@/lib/types";
+import {
+  PRINTINGS,
+  RAW_CONDITIONS,
+  normalizeCondition,
+  normalizePrinting,
+} from "@/lib/lotPriceAdjust";
 
 type SideKey = "you" | "them";
 
@@ -45,11 +51,16 @@ function SidePanel({
   side,
   lines,
   onRemove,
+  onPatch,
 }: {
   title: string;
   side: TradeSide | null;
   lines: TradeLineIn[];
   onRemove: (cardId: string) => void;
+  onPatch: (
+    cardId: string,
+    patch: Partial<Pick<TradeLineIn, "condition" | "printing">>,
+  ) => void;
 }) {
   const { t } = useLocale();
   return (
@@ -69,9 +80,17 @@ function SidePanel({
           <p className="explore-lede">{t("trade_add_hint")}</p>
         ) : (
           lines.map((line) => {
-            const scored = side?.lines.find((r) => r.card_id === line.card_id);
+            const scored = side?.lines.find(
+              (r) =>
+                r.card_id === line.card_id &&
+                (r.condition || "NM") === (line.condition || "NM") &&
+                (r.printing || "Normal") === (line.printing || "Normal"),
+            );
             return (
-              <div key={line.card_id} className="trade-line">
+              <div
+                key={`${line.card_id}-${line.condition || "NM"}-${line.printing || "Normal"}`}
+                className="trade-line"
+              >
                 <div className="scan-art">
                   <Image
                     src={scored?.image_url || "/kestrel-logo.png"}
@@ -88,6 +107,34 @@ function SidePanel({
                     {scored?.expected_change_pct != null
                       ? ` · AI ${formatChange(scored.expected_change_pct)}`
                       : ""}
+                  </div>
+                  <div className="trade-line-meta">
+                    <select
+                      aria-label={t("port_condition")}
+                      value={normalizeCondition(line.condition)}
+                      onChange={(e) =>
+                        onPatch(line.card_id, { condition: e.target.value })
+                      }
+                    >
+                      {RAW_CONDITIONS.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      aria-label={t("port_printing")}
+                      value={normalizePrinting(line.printing)}
+                      onChange={(e) =>
+                        onPatch(line.card_id, { printing: e.target.value })
+                      }
+                    >
+                      {PRINTINGS.map((p) => (
+                        <option key={p} value={p}>
+                          {p}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
                 <button
@@ -146,6 +193,8 @@ export function TradeView() {
       return Array.from(qty.entries()).map(([card_id, quantity]) => ({
         card_id,
         quantity,
+        condition: "NM",
+        printing: "Normal",
       }));
     });
     setSeedNote(
@@ -174,16 +223,53 @@ export function TradeView() {
   function addCard(card: CatalogCard) {
     const setter = target === "you" ? setYou : setThem;
     setter((prev) => {
-      const existing = prev.find((r) => r.card_id === card.id);
+      const existing = prev.find(
+        (r) =>
+          r.card_id === card.id &&
+          normalizeCondition(r.condition) === "NM" &&
+          normalizePrinting(r.printing) === "Normal",
+      );
       if (existing) {
         return prev.map((r) =>
-          r.card_id === card.id ? { ...r, quantity: r.quantity + 1 } : r,
+          r.card_id === card.id &&
+          normalizeCondition(r.condition) === "NM" &&
+          normalizePrinting(r.printing) === "Normal"
+            ? { ...r, quantity: r.quantity + 1 }
+            : r,
         );
       }
-      return [...prev, { card_id: card.id, quantity: 1 }];
+      return [
+        ...prev,
+        { card_id: card.id, quantity: 1, condition: "NM", printing: "Normal" },
+      ];
     });
     setResult(null);
+    setShareNote(null);
     setQuery("");
+  }
+
+  function patchLine(
+    side: SideKey,
+    cardId: string,
+    patch: Partial<Pick<TradeLineIn, "condition" | "printing">>,
+  ) {
+    const setter = side === "you" ? setYou : setThem;
+    setter((prev) =>
+      prev.map((r) => {
+        if (r.card_id !== cardId) return r;
+        return {
+          ...r,
+          condition: patch.condition
+            ? normalizeCondition(patch.condition)
+            : normalizeCondition(r.condition),
+          printing: patch.printing
+            ? normalizePrinting(patch.printing)
+            : normalizePrinting(r.printing),
+        };
+      }),
+    );
+    setResult(null);
+    setShareNote(null);
   }
 
   function onSearch(event: FormEvent) {
@@ -335,12 +421,14 @@ export function TradeView() {
           side={result?.you ?? null}
           lines={you}
           onRemove={(id) => removeFrom("you", id)}
+          onPatch={(id, patch) => patchLine("you", id, patch)}
         />
         <SidePanel
           title={t("trade_them_give")}
           side={result?.them ?? null}
           lines={them}
           onRemove={(id) => removeFrom("them", id)}
+          onPatch={(id, patch) => patchLine("them", id, patch)}
         />
       </div>
 
