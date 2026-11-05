@@ -16,7 +16,7 @@ def test_rate_limit_sleep_fast_with_api_key(monkeypatch):
     assert config.rate_limit_sleep_seconds() == config.RATE_LIMIT_SLEEP_SECONDS_WITH_KEY
 
 
-def test_rate_limit_sleep_slow_without_key(monkeypatch):
+def test_rate_limit_sleep_unkeyed_default(monkeypatch):
     import config
 
     config = importlib.reload(config)
@@ -25,7 +25,9 @@ def test_rate_limit_sleep_slow_without_key(monkeypatch):
     monkeypatch.delenv("POKEMON_TCG_API_KEY", raising=False)
     monkeypatch.delenv("POKEMONTCG_RATE_SLEEP", raising=False)
     assert config.pokemon_tcg_api_key() == ""
-    assert config.rate_limit_sleep_seconds() == config.RATE_LIMIT_SLEEP_SECONDS
+    # Unkeyed ~30/min published budget → default ~2.5s (not the old 65s).
+    assert config.rate_limit_sleep_seconds() == 2.5
+    assert config.RATE_LIMIT_SLEEP_SECONDS == 2.5
 
 
 def test_select_gapfill_prefers_missing_then_incomplete(monkeypatch):

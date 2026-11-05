@@ -115,10 +115,14 @@ def refresh_card_catalog() -> int:
         rate_limit_sleep_seconds(),
         floor_label,
     )
-    if not key_on:
-        LOG.warning(
-            "POKEMONTCG_API_KEY nije postavljen — sporiji rate limit. "
-            "Besplatni developer key: https://dev.pokemontcg.io/"
+    if key_on:
+        LOG.info(
+            "Koristim postojeći POKEMONTCG_API_KEY (legacy; API deprecated, keys do 2027-03-01)."
+        )
+    else:
+        LOG.info(
+            "Bez POKEMONTCG_API_KEY — unkeyed pace (~2.5s). "
+            "Novi key više nije dostupan (pokemontcg.io deprecated)."
         )
 
     if mode == "gapfill":

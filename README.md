@@ -126,20 +126,22 @@ Use `.env.example` only. Seed DB `data/seed_tcg_market.db` is intentional for em
 
 Workflow: [`.github/workflows/nightly_update.yml`](.github/workflows/nightly_update.yml) (03:00 UTC).
 
-Actions secrets: `SUPABASE_URL`, `SUPABASE_KEY`, preferably `JUSTTCG_API_KEY` + **`POKEMONTCG_API_KEY`** (free at [dev.pokemontcg.io](https://dev.pokemontcg.io/)). Optional SMTP + `CATALOG_SET_IDS`.
+Actions secrets: `SUPABASE_URL`, `SUPABASE_KEY`, preferably `JUSTTCG_API_KEY`. Optional SMTP + `CATALOG_SET_IDS`. Optional legacy `POKEMONTCG_API_KEY` if you already have one (pokemontcg.io is **deprecated** — no new registrations; existing keys work until **2027-03-01**).
 
 **Efficient all-sets strategy** (so the job finishes under the timeout):
 
-1. **Catalog gap-fill** (default) — list every pokemontcg.io set, compare to DB counts, fetch only **missing/incomplete** sets (budget `NIGHTLY_CATALOG_SET_BUDGET`, default 40/night). When the catalog is complete, catalog step is a no-op.
-2. **Fast pace with API key** — with `POKEMONTCG_API_KEY`, inter-request sleep is ~1.5s (vs ~65s unkeyed).
+1. **Catalog gap-fill** (default) — list every pokemontcg.io set, compare to DB counts, fetch only **missing/incomplete** sets (budget `NIGHTLY_CATALOG_SET_BUDGET`, default 50/night). When the catalog is complete, catalog step is a no-op.
+2. **Unkeyed pace ~2.5s** — aligned with published ~30 req/min without a key (no new keys available). Existing keys can still set `POKEMONTCG_API_KEY` for ~1.5s pace until 2027.
 3. **JustTCG drip** — schedule default `NIGHTLY_CARD_LIMIT=400` (missing history first) so prices fill over nights and **retrain always runs**.
-4. Manual dispatch can still choose `catalog_mode=full` and `card_limit=all` when you want a one-shot bootstrap.
+4. Manual dispatch can still choose `catalog_mode=full` and `card_limit=all` for a bootstrap pass.
 
 Also backfills `tcgplayer_id` (default 60/night), refreshes `market_quotes`, emails/Discord digests when configured, purges expired `auth_sessions`. **Fails** if `market_quotes` persist is empty.
 
+**Later (catalog source):** migrate off pokemontcg.io before 2027 — free [TCGdex](https://tcgdex.dev/) (IDs differ, e.g. `sv01-001` vs `sv1-1`) or paid successor [Scrydex](https://scrydex.com/).
+
 ### Catalog scale
 
-Default target: **all** pokemontcg.io sets (~176) and **no** USD floor (`CATALOG_MIN_PRICE=0`). Reach that via multi-night gap-fill (or one `full` run with `POKEMONTCG_API_KEY`).
+Default target: **all** pokemontcg.io sets (~176) and **no** USD floor (`CATALOG_MIN_PRICE=0`). Reach that via multi-night gap-fill (or one manual `full` run).
 
 Pin a subset or restore the old floor without code change:
 
