@@ -629,6 +629,13 @@ export async function fetchRadarPreview(
   return res.json();
 }
 
+/** Deal of the Day — top UNDER edge(s) from the public radar preview. */
+export async function fetchDealOfTheDay(
+  limit = 1,
+): Promise<RadarPreviewResponse> {
+  return fetchRadarPreview(Math.max(1, Math.min(8, limit)));
+}
+
 export async function fetchRadarStatus(): Promise<RadarStatus> {
   const res = await fetch(apiUrl("/api/radar/status"), {
     headers: {

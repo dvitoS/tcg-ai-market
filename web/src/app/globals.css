@@ -2486,7 +2486,8 @@ a {
   animation: rise 0.55s ease both;
 }
 
-.pro-demo {
+.pro-demo,
+.landing-dotd {
   margin-top: 2rem;
   padding: 1.15rem 1.1rem 1.25rem;
   border: 1px solid var(--border);
@@ -2499,19 +2500,72 @@ a {
   animation-delay: 0.06s;
 }
 
-.pro-demo-title {
+.landing-dotd {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  animation-name: landing-rise;
+}
+
+.pro-demo-title,
+.landing-dotd-title {
   margin: 0.2rem 0 0.35rem;
   font-family: var(--font-display), Georgia, serif;
   font-size: 1.35rem;
   font-weight: 600;
 }
 
-.pro-demo-list {
+.pro-demo-list,
+.deal-of-day-list {
   margin: 0.85rem 0 0.85rem;
 }
 
-.pro-demo-cta {
+.pro-demo-cta,
+.deal-of-day-cta {
   display: inline-flex;
+  margin-top: 0.35rem;
+}
+
+.deal-of-day-feature {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 0.95rem;
+  align-items: center;
+  margin: 1rem 0 0.65rem;
+  padding: 0.75rem;
+  border: 1px solid rgba(90, 175, 120, 0.28);
+  border-radius: 12px;
+  background: rgba(90, 175, 120, 0.06);
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.deal-of-day-feature:hover {
+  border-color: rgba(90, 175, 120, 0.48);
+  background: rgba(90, 175, 120, 0.1);
+}
+
+.deal-of-day-art {
+  line-height: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.deal-of-day-art img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.deal-of-day-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  margin-top: 0.45rem;
+  align-items: baseline;
+}
+
+.deal-of-day-metrics strong {
+  font-size: 1.05rem;
 }
 
 .pro-success-page .detail-actions,
@@ -2789,6 +2843,11 @@ a {
   .landing-hero-veil {
     background:
       linear-gradient(180deg, rgba(12, 12, 12, 0.35) 0%, rgba(12, 12, 12, 0.55) 40%, rgba(12, 12, 12, 0.92) 100%);
+  }
+
+  .deal-of-day-feature {
+    grid-template-columns: 72px 1fr;
+    gap: 0.75rem;
   }
 
   .landing-hero-copy {

@@ -25,6 +25,15 @@ const en = {
     "Pokémon TCG market prices and AI forecasts — browse, watch, and move before the print run cools.",
   landing_cta_market: "Open market",
   landing_cta_pro: "Soft Pro",
+  landing_dotd_eyebrow: "Deal of the Day",
+  landing_dotd_title: "Today’s UNDER edge",
+  landing_dotd_lede:
+    "Live conformal mispricing from the Soft Ink board — spot vs AI fair, refreshed with the market.",
+  landing_dotd_loading: "Loading today’s deal…",
+  landing_dotd_empty: "No UNDER edges on the board yet — check back after the next forecast run.",
+  landing_dotd_error: "Could not load Deal of the Day.",
+  landing_dotd_cta: "Unlock Soft Pro Radar",
+  landing_dotd_band: "fair band {band}",
   landing_follow_title: "From signal to desk",
   landing_follow_lede:
     "One path: browse the board, read the AI explain, hold a portfolio, catch Deal Radar edges, export dealer CSV.",
@@ -423,6 +432,15 @@ const hr: Dictionary = {
     "Pokémon TCG tržišne cijene i AI prognoze — pregledaj, prati i reagraj dok je otisak još vruć.",
   landing_cta_market: "Otvori tržište",
   landing_cta_pro: "Soft Pro",
+  landing_dotd_eyebrow: "Deal of the Day",
+  landing_dotd_title: "Današnji UNDER edge",
+  landing_dotd_lede:
+    "Live conformal mispricing sa Soft Ink boarda — spot vs AI fair, osvježeno s tržištem.",
+  landing_dotd_loading: "Učitavam današnji deal…",
+  landing_dotd_empty: "Nema UNDER edgeova na boardu — provjeri nakon idućeg forecast runa.",
+  landing_dotd_error: "Ne mogu učitati Deal of the Day.",
+  landing_dotd_cta: "Otključaj Soft Pro Radar",
+  landing_dotd_band: "fair band {band}",
   landing_follow_title: "Od signala do stola",
   landing_follow_lede:
     "Jedan put: pregledaj board, pročitaj AI explain, vodi portfelj, uhvati Deal Radar edgeove, izvezi dealer CSV.",
