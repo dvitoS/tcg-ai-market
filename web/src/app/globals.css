@@ -584,6 +584,91 @@ a {
   gap: 1rem;
 }
 
+.grade-ev-panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel);
+  padding: 0.95rem 1rem 1.05rem;
+  box-shadow: var(--shadow-soft);
+  animation: rise 0.6s ease both;
+  animation-delay: 0.05s;
+}
+
+.grade-ev-lede {
+  margin: 0.35rem 0 0.85rem;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.grade-ev-inputs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin-bottom: 0.85rem;
+}
+
+.grade-ev-inputs label {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.grade-ev-inputs input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(12, 12, 12, 0.45);
+  color: inherit;
+  padding: 0.45rem 0.55rem;
+  font-size: 0.92rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.grade-ev-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem 0.85rem;
+}
+
+.grade-ev-metric span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 0.18rem;
+}
+
+.grade-ev-metric strong {
+  display: block;
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.grade-ev-hint {
+  color: var(--muted);
+  font-weight: 500;
+  font-size: 0.78rem;
+}
+
+.grade-ev-net strong {
+  font-size: 1.05rem;
+}
+
+@media (max-width: 720px) {
+  .grade-ev-inputs {
+    grid-template-columns: 1fr;
+  }
+
+  .grade-ev-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .ebay-panel {
   display: grid;
   gap: 1rem;

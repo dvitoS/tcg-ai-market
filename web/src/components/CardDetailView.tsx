@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import { AddLotForm } from "@/components/AddLotForm";
 import { EbayComps } from "@/components/EbayComps";
+import { GradingEvPanel } from "@/components/GradingEvPanel";
 import { useLocale } from "@/components/LocaleProvider";
 import { PriceChart } from "@/components/PriceChart";
 import { WatchToggle } from "@/components/WatchToggle";
@@ -183,6 +184,10 @@ export function CardDetailView({
             cardId={card.id}
             points={points}
             predictedPrice={card.predicted_price}
+          />
+          <GradingEvPanel
+            cardId={card.id}
+            rawPrice={history.last_price ?? card.price}
           />
           <EbayComps cardId={card.id} cardName={card.name} />
         </aside>
