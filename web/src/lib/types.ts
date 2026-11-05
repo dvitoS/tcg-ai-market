@@ -516,6 +516,16 @@ export type DataHealthResponse = {
   attempts: number;
   miss_or_fallback_pct: number;
   justtcg_configured: boolean;
+  cards_total?: number;
+  cards_with_history?: number;
+  history_coverage_pct?: number;
+  fresh_history_pct?: number | null;
+  sure_rows?: number;
+  quotes_total?: number;
+  unmatched_sets_count?: number | null;
+  unmatched_sets_sample?: Array<{ set_code?: string; set_name?: string }>;
+  spot_qa_captured_at?: string | null;
+  board_source?: string;
 };
 
 export type BinderSetSummary = {

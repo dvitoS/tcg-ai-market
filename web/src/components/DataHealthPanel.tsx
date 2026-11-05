@@ -16,7 +16,22 @@ const EMPTY: DataHealthResponse = {
   attempts: 0,
   miss_or_fallback_pct: 0,
   justtcg_configured: false,
+  cards_total: 0,
+  cards_with_history: 0,
+  history_coverage_pct: 0,
+  fresh_history_pct: null,
+  sure_rows: 0,
+  quotes_total: 0,
+  unmatched_sets_count: null,
+  unmatched_sets_sample: [],
+  spot_qa_captured_at: null,
+  board_source: "empty",
 };
+
+function fmtPct(value: number | null | undefined, na: string): string {
+  if (value == null || Number.isNaN(Number(value))) return na;
+  return `${Math.round(Number(value))}%`;
+}
 
 export function DataHealthPanel() {
   const { t } = useLocale();
@@ -56,6 +71,12 @@ export function DataHealthPanel() {
       setBusy(false);
     }
   }
+
+  const sample = (stats.unmatched_sets_sample || [])
+    .slice(0, 6)
+    .map((row) => row.set_name || row.set_code)
+    .filter(Boolean)
+    .join(", ");
 
   return (
     <section className={`data-health${open ? " is-open" : ""}`}>
@@ -102,13 +123,78 @@ export function DataHealthPanel() {
           <p className="data-health-cache">
             {t("obs_cache")}: {stats.cache_hit}
           </p>
+
+          <div className="data-health-qa">
+            <p className="data-health-qa-title">{t("obs_qa_title")}</p>
+            <p className="data-health-caption">{t("obs_qa_caption")}</p>
+            <div className="data-health-metrics">
+              <div>
+                <span>{t("obs_qa_coverage")}</span>
+                <strong>
+                  {fmtPct(stats.history_coverage_pct, t("obs_qa_na"))}
+                </strong>
+              </div>
+              <div>
+                <span>{t("obs_qa_fresh")}</span>
+                <strong>
+                  {fmtPct(stats.fresh_history_pct ?? null, t("obs_qa_na"))}
+                </strong>
+              </div>
+              <div>
+                <span>{t("obs_qa_sure")}</span>
+                <strong>
+                  {stats.sure_rows ?? 0}
+                  {stats.quotes_total
+                    ? ` / ${stats.quotes_total}`
+                    : ""}
+                </strong>
+              </div>
+              <div>
+                <span>{t("obs_qa_unmatched")}</span>
+                <strong>
+                  {stats.unmatched_sets_count == null
+                    ? t("obs_qa_na")
+                    : stats.unmatched_sets_count}
+                </strong>
+              </div>
+              <div>
+                <span>{t("obs_qa_cards")}</span>
+                <strong>
+                  {stats.cards_with_history ?? 0} / {stats.cards_total ?? 0}
+                </strong>
+              </div>
+              <div>
+                <span>{t("obs_qa_quotes")}</span>
+                <strong>{stats.quotes_total ?? 0}</strong>
+              </div>
+            </div>
+            {sample ? (
+              <p className="data-health-cache lot-meta">{sample}</p>
+            ) : null}
+            {stats.spot_qa_captured_at ? (
+              <p className="data-health-cache">
+                {t("obs_qa_snapshot", { when: stats.spot_qa_captured_at })}
+              </p>
+            ) : null}
+          </div>
+
           {error ? <p className="data-health-error">{error}</p> : null}
           {notice ? <p className="data-health-notice">{notice}</p> : null}
           <div className="data-health-actions">
-            <button type="button" className="btn-ghost" disabled={busy} onClick={() => void load()}>
+            <button
+              type="button"
+              className="btn-ghost"
+              disabled={busy}
+              onClick={() => void load()}
+            >
               {t("obs_refresh")}
             </button>
-            <button type="button" className="btn-ghost" disabled={busy} onClick={() => void onReset()}>
+            <button
+              type="button"
+              className="btn-ghost"
+              disabled={busy}
+              onClick={() => void onReset()}
+            >
               {t("obs_reset")}
             </button>
           </div>

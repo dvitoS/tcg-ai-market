@@ -20,7 +20,7 @@ class HealthResponse(BaseModel):
 
 
 class DataHealthResponse(BaseModel):
-    """Process-wide JustTCG / Soft Ink price-source outcomes since API boot."""
+    """Process-wide JustTCG counters + spot/history QA (Phase C2)."""
 
     live: int = 0
     db: int = 0
@@ -31,6 +31,17 @@ class DataHealthResponse(BaseModel):
     attempts: int = 0
     miss_or_fallback_pct: float = 0.0
     justtcg_configured: bool = False
+    # Spot / history QA
+    cards_total: int = 0
+    cards_with_history: int = 0
+    history_coverage_pct: float = 0.0
+    fresh_history_pct: float | None = None
+    sure_rows: int = 0
+    quotes_total: int = 0
+    unmatched_sets_count: int | None = None
+    unmatched_sets_sample: list[dict[str, str]] = Field(default_factory=list)
+    spot_qa_captured_at: str | None = None
+    board_source: str = "empty"
 
 
 class LoginRequest(BaseModel):

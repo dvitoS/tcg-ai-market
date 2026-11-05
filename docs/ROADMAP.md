@@ -76,7 +76,7 @@ These close the loop we actually need before marketing spend. Do **not** reorder
 | ID | Item | Ship |
 | --- | --- | --- |
 | C1 | **JustTCG set matching fix** — shipping | No more silent `rows[0]` → `alternate-art-promos`; use card `set_name` + code-token match; golden tests. |
-| C2 | **Spot / history QA panel** | Data health: % cards with fresh JustTCG history, unmatched sets, sure-row count after nightly. |
+| C2 | **Spot / history QA panel** — shipping | Data health: history coverage, fresh %, unmatched sets, sure rows (live + nightly snapshot). |
 | C3 | **Nightly SLO** | Gap-fill catalog + drip JustTCG stays under timeout; board (`market_quotes`) refreshes every green run; cold Radar path stays usable (cache / warm if needed). |
 | C4 | **Variant IDs (stretch)** | JustTCG printing/condition variants when matching is stable — replaces coarse NM multipliers where possible. |
 
@@ -110,5 +110,5 @@ Ship these **after** A–C show Pro trial→paid and returning Radar/Trade use. 
 
 ## Suggested next move
 
-**Phase C1 shipping** — JustTCG set matching (no promo fallback).  
-Next: **C2 spot / history QA panel** (unmatched sets + sure-row health).
+**Phase C2 shipping** — spot/history QA in Data health.  
+Next: **C3 Nightly SLO** (timeout/budget + cold Radar path).

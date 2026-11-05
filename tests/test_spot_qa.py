@@ -1,0 +1,98 @@
+"""Phase C2 spot / history QA helpers."""
+
+from __future__ import annotations
+
+from services import spot_qa
+
+
+def test_save_and_load_local_snapshot(tmp_path, monkeypatch) -> None:
+    path = tmp_path / "spot_qa.json"
+    monkeypatch.setattr(spot_qa, "LOCAL_PATH", path)
+
+    import database
+
+    monkeypatch.setattr(
+        database,
+        "get_supabase",
+        lambda: (_ for _ in ()).throw(RuntimeError("offline")),
+    )
+
+    ok = spot_qa.save_spot_qa_snapshot(
+        {
+            "history_coverage_pct": 80.0,
+            "fresh_history_pct": 55.0,
+            "sure_rows": 12,
+            "unmatched_sets_count": 2,
+            "unmatched_sets_sample": [
+                {"set_code": "sv2", "set_name": "Paldea Evolved"}
+            ],
+        }
+    )
+    assert ok is True
+    loaded = spot_qa.load_spot_qa_snapshot()
+    assert loaded is not None
+    assert loaded["history_coverage_pct"] == 80.0
+    assert loaded["unmatched_sets_count"] == 2
+
+
+def test_data_health_spot_fields_merge(monkeypatch) -> None:
+    monkeypatch.setattr(
+        spot_qa,
+        "compute_live_spot_qa",
+        lambda: {
+            "cards_total": 100,
+            "cards_with_history": 70,
+            "history_coverage_pct": 70.0,
+            "quotes_total": 50,
+            "sure_rows": 20,
+            "board_source": "demo",
+        },
+    )
+    monkeypatch.setattr(
+        spot_qa,
+        "load_spot_qa_snapshot",
+        lambda: {
+            "fresh_history_pct": 40.0,
+            "unmatched_sets_count": 3,
+            "unmatched_sets_sample": [{"set_code": "x", "set_name": "X"}],
+            "captured_at": "2026-11-05T12:00:00+00:00",
+        },
+    )
+    fields = spot_qa.data_health_spot_fields()
+    assert fields["sure_rows"] == 20
+    assert fields["history_coverage_pct"] == 70.0
+    assert fields["fresh_history_pct"] == 40.0
+    assert fields["unmatched_sets_count"] == 3
+    assert fields["spot_qa_captured_at"] == "2026-11-05T12:00:00+00:00"
+
+
+def test_data_health_endpoint_includes_spot_fields(monkeypatch) -> None:
+    from fastapi.testclient import TestClient
+
+    from api.main import app
+    from services import prices as prices_mod
+
+    prices_mod.reset_justtcg_observability()
+    monkeypatch.setattr(
+        "services.spot_qa.data_health_spot_fields",
+        lambda: {
+            "cards_total": 10,
+            "cards_with_history": 8,
+            "history_coverage_pct": 80.0,
+            "fresh_history_pct": 50.0,
+            "sure_rows": 4,
+            "quotes_total": 9,
+            "unmatched_sets_count": 1,
+            "unmatched_sets_sample": [{"set_code": "sv9", "set_name": "Journey Together"}],
+            "spot_qa_captured_at": "2026-11-05T12:00:00+00:00",
+            "board_source": "demo",
+        },
+    )
+    client = TestClient(app)
+    resp = client.get("/api/data-health")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["history_coverage_pct"] == 80.0
+    assert body["sure_rows"] == 4
+    assert body["unmatched_sets_count"] == 1
+    assert body["fresh_history_pct"] == 50.0

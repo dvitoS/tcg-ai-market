@@ -85,11 +85,20 @@ def sync_justtcg_price_history(*, limit: int | None = None) -> dict[str, int]:
     by_set = _index_db_cards()
     if not by_set:
         print("Nema karata u bazi. Prvo uvezi katalog (main.py / nightly catalog).")
-        return {"updated": 0, "skipped": 0, "saved": 0, "total_history": 0}
+        return {
+            "updated": 0,
+            "skipped": 0,
+            "saved": 0,
+            "total_history": 0,
+            "unmatched_sets": [],
+            "unmatched_sets_count": 0,
+        }
 
     updated = skipped = saved = 0
     set_cache: dict[str, str] = {}
     matched_ids: set[str] = set()
+    unmatched_sets: list[dict[str, str]] = []
+    unmatched_seen: set[str] = set()
     have_history = distinct_history_card_ids()
     ordered_sets = _sets_prioritized_by_coverage(by_set)
 
@@ -115,12 +124,19 @@ def sync_justtcg_price_history(*, limit: int | None = None) -> dict[str, int]:
                     "skipped": skipped,
                     "saved": saved,
                     "total_history": int(total),
+                    "unmatched_sets": unmatched_sets,
+                    "unmatched_sets_count": len(unmatched_sets),
                 }
             except Exception as exc:
                 print(f"  set '{set_name}' resolve fail: {exc}", file=sys.stderr)
                 continue
             if not jset:
-                print(f"  JustTCG set nije pronađen za '{set_name}'")
+                print(f"  JustTCG set nije pronađen za '{set_name}' ({set_code})")
+                if set_code not in unmatched_seen:
+                    unmatched_seen.add(set_code)
+                    unmatched_sets.append(
+                        {"set_code": set_code, "set_name": set_name}
+                    )
                 continue
 
             offset = 0
@@ -139,6 +155,8 @@ def sync_justtcg_price_history(*, limit: int | None = None) -> dict[str, int]:
                         "skipped": skipped,
                         "saved": saved,
                         "total_history": int(total),
+                        "unmatched_sets": unmatched_sets,
+                        "unmatched_sets_count": len(unmatched_sets),
                     }
                 except Exception as exc:
                     print(f"  page offset={offset} greška: {exc}", file=sys.stderr)
@@ -194,6 +212,8 @@ def sync_justtcg_price_history(*, limit: int | None = None) -> dict[str, int]:
                             "skipped": skipped,
                             "saved": saved,
                             "total_history": int(total),
+                            "unmatched_sets": unmatched_sets,
+                            "unmatched_sets_count": len(unmatched_sets),
                         }
 
                 if not has_more:
@@ -210,6 +230,8 @@ def sync_justtcg_price_history(*, limit: int | None = None) -> dict[str, int]:
         "skipped": skipped,
         "saved": saved,
         "total_history": int(total),
+        "unmatched_sets": unmatched_sets,
+        "unmatched_sets_count": len(unmatched_sets),
     }
 
 

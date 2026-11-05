@@ -3322,6 +3322,19 @@ a {
   font-weight: 650;
 }
 
+.data-health-qa {
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(42, 42, 42, 0.9);
+}
+
+.data-health-qa-title {
+  margin: 0 0 0.25rem;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 0.95rem;
+  font-weight: 650;
+}
+
 .data-health-actions {
   display: flex;
   flex-wrap: wrap;
