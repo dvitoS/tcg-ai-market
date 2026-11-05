@@ -35,6 +35,10 @@ Without Supabase Auth credentials the API runs in **demo mode**. With `SUPABASE_
 
 See **[docs/DEPLOY.md](docs/DEPLOY.md)** — Vercel (`web/`) + Railway/Render API (`Dockerfile.api`, `railway.api.toml`) + `app.` / `api.` DNS.
 
+### Product roadmap
+
+See **[docs/ROADMAP.md](docs/ROADMAP.md)** — shipped baseline, next 3, Soft Pro depth, and explicit non-goals.
+
 ## Supabase setup
 
 Run SQL **once, in order** (SQL Editor), then **Project Settings → API → Reload schema**:
