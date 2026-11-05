@@ -36,6 +36,19 @@ def test_radar_preview_public_under_only() -> None:
         assert float(row["edge_pct"]) > 0
 
 
+def test_radar_preview_deal_of_day_limit_one() -> None:
+    client = TestClient(app)
+    res = client.get("/api/radar/preview", params={"limit": 1})
+    assert res.status_code == 200
+    body = res.json()
+    assert len(body["underpriced"]) <= 1
+    if body["underpriced"]:
+        top = body["underpriced"][0]
+        assert top["side"] == "UNDER"
+        assert top.get("image_url") is not None or top.get("name")
+        assert float(top["edge_pct"]) > 0
+
+
 def test_radar_board_returns_sides() -> None:
     client = TestClient(app)
     res = client.get("/api/radar", params={"min_edge": 0, "limit": 12})

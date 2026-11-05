@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import { DealOfTheDay } from "@/components/DealOfTheDay";
 import { useLocale } from "@/components/LocaleProvider";
 
 export function MarketingLanding() {
@@ -36,6 +37,8 @@ export function MarketingLanding() {
           </div>
         </div>
       </section>
+
+      <DealOfTheDay limit={3} variant="landing" />
 
       <section className="landing-follow" aria-labelledby="landing-follow-title">
         <h2 id="landing-follow-title" className="landing-follow-title">

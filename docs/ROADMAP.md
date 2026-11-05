@@ -48,7 +48,7 @@ These close conversion loops and plug the biggest holes vs Collectr / PriceChart
 
 | # | Item | Competitive note |
 | --- | --- | --- |
-| 4 | **Deal of the Day** public feed | Free teaser → Pro conversion (extend `/api/radar/preview`) |
+| 4 | **Deal of the Day** public feed — shipped | Landing + `/pro` reuse `/api/radar/preview` |
 | 5 | **Alert channels** (Telegram / push / WhatsApp Business) | Collectr has push; we only have email + Discord |
 | 6 | **Model trust panel** | Soft Pro: calibration, conformal coverage, 30d backtest on Radar calls |
 | 7 | **Grading EV v2** | PSA 9/10 pops, fee presets by service, break-even sensitivity chart |
@@ -82,4 +82,4 @@ These close conversion loops and plug the biggest holes vs Collectr / PriceChart
 
 ## Suggested next move
 
-**#4 Deal of the Day public feed** — extend `/api/radar/preview` into a Soft Pro conversion surface on `/` or `/pro`.
+**#5 Alert channels (Telegram / push)** — beyond email + Discord for Soft Pro retention.
