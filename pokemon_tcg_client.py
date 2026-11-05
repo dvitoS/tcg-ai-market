@@ -378,7 +378,7 @@ def fetch_cards_for_set(
     set_name: str | None = None,
     page_size: int = PAGE_SIZE,
 ) -> list[dict[str, Any]]:
-    """Povlači SVE karte jednog seta kroz paginaciju (max 250 / zahtjev + 65 s pauze)."""
+    """Povlači SVE karte jednog seta kroz paginaciju (max 250 / zahtjev + paced sleep)."""
     label = set_name or set_id
     page_size = min(int(page_size), POKEMON_TCG_MAX_PAGE_SIZE)
     print(f"Dohvaćam karte iz seta '{label}' ({set_id}), pageSize={page_size}...")

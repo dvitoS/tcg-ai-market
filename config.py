@@ -387,15 +387,16 @@ def catalog_price_floor() -> float | None:
 PAGE_SIZE = 250
 POKEMON_TCG_MAX_PAGE_SIZE = 250
 RATE_LIMIT_CARDS_PER_MINUTE = 100
-# Unkeyed pokemontcg.io is harsh; with a free developer key (20k/day) we can pace fast.
-RATE_LIMIT_SLEEP_SECONDS = 65
+# pokemontcg.io is deprecated (no new keys; existing keys work until 2027-03-01).
+# Unkeyed published budget ~30 req/min → ~2.5s pace. Existing keys can go faster.
+RATE_LIMIT_SLEEP_SECONDS = 2.5
 RATE_LIMIT_SLEEP_SECONDS_WITH_KEY = 1.5
 RATE_LIMIT_RETRY_SLEEP_SECONDS = 90
 REQUEST_TIMEOUT_SECONDS = 45
 MAX_RETRIES = 3
 CATALOG_HTTP_MAX_ATTEMPTS = 10
 # Gap-fill catalog: max sets fetched per nightly when many are still missing.
-NIGHTLY_CATALOG_SET_BUDGET = 40
+NIGHTLY_CATALOG_SET_BUDGET = 50
 # Schedule JustTCG drip — fill missing history over nights; always leave room for retrain.
 NIGHTLY_CARD_LIMIT_DEFAULT = 400
 NIGHTLY_TASK_NAME = "TCGMarketNightlyUpdate"
@@ -403,7 +404,7 @@ NIGHTLY_SCHEDULE_TIME = "03:00"
 
 
 def pokemon_tcg_api_key() -> str:
-    """Optional pokemontcg.io developer key (header X-Api-Key)."""
+    """Optional legacy pokemontcg.io key (X-Api-Key). New registrations are closed."""
     return (
         _secret("POKEMONTCG_API_KEY")
         or os.getenv("POKEMONTCG_API_KEY", "")

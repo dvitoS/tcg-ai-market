@@ -1,7 +1,7 @@
 # Nightly katalog (gap-fill) + JustTCG NM history drip + XGBoost retrain (UTC).
 # Secrets (Settings → Secrets and variables → Actions):
 #   SUPABASE_URL, SUPABASE_KEY, JUSTTCG_API_KEY (prefer), TCG_API_KEY (fallback)
-#   POKEMONTCG_API_KEY — strongly recommended for all-sets pace (free at dev.pokemontcg.io)
+#   POKEMONTCG_API_KEY — optional legacy key only (API deprecated; no new registrations)
 name: Nightly TCG Database & AI Update
 
 on:
@@ -25,7 +25,7 @@ on:
       catalog_set_budget:
         description: "Max sets to fetch in gapfill mode (ignored for full)"
         type: string
-        default: "40"
+        default: "50"
 
 jobs:
   nightly-update:
@@ -76,10 +76,10 @@ jobs:
           elif [ -n "${{ secrets.JUSTTCG_API_KEY }}" ]; then
             echo "JUSTTCG_API_KEY is present (preferred NM sync)."
           fi
-          if [ -z "${{ secrets.POKEMONTCG_API_KEY }}" ]; then
-            echo "::warning::POKEMONTCG_API_KEY missing — catalog gap-fill will be slow (65s pace)."
+          if [ -n "${{ secrets.POKEMONTCG_API_KEY }}" ]; then
+            echo "POKEMONTCG_API_KEY present (legacy key; API deprecated, EOL 2027-03-01)."
           else
-            echo "POKEMONTCG_API_KEY is present (fast catalog pace)."
+            echo "No POKEMONTCG_API_KEY — unkeyed gap-fill pace (~2.5s). New keys unavailable."
           fi
 
       - name: Diagnose Supabase REST
@@ -113,7 +113,7 @@ jobs:
           # Schedule → gapfill + drip. Manual → honor workflow_dispatch inputs.
           NIGHTLY_CATALOG_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.catalog_mode || 'gapfill' }}
           NIGHTLY_CARD_LIMIT: ${{ github.event_name == 'workflow_dispatch' && inputs.card_limit || '400' }}
-          NIGHTLY_CATALOG_SET_BUDGET: ${{ github.event_name == 'workflow_dispatch' && inputs.catalog_set_budget || '40' }}
+          NIGHTLY_CATALOG_SET_BUDGET: ${{ github.event_name == 'workflow_dispatch' && inputs.catalog_set_budget || '50' }}
           # Resolve missing cards.tcgplayer_id via TCGplayer public search (drip).
           NIGHTLY_BACKFILL_TCP: "1"
           NIGHTLY_BACKFILL_TCP_LIMIT: "60"
