@@ -1,4 +1,4 @@
-"""Soft Pro / Creem billing status (no secrets)."""
+"""Kestrel Pro / Creem billing status (no secrets)."""
 
 from __future__ import annotations
 
@@ -25,5 +25,5 @@ def billing_status() -> dict[str, Any]:
 def billing_me(
     user: Annotated[dict[str, Any] | None, Depends(optional_user)],
 ) -> dict[str, Any]:
-    """Per-session Soft Pro status (is_pro, reason, portal/checkout)."""
+    """Per-session Kestrel Pro status (is_pro, reason, portal/checkout)."""
     return billing_snapshot(user)

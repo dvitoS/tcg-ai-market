@@ -1,4 +1,4 @@
-"""Creem signature + Soft Pro grant handling (no live Creem/Supabase)."""
+"""Creem signature + Kestrel Pro grant handling (no live Creem/Supabase)."""
 
 from __future__ import annotations
 
@@ -42,7 +42,7 @@ def test_handle_checkout_completed_grants(monkeypatch) -> None:
             "object": "checkout",
             "id": "ch_1",
             "customer": {"id": "cust_1", "email": "Buyer@Shop.com"},
-            "product": {"id": "prod_1", "name": "Soft Pro"},
+            "product": {"id": "prod_1", "name": "Kestrel Pro"},
             "order": {"id": "ord_1", "product": "prod_1"},
             "metadata": {"user_id": "uuid-buyer"},
         },

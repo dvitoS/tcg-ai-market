@@ -484,7 +484,7 @@ class TradeShareCreated(BaseModel):
 
 
 class TradeShareView(TradeResponse):
-    """Public share payload — live re-score plus Soft Pro CTA."""
+    """Public share payload — live re-score plus Kestrel Pro CTA."""
 
     checkout_url: str | None = None
     share_id: str = ""

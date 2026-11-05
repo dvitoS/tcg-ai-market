@@ -1,4 +1,4 @@
--- Soft Pro entitlements from Creem (or manual grants).
+-- Kestrel Pro entitlements from Creem (or manual grants).
 -- Run once in Supabase → SQL Editor → Run.
 -- API uses service_role to upsert; clients never write this table.
 

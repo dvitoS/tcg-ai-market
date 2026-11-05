@@ -24,7 +24,7 @@ const en = {
   landing_lede:
     "Pokémon TCG market prices and AI forecasts — browse, watch, and move before the print run cools.",
   landing_cta_market: "Open market",
-  landing_cta_pro: "Soft Pro",
+  landing_cta_pro: "Kestrel Pro",
   landing_dotd_eyebrow: "Deal of the Day",
   landing_dotd_title: "Today’s UNDER edge",
   landing_dotd_lede:
@@ -187,13 +187,13 @@ const en = {
   scan_warns_title: "Drop warnings",
   scan_warns_empty: "No negative ROI rows in this filter.",
 
-  // Kestrel Radar (Soft Pro gate)
+  // Kestrel Radar (Kestrel Pro gate)
   radar_eyebrow: "Kestrel",
   radar_title: "Kestrel Radar",
   radar_lede:
     "Conformal-gated mispricing for the next {days}d — spot below the AI fair band (UNDER) or stretched above it (OVER).",
   radar_signin_lede: "Sign in to open Kestrel Radar against the Soft Ink market board.",
-  radar_locked: "Kestrel Radar is a Soft Pro surface.",
+  radar_locked: "Kestrel Radar is a Kestrel Pro surface.",
   radar_locked_lede:
     "Upgrade with the same email you use to sign in, then come back for UNDER / OVER edges.",
   radar_loading: "Loading Kestrel Radar…",
@@ -210,13 +210,13 @@ const en = {
   radar_over_title: "Overpriced (trim edge)",
   radar_over_empty: "No OVER rows at this edge floor / price range.",
 
-  // Trade Analyzer (Soft Pro)
-  trade_eyebrow: "Soft Pro",
+  // Trade Analyzer (Kestrel Pro)
+  trade_eyebrow: "Kestrel Pro",
   trade_title: "Trade Analyzer",
   trade_lede:
     "Build both sides of a trade. We score spot value and AI fair value so you see who is ahead before you lock it in.",
   trade_signin_lede: "Sign in to score trades against the Soft Ink market board.",
-  trade_locked: "Trade Analyzer is a Soft Pro surface.",
+  trade_locked: "Trade Analyzer is a Kestrel Pro surface.",
   trade_locked_lede:
     "Upgrade with the same email you use to sign in, then come back to compare both sides.",
   trade_loading: "Loading Trade Analyzer…",
@@ -255,7 +255,7 @@ const en = {
   trade_share_loading: "Loading shared trade…",
   trade_share_missing: "Share not found",
   trade_share_open_analyzer: "Open Trade Analyzer",
-  trade_share_pro_cta: "Soft Pro details",
+  trade_share_pro_cta: "Kestrel Pro details",
   trade_share_live: "Prices refreshed live",
   trade_share_empty_side: "No cards on this side.",
   trade_share_unmatched: "unmatched",
@@ -266,11 +266,11 @@ const en = {
   dealer_signin_lede: "Sign in to score inventory against the Soft Ink market board.",
   dealer_lede:
     "Upload inventory CSV, apply sell fee + shipping, and rank LIST / BUY MORE when the conformal gate is green.",
-  dealer_locked: "Dealer desk is a Soft Pro surface.",
+  dealer_locked: "Dealer desk is a Kestrel Pro surface.",
   dealer_locked_lede:
     "Upgrade with the same email you use to sign in, then come back to score inventory.",
   dealer_upgrade: "Upgrade with Creem",
-  dealer_pro_details: "Soft Pro details",
+  dealer_pro_details: "Kestrel Pro details",
   dealer_fee: "Sell fee %",
   dealer_ship: "Shipping USD",
   dealer_csv_file: "CSV file",
@@ -291,15 +291,15 @@ const en = {
   // Pro
   pro_eyebrow: "Kestrel Pro",
   pro_title: "Radar · Trade · Dealer",
-  pro_title_active: "You're on Soft Pro",
+  pro_title_active: "You're on Kestrel Pro",
   pro_lede:
-    "Soft Pro unlocks Kestrel Radar, Trade Analyzer, inventory scoring, and sure-only alerts. €7/mo after a 7-day trial via Creem.",
+    "Kestrel Pro unlocks Kestrel Radar, Trade Analyzer, inventory scoring, and sure-only alerts. €7/mo after a 7-day trial via Creem.",
   pro_lede_active:
     "Kestrel Radar, Trade Analyzer, Dealer desk, and sure-only alerts are unlocked on this account. Manage billing in Creem if you need to cancel or update payment.",
   pro_open_note:
     "Open beta is still on — Pro surfaces are unlocked for everyone. Checkout stays ready for when we flip the gate.",
   pro_gated_note: "Pro is gated. Upgrade with the same email you use to sign in.",
-  pro_active_note: "Active Soft Pro for {email}.",
+  pro_active_note: "Active Kestrel Pro for {email}.",
   pro_checkout_missing: "Checkout link not configured",
   pro_open_dealer: "Open Dealer desk",
   pro_open_radar: "Open Kestrel Radar",
@@ -309,17 +309,17 @@ const en = {
   pro_status_link: "Pro status",
   pro_success_title: "You're in",
   pro_success_lede:
-    "Payment received. Sign in with the same email you used at checkout so Soft Pro surfaces unlock on this account.",
-  pro_success_active_title: "Soft Pro unlocked",
+    "Payment received. Sign in with the same email you used at checkout so Kestrel Pro surfaces unlock on this account.",
+  pro_success_active_title: "Kestrel Pro unlocked",
   pro_success_active_lede:
-    "This account has an active Soft Pro entitlement. Open Kestrel Radar, Trade Analyzer, or Dealer.",
+    "This account has an active Kestrel Pro entitlement. Open Kestrel Radar, Trade Analyzer, or Dealer.",
   pro_f1: "Kestrel Radar — conformal UNDER / OVER edges vs AI fair band",
   pro_f2: "Trade Analyzer — spot + AI fair on both sides of a deal",
   pro_f3: "Dealer CSV desk + sure-only alerts",
   pro_demo_eyebrow: "Live Kestrel Radar",
   pro_demo_title: "Top UNDER edges right now",
   pro_demo_lede:
-    "Public teaser from the conformal board. Soft Pro unlocks the full Kestrel Radar desk with filters.",
+    "Public teaser from the conformal board. Kestrel Pro unlocks the full Kestrel Radar desk with filters.",
   pro_demo_empty: "No UNDER edges on the board yet — check back after the next forecast run.",
   pro_demo_loading: "Loading radar teaser…",
   pro_demo_error: "Could not load radar teaser.",
@@ -431,7 +431,7 @@ const hr: Dictionary = {
   landing_lede:
     "Pokémon TCG tržišne cijene i AI prognoze — pregledaj, prati i reagraj dok je otisak još vruć.",
   landing_cta_market: "Otvori tržište",
-  landing_cta_pro: "Soft Pro",
+  landing_cta_pro: "Kestrel Pro",
   landing_dotd_eyebrow: "Deal of the Day",
   landing_dotd_title: "Današnji UNDER edge",
   landing_dotd_lede:
@@ -597,7 +597,7 @@ const hr: Dictionary = {
   radar_lede:
     "Conformal mispricing za sljedećih {days}d — spot ispod AI fair banda (UNDER) ili rastegnut iznad (OVER).",
   radar_signin_lede: "Prijavi se da otvoriš Kestrel Radar prema Soft Ink boardu.",
-  radar_locked: "Kestrel Radar je Soft Pro površina.",
+  radar_locked: "Kestrel Radar je Kestrel Pro površina.",
   radar_locked_lede:
     "Nadogradi s istim emailom koji koristiš za prijavu, pa se vrati za UNDER / OVER edgeove.",
   radar_loading: "Učitavam Kestrel Radar…",
@@ -614,12 +614,12 @@ const hr: Dictionary = {
   radar_over_title: "Overpriced (trim edge)",
   radar_over_empty: "Nema OVER redova za ovaj edge floor / raspon cijena.",
 
-  trade_eyebrow: "Soft Pro",
+  trade_eyebrow: "Kestrel Pro",
   trade_title: "Trade Analyzer",
   trade_lede:
     "Sastavi obje strane tradea. Bodujemo spot i AI fair vrijednost da vidiš tko je ispred prije dogovora.",
   trade_signin_lede: "Prijavi se da ocijeniš tradeove prema Soft Ink boardu.",
-  trade_locked: "Trade Analyzer je Soft Pro površina.",
+  trade_locked: "Trade Analyzer je Kestrel Pro površina.",
   trade_locked_lede:
     "Nadogradi s istim emailom koji koristiš za prijavu, pa usporedi obje strane.",
   trade_loading: "Učitavam Trade Analyzer…",
@@ -658,7 +658,7 @@ const hr: Dictionary = {
   trade_share_loading: "Učitavam podijeljeni trade…",
   trade_share_missing: "Share nije pronađen",
   trade_share_open_analyzer: "Otvori Trade Analyzer",
-  trade_share_pro_cta: "Soft Pro detalji",
+  trade_share_pro_cta: "Kestrel Pro detalji",
   trade_share_live: "Cijene osvježene uživo",
   trade_share_empty_side: "Nema karata na ovoj strani.",
   trade_share_unmatched: "nije matchano",
@@ -668,11 +668,11 @@ const hr: Dictionary = {
   dealer_signin_lede: "Prijavi se da ocijeniš inventar prema Soft Ink boardu.",
   dealer_lede:
     "Uploadaj inventar CSV, primijeni sell fee + shipping, i rangiraj LIST / BUY MORE kad je conformal gate zelen.",
-  dealer_locked: "Dealer stol je Soft Pro površina.",
+  dealer_locked: "Dealer stol je Kestrel Pro površina.",
   dealer_locked_lede:
     "Nadogradi s istim emailom koji koristiš za prijavu, pa se vrati ocijeniti inventar.",
   dealer_upgrade: "Nadogradi s Creemom",
-  dealer_pro_details: "Soft Pro detalji",
+  dealer_pro_details: "Kestrel Pro detalji",
   dealer_fee: "Sell fee %",
   dealer_ship: "Shipping USD",
   dealer_csv_file: "CSV datoteka",
@@ -692,15 +692,15 @@ const hr: Dictionary = {
 
   pro_eyebrow: "Kestrel Pro",
   pro_title: "Radar · Trade · Dealer",
-  pro_title_active: "Na Soft Pro si",
+  pro_title_active: "Na Kestrel Pro si",
   pro_lede:
-    "Soft Pro otključava Kestrel Radar, Trade Analyzer, scoring inventara i sure-only alerte. €7/mj nakon 7-dnevnog trial-a preko Creema.",
+    "Kestrel Pro otključava Kestrel Radar, Trade Analyzer, scoring inventara i sure-only alerte. €7/mj nakon 7-dnevnog trial-a preko Creema.",
   pro_lede_active:
     "Kestrel Radar, Trade Analyzer, Dealer stol i sure-only alerti su otključani na ovom računu. Billing upravljaj u Creemu ako trebaš otkazati ili promijeniti karticu.",
   pro_open_note:
     "Open beta je još uključena — Pro površine su otvorene svima. Checkout čeka kad zatvorimo gate.",
   pro_gated_note: "Pro je zatvoren. Nadogradi s istim emailom koji koristiš za prijavu.",
-  pro_active_note: "Aktivni Soft Pro za {email}.",
+  pro_active_note: "Aktivni Kestrel Pro za {email}.",
   pro_checkout_missing: "Checkout link nije konfiguriran",
   pro_open_dealer: "Otvori Dealer stol",
   pro_open_radar: "Otvori Kestrel Radar",
@@ -710,17 +710,17 @@ const hr: Dictionary = {
   pro_status_link: "Pro status",
   pro_success_title: "Uspješno",
   pro_success_lede:
-    "Plaćanje primljeno. Prijavi se istim emailom kao na checkoutu da se Soft Pro površine otključaju na ovom računu.",
-  pro_success_active_title: "Soft Pro otključan",
+    "Plaćanje primljeno. Prijavi se istim emailom kao na checkoutu da se Kestrel Pro površine otključaju na ovom računu.",
+  pro_success_active_title: "Kestrel Pro otključan",
   pro_success_active_lede:
-    "Ovaj račun ima aktivni Soft Pro entitlement. Otvori Kestrel Radar, Trade Analyzer ili Dealer.",
+    "Ovaj račun ima aktivni Kestrel Pro entitlement. Otvori Kestrel Radar, Trade Analyzer ili Dealer.",
   pro_f1: "Kestrel Radar — conformal UNDER / OVER edgeovi vs AI fair band",
   pro_f2: "Trade Analyzer — spot + AI fair na obje strane tradea",
   pro_f3: "Dealer CSV stol + sure-only alerti",
   pro_demo_eyebrow: "Live Kestrel Radar",
   pro_demo_title: "Top UNDER edgeovi sada",
   pro_demo_lede:
-    "Javni teaser s conformal boarda. Soft Pro otključava cijeli Kestrel Radar stol s filterima.",
+    "Javni teaser s conformal boarda. Kestrel Pro otključava cijeli Kestrel Radar stol s filterima.",
   pro_demo_empty: "Nema UNDER edgeova na boardu — provjeri nakon idućeg forecast runa.",
   pro_demo_loading: "Učitavam radar teaser…",
   pro_demo_error: "Ne mogu učitati radar teaser.",

@@ -1,4 +1,4 @@
-"""Soft Pro entitlement allowlist + Creem enforcement."""
+"""Kestrel Pro entitlement allowlist + Creem enforcement."""
 
 from __future__ import annotations
 

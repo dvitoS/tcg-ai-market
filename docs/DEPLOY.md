@@ -76,7 +76,7 @@ API forgot-password uses `SOFT_INK_URL` (or the client-sent `redirect_to`) so re
 
 After Creem accepts your custom domain:
 
-1. **Product** — Creem → Products → create Soft Pro (one-time or subscription).
+1. **Product** — Creem → Products → create Kestrel Pro (one-time or subscription).
 2. **Success URL** — product / checkout success → `https://www.kestreltcg.app/pro/success`
    (or `https://kestreltcg.app/pro/success` if that is the live host).
 3. **Payment link** — Product → Share → copy link → Render API env:

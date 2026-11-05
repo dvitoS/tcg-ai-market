@@ -2,7 +2,7 @@
 
 Primary public UI for Kestrel. Talks to the FastAPI app in `../api`.
 
-Surfaces: marketing landing, browse + AI signals, card detail (multi-source chart, eBay comps, AI explain), portfolio / watchlist / alerts, scanner, dealer CSV, Soft Pro billing.
+Surfaces: marketing landing, browse + AI signals, card detail (multi-source chart, eBay comps, AI explain), portfolio / watchlist / alerts, scanner, dealer CSV, Kestrel Pro billing.
 
 ```bash
 # from repo root — API

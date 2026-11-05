@@ -28,7 +28,7 @@ export default function ProSuccessPage() {
 
   return (
     <main className="pro-success-page">
-      <p className="explore-command-eyebrow">Soft Pro</p>
+      <p className="explore-command-eyebrow">Kestrel Pro</p>
       <h1 className="explore-title">
         {isPro ? t("pro_success_active_title") : t("pro_success_title")}
       </h1>

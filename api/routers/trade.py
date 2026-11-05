@@ -1,4 +1,4 @@
-"""Trade Analyzer — Soft Pro two-sided deal desk."""
+"""Trade Analyzer — Kestrel Pro two-sided deal desk."""
 
 from __future__ import annotations
 
@@ -71,7 +71,7 @@ def trade_score(
     if not _pro_allowed(user):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Trade Analyzer requires Soft Pro.",
+            detail="Trade Analyzer requires Kestrel Pro.",
         )
     if not body.you and not body.them:
         raise HTTPException(
@@ -95,11 +95,11 @@ def trade_share_create(
     body: TradeRequest,
     user: Annotated[dict, Depends(require_user)],
 ) -> TradeShareCreated:
-    """Soft Pro: mint a signed share id for a public read-only view."""
+    """Kestrel Pro: mint a signed share id for a public read-only view."""
     if not _pro_allowed(user):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Trade share requires Soft Pro.",
+            detail="Trade share requires Kestrel Pro.",
         )
     if not body.you and not body.them:
         raise HTTPException(
