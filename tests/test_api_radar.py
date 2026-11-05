@@ -23,6 +23,19 @@ def test_radar_status_allowed_in_demo() -> None:
     assert "edge_floor" in body
 
 
+def test_radar_preview_public_under_only() -> None:
+    client = TestClient(app)
+    res = client.get("/api/radar/preview", params={"limit": 5})
+    assert res.status_code == 200
+    body = res.json()
+    assert "underpriced" in body
+    assert "overpriced" not in body
+    assert len(body["underpriced"]) <= 5
+    for row in body["underpriced"]:
+        assert row["side"] == "UNDER"
+        assert float(row["edge_pct"]) > 0
+
+
 def test_radar_board_returns_sides() -> None:
     client = TestClient(app)
     res = client.get("/api/radar", params={"min_edge": 0, "limit": 12})

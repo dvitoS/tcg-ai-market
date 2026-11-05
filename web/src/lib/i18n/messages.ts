@@ -278,6 +278,14 @@ const en = {
   pro_f1: "Deal Radar — conformal UNDER / OVER edges vs AI fair band",
   pro_f2: "Trade Analyzer — spot + AI fair on both sides of a deal",
   pro_f3: "Dealer CSV desk + sure-only alerts",
+  pro_demo_eyebrow: "Live Deal Radar",
+  pro_demo_title: "Top UNDER edges right now",
+  pro_demo_lede:
+    "Public teaser from the conformal board. Soft Pro unlocks the full UNDER / OVER desk with filters.",
+  pro_demo_empty: "No UNDER edges on the board yet — check back after the next forecast run.",
+  pro_demo_loading: "Loading radar teaser…",
+  pro_demo_error: "Could not load radar teaser.",
+  pro_demo_open: "Open full Deal Radar",
 
   // Detail / watch / add lot / chart
   detail_back: "← Back to browse",
@@ -631,6 +639,14 @@ const hr: Dictionary = {
   pro_f1: "Deal Radar — conformal UNDER / OVER edgeovi vs AI fair band",
   pro_f2: "Trade Analyzer — spot + AI fair na obje strane tradea",
   pro_f3: "Dealer CSV stol + sure-only alerti",
+  pro_demo_eyebrow: "Live Deal Radar",
+  pro_demo_title: "Top UNDER edgeovi sada",
+  pro_demo_lede:
+    "Javni teaser s conformal boarda. Soft Pro otključava cijeli UNDER / OVER stol s filterima.",
+  pro_demo_empty: "Nema UNDER edgeova na boardu — provjeri nakon idućeg forecast runa.",
+  pro_demo_loading: "Učitavam radar teaser…",
+  pro_demo_error: "Ne mogu učitati radar teaser.",
+  pro_demo_open: "Otvori cijeli Deal Radar",
 
   detail_back: "← Natrag na pregled",
   detail_kicker: "Detalj karte",

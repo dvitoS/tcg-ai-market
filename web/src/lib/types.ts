@@ -268,6 +268,13 @@ export type RadarResponse = {
   source: "supabase" | "demo" | "empty";
 };
 
+export type RadarPreviewResponse = {
+  forecast_days: number;
+  under_total: number;
+  underpriced: RadarCard[];
+  source: "supabase" | "demo" | "empty";
+};
+
 export type TradeLineIn = {
   card_id: string;
   quantity: number;
