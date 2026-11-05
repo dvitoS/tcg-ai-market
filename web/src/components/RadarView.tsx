@@ -7,6 +7,7 @@ import { FormEvent, useCallback, useEffect, useState, useTransition } from "reac
 import { useAuth } from "@/components/AuthProvider";
 import { useLocale } from "@/components/LocaleProvider";
 import { SearchSuggest } from "@/components/SearchSuggest";
+import { TrustPanel } from "@/components/TrustPanel";
 import {
   fetchRadar,
   fetchRadarStatus,
@@ -316,6 +317,8 @@ export function RadarView() {
           <strong>{data.over_total}</strong>
         </div>
       </div>
+
+      <TrustPanel />
 
       <h2 className="section-title">{t("radar_under_title")}</h2>
       {data.underpriced.length === 0 ? (

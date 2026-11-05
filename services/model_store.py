@@ -130,6 +130,45 @@ def save_model_artifact(
         return model_path.is_file()
 
 
+def load_model_metrics(artifact_id: str = ARTIFACT_ID) -> dict[str, Any] | None:
+    """Load metrics + trained_at without decoding the model blob."""
+    art_id = _safe_id(artifact_id)
+    try:
+        from database import get_supabase
+
+        client = get_supabase()
+        response = (
+            client.table(TABLE)
+            .select("metrics,feature_columns,trained_at,algo")
+            .eq("id", art_id)
+            .limit(1)
+            .execute()
+        )
+        rows = list(response.data or [])
+        if rows:
+            return {
+                "metrics": rows[0].get("metrics") or {},
+                "feature_columns": rows[0].get("feature_columns") or [],
+                "trained_at": rows[0].get("trained_at"),
+                "algo": rows[0].get("algo"),
+                "artifact_id": art_id,
+            }
+    except Exception as exc:
+        LOG.warning("supabase model metrics load failed (%s): %s", art_id, exc)
+
+    local = _read_local(art_id)
+    if local is None:
+        return None
+    _model, meta = local
+    return {
+        "metrics": dict(meta.get("metrics") or {}),
+        "feature_columns": list(meta.get("feature_columns") or []),
+        "trained_at": meta.get("trained_at"),
+        "algo": meta.get("algo"),
+        "artifact_id": art_id,
+    }
+
+
 def load_model_artifact(
     artifact_id: str = ARTIFACT_ID,
 ) -> tuple[Any, dict[str, Any]] | None:

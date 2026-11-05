@@ -389,6 +389,55 @@ class RadarStatus(BaseModel):
     edge_floor: float = 0.0
 
 
+class TrustStatus(BaseModel):
+    allowed: bool
+    reason: str = ""
+    checkout_url: str | None = None
+
+
+class TrustCalibration(BaseModel):
+    rmse: float | None = None
+    r2: float | None = None
+    rmse_vs_naive: float | None = None
+    direction_accuracy_pct: float | None = None
+    direction_n: int | None = None
+    conformal_q: float | None = None
+    conformal_alpha: float | None = None
+    conformal_width_cap: float | None = None
+    wf_folds: int | None = None
+    wf_direction_accuracy_pct: float | None = None
+    wf_rmse_vs_naive: float | None = None
+
+
+class TrustCoverage(BaseModel):
+    method: str = "unavailable"
+    target_pct: float = 80.0
+    coverage_pct: float | None = None
+    n: int = 0
+    note: str = ""
+
+
+class TrustRadarBacktest(BaseModel):
+    lookback_days: int = 7
+    horizon_days: int = 7
+    n: int = 0
+    hit_rate_pct: float | None = None
+    avg_move_pct: float | None = None
+    under_n: int = 0
+    over_n: int = 0
+    method: str = "current_signals_vs_history"
+
+
+class TrustResponse(BaseModel):
+    source: Literal["supabase", "demo", "empty"] = "empty"
+    trained_at: str | None = None
+    artifact_id: str = "latest"
+    horizon_days: int = 7
+    calibration: TrustCalibration = Field(default_factory=TrustCalibration)
+    conformal_coverage: TrustCoverage = Field(default_factory=TrustCoverage)
+    radar_backtest: TrustRadarBacktest = Field(default_factory=TrustRadarBacktest)
+
+
 class RadarResponse(BaseModel):
     forecast_days: int = 7
     edge_floor: float = 0.0
