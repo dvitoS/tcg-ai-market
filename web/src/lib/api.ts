@@ -14,6 +14,8 @@ import type {
   RadarStatus,
   TradeLineIn,
   TradeResponse,
+  TradeShareCreated,
+  TradeShareView,
   TradeStatus,
   PortfolioLot,
   PortfolioPerformanceResponse,
@@ -693,6 +695,40 @@ export async function scoreTrade(input: {
   if (!res.ok) {
     const detail = await res.text();
     throw new Error(detail || `Trade score failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function createTradeShare(input: {
+  you: TradeLineIn[];
+  them: TradeLineIn[];
+  fair_band_pct?: number;
+}): Promise<TradeShareCreated> {
+  const res = await fetch(apiUrl("/api/trade/share"), {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const detail = await res.text();
+    throw new Error(detail || `Trade share failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function fetchTradeShare(shareId: string): Promise<TradeShareView> {
+  const id = encodeURIComponent(shareId).replace(/%2F/gi, "/");
+  const res = await fetch(apiUrl(`/api/trade/share/${id}`), {
+    headers: { Accept: "application/json" },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const detail = await res.text();
+    throw new Error(detail || `Trade share not found (${res.status})`);
   }
   return res.json();
 }

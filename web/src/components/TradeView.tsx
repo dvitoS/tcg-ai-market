@@ -9,6 +9,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { useLocale } from "@/components/LocaleProvider";
 import { SearchSuggest } from "@/components/SearchSuggest";
 import {
+  createTradeShare,
   fetchTradeStatus,
   formatChange,
   formatMoney,
@@ -119,6 +120,8 @@ export function TradeView() {
   const [target, setTarget] = useState<SideKey>("you");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [shareBusy, setShareBusy] = useState(false);
+  const [shareNote, setShareNote] = useState<string | null>(null);
   const [seedNote, setSeedNote] = useState<string | null>(null);
 
   useEffect(() => {
@@ -199,6 +202,7 @@ export function TradeView() {
     if (!user || !status?.allowed) return;
     setBusy(true);
     setError(null);
+    setShareNote(null);
     try {
       const scored = await scoreTrade({ you, them });
       setResult(scored);
@@ -207,6 +211,31 @@ export function TradeView() {
       setError(err instanceof Error ? err.message : t("trade_error"));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function onShare() {
+    if (!user || !status?.allowed || (you.length === 0 && them.length === 0)) {
+      return;
+    }
+    setShareBusy(true);
+    setShareNote(null);
+    setError(null);
+    try {
+      const created = await createTradeShare({ you, them });
+      const href =
+        created.url ||
+        `${typeof window !== "undefined" ? window.location.origin : ""}${created.path}`;
+      try {
+        await navigator.clipboard.writeText(href);
+        setShareNote(t("trade_share_copied"));
+      } catch {
+        setShareNote(href);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("trade_share_error"));
+    } finally {
+      setShareBusy(false);
     }
   }
 
@@ -327,11 +356,22 @@ export function TradeView() {
         <button
           type="button"
           className="btn-ghost"
+          disabled={
+            shareBusy || busy || (you.length === 0 && them.length === 0)
+          }
+          onClick={() => void onShare()}
+        >
+          {shareBusy ? t("trade_share_busy") : t("trade_share_copy")}
+        </button>
+        <button
+          type="button"
+          className="btn-ghost"
           onClick={() => {
             setYou([]);
             setThem([]);
             setResult(null);
             setQuery("");
+            setShareNote(null);
           }}
         >
           {t("trade_clear")}
@@ -339,6 +379,7 @@ export function TradeView() {
       </div>
 
       {error ? <p className="form-error">{error}</p> : null}
+      {shareNote ? <p className="pro-open-note">{shareNote}</p> : null}
 
       {result ? (
         <div className={`trade-verdict ${verdictClass(result.verdict)}`}>

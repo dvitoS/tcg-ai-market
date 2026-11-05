@@ -326,6 +326,17 @@ export type TradeResponse = {
   source: "supabase" | "demo" | "empty";
 };
 
+export type TradeShareCreated = {
+  id: string;
+  path: string;
+  url?: string | null;
+};
+
+export type TradeShareView = TradeResponse & {
+  checkout_url?: string | null;
+  share_id: string;
+};
+
 export type DealerStatus = {
   allowed: boolean;
   reason: string;
