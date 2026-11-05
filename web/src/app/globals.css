@@ -2470,9 +2470,19 @@ a {
   gap: 0.35rem 0.75rem;
   margin-top: 0.85rem;
   padding-top: 0.7rem;
-  border-top: 1px solid rgba(42, 42, 42, 0.9);
+  border-top: 1px solid rgba(184, 115, 51, 0.22);
   color: var(--muted);
   font-size: 0.72rem;
+}
+
+.trade-share-card-foot-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.trade-share-card-pro {
+  color: var(--accent-2);
 }
 
 .trade-share-card-url {

@@ -63,7 +63,7 @@ These close the loop we actually need before marketing spend. Do **not** reorder
 
 | ID | Item | Ship |
 | --- | --- | --- |
-| B1 | **#8 Trade report PDF / image** — shipping | One-tap PNG export from `/trade` (+ public `/trade/s/{id}`): sides, fair totals, verdict, Kestrel watermark. |
+| B1 | **#8 Trade report PDF / image** — shipping | One-tap PNG export from `/trade` (+ public `/trade/s/{id}`): sides, fair totals, verdict, Kestrel watermark + Pro CTA. |
 | B2 | **Binder share card (lite)** | Read-only visual summary of set completion (% / missing count / buy-cost) — **no** dealer margins or private P&L. Deep-link or image; Pro CTA optional. |
 | B3 | **Radar share polish** — shipping | Keep `?share=`; clipboard includes plain-language blurb + filter URL. |
 
