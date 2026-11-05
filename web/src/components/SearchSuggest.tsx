@@ -2,13 +2,14 @@
 
 import Image from "next/image";
 import {
-  FormEvent,
   KeyboardEvent,
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 
 import { useLocale } from "@/components/LocaleProvider";
 import { fetchCatalog, formatMoney } from "@/lib/api";
@@ -44,6 +45,8 @@ type Hit =
   | { kind: "catalog"; card: CatalogCard }
   | { kind: "local"; item: LocalSuggestItem };
 
+type PanelBox = { top: number; left: number; width: number };
+
 export function SearchSuggest({
   value,
   onChange,
@@ -61,11 +64,19 @@ export function SearchSuggest({
   const { t } = useLocale();
   const listId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [box, setBox] = useState<PanelBox | null>(null);
   const [recent, setRecent] = useState<string[]>([]);
   const [catalogHits, setCatalogHits] = useState<CatalogCard[]>([]);
   const [loading, setLoading] = useState(false);
   const [active, setActive] = useState(0);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     setRecent(readRecentSearches(recentScope));
@@ -106,16 +117,6 @@ export function SearchSuggest({
     };
   }, [value, open, mode]);
 
-  useEffect(() => {
-    function onDoc(event: MouseEvent) {
-      if (!rootRef.current?.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
-  }, []);
-
   const q = value.trim().toLowerCase();
   const localHits =
     mode === "local" && q
@@ -137,6 +138,51 @@ export function SearchSuggest({
     ...catalogHits.map((card) => ({ kind: "catalog" as const, card })),
     ...localHits.map((item) => ({ kind: "local" as const, item })),
   ];
+
+  const showPanel =
+    open &&
+    (hits.length > 0 || loading || (mode === "catalog" && value.trim().length >= 2));
+
+  function syncBox() {
+    const el = inputRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    setBox({
+      top: rect.bottom + 6,
+      left: rect.left,
+      width: Math.max(rect.width, 220),
+    });
+  }
+
+  useLayoutEffect(() => {
+    if (!showPanel) {
+      setBox(null);
+      return;
+    }
+    syncBox();
+    function onReposition() {
+      syncBox();
+    }
+    window.addEventListener("resize", onReposition);
+    // capture scroll from any scrollable ancestor
+    window.addEventListener("scroll", onReposition, true);
+    return () => {
+      window.removeEventListener("resize", onReposition);
+      window.removeEventListener("scroll", onReposition, true);
+    };
+  }, [showPanel, value, hits.length, loading]);
+
+  useEffect(() => {
+    function onDoc(event: MouseEvent) {
+      const target = event.target as Node;
+      if (rootRef.current?.contains(target) || panelRef.current?.contains(target)) {
+        return;
+      }
+      setOpen(false);
+    }
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, []);
 
   useEffect(() => {
     setActive(0);
@@ -195,18 +241,107 @@ export function SearchSuggest({
     }
   }
 
-  function onSubmit(event: FormEvent) {
-    event.preventDefault();
-    commitQuery(value);
-  }
-
-  const showPanel =
-    open &&
-    (hits.length > 0 || loading || (mode === "catalog" && value.trim().length >= 2));
+  const panel =
+    mounted && showPanel && box
+      ? createPortal(
+          <div
+            ref={panelRef}
+            className="search-suggest-panel"
+            id={listId}
+            role="listbox"
+            style={{
+              top: box.top,
+              left: box.left,
+              width: box.width,
+            }}
+          >
+            {recentHits.length > 0 ? (
+              <p className="search-suggest-label">{t("search_suggested")}</p>
+            ) : null}
+            {hits.map((hit, index) => {
+              const selected = index === active;
+              if (hit.kind === "recent") {
+                return (
+                  <button
+                    key={`r-${hit.text}`}
+                    type="button"
+                    role="option"
+                    aria-selected={selected}
+                    className={`search-suggest-item ${selected ? "is-active" : ""}`}
+                    onMouseEnter={() => setActive(index)}
+                    onClick={() => pick(hit)}
+                  >
+                    <span className="search-suggest-kind">{t("search_recent")}</span>
+                    <span className="lot-name">{hit.text}</span>
+                  </button>
+                );
+              }
+              if (hit.kind === "local") {
+                return (
+                  <button
+                    key={`l-${hit.item.id}`}
+                    type="button"
+                    role="option"
+                    aria-selected={selected}
+                    className={`search-suggest-item ${selected ? "is-active" : ""}`}
+                    onMouseEnter={() => setActive(index)}
+                    onClick={() => pick(hit)}
+                  >
+                    <span className="lot-name">{hit.item.label}</span>
+                    {hit.item.meta ? (
+                      <span className="lot-meta">{hit.item.meta}</span>
+                    ) : null}
+                  </button>
+                );
+              }
+              const card = hit.card;
+              return (
+                <button
+                  key={`c-${card.id}`}
+                  type="button"
+                  role="option"
+                  aria-selected={selected}
+                  className={`search-suggest-item has-art ${selected ? "is-active" : ""}`}
+                  onMouseEnter={() => setActive(index)}
+                  onClick={() => pick(hit)}
+                >
+                  <span className="search-suggest-art">
+                    <Image
+                      src={card.image_url || "/kestrel-logo.png"}
+                      alt=""
+                      width={32}
+                      height={44}
+                    />
+                  </span>
+                  <span>
+                    <span className="lot-name">{card.name}</span>
+                    <span className="lot-meta">
+                      {[card.set_name, formatMoney(card.price)]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+            {loading ? (
+              <p className="search-suggest-empty">{t("search_loading")}</p>
+            ) : null}
+            {!loading &&
+            mode === "catalog" &&
+            value.trim().length >= 2 &&
+            catalogHits.length === 0 ? (
+              <p className="search-suggest-empty">{t("search_no_hits")}</p>
+            ) : null}
+          </div>,
+          document.body,
+        )
+      : null;
 
   return (
-    <div className="search-suggest" ref={rootRef}>
+    <div className={`search-suggest${showPanel ? " is-open" : ""}`} ref={rootRef}>
       <input
+        ref={inputRef}
         id={inputId}
         type="search"
         role="combobox"
@@ -226,86 +361,7 @@ export function SearchSuggest({
         onKeyDown={onKeyDown}
         onClick={() => setOpen(true)}
       />
-      {showPanel ? (
-        <div className="search-suggest-panel" id={listId} role="listbox">
-          {recentHits.length > 0 ? (
-            <p className="search-suggest-label">{t("search_suggested")}</p>
-          ) : null}
-          {hits.map((hit, index) => {
-            const selected = index === active;
-            if (hit.kind === "recent") {
-              return (
-                <button
-                  key={`r-${hit.text}`}
-                  type="button"
-                  role="option"
-                  aria-selected={selected}
-                  className={`search-suggest-item ${selected ? "is-active" : ""}`}
-                  onMouseEnter={() => setActive(index)}
-                  onClick={() => pick(hit)}
-                >
-                  <span className="search-suggest-kind">{t("search_recent")}</span>
-                  <span className="lot-name">{hit.text}</span>
-                </button>
-              );
-            }
-            if (hit.kind === "local") {
-              return (
-                <button
-                  key={`l-${hit.item.id}`}
-                  type="button"
-                  role="option"
-                  aria-selected={selected}
-                  className={`search-suggest-item ${selected ? "is-active" : ""}`}
-                  onMouseEnter={() => setActive(index)}
-                  onClick={() => pick(hit)}
-                >
-                  <span className="lot-name">{hit.item.label}</span>
-                  {hit.item.meta ? (
-                    <span className="lot-meta">{hit.item.meta}</span>
-                  ) : null}
-                </button>
-              );
-            }
-            const card = hit.card;
-            return (
-              <button
-                key={`c-${card.id}`}
-                type="button"
-                role="option"
-                aria-selected={selected}
-                className={`search-suggest-item has-art ${selected ? "is-active" : ""}`}
-                onMouseEnter={() => setActive(index)}
-                onClick={() => pick(hit)}
-              >
-                <span className="search-suggest-art">
-                  <Image
-                    src={card.image_url || "/kestrel-logo.png"}
-                    alt=""
-                    width={32}
-                    height={44}
-                  />
-                </span>
-                <span>
-                  <span className="lot-name">{card.name}</span>
-                  <span className="lot-meta">
-                    {[card.set_name, formatMoney(card.price)].filter(Boolean).join(" · ")}
-                  </span>
-                </span>
-              </button>
-            );
-          })}
-          {loading ? (
-            <p className="search-suggest-empty">{t("search_loading")}</p>
-          ) : null}
-          {!loading &&
-          mode === "catalog" &&
-          value.trim().length >= 2 &&
-          catalogHits.length === 0 ? (
-            <p className="search-suggest-empty">{t("search_no_hits")}</p>
-          ) : null}
-        </div>
-      ) : null}
+      {panel}
     </div>
   );
 }

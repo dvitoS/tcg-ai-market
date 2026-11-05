@@ -270,6 +270,7 @@ a {
 }
 
 .search-strip {
+  position: relative;
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 0.55rem;
@@ -277,6 +278,12 @@ a {
   animation: rise 0.75s ease both;
   animation-delay: 0.1s;
   align-items: start;
+}
+
+.search-strip:has(.search-suggest.is-open),
+.filter-row:has(.search-suggest.is-open),
+.portfolio-search-label:has(.search-suggest.is-open) {
+  z-index: 90;
 }
 
 .search-suggest {
@@ -289,12 +296,13 @@ a {
   width: 100%;
 }
 
+.search-suggest.is-open {
+  z-index: 90;
+}
+
 .search-suggest-panel {
-  position: absolute;
-  z-index: 40;
-  top: calc(100% + 0.35rem);
-  left: 0;
-  right: 0;
+  position: fixed;
+  z-index: 1200;
   display: grid;
   gap: 0.15rem;
   max-height: min(22rem, 60vh);
