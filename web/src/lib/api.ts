@@ -63,6 +63,39 @@ export function apiUrl(path: string): string {
   return `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
+/** Prefer FastAPI `{ detail }` (string or list) over raw response bodies. */
+export async function readApiError(
+  res: Response,
+  fallback: string,
+): Promise<string> {
+  const text = await res.text().catch(() => "");
+  if (!text) return fallback;
+  try {
+    const body = JSON.parse(text) as { detail?: unknown };
+    const detail = body?.detail;
+    if (typeof detail === "string" && detail.trim()) return detail.trim();
+    if (Array.isArray(detail)) {
+      const parts = detail
+        .map((item) => {
+          if (typeof item === "string") return item;
+          if (item && typeof item === "object" && "msg" in item) {
+            return String((item as { msg?: unknown }).msg || "");
+          }
+          return "";
+        })
+        .filter(Boolean);
+      if (parts.length) return parts.join("; ");
+    }
+  } catch {
+    /* plain text */
+  }
+  const trimmed = text.trim();
+  if (trimmed.startsWith("{") && trimmed.includes('"detail"')) {
+    return fallback;
+  }
+  return trimmed || fallback;
+}
+
 export async function fetchCatalog(
   query: CatalogQuery = {},
   init?: RequestInit,
@@ -675,8 +708,16 @@ export async function fetchTrustReport(input?: {
     cache: "no-store",
   });
   if (!res.ok) {
-    const detail = await res.text().catch(() => "");
-    throw new Error(detail || `Trust report failed (${res.status})`);
+    if (res.status === 404) {
+      throw new Error("TRUST_NOT_FOUND");
+    }
+    if (res.status === 401) {
+      throw new Error("TRUST_AUTH");
+    }
+    if (res.status === 403) {
+      throw new Error("TRUST_PRO");
+    }
+    throw new Error(await readApiError(res, `Trust report failed (${res.status})`));
   }
   return res.json();
 }

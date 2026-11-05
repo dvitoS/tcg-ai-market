@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
 from api.demo_mode import demo_mode
 from api.deps import require_user
@@ -20,6 +20,8 @@ from services.pro import is_pro_user, pro_checkout_url, pro_gate_reason
 
 router = APIRouter(prefix="/trust", tags=["trust"])
 
+_NO_STORE = {"Cache-Control": "no-store"}
+
 
 def _pro_allowed(user: dict[str, Any]) -> bool:
     if demo_mode() or user.get("dev"):
@@ -28,7 +30,11 @@ def _pro_allowed(user: dict[str, Any]) -> bool:
 
 
 @router.get("/status", response_model=TrustStatus)
-def trust_status(user: Annotated[dict, Depends(require_user)]) -> TrustStatus:
+def trust_status(
+    user: Annotated[dict, Depends(require_user)],
+    response: Response,
+) -> TrustStatus:
+    response.headers.update(_NO_STORE)
     allowed = _pro_allowed(user)
     return TrustStatus(
         allowed=allowed,
@@ -40,10 +46,12 @@ def trust_status(user: Annotated[dict, Depends(require_user)]) -> TrustStatus:
 @router.get("", response_model=TrustResponse)
 def trust_report(
     user: Annotated[dict, Depends(require_user)],
+    response: Response,
     horizon_days: int = Query(default=7, ge=3, le=30),
     lookback_days: int = Query(default=30, ge=7, le=120),
     sample_n: int = Query(default=80, ge=10, le=120),
 ) -> TrustResponse:
+    response.headers.update(_NO_STORE)
     if not _pro_allowed(user):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

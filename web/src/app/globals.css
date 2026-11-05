@@ -1286,6 +1286,18 @@ a {
   animation: rise 0.65s ease both;
 }
 
+.trust-error-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 1rem;
+  margin: 0.35rem 0 0.55rem;
+}
+
+.trust-error-row .form-error {
+  margin: 0;
+}
+
 .trust-kpis {
   margin: 0.65rem 0 0.85rem;
 }

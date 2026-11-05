@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { useLocale } from "@/components/LocaleProvider";
-import { fetchTrustReport, formatChange } from "@/lib/api";
+import { fetchTrustReport, formatChange, getAccessToken } from "@/lib/api";
+import type { MessageKey } from "@/lib/i18n/messages";
 import type { TrustResponse } from "@/lib/types";
 
 function fmt(value?: number | null, digits = 2): string {
@@ -11,15 +12,40 @@ function fmt(value?: number | null, digits = 2): string {
   return Number(value).toFixed(digits);
 }
 
+function trustErrorMessage(
+  err: unknown,
+  t: (key: MessageKey) => string,
+): string {
+  const code = err instanceof Error ? err.message : "";
+  if (code === "TRUST_NOT_FOUND") return t("trust_error_not_found");
+  if (code === "TRUST_AUTH") return t("trust_error_auth");
+  if (code === "TRUST_PRO") return t("trust_error_pro");
+  if (code.startsWith("{") && code.includes("detail")) return t("trust_error");
+  return code || t("trust_error");
+}
+
 export function TrustPanel() {
   const { t } = useLocale();
   const [data, setData] = useState<TrustResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  const load = useCallback(() => {
+    setReloadKey((n) => n + 1);
+  }, []);
 
   useEffect(() => {
     let alive = true;
     setLoading(true);
+    if (!getAccessToken()) {
+      setData(null);
+      setError(t("trust_error_auth"));
+      setLoading(false);
+      return () => {
+        alive = false;
+      };
+    }
     void fetchTrustReport({ horizon_days: 7, sample_n: 60 })
       .then((payload) => {
         if (!alive) return;
@@ -29,7 +55,7 @@ export function TrustPanel() {
       .catch((err) => {
         if (!alive) return;
         setData(null);
-        setError(err instanceof Error ? err.message : t("trust_error"));
+        setError(trustErrorMessage(err, t));
       })
       .finally(() => {
         if (alive) setLoading(false);
@@ -37,7 +63,7 @@ export function TrustPanel() {
     return () => {
       alive = false;
     };
-  }, [t]);
+  }, [t, reloadKey]);
 
   const cal = data?.calibration;
   const cov = data?.conformal_coverage;
@@ -60,7 +86,14 @@ export function TrustPanel() {
       </div>
 
       {loading ? <p className="explore-lede">{t("trust_loading")}</p> : null}
-      {error ? <p className="form-error">{error}</p> : null}
+      {error ? (
+        <div className="trust-error-row">
+          <p className="form-error">{error}</p>
+          <button type="button" className="btn-ghost" onClick={load}>
+            {t("trust_retry")}
+          </button>
+        </div>
+      ) : null}
 
       {data ? (
         <>
