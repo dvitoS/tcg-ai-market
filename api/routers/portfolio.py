@@ -26,6 +26,7 @@ from api.portfolio_service import (
 from api.schemas import (
     AddLotRequest,
     AddWatchRequest,
+    PortfolioDrawdownCallout,
     PortfolioLot,
     PortfolioPerformanceResponse,
     PortfolioPerfPoint,
@@ -90,6 +91,13 @@ def get_portfolio_performance(
         points=[PortfolioPerfPoint(**row) for row in payload["points"]],
         days=int(payload["days"]),
         demo=bool(payload["demo"]),
+        ai_fair_value=payload.get("ai_fair_value"),
+        ai_lo=payload.get("ai_lo"),
+        ai_hi=payload.get("ai_hi"),
+        drawdown_callouts=[
+            PortfolioDrawdownCallout(**row)
+            for row in (payload.get("drawdown_callouts") or [])
+        ],
     )
 
 

@@ -163,12 +163,29 @@ export type PortfolioPerfPoint = {
   date: string;
   invested: number;
   market_value: number;
+  ai_fair_value?: number | null;
+  ai_lo?: number | null;
+  ai_hi?: number | null;
+};
+
+export type PortfolioDrawdownCallout = {
+  peak_date: string;
+  trough_date: string;
+  drawdown_pct: number;
+  peak_value: number;
+  trough_value: number;
+  trim_count: number;
+  note: string;
 };
 
 export type PortfolioPerformanceResponse = {
   points: PortfolioPerfPoint[];
   days: number;
   demo: boolean;
+  ai_fair_value?: number | null;
+  ai_lo?: number | null;
+  ai_hi?: number | null;
+  drawdown_callouts?: PortfolioDrawdownCallout[];
 };
 
 export type WatchlistItem = {

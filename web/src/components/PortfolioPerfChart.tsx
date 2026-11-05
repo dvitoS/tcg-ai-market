@@ -7,6 +7,7 @@ import {
   ComposedChart,
   Legend,
   Line,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -14,8 +15,11 @@ import {
 } from "recharts";
 
 import { useLocale } from "@/components/LocaleProvider";
-import { formatMoney } from "@/lib/api";
-import type { PortfolioPerfPoint } from "@/lib/types";
+import { formatChange, formatMoney } from "@/lib/api";
+import type {
+  PortfolioDrawdownCallout,
+  PortfolioPerfPoint,
+} from "@/lib/types";
 
 function shortDate(value: string): string {
   const d = new Date(`${value}T00:00:00Z`);
@@ -28,8 +32,12 @@ function shortDate(value: string): string {
 
 export function PortfolioPerfChart({
   points,
+  aiFairValue,
+  callouts = [],
 }: {
   points: PortfolioPerfPoint[];
+  aiFairValue?: number | null;
+  callouts?: PortfolioDrawdownCallout[];
 }) {
   const { t } = useLocale();
   const rows = useMemo(
@@ -39,9 +47,24 @@ export function PortfolioPerfChart({
         label: shortDate(p.date),
         invested: Number(p.invested || 0),
         market_value: Number(p.market_value || 0),
+        ai_fair_value:
+          p.ai_fair_value != null && Number.isFinite(Number(p.ai_fair_value))
+            ? Number(p.ai_fair_value)
+            : null,
       })),
     [points],
   );
+
+  const fairFromPoints = (() => {
+    for (let i = rows.length - 1; i >= 0; i -= 1) {
+      if (rows[i].ai_fair_value != null) return rows[i].ai_fair_value;
+    }
+    return null;
+  })();
+  const fair =
+    aiFairValue != null && Number.isFinite(Number(aiFairValue))
+      ? Number(aiFairValue)
+      : fairFromPoints;
 
   if (rows.length < 2) {
     return null;
@@ -88,9 +111,27 @@ export function PortfolioPerfChart({
                 const row = payload?.[0]?.payload as { date?: string } | undefined;
                 return row?.date || "";
               }}
-              formatter={(value) => formatMoney(Number(value ?? 0))}
+              formatter={(value, name) => [
+                formatMoney(Number(value ?? 0)),
+                String(name ?? ""),
+              ]}
             />
             <Legend />
+            {fair != null ? (
+              <ReferenceLine
+                y={fair}
+                stroke="#c4a35a"
+                strokeDasharray="5 4"
+                strokeWidth={1.5}
+                ifOverflow="extendDomain"
+                label={{
+                  value: t("port_perf_ai_fair"),
+                  fill: "#c4a35a",
+                  fontSize: 11,
+                  position: "insideTopRight",
+                }}
+              />
+            ) : null}
             <Area
               type="monotone"
               dataKey="market_value"
@@ -110,9 +151,45 @@ export function PortfolioPerfChart({
               dot={false}
               activeDot={{ r: 3 }}
             />
+            <Line
+              type="monotone"
+              dataKey="ai_fair_value"
+              name={t("port_perf_ai_fair")}
+              stroke="#c4a35a"
+              strokeWidth={2}
+              strokeDasharray="4 4"
+              connectNulls={false}
+              dot={{ r: 4, fill: "#c4a35a", strokeWidth: 0 }}
+              activeDot={{ r: 4 }}
+            />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
+      {fair != null ? (
+        <p className="lot-meta portfolio-perf-ai-note">
+          {t("port_perf_ai_note", { value: formatMoney(fair) })}
+        </p>
+      ) : null}
+      {callouts.length > 0 ? (
+        <ul className="portfolio-perf-callouts">
+          {callouts.map((c) => (
+            <li key={`${c.peak_date}-${c.trough_date}`}>
+              <strong>
+                {t("port_perf_dd_title", {
+                  pct: formatChange(-Math.abs(c.drawdown_pct)),
+                })}
+              </strong>
+              <span className="lot-meta">
+                {" "}
+                {c.peak_date} → {c.trough_date}
+                {c.trim_count > 0
+                  ? ` · ${t("port_perf_dd_trim", { n: c.trim_count })}`
+                  : ""}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </div>
   );
 }

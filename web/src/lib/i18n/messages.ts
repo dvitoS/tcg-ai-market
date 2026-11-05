@@ -129,7 +129,13 @@ const en = {
   port_watchlist: "Watchlist · {n}",
   port_watch_empty: "Watchlist is empty. Star cards from detail pages.",
   port_perf_title: "Performance",
-  port_perf_lede: "Book value vs cost basis over time.",
+  port_perf_lede:
+    "Book value vs cost basis over time, with today’s AI fair as a reference.",
+  port_perf_ai_fair: "AI fair (today)",
+  port_perf_ai_note:
+    "AI fair {value} is today’s model mark on open lots — not a backtested series.",
+  port_perf_dd_title: "Drawdown {pct}",
+  port_perf_dd_trim: "{n} conformal TRIM lot(s) now",
   port_search: "Search",
   port_search_ph: "Name or card id",
   port_rarity: "Rarity",
@@ -518,7 +524,13 @@ const hr: Dictionary = {
   port_watchlist: "Watchlist · {n}",
   port_watch_empty: "Watchlist je prazan. Označi karte na detail stranicama.",
   port_perf_title: "Performansa",
-  port_perf_lede: "Vrijednost knjige vs nabavna cijena kroz vrijeme.",
+  port_perf_lede:
+    "Vrijednost knjige vs nabavna cijena kroz vrijeme, s današnjim AI fair referentom.",
+  port_perf_ai_fair: "AI fair (danas)",
+  port_perf_ai_note:
+    "AI fair {value} je današnji model mark na otvorenim lotovima — nije backtest serija.",
+  port_perf_dd_title: "Drawdown {pct}",
+  port_perf_dd_trim: "{n} conformal TRIM lot(ova) sada",
   port_search: "Traži",
   port_search_ph: "Ime ili card id",
   port_rarity: "Rijetkost",

@@ -25,6 +25,7 @@ import {
 import { signalLabel } from "@/lib/i18n/messages";
 import type {
   PortfolioLot,
+  PortfolioDrawdownCallout,
   PortfolioPerfPoint,
   PortfolioSummary,
   WatchAlertItem,
@@ -94,6 +95,8 @@ export function PortfolioView() {
   const [lots, setLots] = useState<PortfolioLot[]>([]);
   const [summary, setSummary] = useState<PortfolioSummary>(EMPTY_SUMMARY);
   const [perfPoints, setPerfPoints] = useState<PortfolioPerfPoint[]>([]);
+  const [perfAiFair, setPerfAiFair] = useState<number | null>(null);
+  const [perfCallouts, setPerfCallouts] = useState<PortfolioDrawdownCallout[]>([]);
   const [watch, setWatch] = useState<WatchlistItem[]>([]);
   const [alerts, setAlerts] = useState<WatchAlertItem[]>([]);
   const [sureOnlyAllowed, setSureOnlyAllowed] = useState(true);
@@ -143,6 +146,10 @@ export function PortfolioView() {
       setLots(portfolio.items);
       setSummary(portfolio.summary);
       setPerfPoints(performance.points || []);
+      setPerfAiFair(
+        performance.ai_fair_value != null ? Number(performance.ai_fair_value) : null,
+      );
+      setPerfCallouts(performance.drawdown_callouts || []);
       setDemo(portfolio.demo || watchlist.demo || digest.demo || performance.demo);
       setWatch(watchlist.items);
       setAlerts(digest.items);
@@ -629,7 +636,11 @@ export function PortfolioView() {
         </div>
       </div>
 
-      <PortfolioPerfChart points={perfPoints} />
+      <PortfolioPerfChart
+        points={perfPoints}
+        aiFairValue={perfAiFair}
+        callouts={perfCallouts}
+      />
       <PortfolioBarsChart lots={openLots} />
 
       <div className="portfolio-section-head">

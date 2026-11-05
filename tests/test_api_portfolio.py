@@ -55,6 +55,11 @@ def test_portfolio_performance_demo_session() -> None:
     row = body["points"][0]
     assert "date" in row and "invested" in row and "market_value" in row
     assert float(row["invested"]) > 0
+    assert "drawdown_callouts" in body
+    last = body["points"][-1]
+    # AI fair is attached on the latest day when open lots carry outlook.
+    if body.get("ai_fair_value") is not None:
+        assert last.get("ai_fair_value") == body["ai_fair_value"]
 
 
 def test_watchlist_add_and_remove_roundtrip() -> None:

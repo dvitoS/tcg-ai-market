@@ -659,17 +659,127 @@ def load_history_for_cards(card_ids: list[str]) -> pd.DataFrame:
     return _history_from_seed(ids)
 
 
+def _ai_fair_band(open_lots: list[dict[str, Any]]) -> dict[str, float | None]:
+    """Today's model fair total + optional conformal band from open lots."""
+    if not open_lots:
+        return {"ai_fair_value": None, "ai_lo": None, "ai_hi": None}
+    fair = 0.0
+    lo = 0.0
+    hi = 0.0
+    has_band = False
+    for lot in open_lots:
+        try:
+            outlook = float(lot.get("outlook_value") or 0.0)
+        except (TypeError, ValueError):
+            outlook = 0.0
+        fair += outlook
+        spot = lot.get("market_price")
+        qty = lot.get("quantity") or 1
+        try:
+            spot_f = float(spot) if spot is not None else None
+            qty_f = float(qty)
+        except (TypeError, ValueError):
+            spot_f = None
+            qty_f = 1.0
+        lo_pct = lot.get("outlook_lo_pct")
+        hi_pct = lot.get("outlook_hi_pct")
+        if spot_f is not None and lo_pct is not None and hi_pct is not None:
+            try:
+                lo += qty_f * spot_f * (1.0 + float(lo_pct) / 100.0)
+                hi += qty_f * spot_f * (1.0 + float(hi_pct) / 100.0)
+                has_band = True
+            except (TypeError, ValueError):
+                pass
+    return {
+        "ai_fair_value": round(fair, 4) if fair else None,
+        "ai_lo": round(lo, 4) if has_band else None,
+        "ai_hi": round(hi, 4) if has_band else None,
+    }
+
+
+def _drawdown_callouts(
+    points: list[dict[str, Any]],
+    *,
+    open_lots: list[dict[str, Any]],
+    min_drawdown_pct: float = 8.0,
+    limit: int = 3,
+) -> list[dict[str, Any]]:
+    """Largest peak→trough drawdowns on the MTM curve + TRIM hint."""
+    if len(points) < 2:
+        return []
+    trim_count = sum(
+        1
+        for lot in open_lots
+        if str(lot.get("lot_action") or "").upper() == "TRIM"
+        and bool(lot.get("outlook_conformal_ok"))
+    )
+    peak_val = float(points[0]["market_value"] or 0.0)
+    peak_date = str(points[0]["date"])
+    candidates: list[dict[str, Any]] = []
+    for row in points[1:]:
+        value = float(row["market_value"] or 0.0)
+        date = str(row["date"])
+        if value >= peak_val:
+            peak_val = value
+            peak_date = date
+            continue
+        if peak_val <= 0:
+            continue
+        dd = (peak_val - value) / peak_val * 100.0
+        if dd < float(min_drawdown_pct):
+            continue
+        note = (
+            f"MTM drew down {dd:.1f}% from peak. "
+            f"{trim_count} open lot(s) currently carry conformal TRIM."
+            if trim_count
+            else f"MTM drew down {dd:.1f}% from peak."
+        )
+        candidates.append(
+            {
+                "peak_date": peak_date,
+                "trough_date": date,
+                "drawdown_pct": round(dd, 2),
+                "peak_value": round(peak_val, 4),
+                "trough_value": round(value, 4),
+                "trim_count": int(trim_count),
+                "note": note,
+            }
+        )
+    # Keep deepest unique troughs.
+    candidates.sort(key=lambda r: float(r["drawdown_pct"]), reverse=True)
+    seen: set[str] = set()
+    out: list[dict[str, Any]] = []
+    for row in candidates:
+        key = str(row["trough_date"])
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(row)
+        if len(out) >= limit:
+            break
+    return out
+
+
 def portfolio_performance(
     *,
     user_id: str,
     max_days: int = 120,
     access_token: str | None = None,
 ) -> dict[str, Any]:
-    """Daily invested cost vs mark-to-market for the user's lots."""
+    """Daily invested cost vs mark-to-market for the user's lots (+ AI overlay)."""
     max_days = max(14, min(int(max_days or 120), 365))
     lots = list_portfolio(user_id=user_id, include_sold=True, access_token=access_token)
+    empty = {
+        "points": [],
+        "days": 0,
+        "demo": demo_mode(),
+        "ai_fair_value": None,
+        "ai_lo": None,
+        "ai_hi": None,
+        "drawdown_callouts": [],
+    }
     if not lots:
-        return {"points": [], "days": 0, "demo": demo_mode()}
+        return empty
 
     lots_frame = pd.DataFrame(lots)
     card_ids = sorted({str(r.get("card_id")) for r in lots if r.get("card_id")})
@@ -685,6 +795,29 @@ def portfolio_performance(
                     "date": date_str,
                     "invested": round(float(row.invested), 4),
                     "market_value": round(float(row.market_value), 4),
+                    "ai_fair_value": None,
+                    "ai_lo": None,
+                    "ai_hi": None,
                 }
             )
-    return {"points": points, "days": len(points), "demo": demo_mode()}
+
+    open_lots = [l for l in lots if str(l.get("status") or "open").lower() != "sold"]
+    band = _ai_fair_band(open_lots)
+    if points and band.get("ai_fair_value") is not None:
+        points[-1] = {
+            **points[-1],
+            "ai_fair_value": band["ai_fair_value"],
+            "ai_lo": band["ai_lo"],
+            "ai_hi": band["ai_hi"],
+        }
+
+    callouts = _drawdown_callouts(points, open_lots=open_lots)
+    return {
+        "points": points,
+        "days": len(points),
+        "demo": demo_mode(),
+        "ai_fair_value": band.get("ai_fair_value"),
+        "ai_lo": band.get("ai_lo"),
+        "ai_hi": band.get("ai_hi"),
+        "drawdown_callouts": callouts,
+    }
