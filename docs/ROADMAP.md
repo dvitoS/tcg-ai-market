@@ -51,7 +51,7 @@ These close conversion loops and plug the biggest holes vs Collectr / PriceChart
 | 4 | **Deal of the Day** public feed — shipped | Landing + `/pro` reuse `/api/radar/preview` |
 | 5 | **Alert channels** (Telegram / push / WhatsApp Business) | Deferred — email + Discord for now |
 | 6 | **Model trust panel** — shipped | Kestrel Pro on `/radar`: retrain calibration, conformal coverage, Radar-call hit rate |
-| 7 | **Grading EV v2** | PSA 9/10 pops, fee presets by service, break-even sensitivity chart |
+| 7 | **Grading EV v2** — shipped | Live PSA 9 + sales depth, service fee presets, break-even sensitivity chart |
 | 8 | **Trade report PDF / image** | One-tap share for Discord groups / local shops |
 | 9 | **Set completion / binder checklist** | Dex/Collectr hygiene — % complete, missing list, buy-cost to finish |
 | 10 | **Sealed product quotes** | ETBs / boxes — Collectr’s other half of portfolio value |

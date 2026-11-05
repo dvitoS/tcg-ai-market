@@ -19,7 +19,7 @@ from api.schemas import (
     ExplainRow,
     HistoryPoint,
     HistoryStats,
-    Psa10Stats,
+    PsaGradeStats,
 )
 from services.ebay_listings import build_ebay_detail_payload
 
@@ -111,7 +111,10 @@ def card_price_sources(
         justtcg_error=payload.get("justtcg_error"),
         psa10=[HistoryPoint(**p) for p in payload.get("psa10") or []],
         psa10_error=payload.get("psa10_error"),
-        psa10_stats=Psa10Stats(**(payload.get("psa10_stats") or {})),
+        psa10_stats=PsaGradeStats(**(payload.get("psa10_stats") or {})),
+        psa9=[HistoryPoint(**p) for p in payload.get("psa9") or []],
+        psa9_error=payload.get("psa9_error"),
+        psa9_stats=PsaGradeStats(**(payload.get("psa9_stats") or {})),
         cache=cache_flag if cache_flag in ("hit", "miss") else None,
     )
 

@@ -164,10 +164,14 @@ class CardHistoryResponse(BaseModel):
     stats: HistoryStats = Field(default_factory=HistoryStats)
 
 
-class Psa10Stats(BaseModel):
+class PsaGradeStats(BaseModel):
     has_history_series: bool = False
     period_key: str | None = None
     sales_count: int | float | None = None
+
+
+# Backward-compatible alias used by existing OpenAPI clients.
+Psa10Stats = PsaGradeStats
 
 
 class CardPriceSourcesResponse(BaseModel):
@@ -183,7 +187,10 @@ class CardPriceSourcesResponse(BaseModel):
     justtcg_error: str | None = None
     psa10: list[HistoryPoint] = Field(default_factory=list)
     psa10_error: str | None = None
-    psa10_stats: Psa10Stats = Field(default_factory=Psa10Stats)
+    psa10_stats: PsaGradeStats = Field(default_factory=PsaGradeStats)
+    psa9: list[HistoryPoint] = Field(default_factory=list)
+    psa9_error: str | None = None
+    psa9_stats: PsaGradeStats = Field(default_factory=PsaGradeStats)
     cache: Literal["hit", "miss"] | None = None
 
 
