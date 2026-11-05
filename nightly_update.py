@@ -341,15 +341,22 @@ def retrain_ai() -> dict[str, float | int]:
 
 
 def run_nightly() -> int:
-    """Faze su izolirane — katalog može pasti, sync/retrain i dalje idu."""
-    from config import PROJECT_ROOT, get_supabase_credentials
+    """Faze su izolirane — katalog može pasti, sync/retrain i dalje idu.
+
+    Phase C3 SLO: retrain must refresh market_quotes, and wall clock must stay
+    under NIGHTLY_SLO_MAX_SECONDS (soft cap before GitHub's 180m hard kill).
+    """
+    from config import PROJECT_ROOT, get_supabase_credentials, nightly_slo_max_seconds
     from database import ensure_seed_database, init_db
     from main import print_summary
+    from services.nightly_slo import PhaseTimer, evaluate_nightly_slo
 
     started = datetime.now()
+    slo_max = nightly_slo_max_seconds()
     LOG.info("=== Nightly update start (%s) ===", started.isoformat(timespec="seconds"))
     LOG.info("Radni direktorij: %s", PROJECT_ROOT)
     LOG.info("GITHUB_ACTIONS=%s", os.environ.get("GITHUB_ACTIONS", ""))
+    LOG.info("Nightly SLO max wall clock: %ss (%.0fm)", slo_max, slo_max / 60.0)
 
     url, key = get_supabase_credentials()
     LOG.info("Supabase URL host: %s", url)
@@ -364,26 +371,36 @@ def run_nightly() -> int:
         return 1
 
     failures: list[str] = []
+    phase_times: dict[str, float] = {}
+    quotes_written = 0
 
-    try:
-        refresh_card_catalog()
-    except Exception as exc:
-        _report_error("refresh_card_catalog", exc)
-        failures.append("catalog")
+    def _run_phase(name: str, fn) -> None:
+        timer = PhaseTimer(name)
+        try:
+            result = fn()
+            elapsed = timer.finish(ok=True)
+            phase_times[name] = round(elapsed, 1)
+            LOG.info("Phase %s ok in %.1fs", name, elapsed)
+            return result
+        except Exception as exc:
+            elapsed = timer.finish(ok=False, error=str(exc))
+            phase_times[name] = round(elapsed, 1)
+            _report_error(name, exc)
+            failures.append(name)
+            LOG.warning("Phase %s failed after %.1fs", name, elapsed)
+            return None
+
+    _run_phase("catalog", refresh_card_catalog)
+    if "catalog" in failures:
         LOG.warning("Nastavljam s postojećim kartama u bazi.")
 
-    try:
-        refresh_price_history()
-    except Exception as exc:
-        _report_error("refresh_price_history", exc)
-        failures.append("history")
+    _run_phase("history", refresh_price_history)
 
     # Optional: resolve missing cards.tcgplayer_id (rate-limited JustTCG searches).
     if _env_flag("NIGHTLY_BACKFILL_TCP"):
-        try:
+        def _tcp_backfill():
             from backfill_tcgplayer_ids import backfill_tcgplayer_ids
 
-            # TCGplayer public search first; JustTCG only if explicitly enabled.
             limit_raw = os.environ.get("NIGHTLY_BACKFILL_TCP_LIMIT", "40").strip()
             limit = int(limit_raw) if limit_raw.isdigit() else 40
             stats = backfill_tcgplayer_ids(
@@ -404,24 +421,26 @@ def run_nightly() -> int:
                 stats.get("rate_limited", 0),
                 stats.get("stopped_early", 0),
             )
-        except Exception as exc:
-            _report_error("backfill_tcgplayer_ids", exc)
-            failures.append("tcp_backfill")
+            return stats
 
-    try:
+        _run_phase("tcp_backfill", _tcp_backfill)
+
+    def _ebay():
         from services.ebay_liquidity import harvest_ebay_liquidity
 
         ebay_liq = harvest_ebay_liquidity()
         LOG.info("eBay liquidity harvest: %s", ebay_liq)
-    except Exception as exc:
-        _report_error("harvest_ebay_liquidity", exc)
-        failures.append("ebay_liquidity")
+        return ebay_liq
 
-    try:
-        retrain_ai()
-    except Exception as exc:
-        _report_error("retrain_ai", exc)
-        failures.append("retrain")
+    _run_phase("ebay_liquidity", _ebay)
+
+    def _retrain():
+        nonlocal quotes_written
+        metrics = retrain_ai()
+        quotes_written = int((metrics or {}).get("quotes") or 0)
+        return metrics
+
+    _run_phase("retrain", _retrain)
 
     try:
         from auth import purge_expired_auth_sessions
@@ -438,6 +457,46 @@ def run_nightly() -> int:
         _report_error("print_summary", exc)
 
     elapsed = (datetime.now() - started).total_seconds()
+    slo = evaluate_nightly_slo(
+        elapsed_s=elapsed,
+        max_seconds=slo_max,
+        quotes_written=quotes_written,
+        failures=failures,
+    )
+    LOG.info(
+        "Nightly SLO: ok=%s elapsed=%.1fs max=%ss quotes_written=%s reasons=%s phases=%s",
+        slo["slo_ok"],
+        slo["elapsed_s"],
+        slo["max_seconds"],
+        slo["quotes_written"],
+        slo["slo_reasons"],
+        phase_times,
+    )
+    try:
+        from services.spot_qa import load_spot_qa_snapshot, save_spot_qa_snapshot
+
+        snap = load_spot_qa_snapshot() or {}
+        snap.update(
+            {
+                "sure_rows": snap.get("sure_rows"),
+                "quotes_total": max(int(snap.get("quotes_total") or 0), quotes_written),
+                "nightly_slo_ok": bool(slo["slo_ok"]),
+                "nightly_elapsed_s": float(slo["elapsed_s"]),
+                "nightly_slo_max_s": int(slo["max_seconds"]),
+                "quotes_written": int(slo["quotes_written"]),
+                "nightly_slo_reasons": list(slo["slo_reasons"]),
+                "nightly_phase_times": dict(phase_times),
+            }
+        )
+        save_spot_qa_snapshot(snap)
+    except Exception as qa_exc:
+        LOG.warning("Nightly SLO snapshot update failed: %s", qa_exc)
+
+    if not slo["slo_ok"]:
+        for reason in slo["slo_reasons"]:
+            if reason not in failures:
+                failures.append(reason)
+
     if failures:
         print(
             f"Nightly update FAILED after {elapsed:.1f}s — failed phases: {', '.join(failures)}",
@@ -450,7 +509,7 @@ def run_nightly() -> int:
         LOG.error("Nightly gotov s greškama (%s) za %.1f s", failures, elapsed)
         return 1
 
-    LOG.info("=== Nightly update gotov za %.1f s ===", elapsed)
+    LOG.info("=== Nightly update gotov za %.1f s (SLO ok) ===", elapsed)
     return 0
 
 

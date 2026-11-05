@@ -526,6 +526,9 @@ export type DataHealthResponse = {
   unmatched_sets_sample?: Array<{ set_code?: string; set_name?: string }>;
   spot_qa_captured_at?: string | null;
   board_source?: string;
+  nightly_slo_ok?: boolean | null;
+  nightly_elapsed_s?: number | null;
+  quotes_written?: number | null;
 };
 
 export type BinderSetSummary = {

@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import math
 import sqlite3
-from functools import lru_cache
+import time
 from pathlib import Path
 from typing import Any, Literal
 
@@ -19,6 +19,9 @@ Source = Literal["supabase", "demo", "empty"]
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SEED_DB = PROJECT_ROOT / "data" / "seed_tcg_market.db"
+
+# (monotonic_ts, board, source) — TTL cache so cold Radar refreshes without restart.
+_BOARD_CACHE: tuple[float, pd.DataFrame, Source] | None = None
 
 
 def _image_for(card_id: str, existing: str | None = None) -> str | None:
@@ -142,9 +145,32 @@ def _load_demo_frame() -> pd.DataFrame | None:
     return _frame_from_quotes(pd.DataFrame(rows))
 
 
-@lru_cache(maxsize=1)
 def load_board() -> tuple[pd.DataFrame, Source]:
-    """Return (board, source). Prefers live market_quotes; falls back to seed demo."""
+    """Return (board, source). Prefers live market_quotes; falls back to seed demo.
+
+    Cached for BOARD_CACHE_TTL_SECONDS so Radar stays warm, then refreshes
+    from Supabase without requiring a process restart after nightly.
+    """
+    global _BOARD_CACHE
+    try:
+        from config import board_cache_ttl_seconds
+
+        ttl = float(board_cache_ttl_seconds())
+    except Exception:
+        ttl = 600.0
+
+    now = time.monotonic()
+    if _BOARD_CACHE is not None and ttl > 0:
+        cached_at, board, source = _BOARD_CACHE
+        if now - cached_at < ttl:
+            return board, source
+
+    board, source = _load_board_uncached()
+    _BOARD_CACHE = (now, board, source)
+    return board, source
+
+
+def _load_board_uncached() -> tuple[pd.DataFrame, Source]:
     try:
         from services.quotes_store import load_market_quotes
 
@@ -161,7 +187,8 @@ def load_board() -> tuple[pd.DataFrame, Source]:
 
 
 def clear_board_cache() -> None:
-    load_board.cache_clear()
+    global _BOARD_CACHE
+    _BOARD_CACHE = None
 
 
 def price_bounds(series: pd.Series, *, fallback_hi: float = 100.0) -> tuple[float, float]:

@@ -401,6 +401,10 @@ NIGHTLY_CATALOG_SET_BUDGET = 50
 NIGHTLY_CARD_LIMIT_DEFAULT = 400
 NIGHTLY_TASK_NAME = "TCGMarketNightlyUpdate"
 NIGHTLY_SCHEDULE_TIME = "03:00"
+# Soft SLO vs GitHub hard timeout (180m). Fail the job if wall clock exceeds this.
+NIGHTLY_SLO_MAX_SECONDS = 150 * 60
+# Soft Ink board cache TTL (seconds) — cold Radar reload without process restart.
+BOARD_CACHE_TTL_SECONDS = 600
 
 
 def pokemon_tcg_api_key() -> str:
@@ -440,3 +444,28 @@ def nightly_catalog_set_budget() -> int:
     if raw.isdigit():
         return max(1, min(int(raw), 500))
     return int(NIGHTLY_CATALOG_SET_BUDGET)
+
+
+def nightly_slo_max_seconds() -> int:
+    raw = (
+        _secret("NIGHTLY_SLO_MAX_SECONDS")
+        or os.getenv("NIGHTLY_SLO_MAX_SECONDS", "")
+        or ""
+    ).strip()
+    if raw.isdigit():
+        return max(600, min(int(raw), 180 * 60))
+    return int(NIGHTLY_SLO_MAX_SECONDS)
+
+
+def board_cache_ttl_seconds() -> float:
+    raw = (
+        _secret("BOARD_CACHE_TTL_SECONDS")
+        or os.getenv("BOARD_CACHE_TTL_SECONDS", "")
+        or ""
+    ).strip()
+    if raw:
+        try:
+            return max(0.0, float(raw))
+        except ValueError:
+            pass
+    return float(BOARD_CACHE_TTL_SECONDS)

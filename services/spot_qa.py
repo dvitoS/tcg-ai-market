@@ -198,4 +198,15 @@ def data_health_spot_fields() -> dict[str, Any]:
         "unmatched_sets_sample": list(snap.get("unmatched_sets_sample") or [])[:12],
         "spot_qa_captured_at": snap.get("captured_at"),
         "board_source": str(live.get("board_source") or snap.get("board_source") or "empty"),
+        "nightly_slo_ok": (
+            bool(snap["nightly_slo_ok"]) if snap.get("nightly_slo_ok") is not None else None
+        ),
+        "nightly_elapsed_s": (
+            float(snap["nightly_elapsed_s"])
+            if snap.get("nightly_elapsed_s") is not None
+            else None
+        ),
+        "quotes_written": (
+            int(snap["quotes_written"]) if snap.get("quotes_written") is not None else None
+        ),
     }

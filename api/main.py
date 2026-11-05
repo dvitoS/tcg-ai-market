@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import os
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -33,10 +34,29 @@ from api.routers import (
 LOG = logging.getLogger("kestrel.api")
 logging.basicConfig(level=logging.INFO)
 
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    """Warm market_quotes into memory so cold Radar is usable after deploy."""
+    try:
+        from api.catalog_service import load_board
+
+        board, source = load_board()
+        LOG.info(
+            "Board warm complete: source=%s rows=%s",
+            source,
+            0 if board is None else len(board),
+        )
+    except Exception as exc:
+        LOG.warning("Board warm skipped: %s", exc)
+    yield
+
+
 app = FastAPI(
     title="Kestrel API",
     version="0.1.0",
     description="HTTP API for Soft Ink (Next.js) — the primary Kestrel UI. Streamlit is legacy.",
+    lifespan=lifespan,
 )
 
 _origins = [
