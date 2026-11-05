@@ -271,15 +271,20 @@ a {
 
 .search-strip {
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: 1fr auto;
   gap: 0.55rem;
   margin-bottom: 0.85rem;
   animation: rise 0.75s ease both;
   animation-delay: 0.1s;
 }
 
+.search-strip:has(> :nth-child(3)) {
+  grid-template-columns: 1fr auto auto;
+}
+
 .search-strip input,
-.filter-row select {
+.filter-row select,
+.filter-row input {
   width: 100%;
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -294,7 +299,8 @@ a {
 }
 
 .search-strip input:focus,
-.filter-row select:focus {
+.filter-row select:focus,
+.filter-row input:focus {
   border-color: rgba(184, 115, 51, 0.55);
   box-shadow: 0 0 0 3px rgba(184, 115, 51, 0.12);
 }

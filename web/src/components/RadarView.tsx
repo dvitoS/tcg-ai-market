@@ -211,19 +211,21 @@ export function RadarView() {
         </p>
       </div>
 
-      <form className="filter-bar scanner-search" onSubmit={onSearch}>
-        <label className="sr-only" htmlFor="radar-q">
-          {t("radar_search_aria")}
-        </label>
+      <form className="search-strip scanner-search" onSubmit={onSearch}>
         <input
           id="radar-q"
+          type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t("radar_search_ph")}
+          aria-label={t("radar_search_aria")}
         />
         <button type="submit" className="btn-primary">
           {t("radar_btn")}
         </button>
+      </form>
+
+      <div className="filter-row">
         <label>
           <span>{t("explore_set")}</span>
           <select value={setName} onChange={(e) => setSetName(e.target.value)}>
@@ -260,6 +262,9 @@ export function RadarView() {
         <label>
           <span>{t("explore_min")}</span>
           <input
+            type="number"
+            min={0}
+            step={1}
             value={minPrice}
             onChange={(e) => setMinPrice(e.target.value)}
             inputMode="decimal"
@@ -269,13 +274,20 @@ export function RadarView() {
         <label>
           <span>{t("explore_max")}</span>
           <input
+            type="number"
+            min={0}
+            step={1}
             value={maxPrice}
             onChange={(e) => setMaxPrice(e.target.value)}
             inputMode="decimal"
             placeholder={t("explore_any")}
           />
         </label>
-      </form>
+        <p className="result-count">
+          {t("radar_kpi_sure")}: {data.sure_scoped}
+          {pending ? ` · ${t("explore_updating")}` : null}
+        </p>
+      </div>
 
       {error ? <p className="form-error">{error}</p> : null}
       {pending ? <p className="explore-lede">{t("explore_updating")}</p> : null}
