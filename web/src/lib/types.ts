@@ -109,6 +109,27 @@ export type CardPriceSourcesResponse = {
   cache?: "hit" | "miss" | null;
 };
 
+export type SealedQuoteItem = {
+  card_id: string;
+  name: string;
+  set_name?: string | null;
+  tcgplayer_id?: string | null;
+  gtin?: string | null;
+  spot_usd?: number | null;
+  image_url?: string | null;
+  source: string;
+  kind: "sealed";
+  ensured?: boolean | null;
+  demo?: boolean | null;
+};
+
+export type SealedQuoteResponse = {
+  items: SealedQuoteItem[];
+  source: "justtcg" | "demo" | "empty";
+  justtcg_configured: boolean;
+  error?: string | null;
+};
+
 export type AuthUser = {
   id: string;
   email?: string | null;

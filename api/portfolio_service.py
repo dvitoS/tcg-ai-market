@@ -248,9 +248,10 @@ def enrich_lots(lots: list[dict[str, Any]]) -> list[dict[str, Any]]:
         quote = quotes.get(card_id) or {}
         qty = int(lot.get("quantity") or 0)
         cost = float(lot.get("purchase_price") or 0.0)
-        condition = normalize_condition(lot.get("condition"))
-        printing = normalize_printing(lot.get("printing"))
-        factor = lot_price_factor(condition=condition, printing=printing)
+        is_sealed = card_id.startswith("sealed:")
+        condition = "NM" if is_sealed else normalize_condition(lot.get("condition"))
+        printing = "Normal" if is_sealed else normalize_printing(lot.get("printing"))
+        factor = 1.0 if is_sealed else lot_price_factor(condition=condition, printing=printing)
         nm_spot = quote.get("price")
         if nm_spot is None:
             nm_spot = lot.get("market_price")
@@ -258,7 +259,12 @@ def enrich_lots(lots: list[dict[str, Any]]) -> list[dict[str, Any]]:
             nm_spot_f = float(nm_spot) if nm_spot is not None else 0.0
         except (TypeError, ValueError):
             nm_spot_f = 0.0
-        spot_f = float(adjust_nm_price(nm_spot_f, condition=condition, printing=printing) or 0.0)
+        if is_sealed:
+            spot_f = nm_spot_f
+        else:
+            spot_f = float(
+                adjust_nm_price(nm_spot_f, condition=condition, printing=printing) or 0.0
+            )
         invested = qty * cost
         market_value = qty * spot_f
         pnl = market_value - invested
@@ -268,18 +274,26 @@ def enrich_lots(lots: list[dict[str, Any]]) -> list[dict[str, Any]]:
             predicted_nm = float(predicted) if predicted is not None else nm_spot_f
         except (TypeError, ValueError):
             predicted_nm = nm_spot_f
-        predicted_f = float(
-            adjust_nm_price(predicted_nm, condition=condition, printing=printing) or 0.0
-        )
+        if is_sealed:
+            predicted_f = predicted_nm
+        else:
+            predicted_f = float(
+                adjust_nm_price(predicted_nm, condition=condition, printing=printing)
+                or 0.0
+            )
         enriched.append(
             {
                 **lot,
                 "condition": condition,
                 "printing": printing,
                 "name": lot.get("name") or quote.get("name"),
-                "rarity": lot.get("rarity") or quote.get("rarity"),
-                "set_name": quote.get("set_name"),
-                "image_url": _image(card_id, lot.get("image_url") or quote.get("image_url")),
+                "rarity": lot.get("rarity") or quote.get("rarity") or ("Sealed" if is_sealed else None),
+                "set_name": lot.get("set_name") or quote.get("set_name"),
+                "image_url": (
+                    lot.get("image_url")
+                    or quote.get("image_url")
+                    or (None if is_sealed else _image(card_id, None))
+                ),
                 "nm_market_price": nm_spot_f,
                 "price_factor": factor,
                 "market_price": spot_f,
@@ -288,8 +302,8 @@ def enrich_lots(lots: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "market_value": market_value,
                 "pnl": pnl,
                 "pnl_pct": pnl_pct,
-                "signal": quote.get("signal"),
-                "expected_change_pct": quote.get("expected_change_pct"),
+                "signal": None if is_sealed else quote.get("signal"),
+                "expected_change_pct": None if is_sealed else quote.get("expected_change_pct"),
                 "predicted_price": predicted_f,
                 "outlook_value": qty * predicted_f,
                 "lot_action": "HOLD",

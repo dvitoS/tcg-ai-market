@@ -620,6 +620,38 @@ class EbayCompsResponse(BaseModel):
     active_fallback: list[EbayListing] = Field(default_factory=list)
 
 
+class SealedQuoteItem(BaseModel):
+    card_id: str
+    name: str
+    set_name: str | None = None
+    tcgplayer_id: str | None = None
+    gtin: str | None = None
+    spot_usd: float | None = None
+    image_url: str | None = None
+    source: str = "empty"
+    kind: Literal["sealed"] = "sealed"
+    ensured: bool | None = None
+    demo: bool | None = None
+
+
+class SealedQuoteResponse(BaseModel):
+    items: list[SealedQuoteItem] = Field(default_factory=list)
+    source: Literal["justtcg", "demo", "empty"] = "empty"
+    justtcg_configured: bool = False
+    error: str | None = None
+
+
+class SealedEnsureRequest(BaseModel):
+    card_id: str | None = None
+    name: str
+    set_name: str | None = None
+    tcgplayer_id: str | None = None
+    gtin: str | None = None
+    spot_usd: float | None = None
+    image_url: str | None = None
+    source: str = "justtcg"
+
+
 class BinderSetSummary(BaseModel):
     set_name: str
     set_id: str | None = None

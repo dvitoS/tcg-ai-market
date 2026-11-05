@@ -29,10 +29,10 @@ Last updated: 2026-11-05. Living doc — ship order can move; the wedge should n
 
 These close conversion loops and plug the biggest holes vs Collectr / PriceCharting without diluting the AI wedge.
 
-### 1. Shareable Trade & Radar links — Trade shipped
+### 1. Shareable Trade & Radar links — shipped
 **Why:** Viral loop. Collectr/TCGplayer share collections; nobody shares a *fairness verdict* for a proposed trade.
-**Ship:** ~~Public read-only `/trade/s/{id}`~~ (signed payload, live re-score, Kestrel Pro CTA). Radar `?share=…` still open.
-**Pro gate:** Create share = Kestrel Pro (same as score); view = public.
+**Ship:** ~~Public read-only `/trade/s/{id}`~~ (signed payload, live re-score, Kestrel Pro CTA). ~~Radar `?share=` filter deeplink~~ (client token; Pro copy CTA).
+**Pro gate:** Create share = Kestrel Pro (same as score); Trade view = public; Radar still Pro-gated on open.
 
 ### 2. Portfolio equity curve + AI overlay — shipped
 **Why:** Collectr’s stock-chart is the retention hook we still lack.
@@ -54,7 +54,7 @@ These close conversion loops and plug the biggest holes vs Collectr / PriceChart
 | 7 | **Grading EV v2** — shipped | Live PSA 9 + sales depth, service fee presets, break-even sensitivity chart |
 | 8 | **Trade report PDF / image** | One-tap share for Discord groups / local shops |
 | 9 | **Set completion / binder checklist** — shipped | Soft Ink `/binder` + `/api/binder`: % complete, missing list, buy-cost to finish |
-| 10 | **Sealed product quotes** | ETBs / boxes — Collectr’s other half of portfolio value (PR open) |
+| 10 | **Sealed product quotes** — shipped | Portfolio add-by-quote (JustTCG / demo seed); synthetic `sealed:{id}` catalog rows |
 
 ---
 

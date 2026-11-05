@@ -14,6 +14,8 @@ import type {
   RadarPreviewResponse,
   RadarResponse,
   RadarStatus,
+  SealedQuoteItem,
+  SealedQuoteResponse,
   TrustResponse,
   TradeLineIn,
   TradeResponse,
@@ -378,6 +380,50 @@ export async function fetchPortfolioPerformance(
   );
   if (!res.ok) {
     throw new Error(`Portfolio performance failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function fetchSealedQuote(input: {
+  q?: string;
+  tcgplayer_id?: string;
+  gtin?: string;
+  limit?: number;
+}): Promise<SealedQuoteResponse> {
+  const params = new URLSearchParams();
+  if (input.q) params.set("q", input.q);
+  if (input.tcgplayer_id) params.set("tcgplayer_id", input.tcgplayer_id);
+  if (input.gtin) params.set("gtin", input.gtin);
+  if (input.limit != null) params.set("limit", String(input.limit));
+  const res = await fetch(apiUrl(`/api/sealed/quote?${params.toString()}`), {
+    headers: {
+      Accept: "application/json",
+      ...authHeaders(),
+    },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    throw new Error(detail || `Sealed quote failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function ensureSealedCard(
+  body: SealedQuoteItem,
+): Promise<SealedQuoteItem> {
+  const res = await fetch(apiUrl("/api/sealed/ensure"), {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    throw new Error(detail || `Sealed ensure failed (${res.status})`);
   }
   return res.json();
 }
