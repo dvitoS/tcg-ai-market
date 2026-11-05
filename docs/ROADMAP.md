@@ -15,7 +15,7 @@ Last updated: 2026-11-05. Living doc — ship order can move; the wedge should n
 | Card detail | Multi-source chart, eBay comps, 7d AI outlook, Grading EV, Trade deep-links |
 | Portfolio + watchlist | Lots, alerts (banner + email + Discord), filters |
 | Scanner | Opportunity scan over catalog |
-| **Deal Radar** `/radar` | Conformal UNDER/OVER mispricing desk (Soft Pro) |
+| **Kestrel Radar** `/radar` | Conformal UNDER/OVER mispricing desk (Soft Pro gate) |
 | **Trade Analyzer** `/trade` | Two-sided fair / you-ahead / them-ahead |
 | Dealer desk | CSV import/export, pro tools |
 | Soft Pro | Creem billing, entitlements, `/pro` teaser radar |
