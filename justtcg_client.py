@@ -449,24 +449,147 @@ def list_pokemon_sets() -> list[dict[str, Any]]:
     return list(payload.get("data") or [])
 
 
-def resolve_set_id(set_name: str, *, cache: dict[str, str] | None = None) -> str | None:
-    """Mapira naše ime seta (npr. '151') na JustTCG set id."""
-    wanted = (set_name or "").strip().lower()
-    if not wanted:
+def _normalize_set_token(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "", (value or "").strip().lower())
+
+
+def set_code_variants(set_code: str | None) -> set[str]:
+    """pokemontcg codes often omit zero-padding (swsh7 vs JustTCG swsh07)."""
+    raw = (set_code or "").strip().lower()
+    if not raw:
+        return set()
+    out = {raw, _normalize_set_token(raw)}
+    match = re.match(r"^([a-z]+)(\d+)([a-z0-9]*)$", raw)
+    if match:
+        prefix, digits, suffix = match.groups()
+        out.add(f"{prefix}{digits.zfill(2)}{suffix}")
+        out.add(f"{prefix}{str(int(digits))}{suffix}")
+        out.add(_normalize_set_token(f"{prefix}{digits.zfill(2)}{suffix}"))
+    return {v for v in out if v}
+
+
+def _row_set_id(row: dict[str, Any]) -> str:
+    return str(row.get("id") or "").strip()
+
+
+def _row_set_name(row: dict[str, Any]) -> str:
+    return str(row.get("name") or "").strip()
+
+
+def score_justtcg_set_row(
+    row: dict[str, Any],
+    *,
+    wanted_name: str,
+    set_code: str | None = None,
+) -> int | None:
+    """Confidence score for a JustTCG /sets row, or None if it must not be used.
+
+    Never treat "first row in the list" as a match — that caused mass
+    resolves to alternate-art-promos-pokemon.
+    """
+    sid = _row_set_id(row)
+    name = _row_set_name(row)
+    if not sid:
         return None
-    if cache is not None and wanted in cache:
-        return cache[wanted]
+    wanted = (wanted_name or "").strip().lower()
+    name_l = name.lower()
+    sid_l = sid.lower()
 
-    payload = _get("/sets", {"game": "pokemon", "q": set_name})
-    rows = list(payload.get("data") or [])
+    if wanted and name_l == wanted:
+        return 100
+    if wanted and sid_l == wanted:
+        return 100
+    if wanted and _normalize_set_token(name) == _normalize_set_token(wanted):
+        return 95
+
+    code_hits = set_code_variants(set_code)
+    if code_hits:
+        tokens = {t for t in re.split(r"[^a-z0-9]+", sid_l) if t}
+        tokens |= {_normalize_set_token(sid_l)}
+        if code_hits & tokens:
+            return 80
+        for code in code_hits:
+            if sid_l.startswith(f"{code}-") or f"-{code}-" in f"-{sid_l}-":
+                return 75
+
+    if wanted and wanted in name_l and len(wanted) >= 4:
+        return 40
+    return None
+
+
+def pick_justtcg_set_id(
+    rows: list[dict[str, Any]],
+    *,
+    set_name: str,
+    set_code: str | None = None,
+) -> str | None:
+    """Pick best JustTCG set id from candidate rows; None if no confident match."""
+    best_id: str | None = None
+    best_score = -1
+    for row in rows:
+        score = score_justtcg_set_row(
+            row, wanted_name=set_name, set_code=set_code
+        )
+        if score is None:
+            continue
+        if score > best_score:
+            best_score = score
+            best_id = _row_set_id(row)
+    # Require at least a code-token or exact-ish name match.
+    if best_score < 75:
+        return None
+    return best_id or None
+
+
+def resolve_set_id(
+    set_name: str,
+    *,
+    set_code: str | None = None,
+    cache: dict[str, str] | None = None,
+) -> str | None:
+    """Map our set name/code (e.g. '151' / 'sv3pt5') to a JustTCG set id.
+
+    Returns None when no confident match exists — never falls back to rows[0].
+    """
+    wanted = (set_name or "").strip()
+    code = (set_code or "").strip() or None
+    if not wanted and not code:
+        return None
+    cache_key = f"{wanted.lower()}|{code or ''}".lower()
+    if cache is not None and cache_key in cache:
+        hit = cache[cache_key]
+        return hit or None
+
+    queries: list[str] = []
+    for q in (wanted, code):
+        if q and q not in queries:
+            queries.append(q)
+
+    rows: list[dict[str, Any]] = []
+    seen_ids: set[str] = set()
+    for q in queries:
+        try:
+            payload = _get("/sets", {"game": "pokemon", "q": q})
+        except Exception as exc:
+            LOG.warning("JustTCG set query %r failed: %s", q, exc)
+            continue
+        for row in list(payload.get("data") or []):
+            sid = _row_set_id(row)
+            if not sid or sid in seen_ids:
+                continue
+            seen_ids.add(sid)
+            rows.append(row)
+
     if not rows:
-        rows = list_pokemon_sets()
+        try:
+            rows = list_pokemon_sets()
+        except Exception as exc:
+            LOG.warning("JustTCG list_pokemon_sets failed: %s", exc)
+            rows = []
 
-    exact = next((r for r in rows if str(r.get("name") or "").strip().lower() == wanted), None)
-    chosen = exact or (rows[0] if rows else None)
-    set_id = str(chosen["id"]) if chosen and chosen.get("id") else None
-    if cache is not None and set_id:
-        cache[wanted] = set_id
+    set_id = pick_justtcg_set_id(rows, set_name=wanted or (code or ""), set_code=code)
+    if cache is not None:
+        cache[cache_key] = set_id or ""
     return set_id
 
 

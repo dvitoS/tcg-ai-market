@@ -6,7 +6,7 @@ Free tier: paginacija po curated setovima (~50 req/noć, 20/batch, 10/min).
 from __future__ import annotations
 
 import sys
-from collections import defaultdict
+from collections import Counter, defaultdict
 
 from config import JUSTTCG_BATCH_SIZE, catalog_sets
 from database import (
@@ -49,17 +49,29 @@ def _match_card(by_set: dict[str, list], set_code: str, just_number: str):
     return None
 
 
+def _display_set_name(set_code: str, cards: list) -> str:
+    """Prefer real card.set_name majority over bare set_code / curated pin."""
+    counts: Counter[str] = Counter()
+    for _n, card in cards:
+        name = str(getattr(card, "set_name", None) or "").strip()
+        if name and name.lower() != set_code.lower():
+            counts[name] += 1
+    if counts:
+        return counts.most_common(1)[0][0]
+    name_by_id = {sid: name for sid, name in catalog_sets()}
+    return name_by_id.get(set_code, set_code)
+
+
 def _sets_prioritized_by_coverage(by_set: dict[str, list]) -> list[tuple[str, str]]:
     """Prefer sets with more cards missing price_history (fill gaps first).
 
     Includes every set present in the DB (full catalog), not only the curated pin list.
     """
     have_history = distinct_history_card_ids()
-    name_by_id = {sid: name for sid, name in catalog_sets()}
     scored: list[tuple[int, str, str]] = []
     for set_code, cards in by_set.items():
         missing = sum(1 for _n, card in cards if str(card.id) not in have_history)
-        scored.append((missing, set_code, name_by_id.get(set_code, set_code)))
+        scored.append((missing, set_code, _display_set_name(set_code, cards)))
     scored.sort(key=lambda item: (-item[0], item[1]))
     return [(sid, name) for _m, sid, name in scored]
 
@@ -92,7 +104,9 @@ def sync_justtcg_price_history(*, limit: int | None = None) -> dict[str, int]:
             if set_code not in by_set:
                 continue
             try:
-                jset = resolve_set_id(set_name, cache=set_cache)
+                jset = resolve_set_id(
+                    set_name, set_code=set_code, cache=set_cache
+                )
             except JustTCGRateLimitError:
                 print("JustTCG rate limit pri resolve setova.", file=sys.stderr)
                 total = table_count("price_history")
