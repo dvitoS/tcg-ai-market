@@ -387,10 +387,55 @@ def catalog_price_floor() -> float | None:
 PAGE_SIZE = 250
 POKEMON_TCG_MAX_PAGE_SIZE = 250
 RATE_LIMIT_CARDS_PER_MINUTE = 100
+# Unkeyed pokemontcg.io is harsh; with a free developer key (20k/day) we can pace fast.
 RATE_LIMIT_SLEEP_SECONDS = 65
+RATE_LIMIT_SLEEP_SECONDS_WITH_KEY = 1.5
 RATE_LIMIT_RETRY_SLEEP_SECONDS = 90
 REQUEST_TIMEOUT_SECONDS = 45
 MAX_RETRIES = 3
 CATALOG_HTTP_MAX_ATTEMPTS = 10
+# Gap-fill catalog: max sets fetched per nightly when many are still missing.
+NIGHTLY_CATALOG_SET_BUDGET = 40
+# Schedule JustTCG drip — fill missing history over nights; always leave room for retrain.
+NIGHTLY_CARD_LIMIT_DEFAULT = 400
 NIGHTLY_TASK_NAME = "TCGMarketNightlyUpdate"
 NIGHTLY_SCHEDULE_TIME = "03:00"
+
+
+def pokemon_tcg_api_key() -> str:
+    """Optional pokemontcg.io developer key (header X-Api-Key)."""
+    return (
+        _secret("POKEMONTCG_API_KEY")
+        or os.getenv("POKEMONTCG_API_KEY", "")
+        or _secret("POKEMON_TCG_API_KEY")
+        or os.getenv("POKEMON_TCG_API_KEY", "")
+        or ""
+    ).strip()
+
+
+def rate_limit_sleep_seconds() -> float:
+    """Seconds to wait between successful pokemontcg.io pages/sets."""
+    raw = (
+        _secret("POKEMONTCG_RATE_SLEEP")
+        or os.getenv("POKEMONTCG_RATE_SLEEP", "")
+        or ""
+    ).strip()
+    if raw:
+        try:
+            return max(0.0, float(raw))
+        except ValueError:
+            pass
+    if pokemon_tcg_api_key():
+        return float(RATE_LIMIT_SLEEP_SECONDS_WITH_KEY)
+    return float(RATE_LIMIT_SLEEP_SECONDS)
+
+
+def nightly_catalog_set_budget() -> int:
+    raw = (
+        _secret("NIGHTLY_CATALOG_SET_BUDGET")
+        or os.getenv("NIGHTLY_CATALOG_SET_BUDGET", "")
+        or ""
+    ).strip()
+    if raw.isdigit():
+        return max(1, min(int(raw), 500))
+    return int(NIGHTLY_CATALOG_SET_BUDGET)

@@ -27,9 +27,11 @@ from config import (
     POKEMON_TCG_SETS_URL,
     PRICE_HISTORY_DAYS,
     RATE_LIMIT_RETRY_SLEEP_SECONDS,
-    RATE_LIMIT_SLEEP_SECONDS,
     REQUEST_TIMEOUT_SECONDS,
     TCG_API_BASE_URL,
+    nightly_catalog_set_budget,
+    pokemon_tcg_api_key,
+    rate_limit_sleep_seconds,
 )
 
 _last_tcg_request_at = 0.0
@@ -88,14 +90,25 @@ def _append_automation_log(message: str, level: str = "WARNING") -> None:
 
 
 def _pace_after_page(cards_fetched: int, *, context: str) -> None:
-    """Nakon uspješnog dohvata do 100 karata čekaj 65 s (1 zahtjev / min)."""
+    """Pace after a successful page — fast with API key, conservative without."""
     if cards_fetched <= 0:
+        return
+    wait = rate_limit_sleep_seconds()
+    if wait <= 0:
         return
     print(
         f"  [rate-limit] {context}: povučeno {cards_fetched} karata/stavki. "
-        f"Čekam {RATE_LIMIT_SLEEP_SECONDS}s prije sljedećeg zahtjeva..."
+        f"Čekam {wait:g}s prije sljedećeg zahtjeva..."
     )
-    sleep(RATE_LIMIT_SLEEP_SECONDS)
+    sleep(wait)
+
+
+def _pokemon_headers() -> dict[str, str]:
+    headers = {"Accept": "application/json"}
+    key = pokemon_tcg_api_key()
+    if key:
+        headers["X-Api-Key"] = key
+    return headers
 
 
 def _pokemon_get(
@@ -105,7 +118,7 @@ def _pokemon_get(
     progress: str | None = None,
 ) -> dict[str, Any]:
     """GET na pokemontcg.io. 429 → 90 s; 5xx → eksponencijalni backoff (API je često nestabilan)."""
-    headers = {"Accept": "application/json"}
+    headers = _pokemon_headers()
     last_error: Exception | None = None
     response = None
     max_attempts = max(MAX_RETRIES, CATALOG_HTTP_MAX_ATTEMPTS)
@@ -254,6 +267,60 @@ def resolve_catalog_targets() -> list[tuple[str, str]]:
     return [(sid, name) for sid, name in catalog_sets()]
 
 
+def select_gapfill_catalog_targets(
+    *,
+    budget: int | None = None,
+    db_counts: dict[str, int] | None = None,
+    set_rows: list[dict[str, Any]] | None = None,
+) -> tuple[list[tuple[str, str]], dict[str, int]]:
+    """Pick incomplete/missing sets vs DB so nightly can finish without a full re-pull.
+
+    Returns (targets, stats) where stats has keys:
+      api_sets, complete, missing, incomplete, selected.
+    """
+    from database import card_counts_by_set_id
+
+    rows = set_rows if set_rows is not None else fetch_all_sets()
+    counts = db_counts if db_counts is not None else card_counts_by_set_id()
+    limit = int(budget) if budget is not None else nightly_catalog_set_budget()
+    limit = max(1, limit)
+
+    missing: list[tuple[str, str, int, int]] = []
+    incomplete: list[tuple[str, str, int, int]] = []
+    complete = 0
+    for item in rows:
+        sid = str(item.get("id") or "").strip()
+        if not sid:
+            continue
+        name = str(item.get("name") or sid)
+        try:
+            expected = int(item.get("total") or 0)
+        except (TypeError, ValueError):
+            expected = 0
+        have = int(counts.get(sid) or 0)
+        if expected > 0 and have >= expected:
+            complete += 1
+            continue
+        if have <= 0:
+            missing.append((sid, name, have, expected))
+        else:
+            incomplete.append((sid, name, have, expected))
+
+    # Prefer empty sets, then farthest from complete, then newest (API order is -releaseDate).
+    incomplete.sort(key=lambda row: (row[2] / row[3] if row[3] else 0.0, row[0]))
+    ordered = missing + incomplete
+    selected = [(sid, name) for sid, name, _h, _e in ordered[:limit]]
+    stats = {
+        "api_sets": len(rows),
+        "complete": complete,
+        "missing": len(missing),
+        "incomplete": len(incomplete),
+        "selected": len(selected),
+        "budget": limit,
+    }
+    return selected, stats
+
+
 def fetch_sets_for_series(series_names: list[str] | tuple[str, ...] | None = None) -> list[dict[str, Any]]:
     """Dohvaća setove za jednu ili više era (npr. Scarlet & Violet, Sword & Shield)."""
     names = list(series_names or CATALOG_SERIES)
@@ -338,7 +405,7 @@ def fetch_cards_for_set(
                 f"  [fallback] set '{label}' page {page} bez orderBy "
                 f"nakon greške: {primary_exc}"
             )
-            sleep(RATE_LIMIT_SLEEP_SECONDS)
+            sleep(rate_limit_sleep_seconds())
             payload = _pokemon_get(
                 POKEMON_TCG_API_URL,
                 {
@@ -423,9 +490,11 @@ def fetch_cards(
         print("Nema setova za dohvat.")
         return []
 
+    pace = rate_limit_sleep_seconds()
     print(
         f"Dohvaćam karte iz {len(targets)} setova "
-        f"(paginacija, pageSize={page_size}, pauza {RATE_LIMIT_SLEEP_SECONDS}s)..."
+        f"(paginacija, pageSize={page_size}, pauza {pace:g}s"
+        f"{', API key' if pokemon_tcg_api_key() else ', bez API key'})..."
     )
     all_cards: list[dict[str, Any]] = []
     seen: set[str] = set()
@@ -452,17 +521,18 @@ def fetch_cards(
                 level="WARNING",
             )
             set_cards = []
-        if index < len(targets):
+        if index < len(targets) and pace > 0:
             print(
                 f"  [napredak] set {index}/{len(targets)} gotov. "
-                f"Pauza {RATE_LIMIT_SLEEP_SECONDS}s prije sljedećeg seta..."
+                f"Pauza {pace:g}s prije sljedećeg seta..."
             )
-            sleep(RATE_LIMIT_SLEEP_SECONDS)
+            sleep(pace)
 
     # Jedan ponovni prolaz za setove koji su pali (API 500 često nestane).
     if failed:
         print(f"Ponavljam {len(failed)} neuspjelih setova...")
-        sleep(RATE_LIMIT_SLEEP_SECONDS)
+        if pace > 0:
+            sleep(pace)
         still_failed: list[tuple[str, str, str]] = []
         for sid, label, _prev in failed:
             try:
@@ -476,7 +546,8 @@ def fetch_cards(
                     f"Retry set '{label}' ({sid}) i dalje neuspješan. {msg}",
                     level="WARNING",
                 )
-            sleep(RATE_LIMIT_SLEEP_SECONDS)
+            if pace > 0:
+                sleep(pace)
         failed = still_failed
 
     print(f"Ukupno dohvaćeno {len(all_cards)} jedinstvenih karata.")

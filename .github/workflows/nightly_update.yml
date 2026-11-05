@@ -1,6 +1,7 @@
-# Nightly katalog + JustTCG (NM) / PokéWallet povijest + XGBoost retrain (UTC).
+# Nightly katalog (gap-fill) + JustTCG NM history drip + XGBoost retrain (UTC).
 # Secrets (Settings → Secrets and variables → Actions):
 #   SUPABASE_URL, SUPABASE_KEY, JUSTTCG_API_KEY (prefer), TCG_API_KEY (fallback)
+#   POKEMONTCG_API_KEY — strongly recommended for all-sets pace (free at dev.pokemontcg.io)
 name: Nightly TCG Database & AI Update
 
 on:
@@ -9,19 +10,28 @@ on:
     - cron: "0 3 * * *"
   workflow_dispatch:
     inputs:
-      refresh_catalog:
-        description: "Refresh full catalog (all pokemontcg.io sets, no $ floor; pin via CATALOG_SET_IDS)"
-        type: boolean
-        default: true
+      catalog_mode:
+        description: "Catalog mode: gapfill (missing sets only), full (all sets), skip"
+        type: choice
+        options:
+          - gapfill
+          - full
+          - skip
+        default: gapfill
       card_limit:
-        description: "Live price sync limit (all, or e.g. 50). Limited runs prioritize cards missing history."
+        description: "JustTCG sync card limit (all, or e.g. 400). Missing history first."
         type: string
-        default: "all"
+        default: "400"
+      catalog_set_budget:
+        description: "Max sets to fetch in gapfill mode (ignored for full)"
+        type: string
+        default: "40"
 
 jobs:
   nightly-update:
     runs-on: ubuntu-24.04
-    timeout-minutes: 360
+    # Gap-fill + JustTCG drip should finish well under 2h; keep headroom for retries.
+    timeout-minutes: 180
 
     steps:
       - name: Checkout repository
@@ -58,16 +68,18 @@ jobs:
         run: |
           if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_KEY" ]; then
             echo "::error::Missing SUPABASE_URL or SUPABASE_KEY in repo Actions secrets."
-            echo "Repo → Settings → Secrets and variables → Actions → New repository secret"
             exit 1
           fi
-          echo "Supabase secrets are present."
+          echo "Supabase secrets present."
           if [ -z "${{ secrets.JUSTTCG_API_KEY }}" ] && [ -z "${{ secrets.TCG_API_KEY }}" ]; then
             echo "::warning::JUSTTCG_API_KEY and TCG_API_KEY empty — synthetic history fallback."
           elif [ -n "${{ secrets.JUSTTCG_API_KEY }}" ]; then
             echo "JUSTTCG_API_KEY is present (preferred NM sync)."
+          fi
+          if [ -z "${{ secrets.POKEMONTCG_API_KEY }}" ]; then
+            echo "::warning::POKEMONTCG_API_KEY missing — catalog gap-fill will be slow (65s pace)."
           else
-            echo "TCG_API_KEY is present (PokéWallet fallback)."
+            echo "POKEMONTCG_API_KEY is present (fast catalog pace)."
           fi
 
       - name: Diagnose Supabase REST
@@ -76,27 +88,16 @@ jobs:
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: |
           python - <<'PY'
+          import os
           from urllib.error import HTTPError, URLError
           from urllib.request import Request, urlopen
 
-          from config import get_supabase_credentials
-
-          url, key = get_supabase_credentials()
-          print("normalized_url:", url)
-          print("key_len:", len(key), "key_prefix:", key[:6] if key else "")
-          endpoint = f"{url}/rest/v1/cards?select=id&limit=1"
-          req = Request(
-              endpoint,
-              headers={
-                  "apikey": key,
-                  "Authorization": f"Bearer {key}",
-                  "Accept": "application/json",
-              },
-          )
+          url = os.environ["SUPABASE_URL"].rstrip("/") + "/rest/v1/"
+          key = os.environ["SUPABASE_KEY"]
+          req = Request(url, headers={"apikey": key, "Authorization": f"Bearer {key}"})
           try:
               with urlopen(req, timeout=30) as resp:
-                  body = resp.read()[:300]
-                  print("HTTP", resp.status, body)
+                  print("status", resp.status)
           except HTTPError as exc:
               detail = exc.read()[:500]
               print("HTTPError", exc.code, detail)
@@ -109,10 +110,10 @@ jobs:
       - name: Run nightly_update.py
         env:
           PYTHONUNBUFFERED: "1"
-          # Schedule: always refresh catalog. Manual: honor refresh_catalog checkbox (default on).
-          NIGHTLY_SKIP_CATALOG: ${{ github.event_name == 'workflow_dispatch' && inputs.refresh_catalog == false && '1' || '0' }}
-          # Manual default "all" so Streamlit sees every $5+ card (synthetic history fills gaps).
-          NIGHTLY_CARD_LIMIT: ${{ github.event_name == 'workflow_dispatch' && inputs.card_limit || 'all' }}
+          # Schedule → gapfill + drip. Manual → honor workflow_dispatch inputs.
+          NIGHTLY_CATALOG_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.catalog_mode || 'gapfill' }}
+          NIGHTLY_CARD_LIMIT: ${{ github.event_name == 'workflow_dispatch' && inputs.card_limit || '400' }}
+          NIGHTLY_CATALOG_SET_BUDGET: ${{ github.event_name == 'workflow_dispatch' && inputs.catalog_set_budget || '40' }}
           # Resolve missing cards.tcgplayer_id via TCGplayer public search (drip).
           NIGHTLY_BACKFILL_TCP: "1"
           NIGHTLY_BACKFILL_TCP_LIMIT: "60"
@@ -124,6 +125,7 @@ jobs:
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
           JUSTTCG_API_KEY: ${{ secrets.JUSTTCG_API_KEY }}
           TCG_API_KEY: ${{ secrets.TCG_API_KEY }}
+          POKEMONTCG_API_KEY: ${{ secrets.POKEMONTCG_API_KEY }}
           EBAY_APP_ID: ${{ secrets.EBAY_APP_ID }}
           EBAY_CERT_ID: ${{ secrets.EBAY_CERT_ID }}
           EBAY_OAUTH_TOKEN: ${{ secrets.EBAY_OAUTH_TOKEN }}

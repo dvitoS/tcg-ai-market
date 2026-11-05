@@ -75,17 +75,77 @@ def _report_error(phase: str, exc: BaseException) -> None:
         pass
 
 
+def _catalog_mode() -> str:
+    """gapfill (default) | full | skip — env NIGHTLY_CATALOG_MODE."""
+    raw = os.environ.get("NIGHTLY_CATALOG_MODE", "").strip().lower()
+    if raw in {"full", "all", "refresh"}:
+        return "full"
+    if raw in {"skip", "off", "none"}:
+        return "skip"
+    if raw in {"gapfill", "gap", "incremental", ""}:
+        # Empty → gapfill unless legacy NIGHTLY_SKIP_CATALOG.
+        if _env_flag("NIGHTLY_SKIP_CATALOG"):
+            return "skip"
+        return "gapfill"
+    return "gapfill"
+
+
 def refresh_card_catalog() -> int:
-    from api_client import clean_cards, fetch_cards, resolve_catalog_targets
-    from config import catalog_price_floor
+    from api_client import (
+        clean_cards,
+        fetch_cards,
+        resolve_catalog_targets,
+        select_gapfill_catalog_targets,
+    )
+    from config import catalog_price_floor, pokemon_tcg_api_key, rate_limit_sleep_seconds
     from main import save_cards
 
-    sets = resolve_catalog_targets()
+    mode = _catalog_mode()
+    if mode == "skip":
+        LOG.info("Korak 1/3: PRESKOČEN (NIGHTLY_CATALOG_MODE=skip).")
+        return 0
+
     floor = catalog_price_floor()
+    floor_label = "none" if floor is None else f"${floor:.2f}"
+    key_on = bool(pokemon_tcg_api_key())
+    LOG.info(
+        "Katalog mode=%s · pokemontcg API key=%s · pace=%gs · min %s",
+        mode,
+        "yes" if key_on else "no",
+        rate_limit_sleep_seconds(),
+        floor_label,
+    )
+    if not key_on:
+        LOG.warning(
+            "POKEMONTCG_API_KEY nije postavljen — sporiji rate limit. "
+            "Besplatni developer key: https://dev.pokemontcg.io/"
+        )
+
+    if mode == "gapfill":
+        sets, stats = select_gapfill_catalog_targets()
+        LOG.info(
+            "Gap-fill katalog: api_sets=%s complete=%s missing=%s incomplete=%s "
+            "selected=%s budget=%s",
+            stats.get("api_sets"),
+            stats.get("complete"),
+            stats.get("missing"),
+            stats.get("incomplete"),
+            stats.get("selected"),
+            stats.get("budget"),
+        )
+        if not sets:
+            LOG.info(
+                "Korak 1/3: katalog kompletan (%s/%s setova) — ništa za dohvatiti.",
+                stats.get("complete"),
+                stats.get("api_sets"),
+            )
+            return 0
+    else:
+        sets = resolve_catalog_targets()
+
     labels = ", ".join(f"{name} ({sid})" for sid, name in sets[:12])
     if len(sets) > 12:
         labels = f"{labels}, … (+{len(sets) - 12} more)"
-    floor_label = "none" if floor is None else f"${floor:.2f}"
     LOG.info(
         "Korak 1/3: osvježavam katalog karata [%s setova: %s], min %s...",
         len(sets),
@@ -284,15 +344,12 @@ def run_nightly() -> int:
 
     failures: list[str] = []
 
-    if _env_flag("NIGHTLY_SKIP_CATALOG"):
-        LOG.info("Korak 1/3: PRESKOČEN (NIGHTLY_SKIP_CATALOG=1).")
-    else:
-        try:
-            refresh_card_catalog()
-        except Exception as exc:
-            _report_error("refresh_card_catalog", exc)
-            failures.append("catalog")
-            LOG.warning("Nastavljam s postojećim kartama u bazi.")
+    try:
+        refresh_card_catalog()
+    except Exception as exc:
+        _report_error("refresh_card_catalog", exc)
+        failures.append("catalog")
+        LOG.warning("Nastavljam s postojećim kartama u bazi.")
 
     try:
         refresh_price_history()

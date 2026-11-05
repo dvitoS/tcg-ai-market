@@ -16,6 +16,7 @@ from pokemon_tcg_client import (  # noqa: F401
     fetch_sets_for_series,
     pokemontcg_image_url,
     resolve_catalog_targets,
+    select_gapfill_catalog_targets,
 )
 from pokewallet_client import (  # noqa: F401
     TCGRateLimitError,
