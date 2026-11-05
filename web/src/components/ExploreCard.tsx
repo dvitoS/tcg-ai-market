@@ -15,6 +15,14 @@ function changeClass(value?: number | null): string {
   return "flat";
 }
 
+function signalTone(signal?: string | null): string {
+  const key = (signal || "").toUpperCase();
+  if (key === "BUY") return "is-buy";
+  if (key === "SELL") return "is-sell";
+  if (key === "HOLD") return "is-hold";
+  return "";
+}
+
 export function ExploreCard({
   card,
   showSignal = false,
@@ -25,10 +33,14 @@ export function ExploreCard({
   const { locale } = useLocale();
   const meta = [card.set_name, card.rarity].filter(Boolean).join(" · ");
   const image = card.image_url || "/kestrel-logo.png";
-  const signalClass = (card.signal || "").toLowerCase();
+  const tone = showSignal ? signalTone(card.signal) : "";
+  const delta = changeClass(card.expected_change_pct);
 
   return (
-    <Link href={`/cards/${encodeURIComponent(card.id)}`} className="explore-card">
+    <Link
+      href={`/cards/${encodeURIComponent(card.id)}`}
+      className={`explore-card ${tone}`}
+    >
       <div className="explore-card-art">
         <Image
           src={image}
@@ -38,18 +50,20 @@ export function ExploreCard({
           className="explore-card-img"
           sizes="(max-width: 640px) 45vw, (max-width: 1024px) 22vw, 180px"
         />
-      </div>
-      <div className="explore-card-price">{formatMoney(card.price)}</div>
-      <div className="explore-card-name">{card.name}</div>
-      <div className="explore-card-meta">{meta}</div>
-      <div className={`explore-card-change ${changeClass(card.expected_change_pct)}`}>
-        {formatChange(card.expected_change_pct)}
-      </div>
-      {showSignal && card.signal ? (
-        <div className={`explore-card-signal signal-${signalClass}`}>
-          {signalLabel(locale, card.signal)}
+        <div className="explore-card-readout" aria-hidden={false}>
+          <span className="explore-card-price">{formatMoney(card.price)}</span>
+          <span className={`explore-card-change ${delta}`}>
+            {formatChange(card.expected_change_pct)}
+            {showSignal && card.signal
+              ? ` · ${signalLabel(locale, card.signal)}`
+              : ""}
+          </span>
         </div>
-      ) : null}
+      </div>
+      <div className="explore-card-copy">
+        <div className="explore-card-name">{card.name}</div>
+        {meta ? <div className="explore-card-meta">{meta}</div> : null}
+      </div>
     </Link>
   );
 }

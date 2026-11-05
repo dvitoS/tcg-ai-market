@@ -375,8 +375,8 @@ a {
 
 .explore-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
-  gap: 1rem 0.85rem;
+  grid-template-columns: repeat(auto-fill, minmax(158px, 1fr));
+  gap: 1.25rem 1rem;
 }
 
 .explore-grid.is-pending {
@@ -431,64 +431,100 @@ a {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
-  padding: 0.55rem 0.55rem 0.7rem;
-  border-radius: 12px;
-  border: 1px solid transparent;
+  gap: 0.55rem;
+  padding: 0;
+  border-radius: 0;
+  border: none;
   background: transparent;
-  transition:
-    transform 0.22s ease,
-    border-color 0.22s ease,
-    background 0.22s ease,
-    box-shadow 0.22s ease;
+  transition: transform 0.28s ease;
+  animation: rise 0.55s ease both;
+}
+
+.explore-card:nth-child(2) {
+  animation-delay: 0.04s;
+}
+
+.explore-card:nth-child(3) {
+  animation-delay: 0.08s;
+}
+
+.explore-card:nth-child(4) {
+  animation-delay: 0.12s;
 }
 
 .explore-card:hover {
-  transform: translateY(-4px);
-  border-color: rgba(184, 115, 51, 0.35);
-  background: rgba(26, 26, 26, 0.72);
-  box-shadow: var(--shadow-soft);
+  transform: translateY(-5px);
 }
 
 .explore-card-art {
   position: relative;
   overflow: hidden;
-  border-radius: 10px;
+  border-radius: 12px;
   aspect-ratio: 63 / 88;
   background: var(--panel);
   border: 1px solid var(--border);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+}
+
+.explore-card.is-buy .explore-card-art {
+  box-shadow:
+    inset 3px 0 0 var(--buy),
+    0 12px 28px rgba(0, 0, 0, 0.28);
+}
+
+.explore-card.is-sell .explore-card-art {
+  box-shadow:
+    inset 3px 0 0 var(--sell),
+    0 12px 28px rgba(0, 0, 0, 0.28);
+}
+
+.explore-card.is-hold .explore-card-art {
+  box-shadow:
+    inset 3px 0 0 var(--hold),
+    0 12px 28px rgba(0, 0, 0, 0.28);
 }
 
 .explore-card-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.35s ease;
+  transition: transform 0.45s ease;
 }
 
 .explore-card:hover .explore-card-img {
-  transform: scale(1.035);
+  transform: scale(1.04);
+}
+
+.explore-card-readout {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: grid;
+  gap: 0.1rem;
+  padding: 1.55rem 0.7rem 0.65rem;
+  background: linear-gradient(
+    180deg,
+    rgba(8, 8, 8, 0) 0%,
+    rgba(8, 8, 8, 0.72) 42%,
+    rgba(8, 8, 8, 0.92) 100%
+  );
 }
 
 .explore-card-price {
-  margin-top: 0.45rem;
+  margin: 0;
   font-family: var(--font-display);
   font-size: 1.05rem;
   font-weight: 600;
-  color: var(--text);
+  color: #f4f1ea;
+  font-variant-numeric: tabular-nums;
 }
 
-.explore-card-name {
-  font-size: 0.92rem;
-  font-weight: 600;
-  line-height: 1.25;
-  color: var(--text);
-}
-
-.explore-card-meta,
 .explore-card-change {
   font-size: 0.78rem;
-  color: var(--muted);
+  font-weight: 600;
+  color: rgba(244, 241, 234, 0.72);
+  font-variant-numeric: tabular-nums;
 }
 
 .explore-card-change.up {
@@ -499,10 +535,28 @@ a {
   color: var(--sell);
 }
 
+.explore-card-copy {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0 0.1rem;
+}
+
+.explore-card-name {
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--text);
+}
+
+.explore-card-meta {
+  font-size: 0.76rem;
+  color: var(--muted);
+  line-height: 1.3;
+}
+
 .explore-card-signal {
-  position: absolute;
-  top: 0.85rem;
-  left: 0.85rem;
+  display: inline-flex;
+  align-items: center;
   padding: 0.18rem 0.45rem;
   border-radius: 999px;
   font-size: 0.68rem;
