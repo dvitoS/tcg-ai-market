@@ -72,6 +72,9 @@ export function ProView({
             <Link href="/radar" className="btn-primary">
               {t("pro_open_radar")}
             </Link>
+            <Link href="/trade" className="btn-ghost">
+              {t("pro_open_trade")}
+            </Link>
             <Link href="/dealer" className="btn-ghost">
               {t("pro_open_dealer")}
             </Link>
@@ -94,6 +97,9 @@ export function ProView({
             )}
             <Link href="/radar" className="btn-ghost">
               {t("pro_open_radar")}
+            </Link>
+            <Link href="/trade" className="btn-ghost">
+              {t("pro_open_trade")}
             </Link>
             <Link href="/dealer" className="btn-ghost">
               {t("pro_open_dealer")}

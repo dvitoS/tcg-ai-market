@@ -382,6 +382,65 @@ class RadarResponse(BaseModel):
     source: Literal["supabase", "demo", "empty"] = "empty"
 
 
+class TradeLineIn(BaseModel):
+    card_id: str
+    quantity: int = 1
+
+
+class TradeRequest(BaseModel):
+    you: list[TradeLineIn] = Field(default_factory=list)
+    them: list[TradeLineIn] = Field(default_factory=list)
+    fair_band_pct: float | None = None
+
+
+class TradeLineOut(BaseModel):
+    card_id: str
+    quantity: int = 1
+    matched: bool = False
+    name: str | None = None
+    set_name: str | None = None
+    image_url: str | None = None
+    spot: float | None = None
+    fair_price: float | None = None
+    expected_change_pct: float | None = None
+    pred_lo_pct: float | None = None
+    pred_hi_pct: float | None = None
+    signal: str | None = None
+    conformal_ok: bool = False
+    line_spot: float | None = None
+    line_fair: float | None = None
+
+
+class TradeSide(BaseModel):
+    lines: list[TradeLineOut] = Field(default_factory=list)
+    matched: int = 0
+    unmatched: int = 0
+    spot_total: float = 0.0
+    fair_total: float = 0.0
+    cards: int = 0
+
+
+class TradeStatus(BaseModel):
+    allowed: bool
+    reason: str = ""
+    checkout_url: str | None = None
+    fair_band_pct: float = 3.0
+
+
+class TradeResponse(BaseModel):
+    you: TradeSide
+    them: TradeSide
+    net_spot_usd: float = 0.0
+    net_fair_usd: float = 0.0
+    net_spot_pct: float = 0.0
+    net_fair_pct: float = 0.0
+    spot_verdict: str = "FAIR"
+    ai_verdict: str = "FAIR"
+    verdict: str = "FAIR"
+    fair_band_pct: float = 3.0
+    source: Literal["supabase", "demo", "empty"] = "empty"
+
+
 class DealerRequest(BaseModel):
     csv_text: str
     fee_pct: float | None = None
