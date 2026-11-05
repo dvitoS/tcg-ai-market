@@ -1,11 +1,12 @@
 import { toPng } from "html-to-image";
 
-export async function downloadTradeReportPng(
+/** Soft Ink offscreen card → PNG (same-origin images only). */
+export async function downloadSoftInkPng(
   node: HTMLElement,
   filename: string,
 ): Promise<void> {
   if (typeof window === "undefined") {
-    throw new Error("Trade report export needs a browser");
+    throw new Error("Soft Ink export needs a browser");
   }
   const dataUrl = await toPng(node, {
     cacheBust: true,
@@ -27,6 +28,13 @@ export async function downloadTradeReportPng(
   anchor.href = dataUrl;
   anchor.download = filename;
   anchor.click();
+}
+
+export async function downloadTradeReportPng(
+  node: HTMLElement,
+  filename: string,
+): Promise<void> {
+  return downloadSoftInkPng(node, filename);
 }
 
 export function tradeReportFilename(verdict: string): string {

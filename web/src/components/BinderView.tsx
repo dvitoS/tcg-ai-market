@@ -2,9 +2,17 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useSearchParams } from "next/navigation";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 
 import { useAuth } from "@/components/AuthProvider";
+import { BinderReportExport } from "@/components/BinderReportExport";
 import { useLocale } from "@/components/LocaleProvider";
 import { fetchBinder, fetchBinderSets, formatMoney } from "@/lib/api";
 import type { BinderMissingCard, BinderResponse, BinderSetSummary } from "@/lib/types";
@@ -46,6 +54,8 @@ function SetProgress({ pct }: { pct: number }) {
 export function BinderView() {
   const { t } = useLocale();
   const { user, loading: authLoading } = useAuth();
+  const searchParams = useSearchParams();
+  const setBoot = useRef<string | null | undefined>(undefined);
   const [sets, setSets] = useState<BinderSetSummary[]>([]);
   const [source, setSource] = useState<"supabase" | "demo" | "empty">("empty");
   const [selected, setSelected] = useState("");
@@ -53,6 +63,12 @@ export function BinderView() {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    if (setBoot.current !== undefined) return;
+    const raw = searchParams.get("set");
+    setBoot.current = raw && raw.trim() ? raw.trim() : null;
+  }, [searchParams]);
 
   const loadSets = useCallback(() => {
     startTransition(async () => {
@@ -62,6 +78,11 @@ export function BinderView() {
         setSource(next.source);
         setError(null);
         setSelected((prev) => {
+          const boot = setBoot.current;
+          if (boot && next.sets.some((s) => s.set_name === boot)) {
+            setBoot.current = null;
+            return boot;
+          }
           if (prev && next.sets.some((s) => s.set_name === prev)) return prev;
           return next.sets[0]?.set_name || "";
         });
@@ -129,6 +150,18 @@ export function BinderView() {
   }
 
   const summary = sets.find((s) => s.set_name === selected) || null;
+  const snapshot =
+    detail || summary
+      ? {
+          set_name: detail?.set_name ?? summary?.set_name ?? selected,
+          pct: detail?.pct_complete ?? summary?.pct ?? 0,
+          owned: detail?.owned ?? summary?.owned ?? 0,
+          total: detail?.total ?? summary?.total ?? 0,
+          missing: detail?.missing ?? summary?.missing ?? 0,
+          missing_cost: detail?.missing_cost ?? summary?.missing_cost ?? 0,
+          missing_unpriced: detail?.missing_unpriced ?? 0,
+        }
+      : null;
 
   return (
     <section className="scanner-page binder-page">
@@ -164,41 +197,39 @@ export function BinderView() {
         </label>
       </div>
 
-      {detail || summary ? (
+      {snapshot ? (
         <div className="kpi-row binder-kpis">
           <div className="kpi-chip">
             <span>{t("binder_kpi_complete")}</span>
-            <strong>
-              {(detail?.pct_complete ?? summary?.pct ?? 0).toFixed(1)}%
-            </strong>
-            <SetProgress pct={detail?.pct_complete ?? summary?.pct ?? 0} />
+            <strong>{snapshot.pct.toFixed(1)}%</strong>
+            <SetProgress pct={snapshot.pct} />
           </div>
           <div className="kpi-chip">
             <span>{t("binder_kpi_owned")}</span>
             <strong>
               {t("binder_owned_of", {
-                owned: detail?.owned ?? summary?.owned ?? 0,
-                total: detail?.total ?? summary?.total ?? 0,
+                owned: snapshot.owned,
+                total: snapshot.total,
               })}
             </strong>
           </div>
           <div className="kpi-chip">
             <span>{t("binder_kpi_missing")}</span>
-            <strong>{detail?.missing ?? summary?.missing ?? 0}</strong>
+            <strong>{snapshot.missing}</strong>
           </div>
           <div className="kpi-chip">
             <span>{t("binder_kpi_cost")}</span>
-            <strong>
-              {formatMoney(detail?.missing_cost ?? summary?.missing_cost ?? 0)}
-            </strong>
-            {(detail?.missing_unpriced ?? 0) > 0 ? (
+            <strong>{formatMoney(snapshot.missing_cost)}</strong>
+            {(snapshot.missing_unpriced ?? 0) > 0 ? (
               <span className="lot-meta">
-                {t("binder_unpriced", { n: detail?.missing_unpriced ?? 0 })}
+                {t("binder_unpriced", { n: snapshot.missing_unpriced ?? 0 })}
               </span>
             ) : null}
           </div>
         </div>
       ) : null}
+
+      {snapshot ? <BinderReportExport snapshot={snapshot} /> : null}
 
       <div className="binder-panels">
         <div>
