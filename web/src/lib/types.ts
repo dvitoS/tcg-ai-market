@@ -99,6 +99,13 @@ export type CardPriceSourcesResponse = {
     period_key?: string | null;
     sales_count?: number | null;
   };
+  psa9?: HistoryPoint[];
+  psa9_error?: string | null;
+  psa9_stats?: {
+    has_history_series: boolean;
+    period_key?: string | null;
+    sales_count?: number | null;
+  };
   cache?: "hit" | "miss" | null;
 };
 

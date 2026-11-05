@@ -1,4 +1,4 @@
-"""Multi-source price history for Soft Ink detail (DB + JustTCG NM + PSA 10)."""
+"""Multi-source price history for Soft Ink detail (DB + JustTCG NM + PSA 9/10)."""
 
 from __future__ import annotations
 
@@ -113,7 +113,7 @@ def _cache_put(cache_key: str, payload: dict[str, Any], *, ttl: float) -> None:
 def build_card_price_sources(card_id: str, *, limit: int = 180) -> dict[str, Any]:
     card_id = str(card_id).strip()
     limit = max(1, min(int(limit or 180), 365))
-    cache_key = f"{card_id}|{limit}"
+    cache_key = f"v2|{card_id}|{limit}"
     cached = _cache_get(cache_key)
     if cached is not None:
         cached["cache"] = "hit"
@@ -134,6 +134,9 @@ def build_card_price_sources(card_id: str, *, limit: int = 180) -> dict[str, Any
     psa10: list[dict[str, Any]] = []
     psa10_error: str | None = None
     psa10_stats: dict[str, Any] = {}
+    psa9: list[dict[str, Any]] = []
+    psa9_error: str | None = None
+    psa9_stats: dict[str, Any] = {}
     rate_limited = False
     use_db_nm = _market_history_is_fresh(market)
     nm_outcome: str | None = None
@@ -202,6 +205,35 @@ def build_card_price_sources(card_id: str, *, limit: int = 180) -> dict[str, Any
             psa10_error = str(exc)[:180]
             LOG.info("psa10_history_for_card failed for %s: %s", card_id, exc)
 
+    if has_key and not rate_limited:
+        try:
+            from justtcg_client import psa9_history_for_card
+
+            points9, resolved9, stats9 = psa9_history_for_card(
+                tcgplayer_id=tcp,
+                name=name,
+                number=number or None,
+                set_name=set_name or None,
+            )
+            if resolved9:
+                tcp = str(resolved9)
+            psa9 = _points_from_rows(points9)
+            psa9_stats = dict(stats9 or {})
+        except JustTCGRateLimitError:
+            rate_limited = True
+            psa9_error = "JustTCG rate limited — try again later."
+            LOG.warning("psa9_history_for_card rate-limited for %s", card_id)
+        except Exception as exc:
+            psa9_error = str(exc)[:180]
+            LOG.info("psa9_history_for_card failed for %s: %s", card_id, exc)
+
+    def _grade_stats(raw: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "has_history_series": bool(raw.get("has_history_series")),
+            "period_key": raw.get("period_key"),
+            "sales_count": raw.get("sales_count"),
+        }
+
     payload = {
         "card_id": card_id,
         "name": name,
@@ -215,19 +247,23 @@ def build_card_price_sources(card_id: str, *, limit: int = 180) -> dict[str, Any
         "justtcg_error": justtcg_error,
         "psa10": psa10,
         "psa10_error": psa10_error,
-        "psa10_stats": {
-            "has_history_series": bool(psa10_stats.get("has_history_series")),
-            "period_key": psa10_stats.get("period_key"),
-            "sales_count": psa10_stats.get("sales_count"),
-        },
+        "psa10_stats": _grade_stats(psa10_stats),
+        "psa9": psa9,
+        "psa9_error": psa9_error,
+        "psa9_stats": _grade_stats(psa9_stats),
         "cache": "miss",
     }
 
     # Cache DB-first + successful live payloads. Skip 429 / hard errors.
-    if not rate_limited and justtcg_error is None and psa10_error is None:
+    if (
+        not rate_limited
+        and justtcg_error is None
+        and psa10_error is None
+        and psa9_error is None
+    ):
         ttl = (
             _SOURCES_CACHE_TTL_SECONDS
-            if (justtcg or psa10 or market)
+            if (justtcg or psa10 or psa9 or market)
             else _SOURCES_CACHE_EMPTY_TTL_SECONDS
         )
         _cache_put(cache_key, {k: v for k, v in payload.items() if k != "cache"}, ttl=ttl)

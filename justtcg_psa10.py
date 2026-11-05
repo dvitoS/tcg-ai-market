@@ -1,15 +1,16 @@
-"""JustTCG PSA 10 / v2 graded helpers."""
+"""JustTCG PSA graded helpers (PSA 10 / PSA 9)."""
 
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime, timezone
+from datetime import date
 from typing import Any
 
 LOG = logging.getLogger("tcg.justtcg")
 
 # Constants duplicated lightly to avoid circular import with justtcg_client re-exports.
 JUSTTCG_PSA10_HISTORY_INCLUDE = "periods.30d,periods.90d,periods.1y,price_history.90d"
+JUSTTCG_PSA_HISTORY_INCLUDE = JUSTTCG_PSA10_HISTORY_INCLUDE
 
 
 def _client():
@@ -18,19 +19,28 @@ def _client():
     return jtcg
 
 
-def pick_psa10_variant(variants: list[dict[str, Any]]) -> dict[str, Any] | None:
-    """Prvi PSA 10 graded variant (bez qualifiera ako je moguće)."""
+def _grade_float(value: Any) -> float | None:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def pick_psa_variant(
+    variants: list[dict[str, Any]],
+    *,
+    grade: float = 10.0,
+) -> dict[str, Any] | None:
+    """Prvi PSA graded variant za traženi grade (bez qualifiera ako je moguće)."""
+    target = float(grade)
     graded: list[dict[str, Any]] = []
     for variant in variants or []:
         if str(variant.get("type") or "").lower() != "graded":
             continue
         grading = variant.get("grading") or {}
         company = str(grading.get("company") or "").upper()
-        try:
-            grade = float(grading.get("grade"))
-        except (TypeError, ValueError):
-            continue
-        if company != "PSA" or grade != 10.0:
+        g = _grade_float(grading.get("grade"))
+        if company != "PSA" or g is None or abs(g - target) > 1e-6:
             continue
         graded.append(variant)
     if not graded:
@@ -44,6 +54,14 @@ def pick_psa10_variant(variants: list[dict[str, Any]]) -> dict[str, Any] | None:
 
     graded.sort(key=_rank)
     return graded[0]
+
+
+def pick_psa10_variant(variants: list[dict[str, Any]]) -> dict[str, Any] | None:
+    return pick_psa_variant(variants, grade=10.0)
+
+
+def pick_psa9_variant(variants: list[dict[str, Any]]) -> dict[str, Any] | None:
+    return pick_psa_variant(variants, grade=9.0)
 
 
 def _market_entries(variant: dict[str, Any] | None) -> list[dict[str, Any]]:
@@ -104,7 +122,11 @@ def history_points_from_v2_variant(variant: dict[str, Any] | None) -> list[dict[
     return [{"date": date.today(), "price": round(spot, 4)}]
 
 
-def psa10_stats_from_variant(variant: dict[str, Any] | None) -> dict[str, Any]:
+def psa_stats_from_variant(
+    variant: dict[str, Any] | None,
+    *,
+    canonical: str = "PSA 10",
+) -> dict[str, Any]:
     """Agregati iz markets[].periods (sales_count itd.) + spot."""
     market = _prefer_na_market(_market_entries(variant)) or {}
     periods = market.get("periods") if isinstance(market.get("periods"), dict) else {}
@@ -125,26 +147,35 @@ def psa10_stats_from_variant(variant: dict[str, Any] | None) -> dict[str, Any]:
         "min": stats.get("min"),
         "max": stats.get("max"),
         "change_pct": stats.get("change_pct"),
-        "canonical": ((variant or {}).get("grading") or {}).get("canonical") or "PSA 10",
+        "canonical": ((variant or {}).get("grading") or {}).get("canonical") or canonical,
         "has_history_series": bool(
             (market.get("price_history") or market.get("priceHistory") or [])
         ),
     }
 
 
-def fetch_psa10_card_by_tcgplayer_id(tcgplayer_id: str) -> dict[str, Any] | None:
-    """GET /v2/cards — samo PSA 10 graded variant."""
+def psa10_stats_from_variant(variant: dict[str, Any] | None) -> dict[str, Any]:
+    return psa_stats_from_variant(variant, canonical="PSA 10")
+
+
+def fetch_psa_card_by_tcgplayer_id(
+    tcgplayer_id: str,
+    *,
+    grade: float = 10.0,
+) -> dict[str, Any] | None:
+    """GET /v2/cards — PSA graded variant za grade."""
     tid = str(tcgplayer_id or "").strip()
     if not tid:
         return None
+    grade_s = str(int(grade)) if float(grade).is_integer() else str(grade)
     payload = _client()._get_v2(
         "/cards",
         {
             "tcgplayer_id": tid,
             "graded": "only",
             "grading_company": "PSA",
-            "grade": "10",
-            "include": JUSTTCG_PSA10_HISTORY_INCLUDE,
+            "grade": grade_s,
+            "include": JUSTTCG_PSA_HISTORY_INCLUDE,
             "regions": "NA",
             "limit": 5,
         },
@@ -153,17 +184,23 @@ def fetch_psa10_card_by_tcgplayer_id(tcgplayer_id: str) -> dict[str, Any] | None
     return rows[0] if rows else None
 
 
-def search_psa10_pokemon_card(
+def fetch_psa10_card_by_tcgplayer_id(tcgplayer_id: str) -> dict[str, Any] | None:
+    return fetch_psa_card_by_tcgplayer_id(tcgplayer_id, grade=10.0)
+
+
+def search_psa_pokemon_card(
     *,
     name: str,
     number: str | None = None,
     set_name: str | None = None,
+    grade: float = 10.0,
 ) -> dict[str, Any] | None:
-    """Search /v2/cards za PSA 10."""
+    """Search /v2/cards za PSA grade."""
     query = " ".join(part for part in (name, number) if part).strip()
     if not query:
         return None
     q = f"{query} {set_name}".strip() if set_name else query
+    grade_s = str(int(grade)) if float(grade).is_integer() else str(grade)
     jtcg = _client()
     payload = jtcg._get_v2(
         "/cards",
@@ -172,8 +209,8 @@ def search_psa10_pokemon_card(
             "q": q,
             "graded": "only",
             "grading_company": "PSA",
-            "grade": "10",
-            "include": JUSTTCG_PSA10_HISTORY_INCLUDE,
+            "grade": grade_s,
+            "include": JUSTTCG_PSA_HISTORY_INCLUDE,
             "regions": "NA",
             "limit": 20,
         },
@@ -194,27 +231,41 @@ def search_psa10_pokemon_card(
     return exact or rows[0]
 
 
-def psa10_history_for_card(
+def search_psa10_pokemon_card(
     *,
+    name: str,
+    number: str | None = None,
+    set_name: str | None = None,
+) -> dict[str, Any] | None:
+    return search_psa_pokemon_card(
+        name=name, number=number, set_name=set_name, grade=10.0
+    )
+
+
+def psa_history_for_card(
+    *,
+    grade: float = 10.0,
     tcgplayer_id: str | None = None,
     name: str | None = None,
     number: str | None = None,
     set_name: str | None = None,
 ) -> tuple[list[dict[str, Any]], str | None, dict[str, Any]]:
-    """(points, resolved_tcgplayer_id, stats).
+    """(points, resolved_tcgplayer_id, stats) for a PSA grade.
 
     Napomena: JustTCG v2 graded često ima spot + periods.sales_count,
     a price_history serija je još često prazna (beta coverage).
+    sales_count is market activity in the period window — not PSA census pop.
     """
     resolved: str | None = str(tcgplayer_id).strip() if tcgplayer_id else None
     card: dict[str, Any] | None = None
     if resolved:
-        card = fetch_psa10_card_by_tcgplayer_id(resolved)
+        card = fetch_psa_card_by_tcgplayer_id(resolved, grade=grade)
     if not card:
-        card = search_psa10_pokemon_card(
+        card = search_psa_pokemon_card(
             name=str(name or ""),
             number=number,
             set_name=set_name,
+            grade=grade,
         )
     if not card:
         return [], resolved, {}
@@ -223,9 +274,42 @@ def psa10_history_for_card(
     resolved = (
         str(external.get("tcgplayer") or card.get("tcgplayerId") or resolved or "") or resolved
     )
-    variant = pick_psa10_variant(list(card.get("variants") or []))
+    variant = pick_psa_variant(list(card.get("variants") or []), grade=grade)
     if not variant:
         return [], resolved, {}
     points = history_points_from_v2_variant(variant)
-    stats = psa10_stats_from_variant(variant)
+    canonical = f"PSA {int(grade) if float(grade).is_integer() else grade}"
+    stats = psa_stats_from_variant(variant, canonical=canonical)
     return points, resolved, stats
+
+
+def psa10_history_for_card(
+    *,
+    tcgplayer_id: str | None = None,
+    name: str | None = None,
+    number: str | None = None,
+    set_name: str | None = None,
+) -> tuple[list[dict[str, Any]], str | None, dict[str, Any]]:
+    return psa_history_for_card(
+        grade=10.0,
+        tcgplayer_id=tcgplayer_id,
+        name=name,
+        number=number,
+        set_name=set_name,
+    )
+
+
+def psa9_history_for_card(
+    *,
+    tcgplayer_id: str | None = None,
+    name: str | None = None,
+    number: str | None = None,
+    set_name: str | None = None,
+) -> tuple[list[dict[str, Any]], str | None, dict[str, Any]]:
+    return psa_history_for_card(
+        grade=9.0,
+        tcgplayer_id=tcgplayer_id,
+        name=name,
+        number=number,
+        set_name=set_name,
+    )
