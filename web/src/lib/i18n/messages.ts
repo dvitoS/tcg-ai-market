@@ -518,6 +518,18 @@ const en = {
   binder_complete: "Set complete — nothing left on this board.",
   binder_missing_truncated: "Showing {shown} of {total} missing",
   binder_all_sets: "All sets",
+  binder_export_image: "Save image",
+  binder_export_busy: "Saving…",
+  binder_export_done: "Binder share image downloaded.",
+  binder_export_error: "Could not save binder share image",
+  binder_export_tag: "Set completion",
+  binder_export_note: "Owned vs catalog board — no private P&L.",
+  binder_export_watermark: "Kestrel · binder checklist · kestreltcg.app",
+  binder_share_copy: "Copy set link",
+  binder_share_busy: "Copying…",
+  binder_share_copied: "Set link copied — opens this binder when signed in.",
+  binder_share_error: "Could not copy set link",
+  binder_share_blurb: "Kestrel binder — {set} is {pct}% complete.",
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -1029,6 +1041,18 @@ const hr: Dictionary = {
   binder_complete: "Set je kompletan — ništa više na boardu.",
   binder_missing_truncated: "Prikazujem {shown} od {total} nestalih",
   binder_all_sets: "Svi setovi",
+  binder_export_image: "Spremi sliku",
+  binder_export_busy: "Spremam…",
+  binder_export_done: "Binder share slika preuzeta.",
+  binder_export_error: "Nisam uspio spremiti binder share sliku",
+  binder_export_tag: "Kompletiranje seta",
+  binder_export_note: "Posjed vs katalog board — bez privatnog P&L-a.",
+  binder_export_watermark: "Kestrel · binder checklist · kestreltcg.app",
+  binder_share_copy: "Kopiraj set link",
+  binder_share_busy: "Kopiram…",
+  binder_share_copied: "Set link kopiran — otvara ovaj binder kad si prijavljen.",
+  binder_share_error: "Nisam uspio kopirati set link",
+  binder_share_blurb: "Kestrel binder — {set} je {pct}% kompletan.",
 };
 
 export const MESSAGES: Record<Locale, Dictionary> = { en, hr };
