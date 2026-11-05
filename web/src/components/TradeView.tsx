@@ -7,13 +7,14 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
 import { useLocale } from "@/components/LocaleProvider";
+import { SearchSuggest } from "@/components/SearchSuggest";
 import {
-  fetchCatalog,
   fetchTradeStatus,
   formatChange,
   formatMoney,
   scoreTrade,
 } from "@/lib/api";
+import { pushRecentSearch } from "@/lib/searchRecent";
 import type {
   CatalogCard,
   TradeLineIn,
@@ -115,11 +116,9 @@ export function TradeView() {
   const [them, setThem] = useState<TradeLineIn[]>([]);
   const [result, setResult] = useState<TradeResponse | null>(null);
   const [query, setQuery] = useState("");
-  const [hits, setHits] = useState<CatalogCard[]>([]);
   const [target, setTarget] = useState<SideKey>("you");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [searching, setSearching] = useState(false);
   const [seedNote, setSeedNote] = useState<string | null>(null);
 
   useEffect(() => {
@@ -169,23 +168,6 @@ export function TradeView() {
       });
   }, [authLoading, user, t]);
 
-  async function onSearch(event: FormEvent) {
-    event.preventDefault();
-    const q = query.trim();
-    if (!q) return;
-    setSearching(true);
-    setError(null);
-    try {
-      const catalog = await fetchCatalog({ q, limit: 8, mode: "browse" });
-      setHits(catalog.items || []);
-    } catch (err) {
-      setHits([]);
-      setError(err instanceof Error ? err.message : t("trade_error"));
-    } finally {
-      setSearching(false);
-    }
-  }
-
   function addCard(card: CatalogCard) {
     const setter = target === "you" ? setYou : setThem;
     setter((prev) => {
@@ -198,6 +180,13 @@ export function TradeView() {
       return [...prev, { card_id: card.id, quantity: 1 }];
     });
     setResult(null);
+    setQuery("");
+  }
+
+  function onSearch(event: FormEvent) {
+    event.preventDefault();
+    const q = query.trim();
+    if (q) pushRecentSearch("trade", q);
   }
 
   function removeFrom(side: SideKey, cardId: string) {
@@ -275,19 +264,6 @@ export function TradeView() {
         {seedNote ? <p className="pro-open-note">{seedNote}</p> : null}
       </div>
 
-      <form className="search-strip scanner-search" onSubmit={onSearch}>
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder={t("trade_search_ph")}
-          aria-label={t("trade_search_aria")}
-        />
-        <button type="submit" className="btn-primary" disabled={searching}>
-          {t("trade_search_btn")}
-        </button>
-      </form>
-
       <div className="trade-target">
         <span>{t("trade_add_to")}</span>
         <button
@@ -306,23 +282,23 @@ export function TradeView() {
         </button>
       </div>
 
-      {hits.length > 0 ? (
-        <div className="trade-hits">
-          {hits.map((card) => (
-            <button
-              key={card.id}
-              type="button"
-              className="trade-hit"
-              onClick={() => addCard(card)}
-            >
-              <span className="lot-name">{card.name}</span>
-              <span className="lot-meta">
-                {[card.set_name, formatMoney(card.price)].filter(Boolean).join(" · ")}
-              </span>
-            </button>
-          ))}
-        </div>
-      ) : null}
+      <form className="search-strip scanner-search" onSubmit={onSearch}>
+        <SearchSuggest
+          value={query}
+          onChange={setQuery}
+          onCommit={(q) => {
+            setQuery(q);
+            if (q) pushRecentSearch("trade", q);
+          }}
+          onPickCard={addCard}
+          placeholder={t("trade_search_ph")}
+          ariaLabel={t("trade_search_aria")}
+          recentScope="trade"
+        />
+        <button type="submit" className="btn-primary">
+          {t("trade_search_btn")}
+        </button>
+      </form>
 
       <div className="trade-board">
         <SidePanel
@@ -355,7 +331,7 @@ export function TradeView() {
             setYou([]);
             setThem([]);
             setResult(null);
-            setHits([]);
+            setQuery("");
           }}
         >
           {t("trade_clear")}

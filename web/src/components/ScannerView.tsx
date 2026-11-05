@@ -7,7 +7,9 @@ import { FormEvent, useCallback, useEffect, useState, useTransition } from "reac
 import { CardSkeletonGrid } from "@/components/CardSkeletonGrid";
 import { ExploreCard } from "@/components/ExploreCard";
 import { useLocale } from "@/components/LocaleProvider";
+import { SearchSuggest } from "@/components/SearchSuggest";
 import { fetchScanner, formatChange, formatMoney } from "@/lib/api";
+import { pushRecentSearch } from "@/lib/searchRecent";
 import type { ScannerCard, ScannerResponse } from "@/lib/types";
 
 function parsePrice(raw: string): number | undefined {
@@ -102,9 +104,16 @@ export function ScannerView() {
     load();
   }, [hydrated, load]);
 
+  function applyQuery(next: string) {
+    const q = next.trim();
+    setQuery(q);
+    if (q) pushRecentSearch("scanner", q);
+    setSubmitted(q);
+  }
+
   function onSearch(event: FormEvent) {
     event.preventDefault();
-    setSubmitted(query.trim());
+    applyQuery(query);
   }
 
   return (
@@ -119,12 +128,13 @@ export function ScannerView() {
       </div>
 
       <form className="search-strip scanner-search" onSubmit={onSearch}>
-        <input
-          type="search"
+        <SearchSuggest
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={setQuery}
+          onCommit={applyQuery}
           placeholder={t("scan_search_ph")}
-          aria-label={t("scan_search_aria")}
+          ariaLabel={t("scan_search_aria")}
+          recentScope="scanner"
         />
         <button type="submit" className="btn-primary">
           {t("scan_btn")}
