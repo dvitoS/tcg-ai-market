@@ -2,7 +2,15 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { FormEvent, useCallback, useEffect, useState, useTransition } from "react";
+import { useSearchParams } from "next/navigation";
+import {
+  FormEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 
 import { useAuth } from "@/components/AuthProvider";
 import { useLocale } from "@/components/LocaleProvider";
@@ -14,6 +22,11 @@ import {
   formatChange,
   formatMoney,
 } from "@/lib/api";
+import {
+  buildRadarShareUrl,
+  decodeRadarShare,
+  type RadarShareFilters,
+} from "@/lib/radarShare";
 import { pushRecentSearch } from "@/lib/searchRecent";
 import type { RadarCard, RadarResponse, RadarStatus } from "@/lib/types";
 
@@ -81,6 +94,8 @@ function RadarRow({ card }: { card: RadarCard }) {
 export function RadarView() {
   const { t } = useLocale();
   const { user, loading: authLoading } = useAuth();
+  const searchParams = useSearchParams();
+  const shareBoot = useRef<RadarShareFilters | null | undefined>(undefined);
   const [status, setStatus] = useState<RadarStatus | null>(null);
   const [data, setData] = useState<RadarResponse>(EMPTY);
   const [query, setQuery] = useState("");
@@ -91,12 +106,30 @@ export function RadarView() {
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [shareNote, setShareNote] = useState<string | null>(null);
+  const [shareBusy, setShareBusy] = useState(false);
   const [pending, startTransition] = useTransition();
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     setHydrated(true);
   }, []);
+
+  useEffect(() => {
+    if (shareBoot.current !== undefined) return;
+    shareBoot.current = decodeRadarShare(searchParams.get("share"));
+    const boot = shareBoot.current;
+    if (!boot) return;
+    if (boot.q) {
+      setQuery(boot.q);
+      setSubmitted(boot.q);
+    }
+    if (boot.set) setSetName(boot.set);
+    if (boot.rarity) setRarity(boot.rarity);
+    if (boot.min_edge != null) setMinEdge(boot.min_edge);
+    if (boot.min_price != null) setMinPrice(String(boot.min_price));
+    if (boot.max_price != null) setMaxPrice(String(boot.max_price));
+  }, [searchParams]);
 
   useEffect(() => {
     if (authLoading || !hydrated) return;
@@ -108,7 +141,10 @@ export function RadarView() {
       try {
         const st = await fetchRadarStatus();
         setStatus(st);
-        setMinEdge(st.edge_floor);
+        const boot = shareBoot.current;
+        if (boot?.min_edge == null) {
+          setMinEdge(st.edge_floor);
+        }
         setError(null);
       } catch (err) {
         setStatus(null);
@@ -163,6 +199,28 @@ export function RadarView() {
   function onSearch(event: FormEvent) {
     event.preventDefault();
     applyQuery(query);
+  }
+
+  async function onShare() {
+    if (!status?.allowed || shareBusy) return;
+    setShareBusy(true);
+    setShareNote(null);
+    try {
+      const url = buildRadarShareUrl(window.location.origin, {
+        q: submitted || query || undefined,
+        set: setName || undefined,
+        rarity: rarity || undefined,
+        min_edge: minEdge,
+        min_price: parsePrice(minPrice),
+        max_price: parsePrice(maxPrice),
+      });
+      await navigator.clipboard.writeText(url);
+      setShareNote(t("radar_share_copied"));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("radar_share_error"));
+    } finally {
+      setShareBusy(false);
+    }
   }
 
   if (authLoading || !hydrated) {
@@ -234,7 +292,16 @@ export function RadarView() {
         <button type="submit" className="btn-primary">
           {t("radar_btn")}
         </button>
+        <button
+          type="button"
+          className="btn-ghost"
+          disabled={shareBusy}
+          onClick={() => void onShare()}
+        >
+          {shareBusy ? t("radar_share_busy") : t("radar_share_copy")}
+        </button>
       </form>
+      {shareNote ? <p className="pro-open-note">{shareNote}</p> : null}
 
       <div className="filter-row">
         <label>
