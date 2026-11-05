@@ -3161,11 +3161,44 @@ a {
 .binder-set-list ul {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 0 0.2rem 0 0;
   display: grid;
   gap: 0.45rem;
   max-height: 28rem;
   overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(184, 115, 51, 0.45) transparent;
+}
+
+.binder-set-list ul::-webkit-scrollbar {
+  width: 8px;
+}
+
+.binder-set-list ul::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 0.25rem 0;
+}
+
+.binder-set-list ul::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: linear-gradient(
+    180deg,
+    rgba(184, 115, 51, 0.35),
+    rgba(212, 165, 116, 0.55)
+  );
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.binder-set-list ul::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, var(--accent), var(--accent-2));
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.binder-set-list ul::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 .binder-set-btn {
