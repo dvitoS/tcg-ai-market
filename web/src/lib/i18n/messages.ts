@@ -221,6 +221,8 @@ const en = {
   trade_net_spot: "Spot net {value} ({pct}) for you",
   trade_net_ai: "AI fair net {value} ({pct}) for you",
   trade_band_note: "Fair band ±{n}% on your give total",
+  trade_seed_you: "Added {n} card(s) to You give from the link.",
+  trade_seed_them: "Added {n} card(s) to They give from the link.",
 
   // Dealer
   dealer_eyebrow: "Dealer",
@@ -291,6 +293,8 @@ const en = {
   detail_back: "← Back to browse",
   detail_kicker: "Card detail",
   detail_watchlist: "Open watchlist",
+  detail_trade_you: "Trade · you give",
+  detail_trade_them: "Trade · they give",
   detail_range_min: "Range min",
   detail_range_max: "Range max",
   detail_points: "Points",
@@ -584,6 +588,8 @@ const hr: Dictionary = {
   trade_net_spot: "Spot neto {value} ({pct}) za tebe",
   trade_net_ai: "AI fair neto {value} ({pct}) za tebe",
   trade_band_note: "Fair band ±{n}% na tvoj give total",
+  trade_seed_you: "Dodano {n} kart(a/e) u Ti daješ iz linka.",
+  trade_seed_them: "Dodano {n} kart(a/e) u Oni daju iz linka.",
 
   dealer_eyebrow: "Dealer",
   dealer_title: "Stol",
@@ -651,6 +657,8 @@ const hr: Dictionary = {
   detail_back: "← Natrag na pregled",
   detail_kicker: "Detalj karte",
   detail_watchlist: "Otvori watchlist",
+  detail_trade_you: "Trade · ti daješ",
+  detail_trade_them: "Trade · oni daju",
   detail_range_min: "Raspon min",
   detail_range_max: "Raspon max",
   detail_points: "Točke",
