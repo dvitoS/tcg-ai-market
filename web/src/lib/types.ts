@@ -295,6 +295,49 @@ export type RadarPreviewResponse = {
   source: "supabase" | "demo" | "empty";
 };
 
+export type TrustCalibration = {
+  rmse?: number | null;
+  r2?: number | null;
+  rmse_vs_naive?: number | null;
+  direction_accuracy_pct?: number | null;
+  direction_n?: number | null;
+  conformal_q?: number | null;
+  conformal_alpha?: number | null;
+  conformal_width_cap?: number | null;
+  wf_folds?: number | null;
+  wf_direction_accuracy_pct?: number | null;
+  wf_rmse_vs_naive?: number | null;
+};
+
+export type TrustCoverage = {
+  method: string;
+  target_pct: number;
+  coverage_pct?: number | null;
+  n: number;
+  note: string;
+};
+
+export type TrustRadarBacktest = {
+  lookback_days: number;
+  horizon_days: number;
+  n: number;
+  hit_rate_pct?: number | null;
+  avg_move_pct?: number | null;
+  under_n: number;
+  over_n: number;
+  method: string;
+};
+
+export type TrustResponse = {
+  source: "supabase" | "demo" | "empty";
+  trained_at?: string | null;
+  artifact_id: string;
+  horizon_days: number;
+  calibration: TrustCalibration;
+  conformal_coverage: TrustCoverage;
+  radar_backtest: TrustRadarBacktest;
+};
+
 export type TradeLineIn = {
   card_id: string;
   quantity: number;

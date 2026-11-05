@@ -12,6 +12,7 @@ import type {
   RadarPreviewResponse,
   RadarResponse,
   RadarStatus,
+  TrustResponse,
   TradeLineIn,
   TradeResponse,
   TradeShareCreated,
@@ -646,6 +647,36 @@ export async function fetchRadarStatus(): Promise<RadarStatus> {
   });
   if (!res.ok) {
     throw new Error(`Radar status failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function fetchTrustReport(input?: {
+  horizon_days?: number;
+  lookback_days?: number;
+  sample_n?: number;
+}): Promise<TrustResponse> {
+  const params = new URLSearchParams();
+  if (input?.horizon_days != null) {
+    params.set("horizon_days", String(input.horizon_days));
+  }
+  if (input?.lookback_days != null) {
+    params.set("lookback_days", String(input.lookback_days));
+  }
+  if (input?.sample_n != null) {
+    params.set("sample_n", String(input.sample_n));
+  }
+  const qs = params.toString();
+  const res = await fetch(apiUrl(`/api/trust${qs ? `?${qs}` : ""}`), {
+    headers: {
+      Accept: "application/json",
+      ...authHeaders(),
+    },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    throw new Error(detail || `Trust report failed (${res.status})`);
   }
   return res.json();
 }
