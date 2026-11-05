@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { FormEvent, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { FormEvent, useEffect, useRef, useState } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
 import { useLocale } from "@/components/LocaleProvider";
@@ -106,6 +107,9 @@ function SidePanel({
 export function TradeView() {
   const { t } = useLocale();
   const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const seededRef = useRef(false);
   const [status, setStatus] = useState<TradeStatus | null>(null);
   const [you, setYou] = useState<TradeLineIn[]>([]);
   const [them, setThem] = useState<TradeLineIn[]>([]);
@@ -116,6 +120,37 @@ export function TradeView() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [seedNote, setSeedNote] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (seededRef.current) return;
+    const raw = (searchParams.get("add") || "").trim();
+    if (!raw) return;
+    seededRef.current = true;
+    const side: SideKey = searchParams.get("side") === "them" ? "them" : "you";
+    const ids = raw
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean)
+      .slice(0, 12);
+    if (ids.length === 0) return;
+    setTarget(side);
+    const setter = side === "you" ? setYou : setThem;
+    setter((prev) => {
+      const qty = new Map(prev.map((r) => [r.card_id, r.quantity]));
+      for (const cardId of ids) {
+        qty.set(cardId, (qty.get(cardId) || 0) + 1);
+      }
+      return Array.from(qty.entries()).map(([card_id, quantity]) => ({
+        card_id,
+        quantity,
+      }));
+    });
+    setSeedNote(
+      t(side === "you" ? "trade_seed_you" : "trade_seed_them", { n: ids.length }),
+    );
+    router.replace("/trade", { scroll: false });
+  }, [searchParams, router, t]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -237,6 +272,7 @@ export function TradeView() {
         <p className="explore-command-eyebrow">{t("trade_eyebrow")}</p>
         <h1 className="explore-title">{t("trade_title")}</h1>
         <p className="explore-lede">{t("trade_lede")}</p>
+        {seedNote ? <p className="pro-open-note">{seedNote}</p> : null}
       </div>
 
       <form className="search-strip scanner-search" onSubmit={onSearch}>

@@ -129,6 +129,18 @@ export function CardDetailView({
                 <Link href="/portfolio#watchlist" className="btn-ghost">
                   {t("detail_watchlist")}
                 </Link>
+                <Link
+                  href={`/trade?add=${encodeURIComponent(card.id)}&side=you`}
+                  className="btn-ghost"
+                >
+                  {t("detail_trade_you")}
+                </Link>
+                <Link
+                  href={`/trade?add=${encodeURIComponent(card.id)}&side=them`}
+                  className="btn-ghost"
+                >
+                  {t("detail_trade_them")}
+                </Link>
               </div>
               <div className="stat-row">
                 <div className="stat-chip">
