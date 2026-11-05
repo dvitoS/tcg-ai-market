@@ -158,6 +158,20 @@ def list_cards(*, limit: int | None = None, order_price_desc: bool = False) -> l
     return cards
 
 
+def card_counts_by_set_id() -> dict[str, int]:
+    """Count cards in DB keyed by pokemontcg set id (prefix before last '-')."""
+    counts: dict[str, int] = {}
+    for card in list_cards(limit=None, order_price_desc=False):
+        cid = str(card.id or "")
+        if "-" not in cid:
+            continue
+        set_id = cid.rsplit("-", 1)[0].strip()
+        if not set_id:
+            continue
+        counts[set_id] = counts.get(set_id, 0) + 1
+    return counts
+
+
 def list_cards_for_sync(*, limit: int | None = None) -> list[Card]:
     """Prefer cards missing price_history, then higher market price (smart nightly limits)."""
     cards = list_cards(limit=None, order_price_desc=False)
