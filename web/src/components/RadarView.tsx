@@ -6,12 +6,14 @@ import { FormEvent, useCallback, useEffect, useState, useTransition } from "reac
 
 import { useAuth } from "@/components/AuthProvider";
 import { useLocale } from "@/components/LocaleProvider";
+import { SearchSuggest } from "@/components/SearchSuggest";
 import {
   fetchRadar,
   fetchRadarStatus,
   formatChange,
   formatMoney,
 } from "@/lib/api";
+import { pushRecentSearch } from "@/lib/searchRecent";
 import type { RadarCard, RadarResponse, RadarStatus } from "@/lib/types";
 
 function parsePrice(raw: string): number | undefined {
@@ -150,9 +152,16 @@ export function RadarView() {
     load();
   }, [hydrated, status?.allowed, load]);
 
+  function applyQuery(next: string) {
+    const q = next.trim();
+    setQuery(q);
+    if (q) pushRecentSearch("radar", q);
+    setSubmitted(q);
+  }
+
   function onSearch(event: FormEvent) {
     event.preventDefault();
-    setSubmitted(query.trim());
+    applyQuery(query);
   }
 
   if (authLoading || !hydrated) {
@@ -212,13 +221,14 @@ export function RadarView() {
       </div>
 
       <form className="search-strip scanner-search" onSubmit={onSearch}>
-        <input
-          id="radar-q"
-          type="search"
+        <SearchSuggest
+          inputId="radar-q"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={setQuery}
+          onCommit={applyQuery}
           placeholder={t("radar_search_ph")}
-          aria-label={t("radar_search_aria")}
+          ariaLabel={t("radar_search_aria")}
+          recentScope="radar"
         />
         <button type="submit" className="btn-primary">
           {t("radar_btn")}

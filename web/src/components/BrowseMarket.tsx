@@ -5,8 +5,10 @@ import { FormEvent, useCallback, useEffect, useMemo, useState, useTransition } f
 import { CardSkeletonGrid } from "@/components/CardSkeletonGrid";
 import { ExploreCard } from "@/components/ExploreCard";
 import { useLocale } from "@/components/LocaleProvider";
+import { SearchSuggest } from "@/components/SearchSuggest";
 import { fetchCatalog } from "@/lib/api";
 import { signalLabel } from "@/lib/i18n/messages";
+import { pushRecentSearch } from "@/lib/searchRecent";
 import type { CatalogCard, CatalogMeta, CatalogMode } from "@/lib/types";
 
 const BATCH = 24;
@@ -82,9 +84,16 @@ export function BrowseMarket({
     load(0, false);
   }, [hydrated, load]);
 
+  function applyQuery(next: string) {
+    const q = next.trim();
+    setQuery(q);
+    if (q) pushRecentSearch("browse", q);
+    setSubmittedQuery(q);
+  }
+
   function onSearch(event: FormEvent) {
     event.preventDefault();
-    setSubmittedQuery(query.trim());
+    applyQuery(query);
   }
 
   function onClear() {
@@ -130,12 +139,13 @@ export function BrowseMarket({
       </div>
 
       <form className="search-strip" onSubmit={onSearch}>
-        <input
-          type="search"
+        <SearchSuggest
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={setQuery}
+          onCommit={applyQuery}
           placeholder={t("explore_search_ph")}
-          aria-label={t("explore_search_aria")}
+          ariaLabel={t("explore_search_aria")}
+          recentScope="browse"
         />
         <button type="submit" className="btn-primary">
           {t("explore_search_btn")}

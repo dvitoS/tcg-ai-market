@@ -8,6 +8,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { useLocale } from "@/components/LocaleProvider";
 import { PortfolioBarsChart } from "@/components/PortfolioBarsChart";
 import { PortfolioPerfChart } from "@/components/PortfolioPerfChart";
+import { SearchSuggest } from "@/components/SearchSuggest";
 import {
   deletePortfolioLot,
   fetchPortfolio,
@@ -36,6 +37,7 @@ import {
   type LotSort,
   type PnlFilter,
 } from "@/lib/portfolioFilters";
+import { pushRecentSearch } from "@/lib/searchRecent";
 import {
   dismissAlert,
   readDismissed,
@@ -170,6 +172,15 @@ export function PortfolioView() {
   const soldLots = useMemo(
     () => lots.filter((lot) => String(lot.status || "").toLowerCase() === "sold"),
     [lots],
+  );
+  const lotSuggestItems = useMemo(
+    () =>
+      openLots.map((lot) => ({
+        id: String(lot.id),
+        label: lot.name || lot.card_id,
+        meta: [lot.set_name, lot.rarity].filter(Boolean).join(" · "),
+      })),
+    [openLots],
   );
   const lotRarities = useMemo(() => uniqueLotRarities(openLots), [openLots]);
   const filteredOpenLots = useMemo(
@@ -639,13 +650,24 @@ export function PortfolioView() {
       ) : (
         <>
           <div className="filter-row portfolio-lot-filters">
-            <label>
+            <label className="portfolio-search-label">
               <span>{t("port_search")}</span>
-              <input
-                type="search"
+              <SearchSuggest
+                mode="local"
+                localItems={lotSuggestItems}
                 value={lotQuery}
+                onChange={setLotQuery}
+                onCommit={(q) => {
+                  setLotQuery(q);
+                  if (q) pushRecentSearch("portfolio", q);
+                }}
+                onPickLocal={(item) => {
+                  setLotQuery(item.label);
+                  pushRecentSearch("portfolio", item.label);
+                }}
                 placeholder={t("port_search_ph")}
-                onChange={(e) => setLotQuery(e.target.value)}
+                ariaLabel={t("port_search")}
+                recentScope="portfolio"
               />
             </label>
             <label>
