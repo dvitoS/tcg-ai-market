@@ -38,9 +38,9 @@ These close conversion loops and plug the biggest holes vs Collectr / PriceChart
 **Why:** Collectr’s stock-chart is the retention hook we still lack.
 **Ship:** ~~Daily MTM from `price_history`~~ (already live) + ~~today’s AI fair reference line~~ + ~~drawdown callouts with conformal TRIM count~~. Historical AI series still deferred (no quote snapshots).
 
-### 3. Condition & printing on lots
+### 3. Condition & printing on lots — shipped
 **Why:** TCGplayer prices are condition/printing-specific; our spots are mostly raw-NM. Wrong condition = wrong Radar / Trade / Grading EV.
-**Ship:** Lot fields `condition` (NM/LP/MP/HP/DMG) + `printing` (Normal / Reverse / Holofoil / …) with simple multipliers or JustTCG variant IDs where available. Surface on detail + Trade.
+**Ship:** ~~`printing` on lots~~ + ~~fixed NM multipliers (LP/MP/HP/DMG × Normal/Reverse/Holo)~~ applied in portfolio MTM, equity curve, Trade lines, and Grading EV. JustTCG variant IDs still deferred.
 
 ---
 
@@ -82,4 +82,4 @@ These close conversion loops and plug the biggest holes vs Collectr / PriceChart
 
 ## Suggested next move
 
-**#3 Condition & printing on lots** — TCGplayer-parity pricing inputs for Radar / Trade / Grading EV.
+**#4 Deal of the Day public feed** — extend `/api/radar/preview` into a Soft Pro conversion surface on `/` or `/pro`.

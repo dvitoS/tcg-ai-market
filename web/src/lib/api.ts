@@ -351,6 +351,7 @@ export async function addPortfolioLot(body: {
   quantity: number;
   purchase_price: number;
   condition?: string;
+  printing?: string;
   grade?: string | null;
   purchase_date?: string | null;
 }): Promise<PortfolioLot> {
@@ -376,6 +377,7 @@ export async function updatePortfolioLot(
     quantity?: number;
     purchase_price?: number;
     condition?: string;
+    printing?: string;
     grade?: string | null;
     purchase_date?: string | null;
   },

@@ -48,7 +48,14 @@ import {
   writeThresholdPct,
 } from "@/lib/watchAlertPrefs";
 
-const CONDITIONS = ["NM", "LP", "MP", "HP", "DMG"];
+import {
+  PRINTINGS,
+  RAW_CONDITIONS,
+  normalizeCondition,
+  normalizePrinting,
+} from "@/lib/lotPriceAdjust";
+
+const CONDITIONS = [...RAW_CONDITIONS];
 
 function parsePrice(raw: string): number | undefined {
   const text = raw.trim();
@@ -113,6 +120,7 @@ export function PortfolioView() {
   const [editQty, setEditQty] = useState(1);
   const [editCost, setEditCost] = useState(1);
   const [editCondition, setEditCondition] = useState("NM");
+  const [editPrinting, setEditPrinting] = useState("Normal");
   const [salePrice, setSalePrice] = useState(1);
   const [notice, setNotice] = useState<string | null>(null);
   const [lotQuery, setLotQuery] = useState("");
@@ -223,8 +231,8 @@ export function PortfolioView() {
     setEditingId(String(lot.id));
     setEditQty(Math.max(1, Number(lot.quantity) || 1));
     setEditCost(Math.max(0.0001, Number(lot.purchase_price) || 1));
-    const cond = String(lot.condition || "NM");
-    setEditCondition(CONDITIONS.includes(cond) ? cond : "NM");
+    setEditCondition(normalizeCondition(lot.condition));
+    setEditPrinting(normalizePrinting(lot.printing));
     setSalePrice(
       Math.max(
         0.0001,
@@ -311,6 +319,7 @@ export function PortfolioView() {
         quantity: editQty,
         purchase_price: editCost,
         condition: editCondition,
+        printing: editPrinting,
       });
       setNotice("Lot updated.");
       setEditingId(null);
@@ -774,7 +783,11 @@ export function PortfolioView() {
                       {lot.name || lot.card_id}
                     </Link>
                     <p className="lot-meta">
-                      {lot.quantity}× · {lot.condition || "NM"}
+                      {lot.quantity}× · {lot.condition || "NM"} ·{" "}
+                      {lot.printing || "Normal"}
+                      {lot.price_factor != null && Number(lot.price_factor) !== 1
+                        ? ` · ×${Number(lot.price_factor).toFixed(2)}`
+                        : ""}
                       {lot.grade ? ` · ${lot.grade}` : ""}
                       {lot.rarity ? ` · ${lot.rarity}` : ""}
                     </p>
@@ -880,6 +893,20 @@ export function PortfolioView() {
                 {CONDITIONS.map((c) => (
                   <option key={c} value={c}>
                     {c}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span>{t("port_printing")}</span>
+              <select
+                value={editPrinting}
+                disabled={busy}
+                onChange={(e) => setEditPrinting(e.target.value)}
+              >
+                {PRINTINGS.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
                   </option>
                 ))}
               </select>

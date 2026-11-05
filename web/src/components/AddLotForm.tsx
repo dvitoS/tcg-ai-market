@@ -6,8 +6,13 @@ import { FormEvent, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { useLocale } from "@/components/LocaleProvider";
 import { addPortfolioLot } from "@/lib/api";
-
-const CONDITIONS = ["NM", "LP", "MP", "HP", "DMG", "PSA 10", "PSA 9", "Other"];
+import {
+  PRINTINGS,
+  RAW_CONDITIONS,
+  adjustNmPrice,
+  normalizeCondition,
+  normalizePrinting,
+} from "@/lib/lotPriceAdjust";
 
 export function AddLotForm({
   cardId,
@@ -25,10 +30,13 @@ export function AddLotForm({
     defaultPrice != null && Number.isFinite(defaultPrice) ? Number(defaultPrice) : 0,
   );
   const [condition, setCondition] = useState("NM");
+  const [printing, setPrinting] = useState("Normal");
   const [grade, setGrade] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+
+  const adjustedHint = adjustNmPrice(defaultPrice, { condition, printing });
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -41,7 +49,8 @@ export function AddLotForm({
         card_id: cardId,
         quantity: Math.max(1, Math.floor(qty) || 1),
         purchase_price: Number(price),
-        condition,
+        condition: normalizeCondition(condition),
+        printing: normalizePrinting(printing),
         grade: grade.trim() || null,
       });
       setDone(true);
@@ -96,9 +105,19 @@ export function AddLotForm({
         <label>
           <span>{t("port_condition")}</span>
           <select value={condition} onChange={(e) => setCondition(e.target.value)}>
-            {CONDITIONS.map((c) => (
+            {RAW_CONDITIONS.map((c) => (
               <option key={c} value={c}>
                 {c}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span>{t("port_printing")}</span>
+          <select value={printing} onChange={(e) => setPrinting(e.target.value)}>
+            {PRINTINGS.map((p) => (
+              <option key={p} value={p}>
+                {p}
               </option>
             ))}
           </select>
@@ -116,6 +135,18 @@ export function AddLotForm({
           {busy ? t("add_lot_busy") : t("add_lot_submit")}
         </button>
       </form>
+      {adjustedHint != null && (condition !== "NM" || printing !== "Normal") ? (
+        <p className="lot-meta add-lot-adjust-hint">
+          {t("port_adjust_hint", {
+            value: adjustedHint.toFixed(2),
+            factor: (
+              defaultPrice && Number(defaultPrice) > 0
+                ? adjustedHint / Number(defaultPrice)
+                : 1
+            ).toFixed(2),
+          })}
+        </p>
+      ) : null}
       {error ? <p className="banner-error">{error}</p> : null}
       {done ? (
         <p className="add-lot-ok">

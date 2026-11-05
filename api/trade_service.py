@@ -28,13 +28,28 @@ def _line(
     *,
     card_id: str,
     quantity: int = 1,
+    condition: str = "NM",
+    printing: str = "Normal",
 ) -> dict[str, Any]:
+    from services.lot_price_adjust import (
+        adjust_nm_price,
+        lot_price_factor,
+        normalize_condition,
+        normalize_printing,
+    )
+
     qty = max(1, int(quantity or 1))
+    cond = normalize_condition(condition)
+    print_ = normalize_printing(printing)
+    factor = lot_price_factor(condition=cond, printing=print_)
     row = _match_card(board, card_id)
     if row is None:
         return {
             "card_id": str(card_id),
             "quantity": qty,
+            "condition": cond,
+            "printing": print_,
+            "price_factor": factor,
             "matched": False,
             "name": None,
             "set_name": None,
@@ -50,13 +65,15 @@ def _line(
             "line_fair": None,
         }
     card = row_to_card(row)
-    spot = card.get("price")
+    nm_spot = card.get("price")
     fair = card.get("predicted_price")
-    if fair is None and spot is not None and card.get("expected_change_pct") is not None:
+    if fair is None and nm_spot is not None and card.get("expected_change_pct") is not None:
         try:
-            fair = float(spot) * (1.0 + float(card["expected_change_pct"]) / 100.0)
+            fair = float(nm_spot) * (1.0 + float(card["expected_change_pct"]) / 100.0)
         except (TypeError, ValueError):
             fair = None
+    spot = adjust_nm_price(nm_spot, condition=cond, printing=print_)
+    fair = adjust_nm_price(fair, condition=cond, printing=print_)
     lo = row.get("pred_lo_pct")
     hi = row.get("pred_hi_pct")
     try:
@@ -72,6 +89,9 @@ def _line(
     return {
         "card_id": card["id"],
         "quantity": qty,
+        "condition": cond,
+        "printing": print_,
+        "price_factor": factor,
         "matched": True,
         "name": card.get("name"),
         "set_name": card.get("set_name"),
@@ -111,12 +131,24 @@ def analyze_trade(
 ) -> dict[str, Any]:
     """Score a trade from YOUR perspective: you give `you`, receive `them`."""
     you_lines = [
-        _line(board, card_id=str(item.get("card_id") or ""), quantity=int(item.get("quantity") or 1))
+        _line(
+            board,
+            card_id=str(item.get("card_id") or ""),
+            quantity=int(item.get("quantity") or 1),
+            condition=str(item.get("condition") or "NM"),
+            printing=str(item.get("printing") or "Normal"),
+        )
         for item in you
         if str(item.get("card_id") or "").strip()
     ]
     them_lines = [
-        _line(board, card_id=str(item.get("card_id") or ""), quantity=int(item.get("quantity") or 1))
+        _line(
+            board,
+            card_id=str(item.get("card_id") or ""),
+            quantity=int(item.get("quantity") or 1),
+            condition=str(item.get("condition") or "NM"),
+            printing=str(item.get("printing") or "Normal"),
+        )
         for item in them
         if str(item.get("card_id") or "").strip()
     ]

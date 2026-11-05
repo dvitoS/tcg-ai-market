@@ -115,6 +115,7 @@ export type PortfolioLot = {
   purchase_price: number;
   purchase_date?: string | null;
   condition?: string | null;
+  printing?: string | null;
   grade?: string | null;
   status?: string;
   sale_price?: number | null;
@@ -123,6 +124,8 @@ export type PortfolioLot = {
   rarity?: string | null;
   set_name?: string | null;
   image_url?: string | null;
+  nm_market_price?: number | null;
+  price_factor?: number | null;
   market_price?: number | null;
   current_price?: number | null;
   invested?: number | null;
@@ -295,10 +298,13 @@ export type RadarPreviewResponse = {
 export type TradeLineIn = {
   card_id: string;
   quantity: number;
+  condition?: string;
+  printing?: string;
 };
 
 export type TradeLineOut = TradeLineIn & {
   matched: boolean;
+  price_factor?: number;
   name?: string | null;
   set_name?: string | null;
   image_url?: string | null;

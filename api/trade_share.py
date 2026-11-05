@@ -32,6 +32,8 @@ def share_secret() -> bytes:
 
 
 def _normalize_lines(raw: list[Any] | None) -> list[dict[str, Any]]:
+    from services.lot_price_adjust import normalize_condition, normalize_printing
+
     out: list[dict[str, Any]] = []
     for item in raw or []:
         if not isinstance(item, dict):
@@ -43,7 +45,14 @@ def _normalize_lines(raw: list[Any] | None) -> list[dict[str, Any]]:
             qty = max(1, min(99, int(item.get("quantity") or 1)))
         except (TypeError, ValueError):
             qty = 1
-        out.append({"card_id": card_id, "quantity": qty})
+        out.append(
+            {
+                "card_id": card_id,
+                "quantity": qty,
+                "condition": normalize_condition(item.get("condition")),
+                "printing": normalize_printing(item.get("printing")),
+            }
+        )
         if len(out) >= MAX_LINES_PER_SIDE:
             break
     return out
@@ -60,9 +69,15 @@ def encode_trade_share(
     if not you_n and not them_n:
         raise ValueError("Add at least one card to either side.")
     payload = {
-        "v": 1,
-        "y": [[row["card_id"], row["quantity"]] for row in you_n],
-        "t": [[row["card_id"], row["quantity"]] for row in them_n],
+        "v": 2,
+        "y": [
+            [row["card_id"], row["quantity"], row["condition"], row["printing"]]
+            for row in you_n
+        ],
+        "t": [
+            [row["card_id"], row["quantity"], row["condition"], row["printing"]]
+            for row in them_n
+        ],
         "b": float(fair_band_pct),
     }
     body = _b64url(json.dumps(payload, separators=(",", ":"), ensure_ascii=True).encode("utf-8"))
@@ -71,6 +86,8 @@ def encode_trade_share(
 
 
 def decode_trade_share(token: str) -> dict[str, Any]:
+    from services.lot_price_adjust import normalize_condition, normalize_printing
+
     raw = str(token or "").strip()
     if not raw or "." not in raw:
         raise ValueError("Invalid share token.")
@@ -84,7 +101,7 @@ def decode_trade_share(token: str) -> dict[str, Any]:
         payload = json.loads(_b64url_decode(body).decode("utf-8"))
     except (ValueError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise ValueError("Invalid share payload.") from exc
-    if not isinstance(payload, dict) or int(payload.get("v") or 0) != 1:
+    if not isinstance(payload, dict) or int(payload.get("v") or 0) not in {1, 2}:
         raise ValueError("Unsupported share version.")
 
     def _pairs(key: str) -> list[dict[str, Any]]:
@@ -99,7 +116,16 @@ def decode_trade_share(token: str) -> dict[str, Any]:
                 qty = max(1, min(99, int(item[1] if len(item) > 1 else 1)))
             except (TypeError, ValueError):
                 qty = 1
-            rows.append({"card_id": card_id, "quantity": qty})
+            cond = normalize_condition(item[2] if len(item) > 2 else "NM")
+            printing = normalize_printing(item[3] if len(item) > 3 else "Normal")
+            rows.append(
+                {
+                    "card_id": card_id,
+                    "quantity": qty,
+                    "condition": cond,
+                    "printing": printing,
+                }
+            )
             if len(rows) >= MAX_LINES_PER_SIDE:
                 break
         return rows

@@ -10,6 +10,11 @@ import {
   DEFAULT_SHIP_USD,
   computeGradingEv,
 } from "@/lib/gradingEv";
+import {
+  RAW_CONDITIONS,
+  adjustNmPrice,
+  normalizeCondition,
+} from "@/lib/lotPriceAdjust";
 
 function lastPrice(
   points: Array<{ price: number }> | undefined,
@@ -33,6 +38,7 @@ export function GradingEvPanel({
   const [fee, setFee] = useState(DEFAULT_GRADE_FEE_USD);
   const [ship, setShip] = useState(DEFAULT_SHIP_USD);
   const [sellFee, setSellFee] = useState(DEFAULT_SELL_FEE_PCT);
+  const [condition, setCondition] = useState("NM");
 
   useEffect(() => {
     let alive = true;
@@ -59,16 +65,21 @@ export function GradingEvPanel({
     };
   }, [cardId, t]);
 
+  const adjustedRaw = useMemo(
+    () => adjustNmPrice(rawPrice, { condition: normalizeCondition(condition) }),
+    [rawPrice, condition],
+  );
+
   const ev = useMemo(
     () =>
       computeGradingEv({
-        rawUsd: rawPrice,
+        rawUsd: adjustedRaw,
         psa10Usd: psa10,
         gradeFeeUsd: fee,
         shipUsd: ship,
         sellFeePct: sellFee,
       }),
-    [rawPrice, psa10, fee, ship, sellFee],
+    [adjustedRaw, psa10, fee, ship, sellFee],
   );
 
   const netClass =
@@ -88,6 +99,19 @@ export function GradingEvPanel({
       <p className="grade-ev-lede">{t("grade_ev_lede")}</p>
 
       <div className="grade-ev-inputs">
+        <label>
+          <span>{t("port_condition")}</span>
+          <select
+            value={condition}
+            onChange={(e) => setCondition(normalizeCondition(e.target.value))}
+          >
+            {RAW_CONDITIONS.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </label>
         <label>
           <span>{t("grade_ev_fee")}</span>
           <input

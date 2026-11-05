@@ -43,7 +43,7 @@ See **[docs/ROADMAP.md](docs/ROADMAP.md)** — shipped baseline, next 3, Soft Pr
 
 Run SQL **once, in order** (SQL Editor), then **Project Settings → API → Reload schema**:
 
-1. `supabase_schema.sql` — cards, history, portfolio, watchlist  
+1. `supabase_schema.sql` — cards, history, portfolio (`condition` + `printing`), watchlist  
 2. `supabase_rls_harden.sql` — RLS for user tables  
 3. `supabase_auth_sessions.sql` — durable auth sessions  
 4. `supabase_model_artifacts.sql` — persisted XGBoost  

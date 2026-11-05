@@ -2062,9 +2062,30 @@ a {
   align-items: center;
 }
 
+.trade-line-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+}
+
+.trade-line-meta select {
+  min-width: 0;
+  padding: 0.25rem 0.4rem;
+  font-size: 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: rgba(18, 18, 18, 0.9);
+  color: var(--text);
+}
+
 .trade-remove {
   padding: 0.35rem 0.55rem;
   font-size: 0.78rem;
+}
+
+.add-lot-adjust-hint {
+  margin: 0.55rem 0 0;
 }
 
 .trade-verdict {
