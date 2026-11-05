@@ -2337,10 +2337,38 @@ a {
 
 .pro-success-page,
 .pro-page {
-  max-width: 40rem;
+  max-width: 44rem;
   margin: 0 auto;
   padding: 2.5rem 1.25rem 4rem;
   animation: rise 0.55s ease both;
+}
+
+.pro-demo {
+  margin-top: 2rem;
+  padding: 1.15rem 1.1rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background:
+    radial-gradient(ellipse at top left, rgba(184, 115, 51, 0.12), transparent 55%),
+    var(--panel);
+  box-shadow: var(--shadow-soft);
+  animation: rise 0.65s ease both;
+  animation-delay: 0.06s;
+}
+
+.pro-demo-title {
+  margin: 0.2rem 0 0.35rem;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+
+.pro-demo-list {
+  margin: 0.85rem 0 0.85rem;
+}
+
+.pro-demo-cta {
+  display: inline-flex;
 }
 
 .pro-success-page .detail-actions,

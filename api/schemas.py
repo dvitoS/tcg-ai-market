@@ -382,6 +382,15 @@ class RadarResponse(BaseModel):
     source: Literal["supabase", "demo", "empty"] = "empty"
 
 
+class RadarPreviewResponse(BaseModel):
+    """Public teaser — top UNDER edges only (no Pro auth)."""
+
+    forecast_days: int = 7
+    under_total: int = 0
+    underpriced: list[RadarCard] = Field(default_factory=list)
+    source: Literal["supabase", "demo", "empty"] = "empty"
+
+
 class TradeLineIn(BaseModel):
     card_id: str
     quantity: int = 1

@@ -9,6 +9,7 @@ import type {
   DealerResponse,
   DealerStatus,
   EbayCompsResponse,
+  RadarPreviewResponse,
   RadarResponse,
   RadarStatus,
   TradeLineIn,
@@ -610,6 +611,19 @@ export type RadarQuery = {
   min_edge?: number;
   limit?: number;
 };
+
+export async function fetchRadarPreview(
+  limit = 5,
+): Promise<RadarPreviewResponse> {
+  const res = await fetch(apiUrl(`/api/radar/preview?limit=${limit}`), {
+    headers: { Accept: "application/json" },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`Radar preview failed (${res.status})`);
+  }
+  return res.json();
+}
 
 export async function fetchRadarStatus(): Promise<RadarStatus> {
   const res = await fetch(apiUrl("/api/radar/status"), {

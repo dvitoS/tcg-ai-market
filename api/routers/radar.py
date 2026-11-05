@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from api.demo_mode import demo_mode
 from api.deps import require_user
 from api.radar_service import build_radar, radar_defaults
-from api.schemas import RadarResponse, RadarStatus
+from api.schemas import RadarPreviewResponse, RadarResponse, RadarStatus
 from services.pro import is_pro_user, pro_checkout_url, pro_gate_reason
 
 router = APIRouter(prefix="/radar", tags=["radar"])
@@ -19,6 +19,20 @@ def _pro_allowed(user: dict[str, Any]) -> bool:
     if demo_mode() or user.get("dev"):
         return True
     return bool(is_pro_user(user))
+
+
+@router.get("/preview", response_model=RadarPreviewResponse)
+def radar_preview(
+    limit: int = Query(default=5, ge=1, le=8),
+) -> RadarPreviewResponse:
+    """Public Soft Pro teaser — top conformal UNDER edges only."""
+    payload = build_radar(min_edge=0, limit=int(limit))
+    return RadarPreviewResponse(
+        forecast_days=int(payload.get("forecast_days") or 7),
+        under_total=int(payload.get("under_total") or 0),
+        underpriced=payload.get("underpriced") or [],
+        source=payload.get("source") or "empty",
+    )
 
 
 @router.get("/status", response_model=RadarStatus)
