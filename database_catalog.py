@@ -316,6 +316,31 @@ def distinct_history_card_ids() -> set[str]:
     return {str(row["card_id"]) for row in rows}
 
 
+def distinct_history_card_ids_since(since_date: str) -> set[str]:
+    """Distinct card_ids with at least one price_history row on/after since_date."""
+    client = get_supabase()
+    ids: set[str] = set()
+    start = 0
+    while True:
+        response = (
+            client.table("price_history")
+            .select("card_id")
+            .gte("date", since_date)
+            .order("card_id")
+            .range(start, start + PAGE - 1)
+            .execute()
+        )
+        batch = list(response.data or [])
+        for row in batch:
+            cid = row.get("card_id")
+            if cid is not None:
+                ids.add(str(cid))
+        if len(batch) < PAGE:
+            break
+        start += PAGE
+    return ids
+
+
 def _fetch_price_history_rows(
     *,
     card_ids: list[str] | None = None,

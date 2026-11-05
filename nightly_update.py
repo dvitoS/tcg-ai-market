@@ -197,13 +197,30 @@ def refresh_price_history() -> dict[str, int]:
         stats = sync_justtcg_price_history(limit=limit)
         filled = generate_price_history(replace=False)
         LOG.info(
-            "JustTCG: updated=%s skipped=%s saved=%s total_history=%s synthetic_new=%s",
+            "JustTCG: updated=%s skipped=%s saved=%s total_history=%s synthetic_new=%s unmatched_sets=%s",
             stats["updated"],
             stats["skipped"],
             stats["saved"],
             stats["total_history"],
             filled,
+            stats.get("unmatched_sets_count", 0),
         )
+        try:
+            from services.spot_qa import build_and_save_snapshot
+
+            qa = build_and_save_snapshot(
+                unmatched_sets=list(stats.get("unmatched_sets") or []),
+                justtcg_stats=stats,
+            )
+            LOG.info(
+                "Spot QA snapshot: history_coverage=%s%% fresh=%s%% sure_rows=%s unmatched=%s",
+                qa.get("history_coverage_pct"),
+                qa.get("fresh_history_pct"),
+                qa.get("sure_rows"),
+                qa.get("unmatched_sets_count"),
+            )
+        except Exception as qa_exc:
+            LOG.warning("Spot QA snapshot failed: %s", qa_exc)
         return stats
 
     tcg_key = _secret("TCG_API_KEY")

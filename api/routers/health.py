@@ -46,6 +46,12 @@ def health() -> HealthResponse:
 @router.get("/data-health", response_model=DataHealthResponse)
 def data_health() -> DataHealthResponse:
     summary = justtcg_observability_summary()
+    try:
+        from services.spot_qa import data_health_spot_fields
+
+        spot = data_health_spot_fields()
+    except Exception:
+        spot = {}
     return DataHealthResponse(
         live=int(summary.get("live") or 0),
         db=int(summary.get("db") or 0),
@@ -56,6 +62,24 @@ def data_health() -> DataHealthResponse:
         attempts=int(summary.get("attempts") or 0),
         miss_or_fallback_pct=float(summary.get("miss_or_fallback_pct") or 0.0),
         justtcg_configured=bool(justtcg_api_key()),
+        cards_total=int(spot.get("cards_total") or 0),
+        cards_with_history=int(spot.get("cards_with_history") or 0),
+        history_coverage_pct=float(spot.get("history_coverage_pct") or 0.0),
+        fresh_history_pct=(
+            float(spot["fresh_history_pct"])
+            if spot.get("fresh_history_pct") is not None
+            else None
+        ),
+        sure_rows=int(spot.get("sure_rows") or 0),
+        quotes_total=int(spot.get("quotes_total") or 0),
+        unmatched_sets_count=(
+            int(spot["unmatched_sets_count"])
+            if spot.get("unmatched_sets_count") is not None
+            else None
+        ),
+        unmatched_sets_sample=list(spot.get("unmatched_sets_sample") or []),
+        spot_qa_captured_at=spot.get("spot_qa_captured_at"),
+        board_source=str(spot.get("board_source") or "empty"),
     )
 
 
