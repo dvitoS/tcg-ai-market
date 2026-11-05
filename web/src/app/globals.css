@@ -745,6 +745,63 @@ a {
   gap: 1rem;
 }
 
+.sealed-add-panel {
+  margin: 1rem 0 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel);
+  padding: 0.95rem 1rem 1.05rem;
+  box-shadow: var(--shadow-soft);
+  animation: rise 0.6s ease both;
+}
+
+.sealed-hit-list {
+  list-style: none;
+  margin: 0.65rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.sealed-hit {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.15rem 0.75rem;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(12, 12, 12, 0.35);
+  color: inherit;
+  padding: 0.55rem 0.7rem;
+  cursor: pointer;
+}
+
+.sealed-hit .lot-meta {
+  grid-column: 1;
+}
+
+.sealed-hit strong {
+  grid-row: 1 / span 2;
+  align-self: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.sealed-hit.is-selected,
+.sealed-hit:hover {
+  border-color: rgba(184, 115, 51, 0.55);
+}
+
+.sealed-hit-name {
+  font-weight: 600;
+}
+
+.sealed-add-form {
+  margin-top: 0.75rem;
+  display: grid;
+  gap: 0.65rem;
+}
+
 .grade-ev-panel {
   border: 1px solid var(--border);
   border-radius: var(--radius);

@@ -23,6 +23,7 @@ from api.routers import (
     portfolio,
     radar,
     scanner,
+    sealed,
     trade,
     trust,
     webhooks,
@@ -65,6 +66,7 @@ app.include_router(portfolio.router, prefix="/api")
 app.include_router(scanner.router, prefix="/api")
 app.include_router(radar.router, prefix="/api")
 app.include_router(trust.router, prefix="/api")
+app.include_router(sealed.router, prefix="/api")
 app.include_router(trade.router, prefix="/api")
 app.include_router(dealer.router, prefix="/api")
 app.include_router(webhooks.router, prefix="/api")
