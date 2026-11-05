@@ -8,6 +8,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { useLocale } from "@/components/LocaleProvider";
 import { PortfolioBarsChart } from "@/components/PortfolioBarsChart";
 import { PortfolioPerfChart } from "@/components/PortfolioPerfChart";
+import { SealedAddPanel } from "@/components/SealedAddPanel";
 import { SearchSuggest } from "@/components/SearchSuggest";
 import {
   deletePortfolioLot,
@@ -651,6 +652,8 @@ export function PortfolioView() {
         callouts={perfCallouts}
       />
       <PortfolioBarsChart lots={openLots} />
+
+      <SealedAddPanel onAdded={() => void load()} />
 
       <div className="portfolio-section-head">
         <h2>{t("port_open_lots", { n: openLots.length })}</h2>

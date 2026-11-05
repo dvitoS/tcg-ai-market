@@ -54,7 +54,7 @@ These close conversion loops and plug the biggest holes vs Collectr / PriceChart
 | 7 | **Grading EV v2** — shipped | Live PSA 9 + sales depth, service fee presets, break-even sensitivity chart |
 | 8 | **Trade report PDF / image** | One-tap share for Discord groups / local shops |
 | 9 | **Set completion / binder checklist** | Dex/Collectr hygiene — % complete, missing list, buy-cost to finish |
-| 10 | **Sealed product quotes** | ETBs / boxes — Collectr’s other half of portfolio value |
+| 10 | **Sealed product quotes** — shipped | Portfolio add-by-quote (JustTCG / demo seed); synthetic `sealed:{id}` catalog rows |
 
 ---
 
@@ -82,4 +82,4 @@ These close conversion loops and plug the biggest holes vs Collectr / PriceChart
 
 ## Suggested next move
 
-**#5 Alert channels (Telegram / push)** — beyond email + Discord for Kestrel Pro retention.
+**#9 Set completion / binder checklist** (after Radar `?share=` leftover lands). #5 Telegram stays deferred.
