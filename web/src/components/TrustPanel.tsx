@@ -130,6 +130,10 @@ export function TrustPanel() {
             <div className="trust-block">
               <h3>{t("trust_cov_title")}</h3>
               <p className="lot-meta">
+                {cov?.coverage_pct != null
+                  ? `${fmt(cov.coverage_pct, 1)}%`
+                  : "—"}
+                {" · "}
                 {t("trust_cov_target", { pct: fmt(cov?.target_pct, 0) })}
                 {cov?.n ? ` · n=${cov.n}` : ""}
               </p>
