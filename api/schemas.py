@@ -250,12 +250,29 @@ class PortfolioPerfPoint(BaseModel):
     date: str
     invested: float
     market_value: float
+    ai_fair_value: float | None = None
+    ai_lo: float | None = None
+    ai_hi: float | None = None
+
+
+class PortfolioDrawdownCallout(BaseModel):
+    peak_date: str
+    trough_date: str
+    drawdown_pct: float
+    peak_value: float
+    trough_value: float
+    trim_count: int = 0
+    note: str = ""
 
 
 class PortfolioPerformanceResponse(BaseModel):
     points: list[PortfolioPerfPoint]
     days: int = 0
     demo: bool = False
+    ai_fair_value: float | None = None
+    ai_lo: float | None = None
+    ai_hi: float | None = None
+    drawdown_callouts: list[PortfolioDrawdownCallout] = Field(default_factory=list)
 
 
 class AddLotRequest(BaseModel):

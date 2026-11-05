@@ -34,10 +34,9 @@ These close conversion loops and plug the biggest holes vs Collectr / PriceChart
 **Ship:** ~~Public read-only `/trade/s/{id}`~~ (signed payload, live re-score, Soft Pro CTA). Radar `?share=…` still open.
 **Pro gate:** Create share = Soft Pro (same as score); view = public.
 
-### 2. Portfolio equity curve + AI overlay
+### 2. Portfolio equity curve + AI overlay — shipped
 **Why:** Collectr’s stock-chart is the retention hook we still lack.
-**Ship:** Daily portfolio mark-to-market series (from `market_quotes` + lot history) + optional AI fair-band sum as a second series. “Would conformal have flagged sells?” callouts on large drawdowns.
-**Depends on:** Nightly lot snapshots or reconstruct-from-history.
+**Ship:** ~~Daily MTM from `price_history`~~ (already live) + ~~today’s AI fair reference line~~ + ~~drawdown callouts with conformal TRIM count~~. Historical AI series still deferred (no quote snapshots).
 
 ### 3. Condition & printing on lots
 **Why:** TCGplayer prices are condition/printing-specific; our spots are mostly raw-NM. Wrong condition = wrong Radar / Trade / Grading EV.
@@ -83,4 +82,4 @@ These close conversion loops and plug the biggest holes vs Collectr / PriceChart
 
 ## Suggested next move
 
-**#2 Portfolio equity curve + AI overlay** — Collectr retention hook; Soft Ink already has lots + `market_quotes`.
+**#3 Condition & printing on lots** — TCGplayer-parity pricing inputs for Radar / Trade / Grading EV.

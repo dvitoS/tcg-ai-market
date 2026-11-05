@@ -1279,6 +1279,27 @@ a {
   font-size: 0.8rem;
 }
 
+.portfolio-perf-ai-note {
+  margin: 0.35rem 0 0.15rem;
+}
+
+.portfolio-perf-callouts {
+  list-style: none;
+  margin: 0.55rem 0 0.25rem;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.portfolio-perf-callouts li {
+  margin: 0;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid rgba(208, 114, 114, 0.28);
+  border-radius: 8px;
+  background: rgba(208, 114, 114, 0.06);
+  font-size: 0.86rem;
+}
+
 .range-toggle {
   display: inline-flex;
   gap: 0.2rem;
