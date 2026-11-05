@@ -29,10 +29,10 @@ Last updated: 2026-11-05. Living doc — ship order can move; the wedge should n
 
 These close conversion loops and plug the biggest holes vs Collectr / PriceCharting without diluting the AI wedge.
 
-### 1. Shareable Trade & Radar links — Trade shipped
+### 1. Shareable Trade & Radar links — shipped
 **Why:** Viral loop. Collectr/TCGplayer share collections; nobody shares a *fairness verdict* for a proposed trade.
-**Ship:** ~~Public read-only `/trade/s/{id}`~~ (signed payload, live re-score, Kestrel Pro CTA). Radar `?share=…` still open.
-**Pro gate:** Create share = Kestrel Pro (same as score); view = public.
+**Ship:** ~~Public read-only `/trade/s/{id}`~~ (signed payload, live re-score, Kestrel Pro CTA). ~~Radar `?share=` filter deeplink~~ (client token; Pro copy CTA).
+**Pro gate:** Create share = Kestrel Pro (same as score); Trade view = public; Radar still Pro-gated on open.
 
 ### 2. Portfolio equity curve + AI overlay — shipped
 **Why:** Collectr’s stock-chart is the retention hook we still lack.
@@ -82,4 +82,4 @@ These close conversion loops and plug the biggest holes vs Collectr / PriceChart
 
 ## Suggested next move
 
-**#5 Alert channels (Telegram / push)** — beyond email + Discord for Kestrel Pro retention.
+**#10 Sealed product quotes** — then **#9 set completion / binder checklist**. (#5 Telegram stays deferred.)

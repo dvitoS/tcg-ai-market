@@ -209,6 +209,10 @@ const en = {
   radar_under_empty: "No UNDER rows at this edge floor / price range.",
   radar_over_title: "Overpriced (trim edge)",
   radar_over_empty: "No OVER rows at this edge floor / price range.",
+  radar_share_copy: "Copy share link",
+  radar_share_busy: "Copying…",
+  radar_share_copied: "Share link copied — filters travel with the URL.",
+  radar_share_error: "Could not copy share link",
 
   // Model trust (Kestrel Pro — on Radar)
   trust_eyebrow: "Model trust",
@@ -656,6 +660,10 @@ const hr: Dictionary = {
   radar_under_empty: "Nema UNDER redova za ovaj edge floor / raspon cijena.",
   radar_over_title: "Overpriced (trim edge)",
   radar_over_empty: "Nema OVER redova za ovaj edge floor / raspon cijena.",
+  radar_share_copy: "Kopiraj share link",
+  radar_share_busy: "Kopiram…",
+  radar_share_copied: "Share link kopiran — filteri idu s URL-om.",
+  radar_share_error: "Nisam uspio kopirati share link",
 
   trust_eyebrow: "Model trust",
   trust_title: "Kako forecast zarađuje povjerenje",
