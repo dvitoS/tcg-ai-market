@@ -618,3 +618,43 @@ class EbayCompsResponse(BaseModel):
     sold_stats: EbaySoldStats = Field(default_factory=EbaySoldStats)
     sold_fallback_active: bool = False
     active_fallback: list[EbayListing] = Field(default_factory=list)
+
+
+class BinderSetSummary(BaseModel):
+    set_name: str
+    set_id: str | None = None
+    total: int = 0
+    owned: int = 0
+    missing: int = 0
+    pct: float = 0.0
+    missing_cost: float = 0.0
+
+
+class BinderSetsResponse(BaseModel):
+    sets: list[BinderSetSummary] = Field(default_factory=list)
+    source: Literal["supabase", "demo", "empty"] = "empty"
+    demo: bool = False
+
+
+class BinderMissingCard(BaseModel):
+    id: str
+    name: str
+    number: str | None = None
+    rarity: str | None = None
+    price: float | None = None
+    image_url: str | None = None
+
+
+class BinderResponse(BaseModel):
+    set_name: str
+    set_id: str | None = None
+    total: int = 0
+    owned: int = 0
+    missing: int = 0
+    pct_complete: float = 0.0
+    missing_cost: float = 0.0
+    missing_unpriced: int = 0
+    owned_ids: list[str] = Field(default_factory=list)
+    missing_cards: list[BinderMissingCard] = Field(default_factory=list)
+    source: Literal["supabase", "demo", "empty"] = "empty"
+    demo: bool = False

@@ -1,5 +1,7 @@
 import type {
   AuthUser,
+  BinderResponse,
+  BinderSetsResponse,
   CardDetailResponse,
   CardHistoryResponse,
   CardPriceSourcesResponse,
@@ -831,6 +833,44 @@ export async function scoreDealerCsv(input: {
   if (!res.ok) {
     const detail = await res.text();
     throw new Error(detail || `Dealer score failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function fetchBinderSets(): Promise<BinderSetsResponse> {
+  const res = await fetch(apiUrl("/api/binder/sets"), {
+    headers: {
+      Accept: "application/json",
+      ...authHeaders(),
+    },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const detail = await readApiError(res, `Binder sets failed (${res.status})`);
+    throw new Error(detail);
+  }
+  return res.json();
+}
+
+export async function fetchBinder(input: {
+  set_name: string;
+  missing_limit?: number;
+}): Promise<BinderResponse> {
+  const params = new URLSearchParams();
+  params.set("set_name", input.set_name);
+  if (input.missing_limit != null) {
+    params.set("missing_limit", String(input.missing_limit));
+  }
+  const res = await fetch(apiUrl(`/api/binder?${params.toString()}`), {
+    headers: {
+      Accept: "application/json",
+      ...authHeaders(),
+    },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const detail = await readApiError(res, `Binder failed (${res.status})`);
+    throw new Error(detail);
   }
   return res.json();
 }

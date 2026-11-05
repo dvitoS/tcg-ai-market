@@ -32,6 +32,7 @@ export function SiteHeader() {
       { href: "/browse", labelKey: "nav_browse" },
       { href: "/browse#signals", labelKey: "nav_signals" },
       { href: "/portfolio", labelKey: "nav_portfolio" },
+      { href: "/binder", labelKey: "nav_binder" },
       { href: "/scanner", labelKey: "nav_scanner" },
       { href: "/radar", labelKey: "nav_radar" },
       { href: "/trade", labelKey: "nav_trade" },
