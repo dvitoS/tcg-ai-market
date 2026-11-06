@@ -50,6 +50,14 @@ const en = {
   landing_path_trade_meta: "Fair / you-ahead / them-ahead in seconds",
   landing_path_browse: "Browse the market →",
   landing_path_browse_meta: "Live spot, fair band, and price history",
+  landing_guides_title: "Learn the desk language",
+  landing_guides_lede:
+    "Short Soft Ink guides on Pokémon TCG fair value, grading, and trade fairness.",
+  landing_guides_fair: "Pokémon TCG fair value →",
+  landing_guides_grade: "Should I grade this card? →",
+  landing_guides_trade: "Is this trade fair? →",
+  pro_guides_title: "Guides",
+  guides_all: "All guides →",
   // Plain-language desk glossary (Phase A)
   glossary_under: "Underpriced",
   glossary_over: "Overpriced",
@@ -674,6 +682,14 @@ const hr: Dictionary = {
   landing_path_trade_meta: "Fair / ti naprijed / oni naprijed u sekundama",
   landing_path_browse: "Pregledaj market →",
   landing_path_browse_meta: "Live spot, fair pojas i povijest cijena",
+  landing_guides_title: "Nauči jezik deska",
+  landing_guides_lede:
+    "Kratki Soft Ink guideovi o Pokémon TCG fair valueu, gradingu i trade fairnessu.",
+  landing_guides_fair: "Pokémon TCG fair value →",
+  landing_guides_grade: "Trebam li gradeati ovu kartu? →",
+  landing_guides_trade: "Je li ovaj trade fair? →",
+  pro_guides_title: "Guideovi",
+  guides_all: "Svi guideovi →",
   glossary_under: "Podcijenjeno",
   glossary_over: "Precijenjeno",
   glossary_under_tip:

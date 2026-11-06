@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import type { Guide } from "@/lib/guides";
+import { guidePath } from "@/lib/guides";
 import type { CatalogCard } from "@/lib/types";
 
 export const SITE_URL = "https://www.kestreltcg.app";
@@ -106,5 +108,88 @@ export function cardJsonLd(card: CatalogCard): Record<string, unknown> {
         }
       : {}),
     ...(offer ? { offers: offer } : {}),
+  };
+}
+
+export function guideMetadata(guide: Guide): Metadata {
+  const url = absoluteUrl(guidePath(guide.slug));
+  return {
+    title: guide.title,
+    description: guide.description,
+    alternates: { canonical: url },
+    openGraph: {
+      type: "article",
+      url,
+      siteName: "Kestrel",
+      title: guide.title,
+      description: guide.description,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: guide.title,
+      description: guide.description,
+    },
+  };
+}
+
+export function guideJsonLd(guide: Guide): Record<string, unknown> {
+  const url = absoluteUrl(guidePath(guide.slug));
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Article",
+        headline: guide.title,
+        description: guide.description,
+        url,
+        mainEntityOfPage: url,
+        author: {
+          "@type": "Organization",
+          name: "Kestrel",
+          url: SITE_URL,
+        },
+        publisher: {
+          "@type": "Organization",
+          name: "Kestrel",
+          url: SITE_URL,
+          logo: absoluteUrl("/kestrel-logo.png"),
+        },
+        inLanguage: "en",
+      },
+      {
+        "@type": "FAQPage",
+        mainEntity: guide.faqs.map((faq) => ({
+          "@type": "Question",
+          name: faq.question,
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: faq.answer,
+          },
+        })),
+      },
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          {
+            "@type": "ListItem",
+            position: 1,
+            name: "Home",
+            item: SITE_URL,
+          },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: "Guides",
+            item: absoluteUrl("/guides"),
+          },
+          {
+            "@type": "ListItem",
+            position: 3,
+            name: guide.title,
+            item: url,
+          },
+        ],
+      },
+    ],
   };
 }

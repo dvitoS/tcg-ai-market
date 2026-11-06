@@ -62,6 +62,33 @@ export function MarketingLanding() {
         </nav>
       </section>
 
+      <section className="landing-guides" aria-labelledby="landing-guides-title">
+        <h2 id="landing-guides-title" className="landing-path-title">
+          {t("landing_guides_title")}
+        </h2>
+        <p className="landing-path-lede">{t("landing_guides_lede")}</p>
+        <nav className="landing-path-nav" aria-label="Soft Ink guides">
+          <Link
+            href="/guides/pokemon-tcg-fair-value"
+            className="landing-path-link"
+          >
+            <span className="landing-path-link-title">
+              {t("landing_guides_fair")}
+            </span>
+          </Link>
+          <Link href="/guides/should-i-grade" className="landing-path-link">
+            <span className="landing-path-link-title">
+              {t("landing_guides_grade")}
+            </span>
+          </Link>
+          <Link href="/guides/trade-fairness" className="landing-path-link">
+            <span className="landing-path-link-title">
+              {t("landing_guides_trade")}
+            </span>
+          </Link>
+        </nav>
+      </section>
+
       <section className="landing-follow" aria-labelledby="landing-follow-title">
         <h2 id="landing-follow-title" className="landing-follow-title">
           {t("landing_follow_title")}
