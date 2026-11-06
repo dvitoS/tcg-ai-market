@@ -286,26 +286,11 @@ export function PriceChart({
       {error ? (
         <p className="chart-sources-status">{t("chart_fallback", { error })}</p>
       ) : null}
-      {sources && !sources.justtcg_configured ? (
-        <p className="chart-sources-status">{t("chart_no_key")}</p>
-      ) : null}
       {sources?.justtcg_from_db ? (
         <p className="chart-sources-status">{t("chart_just_from_db")}</p>
       ) : null}
       {sources?.justtcg_fallback ? (
         <p className="chart-sources-status">{t("chart_just_fallback")}</p>
-      ) : null}
-      {sources?.justtcg_error ? (
-        <p className="chart-sources-status">JustTCG: {sources.justtcg_error}</p>
-      ) : null}
-      {sources?.psa10_error ? (
-        <p className="chart-sources-status">PSA 10: {sources.psa10_error}</p>
-      ) : null}
-      {sources?.psa10_stats?.has_history_series === false &&
-      sources.psa10_stats.sales_count != null ? (
-        <p className="chart-sources-status">
-          PSA 10: {sources.psa10_stats.sales_count} sales (no date series).
-        </p>
       ) : null}
 
       <div className="chart-canvas">

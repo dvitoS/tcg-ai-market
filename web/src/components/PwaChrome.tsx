@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { useLocale } from "@/components/LocaleProvider";
@@ -29,9 +30,12 @@ function isIosSafari(): boolean {
 
 export function PwaChrome() {
   const { t } = useLocale();
+  const pathname = usePathname();
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [showIos, setShowIos] = useState(false);
   const [visible, setVisible] = useState(false);
+  // Keep the landing hero clean — install prompt belongs on desk pages.
+  const onLanding = pathname === "/";
 
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
@@ -65,7 +69,7 @@ export function PwaChrome() {
     return () => window.removeEventListener("beforeinstallprompt", onBip);
   }, []);
 
-  if (!visible) return null;
+  if (!visible || onLanding) return null;
 
   function dismiss() {
     setVisible(false);

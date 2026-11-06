@@ -183,6 +183,17 @@ def _alert_body(alert: WatchAlert, *, money_fmt) -> str:
             price=money_fmt(alert.price),
         )
     if alert.reason == "both" and alert.price_change_pct is not None:
+        # Demo/seed rows often mirror AI into 7d — skip the twin percentage.
+        ai = float(alert.expected_pct or 0.0)
+        px = float(alert.price_change_pct)
+        if abs(ai - px) < 0.05:
+            return t(
+                "alert_watch_body",
+                name=alert.name,
+                pct=alert.expected_pct,
+                signal=signal_label(alert.signal) if alert.signal else "—",
+                price=money_fmt(alert.price),
+            )
         return t(
             "alert_watch_body_both",
             name=alert.name,

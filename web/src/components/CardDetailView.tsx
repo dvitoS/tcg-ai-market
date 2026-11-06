@@ -122,9 +122,12 @@ export function CardDetailView({
                 ) : (
                   <p className="detail-under-caption">{t("detail_horizon")}</p>
                 )}
-                {decision ? <p className="decision-line">{decision}</p> : null}
-                {showSignal ? (
-                  <div className={`signal-chip ${signalClass(card.signal)}`}>{signalText}</div>
+                {decision ? (
+                  <p className="decision-line">{decision}</p>
+                ) : showSignal ? (
+                  <div className={`signal-chip ${signalClass(card.signal)}`}>
+                    {signalText}
+                  </div>
                 ) : (
                   <div className="ai-low-conf" title={t("glossary_unsure_tip")}>
                     {t("detail_low_conf")}
@@ -133,21 +136,18 @@ export function CardDetailView({
               </aside>
             </div>
             <div className="detail-hero-copy">
-              <p className="detail-kicker">{t("detail_kicker")}</p>
               <h1 className="detail-name">{card.name}</h1>
               <p className="detail-meta">{meta}</p>
               <div className="detail-price">
                 {formatSpot(history.last_price ?? card.price, 2)}
               </div>
               {currency === "EUR" && usdEur != null ? (
-                <p className="detail-fx-note">
+                <p className="detail-fx-note" title={fxFallback ? t("fx_fallback") : undefined}>
                   {t("fx_rate_tip", { rate: usdEur.toFixed(4) })}
-                  {fxFallback ? ` · ${t("fx_fallback")}` : ""}
                 </p>
               ) : null}
               <div className={`detail-hero-delta ${deltaClass(dayChange)}`}>
                 {formatChange(dayChange, 2)}
-                {showSignal ? ` · ${signalText}` : ""}
               </div>
               <div className="detail-actions">
                 <WatchToggle cardId={card.id} />
@@ -183,10 +183,6 @@ export function CardDetailView({
                 <div className="stat-chip">
                   <span>{t("detail_range_max")}</span>
                   <strong>{formatSpot(history.max_price, 0)}</strong>
-                </div>
-                <div className="stat-chip">
-                  <span>{t("detail_points")}</span>
-                  <strong>{history.points || points.length || "—"}</strong>
                 </div>
               </div>
               <AddLotForm

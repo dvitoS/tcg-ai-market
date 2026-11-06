@@ -19,14 +19,15 @@ import {
   readThresholdPct,
 } from "@/lib/watchAlertPrefs";
 
-const BANNER_LIMIT = 5;
+const BANNER_LIMIT = 2;
 
 export function WatchAlertBanners() {
   const { user, loading } = useAuth();
   const { t } = useLocale();
   const pathname = usePathname();
-  // Portfolio already loads its own alert digest — skip a duplicate request.
-  const skipFetch = Boolean(pathname?.startsWith("/portfolio"));
+  // Keep the marketing hero clean; portfolio already has its own digest.
+  const skipFetch =
+    pathname === "/" || Boolean(pathname?.startsWith("/portfolio"));
   const [alerts, setAlerts] = useState<WatchAlertItem[]>([]);
 
   const refresh = useCallback(async () => {

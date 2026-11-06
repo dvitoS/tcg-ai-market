@@ -407,9 +407,6 @@ export function RadarView() {
             placeholder={t("explore_any")}
           />
         </label>
-        <p className="result-count">
-          {t("radar_kpi_sure")}: {data.sure_scoped}
-        </p>
       </div>
 
       {error ? <p className="form-error">{error}</p> : null}
@@ -429,8 +426,6 @@ export function RadarView() {
           <strong>{data.over_total}</strong>
         </div>
       </div>
-
-      <TrustPanel />
 
       <h2 className="section-title">{t("radar_under_title")}</h2>
       {pending && data.underpriced.length === 0 ? (
@@ -457,6 +452,8 @@ export function RadarView() {
           ))}
         </div>
       )}
+
+      <TrustPanel />
     </section>
   );
 }
