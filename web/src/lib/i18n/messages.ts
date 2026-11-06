@@ -25,7 +25,7 @@ const en = {
   nav_mobile: "Mobile",
   landing_headline: "Should you buy — or pass?",
   landing_lede:
-    "Kestrel scores spot vs a sure AI fair band for Pokémon TCG — buy, sell, trade, or grade with a clear call, not vibes.",
+    "Pokémon TCG spot vs a sure AI fair band — buy, sell, trade, or grade with a clear call, not vibes.",
   landing_cta_market: "See today’s deal",
   landing_cta_pro: "Kestrel Pro",
   landing_dotd_eyebrow: "Deal of the Day",
@@ -41,6 +41,15 @@ const en = {
   landing_follow_lede:
     "Saw a deal you like? Drop both sides into Trade and get a plain fair / you-ahead / them-ahead call in seconds.",
   landing_follow_link: "Open Trade analyzer →",
+  landing_path_title: "Buy, sell, trade, or grade — with a call",
+  landing_path_lede:
+    "Kestrel Soft Ink scores Pokémon TCG spot against a sure AI fair band. One desk for Radar deals, Trade fairness, and live board prices.",
+  landing_path_radar: "Open Kestrel Radar →",
+  landing_path_radar_meta: "Sure underpriced and overpriced singles",
+  landing_path_trade: "Open Trade Analyzer →",
+  landing_path_trade_meta: "Fair / you-ahead / them-ahead in seconds",
+  landing_path_browse: "Browse the market →",
+  landing_path_browse_meta: "Live spot, fair band, and price history",
   // Plain-language desk glossary (Phase A)
   glossary_under: "Underpriced",
   glossary_over: "Overpriced",
@@ -640,7 +649,7 @@ const hr: Dictionary = {
   nav_mobile: "Mobilna navigacija",
   landing_headline: "Kupiti — ili propustiti?",
   landing_lede:
-    "Kestrel mjeri spot naspram sigurnog AI fair pojasa za Pokémon TCG — kupi, prodaj, tradeaj ili gradeaj s jasnim pozivom, ne po osjećaju.",
+    "Pokémon TCG spot naspram sure AI fair pojasa — kupi, prodaj, tradeaj ili gradeaj s jasnim pozivom, ne po osjećaju.",
   landing_cta_market: "Pogledaj današnji deal",
   landing_cta_pro: "Kestrel Pro",
   landing_dotd_eyebrow: "Deal of the Day",
@@ -656,6 +665,15 @@ const hr: Dictionary = {
   landing_follow_lede:
     "Vidiš deal koji ti se sviđa? Ubaci obje strane u Trade i dobiješ jasan fair / ti naprijed / oni naprijed poziv u sekundama.",
   landing_follow_link: "Otvori Trade analyzer →",
+  landing_path_title: "Kupi, prodaj, tradeaj ili gradeaj — s pozivom",
+  landing_path_lede:
+    "Kestrel Soft Ink mjeri Pokémon TCG spot naspram sure AI fair pojasa. Jedan desk za Radar dealove, Trade fairness i live cijene.",
+  landing_path_radar: "Otvori Kestrel Radar →",
+  landing_path_radar_meta: "Sure podcijenjene i precjenjene single karte",
+  landing_path_trade: "Otvori Trade Analyzer →",
+  landing_path_trade_meta: "Fair / ti naprijed / oni naprijed u sekundama",
+  landing_path_browse: "Pregledaj market →",
+  landing_path_browse_meta: "Live spot, fair pojas i povijest cijena",
   glossary_under: "Podcijenjeno",
   glossary_over: "Precijenjeno",
   glossary_under_tip:

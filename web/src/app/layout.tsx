@@ -24,15 +24,27 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "Kestrel — Spot. Signal. Act.",
+  metadataBase: new URL("https://www.kestreltcg.app"),
+  title: {
+    default: "Kestrel — Spot. Signal. Act.",
+    template: "%s · Kestrel",
+  },
   description:
-    "Kestrel Soft Ink — Pokémon TCG market prices, AI signals, portfolio, and dealer tools.",
+    "Kestrel Soft Ink — Pokémon TCG market prices, AI fair-band signals, portfolio, Trade Analyzer, and dealer tools.",
   applicationName: "Kestrel",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "Kestrel",
+  },
+  openGraph: {
+    type: "website",
+    siteName: "Kestrel",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary",
   },
   icons: {
     icon: [
