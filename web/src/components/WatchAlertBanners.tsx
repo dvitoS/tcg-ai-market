@@ -19,20 +19,25 @@ import {
   readThresholdPct,
 } from "@/lib/watchAlertPrefs";
 
-const BANNER_LIMIT = 2;
+/** One banner max — stack was crowding the first viewport. */
+const BANNER_LIMIT = 1;
 
 export function WatchAlertBanners() {
   const { user, loading } = useAuth();
   const { t } = useLocale();
   const pathname = usePathname();
-  // Keep the marketing hero clean; portfolio already has its own digest.
+  // Marketing + upgrade pitch + portfolio digest already cover alerts.
   const skipFetch =
-    pathname === "/" || Boolean(pathname?.startsWith("/portfolio"));
+    pathname === "/" ||
+    Boolean(pathname?.startsWith("/portfolio")) ||
+    Boolean(pathname?.startsWith("/pro"));
   const [alerts, setAlerts] = useState<WatchAlertItem[]>([]);
+  const [extra, setExtra] = useState(0);
 
   const refresh = useCallback(async () => {
     if (!user || skipFetch) {
       setAlerts([]);
+      setExtra(0);
       return;
     }
     const dismissedIds = readDismissed();
@@ -52,9 +57,12 @@ export function WatchAlertBanners() {
           dismissed: dismissedIds,
         });
       }
-      setAlerts(digest.items.slice(0, BANNER_LIMIT));
+      const items = digest.items || [];
+      setAlerts(items.slice(0, BANNER_LIMIT));
+      setExtra(Math.max(0, items.length - BANNER_LIMIT));
     } catch {
       setAlerts([]);
+      setExtra(0);
     }
   }, [user, skipFetch]);
 
@@ -84,36 +92,56 @@ export function WatchAlertBanners() {
     };
   }, [refresh]);
 
+  // Let PWA defer while a watch banner owns the chrome slot.
+  useEffect(() => {
+    try {
+      if (alerts.length > 0) {
+        window.sessionStorage.setItem("kestrel_watch_banner", "1");
+      } else {
+        window.sessionStorage.removeItem("kestrel_watch_banner");
+      }
+      window.dispatchEvent(new Event("kestrel-watch-banner"));
+    } catch {
+      /* ignore */
+    }
+  }, [alerts.length]);
+
   if (!user || alerts.length === 0) return null;
+
+  const alert = alerts[0];
 
   return (
     <div className="watch-alert-banners" aria-live="polite">
-      {alerts.map((alert) => (
-        <div
-          key={alert.card_id}
-          className={`watch-alert-banner${alert.sure ? " is-sure" : ""}`}
+      <div
+        className={`watch-alert-banner${alert.sure ? " is-sure" : ""}`}
+      >
+        <Link
+          href={`/cards/${encodeURIComponent(alert.card_id)}`}
+          className="watch-alert-banner-body"
         >
-          <Link
-            href={`/cards/${encodeURIComponent(alert.card_id)}`}
-            className="watch-alert-banner-body"
-          >
-            {alert.sure ? "✓ " : ""}
-            {alert.body}
-          </Link>
+          {alert.sure ? "✓ " : ""}
+          {alert.body}
+          {extra > 0 ? ` · ${t("alert_banner_extra", { n: String(extra) })}` : ""}
+        </Link>
+        <div className="watch-alert-banner-actions">
+          {extra > 0 ? (
+            <Link href="/portfolio#watchlist" className="btn-ghost watch-alert-banner-dismiss">
+              {t("alert_see_all")}
+            </Link>
+          ) : null}
           <button
             type="button"
             className="btn-ghost watch-alert-banner-dismiss"
             onClick={() => {
               dismissAlert(alert.card_id);
-              setAlerts((prev) =>
-                prev.filter((row) => row.card_id !== alert.card_id),
-              );
+              setAlerts([]);
+              void refresh();
             }}
           >
             {t("alert_dismiss")}
           </button>
         </div>
-      ))}
+      </div>
     </div>
   );
 }

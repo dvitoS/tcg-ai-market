@@ -1913,6 +1913,13 @@ a {
   color: var(--accent-2);
 }
 
+.watch-alert-banner-actions {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 0.35rem;
+  align-items: center;
+}
+
 .watch-alert-banner-dismiss {
   flex-shrink: 0;
   padding: 0.3rem 0.65rem;
@@ -2960,6 +2967,11 @@ a {
   .header-actions {
     margin-left: auto;
     gap: 0.45rem;
+  }
+
+  /* Locale/currency live in the drawer — keep the mobile bar to brand + menu. */
+  .header-actions .locale-switcher {
+    display: none;
   }
 
   .header-auth {

@@ -90,12 +90,8 @@ export function EbayComps({
           <p>Active asks near this card.</p>
         </div>
         {loading ? <p className="empty-state">{t("ebay_loading")}</p> : null}
-        {error ? <p className="banner-error">{error}</p> : null}
-        {!loading && data && !data.configured ? (
-          <p className="empty-state">eBay credentials are not configured on the API.</p>
-        ) : null}
-        {!loading && data?.listings_error ? (
-          <p className="banner-error">{data.listings_error}</p>
+        {!loading && (error || (data && !data.configured) || data?.listings_error) ? (
+          <p className="empty-state">{t("ebay_unavailable")}</p>
         ) : null}
         {!loading && data?.configured && !data.listings_error && listings.length === 0 ? (
           <p className="empty-state">{t("ebay_empty")}</p>
