@@ -211,6 +211,11 @@ class PsaGradeStats(BaseModel):
     has_history_series: bool = False
     period_key: str | None = None
     sales_count: int | float | None = None
+    price_status: str | None = None
+    last_sale_at: int | float | None = None
+    price_expires_at: int | float | None = None
+    price: float | None = None
+    canonical: str | None = None
 
 
 # Backward-compatible alias used by existing OpenAPI clients.

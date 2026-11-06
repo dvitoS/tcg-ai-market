@@ -100,6 +100,11 @@ export type CardPriceSourcesResponse = {
     has_history_series: boolean;
     period_key?: string | null;
     sales_count?: number | null;
+    price_status?: string | null;
+    last_sale_at?: number | null;
+    price_expires_at?: number | null;
+    price?: number | null;
+    canonical?: string | null;
   };
   psa9?: HistoryPoint[];
   psa9_error?: string | null;
@@ -107,6 +112,11 @@ export type CardPriceSourcesResponse = {
     has_history_series: boolean;
     period_key?: string | null;
     sales_count?: number | null;
+    price_status?: string | null;
+    last_sale_at?: number | null;
+    price_expires_at?: number | null;
+    price?: number | null;
+    canonical?: string | null;
   };
   grades?: "none" | "psa10" | "all";
   cache?: "hit" | "miss" | null;

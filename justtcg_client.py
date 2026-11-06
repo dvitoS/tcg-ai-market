@@ -829,6 +829,7 @@ def __getattr__(name: str):
         "pick_psa_variant",
         "psa10_history_for_card",
         "psa9_history_for_card",
+        "psa_histories_for_card",
         "psa_history_for_card",
         "psa10_stats_from_variant",
         "psa_stats_from_variant",
