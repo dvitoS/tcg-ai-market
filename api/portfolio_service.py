@@ -246,18 +246,22 @@ def enrich_lots(lots: list[dict[str, Any]]) -> list[dict[str, Any]]:
         normalize_condition,
         normalize_printing,
     )
+    from services.variant_spot import (
+        needs_variant_lookup,
+        resolve_variant_spots,
+        spot_key,
+    )
 
     quotes, encodings = _board_indexes()
-    enriched: list[dict[str, Any]] = []
+    # First pass: normalize + NM spots; batch JustTCG for non-NM/non-Normal.
+    prepared: list[dict[str, Any]] = []
+    variant_reqs: list[dict[str, Any]] = []
     for lot in lots:
         card_id = str(lot.get("card_id") or "")
         quote = quotes.get(card_id) or {}
-        qty = int(lot.get("quantity") or 0)
-        cost = float(lot.get("purchase_price") or 0.0)
         is_sealed = card_id.startswith("sealed:")
         condition = "NM" if is_sealed else normalize_condition(lot.get("condition"))
         printing = "Normal" if is_sealed else normalize_printing(lot.get("printing"))
-        factor = 1.0 if is_sealed else lot_price_factor(condition=condition, printing=printing)
         nm_spot = quote.get("price")
         if nm_spot is None:
             nm_spot = lot.get("market_price")
@@ -265,12 +269,72 @@ def enrich_lots(lots: list[dict[str, Any]]) -> list[dict[str, Any]]:
             nm_spot_f = float(nm_spot) if nm_spot is not None else 0.0
         except (TypeError, ValueError):
             nm_spot_f = 0.0
+        prepared.append(
+            {
+                "lot": lot,
+                "card_id": card_id,
+                "quote": quote,
+                "is_sealed": is_sealed,
+                "condition": condition,
+                "printing": printing,
+                "nm_spot_f": nm_spot_f,
+            }
+        )
+        if not is_sealed and needs_variant_lookup(condition, printing):
+            variant_reqs.append(
+                {
+                    "card_id": card_id,
+                    "condition": condition,
+                    "printing": printing,
+                    "nm_spot": nm_spot_f,
+                }
+            )
+
+    variant_map = resolve_variant_spots(variant_reqs) if variant_reqs else {}
+
+    enriched: list[dict[str, Any]] = []
+    for row in prepared:
+        lot = row["lot"]
+        card_id = row["card_id"]
+        quote = row["quote"]
+        is_sealed = row["is_sealed"]
+        condition = row["condition"]
+        printing = row["printing"]
+        nm_spot_f = row["nm_spot_f"]
+        qty = int(lot.get("quantity") or 0)
+        cost = float(lot.get("purchase_price") or 0.0)
+        factor = 1.0 if is_sealed else lot_price_factor(condition=condition, printing=printing)
+        spot_source = "board"
+        variant_id = None
         if is_sealed:
             spot_f = nm_spot_f
+        elif needs_variant_lookup(condition, printing):
+            hit = variant_map.get(spot_key(card_id, condition, printing)) or {}
+            if hit.get("price") is not None:
+                try:
+                    spot_f = float(hit["price"])
+                except (TypeError, ValueError):
+                    spot_f = float(
+                        adjust_nm_price(nm_spot_f, condition=condition, printing=printing)
+                        or 0.0
+                    )
+                    spot_source = "multiplier"
+                else:
+                    spot_source = str(hit.get("source") or "multiplier")
+                    variant_id = hit.get("variant_id")
+                    try:
+                        factor = float(hit.get("price_factor") or factor)
+                    except (TypeError, ValueError):
+                        pass
+            else:
+                spot_f = float(
+                    adjust_nm_price(nm_spot_f, condition=condition, printing=printing)
+                    or 0.0
+                )
+                spot_source = "multiplier"
         else:
-            spot_f = float(
-                adjust_nm_price(nm_spot_f, condition=condition, printing=printing) or 0.0
-            )
+            spot_f = nm_spot_f
+            spot_source = "board"
         invested = qty * cost
         market_value = qty * spot_f
         pnl = market_value - invested
@@ -283,6 +347,7 @@ def enrich_lots(lots: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if is_sealed:
             predicted_f = predicted_nm
         else:
+            # AI fair stays on NM×multiplier — model is trained on NM board spots.
             predicted_f = float(
                 adjust_nm_price(predicted_nm, condition=condition, printing=printing)
                 or 0.0
@@ -302,6 +367,8 @@ def enrich_lots(lots: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 ),
                 "nm_market_price": nm_spot_f,
                 "price_factor": factor,
+                "spot_source": spot_source,
+                "variant_id": variant_id,
                 "market_price": spot_f,
                 "current_price": spot_f,
                 "invested": invested,

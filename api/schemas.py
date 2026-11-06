@@ -236,6 +236,8 @@ class PortfolioLot(BaseModel):
     image_url: str | None = None
     nm_market_price: float | None = None
     price_factor: float | None = None
+    spot_source: str | None = None  # board | justtcg_variant | multiplier
+    variant_id: str | None = None
     market_price: float | None = None
     current_price: float | None = None
     invested: float | None = None
@@ -504,6 +506,8 @@ class TradeLineOut(BaseModel):
     condition: str = "NM"
     printing: str = "Normal"
     price_factor: float = 1.0
+    spot_source: str | None = None
+    variant_id: str | None = None
     matched: bool = False
     name: str | None = None
     set_name: str | None = None

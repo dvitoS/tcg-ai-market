@@ -78,7 +78,7 @@ These close the loop we actually need before marketing spend. Do **not** reorder
 | C1 | **JustTCG set matching fix** — shipping | No more silent `rows[0]` → `alternate-art-promos`; use card `set_name` + code-token match; golden tests. |
 | C2 | **Spot / history QA panel** — shipping | Data health: history coverage, fresh %, unmatched sets, sure rows (live + nightly snapshot). |
 | C3 | **Nightly SLO** — shipping | Soft wall-clock budget + quotes-written gate; board TTL cache + API warm so cold Radar stays usable. |
-| C4 | **Variant IDs (stretch)** | JustTCG printing/condition variants when matching is stable — replaces coarse NM multipliers where possible. |
+| C4 | **Variant IDs** — shipping | Portfolio/Trade spots use JustTCG condition×printing when `tcgplayer_id` resolves; else NM×multiplier fallback. |
 
 **Exit check:** random Radar UNDER spots survive manual TCGplayer/eBay sniff test; unmatched-set rate tracked and trending down.
 
@@ -110,5 +110,5 @@ Ship these **after** A–C show Pro trial→paid and returning Radar/Trade use. 
 
 ## Suggested next move
 
-**Phase C3 shipping** — nightly SLO + board TTL/warm.  
-Next: **C4 Variant IDs** (stretch) or hold for Pro retention before Phase D.
+**Phase C complete (C1–C4 shipping).**  
+Next: hold for Pro retention signals, then Phase D (PWA / OCR / alerts) only after trial→paid.

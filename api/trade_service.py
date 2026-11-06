@@ -30,6 +30,7 @@ def _line(
     quantity: int = 1,
     condition: str = "NM",
     printing: str = "Normal",
+    variant_map: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     from services.lot_price_adjust import (
         adjust_nm_price,
@@ -37,6 +38,7 @@ def _line(
         normalize_condition,
         normalize_printing,
     )
+    from services.variant_spot import needs_variant_lookup, spot_key
 
     qty = max(1, int(quantity or 1))
     cond = normalize_condition(condition)
@@ -50,6 +52,8 @@ def _line(
             "condition": cond,
             "printing": print_,
             "price_factor": factor,
+            "spot_source": "multiplier",
+            "variant_id": None,
             "matched": False,
             "name": None,
             "set_name": None,
@@ -72,7 +76,26 @@ def _line(
             fair = float(nm_spot) * (1.0 + float(card["expected_change_pct"]) / 100.0)
         except (TypeError, ValueError):
             fair = None
-    spot = adjust_nm_price(nm_spot, condition=cond, printing=print_)
+    spot_source = "board"
+    variant_id = None
+    if needs_variant_lookup(cond, print_) and variant_map is not None:
+        hit = variant_map.get(spot_key(card["id"], cond, print_)) or {}
+        if hit.get("price") is not None:
+            try:
+                spot = float(hit["price"])
+                spot_source = str(hit.get("source") or "multiplier")
+                variant_id = hit.get("variant_id")
+                factor = float(hit.get("price_factor") or factor)
+            except (TypeError, ValueError):
+                spot = adjust_nm_price(nm_spot, condition=cond, printing=print_)
+                spot_source = "multiplier"
+        else:
+            spot = adjust_nm_price(nm_spot, condition=cond, printing=print_)
+            spot_source = "multiplier"
+    else:
+        spot = adjust_nm_price(nm_spot, condition=cond, printing=print_)
+        spot_source = "board" if not needs_variant_lookup(cond, print_) else "multiplier"
+    # Fair stays NM×multiplier — AI board is NM-trained.
     fair = adjust_nm_price(fair, condition=cond, printing=print_)
     lo = row.get("pred_lo_pct")
     hi = row.get("pred_hi_pct")
@@ -92,6 +115,8 @@ def _line(
         "condition": cond,
         "printing": print_,
         "price_factor": factor,
+        "spot_source": spot_source,
+        "variant_id": variant_id,
         "matched": True,
         "name": card.get("name"),
         "set_name": card.get("set_name"),
@@ -130,6 +155,32 @@ def analyze_trade(
     fair_band_pct: float = FAIR_SPOT_BAND_PCT,
 ) -> dict[str, Any]:
     """Score a trade from YOUR perspective: you give `you`, receive `them`."""
+    from services.variant_spot import needs_variant_lookup, resolve_variant_spots
+
+    variant_reqs: list[dict[str, Any]] = []
+    for item in list(you) + list(them):
+        cid = str(item.get("card_id") or "").strip()
+        if not cid:
+            continue
+        cond = str(item.get("condition") or "NM")
+        print_ = str(item.get("printing") or "Normal")
+        if not needs_variant_lookup(cond, print_):
+            continue
+        row = _match_card(board, cid)
+        nm_spot = None
+        if row is not None:
+            card = row_to_card(row)
+            nm_spot = card.get("price")
+        variant_reqs.append(
+            {
+                "card_id": cid,
+                "condition": cond,
+                "printing": print_,
+                "nm_spot": nm_spot,
+            }
+        )
+    variant_map = resolve_variant_spots(variant_reqs) if variant_reqs else {}
+
     you_lines = [
         _line(
             board,
@@ -137,6 +188,7 @@ def analyze_trade(
             quantity=int(item.get("quantity") or 1),
             condition=str(item.get("condition") or "NM"),
             printing=str(item.get("printing") or "Normal"),
+            variant_map=variant_map,
         )
         for item in you
         if str(item.get("card_id") or "").strip()
@@ -148,6 +200,7 @@ def analyze_trade(
             quantity=int(item.get("quantity") or 1),
             condition=str(item.get("condition") or "NM"),
             printing=str(item.get("printing") or "Normal"),
+            variant_map=variant_map,
         )
         for item in them
         if str(item.get("card_id") or "").strip()

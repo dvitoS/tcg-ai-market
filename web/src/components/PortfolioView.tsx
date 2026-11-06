@@ -797,7 +797,9 @@ export function PortfolioView() {
                     <p className="lot-meta">
                       {lot.quantity}× · {lot.condition || "NM"} ·{" "}
                       {lot.printing || "Normal"}
-                      {lot.price_factor != null && Number(lot.price_factor) !== 1
+                      {lot.spot_source === "justtcg_variant"
+                        ? ` · ${t("port_spot_live")}`
+                        : lot.price_factor != null && Number(lot.price_factor) !== 1
                         ? ` · ×${Number(lot.price_factor).toFixed(2)}`
                         : ""}
                       {lot.grade ? ` · ${lot.grade}` : ""}
