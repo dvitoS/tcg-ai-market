@@ -207,6 +207,7 @@ class CardPriceSourcesResponse(BaseModel):
     psa9: list[HistoryPoint] = Field(default_factory=list)
     psa9_error: str | None = None
     psa9_stats: PsaGradeStats = Field(default_factory=PsaGradeStats)
+    grades: Literal["none", "psa10", "all"] = "none"
     cache: Literal["hit", "miss"] | None = None
 
 

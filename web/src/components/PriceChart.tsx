@@ -135,9 +135,11 @@ export function PriceChart({
     }
     let cancelled = false;
     // Keep chart interactive on SSR history; only show loading if we have nothing yet.
+    // NM/DB first — skip graded JustTCG so browsing many details stays cheap.
     if (points.length === 0) setLoading(true);
     setError(null);
-    fetchCardPriceSources(cardId)
+    setSources(null);
+    fetchCardPriceSources(cardId, { grades: "none" })
       .then((data) => {
         if (!cancelled) setSources(data);
       })
@@ -153,6 +155,42 @@ export function PriceChart({
       cancelled = true;
     };
   }, [cardId, points.length]);
+
+  // Deferred PSA 10 only when the series is visible (default on) — never PSA 9.
+  useEffect(() => {
+    if (!cardId || !sources || !visible.psa10) return;
+    if (sources.grades === "psa10" || sources.grades === "all") return;
+    if ((sources.psa10?.length ?? 0) > 0 || sources.psa10_error) return;
+    let cancelled = false;
+    fetchCardPriceSources(cardId, { grades: "psa10" })
+      .then((graded) => {
+        if (cancelled) return;
+        setSources((prev) => {
+          if (!prev) return graded;
+          return {
+            ...prev,
+            psa10: graded.psa10,
+            psa10_error: graded.psa10_error,
+            psa10_stats: graded.psa10_stats,
+            grades: graded.grades ?? "psa10",
+            tcgplayer: prev.tcgplayer?.length
+              ? prev.tcgplayer
+              : graded.tcgplayer,
+            justtcg: prev.justtcg?.length ? prev.justtcg : graded.justtcg,
+            justtcg_fallback: prev.justtcg_fallback || graded.justtcg_fallback,
+            justtcg_from_db: prev.justtcg_from_db || graded.justtcg_from_db,
+            justtcg_error: prev.justtcg_error ?? graded.justtcg_error,
+            tcgplayer_id: prev.tcgplayer_id ?? graded.tcgplayer_id,
+          };
+        });
+      })
+      .catch(() => {
+        /* soft fail — NM chart still works */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [cardId, sources, visible.psa10]);
 
   const tcgAll = sources?.tcgplayer?.length ? sources.tcgplayer : points;
   const justAll = sources?.justtcg || [];

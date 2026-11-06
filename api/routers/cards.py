@@ -96,9 +96,14 @@ def card_history(
 def card_price_sources(
     card_id: str,
     limit: int = Query(default=180, ge=7, le=730),
+    grades: str = Query(
+        default="none",
+        description="Graded JustTCG prints: none (default), psa10, or all (PSA10+PSA9).",
+    ),
 ) -> CardPriceSourcesResponse:
-    payload = build_card_price_sources(str(card_id), limit=limit)
+    payload = build_card_price_sources(str(card_id), limit=limit, grades=grades)
     cache_flag = payload.get("cache")
+    grades_mode = payload.get("grades")
     return CardPriceSourcesResponse(
         card_id=str(payload["card_id"]),
         name=str(payload["name"]),
@@ -116,6 +121,7 @@ def card_price_sources(
         psa9=[HistoryPoint(**p) for p in payload.get("psa9") or []],
         psa9_error=payload.get("psa9_error"),
         psa9_stats=PsaGradeStats(**(payload.get("psa9_stats") or {})),
+        grades=grades_mode if grades_mode in ("none", "psa10", "all") else "none",
         cache=cache_flag if cache_flag in ("hit", "miss") else None,
     )
 
