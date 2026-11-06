@@ -292,6 +292,20 @@ export function PriceChart({
       {sources?.justtcg_fallback ? (
         <p className="chart-sources-status">{t("chart_just_fallback")}</p>
       ) : null}
+      {sources?.psa10_error ? (
+        <p className="chart-sources-status">
+          {/rate.?limit/i.test(sources.psa10_error)
+            ? t("chart_psa_rate_limited")
+            : t("chart_psa_unavailable")}
+        </p>
+      ) : null}
+      {!loading &&
+      sources &&
+      !sources.psa10_error &&
+      (sources.psa10?.length ?? 0) === 0 &&
+      (sources.grades === "psa10" || sources.grades === "all") ? (
+        <p className="chart-sources-status">{t("chart_psa_empty")}</p>
+      ) : null}
 
       <div className="chart-canvas">
         <ResponsiveContainer width="100%" height={320}>
