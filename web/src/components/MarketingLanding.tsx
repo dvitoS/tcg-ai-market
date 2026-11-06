@@ -45,7 +45,7 @@ export function MarketingLanding() {
           {t("landing_follow_title")}
         </h2>
         <p className="landing-follow-lede">{t("landing_follow_lede")}</p>
-        <Link href="/browse#signals" className="landing-follow-link">
+        <Link href="/trade" className="landing-follow-link">
           {t("landing_follow_link")}
         </Link>
       </section>
