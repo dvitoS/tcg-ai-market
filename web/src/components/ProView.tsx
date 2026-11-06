@@ -121,6 +121,18 @@ export function ProView({
         <li>{t("pro_f2")}</li>
         <li>{t("pro_f3")}</li>
       </ul>
+
+      <section className="pro-guides" aria-labelledby="pro-guides-title">
+        <h2 id="pro-guides-title" className="pro-guides-title">
+          {t("pro_guides_title")}
+        </h2>
+        <nav className="pro-guides-nav" aria-label={t("pro_guides_title")}>
+          <Link href="/guides/pokemon-tcg-fair-value">{t("landing_guides_fair")}</Link>
+          <Link href="/guides/should-i-grade">{t("landing_guides_grade")}</Link>
+          <Link href="/guides/trade-fairness">{t("landing_guides_trade")}</Link>
+          <Link href="/guides">{t("guides_all")}</Link>
+        </nav>
+      </section>
     </main>
   );
 }

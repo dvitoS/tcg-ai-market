@@ -3964,11 +3964,202 @@ a {
   line-height: 1.35;
 }
 
+.landing-guides {
+  width: min(40rem, 100%);
+  padding: 0.15rem 0 0.35rem;
+  animation: landing-rise 0.8s ease both;
+  animation-delay: 0.16s;
+}
+
 .landing-follow {
   width: min(40rem, 100%);
   padding: 0.15rem 0 1.5rem;
   animation: landing-rise 0.8s ease both;
   animation-delay: 0.2s;
+}
+
+.guide-page {
+  width: min(42rem, 100%);
+  margin: 0 auto;
+  padding: 0.5rem 0 3rem;
+  animation: rise 0.55s ease both;
+}
+
+.guide-crumb {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+  margin: 0 0 1.25rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.guide-crumb a {
+  color: var(--accent-2);
+}
+
+.guide-crumb a:hover {
+  color: var(--text);
+}
+
+.guide-header {
+  margin-bottom: 1.75rem;
+}
+
+.guide-title {
+  margin: 0.2rem 0 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.85rem, 4.5vw, 2.55rem);
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+  color: var(--text);
+}
+
+.guide-lede {
+  margin: 0.85rem 0 0;
+  color: var(--muted);
+  font-size: 1.05rem;
+  line-height: 1.55;
+}
+
+.guide-prose {
+  display: grid;
+  gap: 1.55rem;
+}
+
+.guide-section h2 {
+  margin: 0 0 0.55rem;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.guide-section p {
+  margin: 0 0 0.75rem;
+  color: rgba(243, 238, 230, 0.88);
+  line-height: 1.6;
+  font-size: 1rem;
+}
+
+.guide-section p:last-child {
+  margin-bottom: 0;
+}
+
+.guide-faq {
+  margin-top: 2rem;
+  padding-top: 1.35rem;
+  border-top: 1px solid rgba(46, 41, 36, 0.9);
+}
+
+.guide-faq h2 {
+  margin: 0 0 0.85rem;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+}
+
+.guide-faq-item {
+  margin: 0 0 1rem;
+}
+
+.guide-faq-item dt {
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.25rem;
+}
+
+.guide-faq-item dd {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.guide-actions {
+  margin-top: 1.75rem;
+}
+
+.guide-more {
+  margin: 1.5rem 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.guide-more a {
+  color: var(--accent-2);
+}
+
+.guide-more a:hover {
+  color: var(--text);
+}
+
+.guide-index {
+  display: grid;
+  gap: 0.15rem;
+  margin-top: 0.35rem;
+}
+
+.guide-index-link {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.95rem 0;
+  border-top: 1px solid rgba(46, 41, 36, 0.9);
+  transition: transform 0.18s ease;
+}
+
+.guide-index-link:last-child {
+  border-bottom: 1px solid rgba(46, 41, 36, 0.9);
+}
+
+.guide-index-link:hover {
+  transform: translateX(3px);
+}
+
+.guide-index-title {
+  color: var(--accent-2);
+  font-weight: 600;
+  font-size: 1.02rem;
+  line-height: 1.3;
+}
+
+.guide-index-link:hover .guide-index-title {
+  color: var(--text);
+}
+
+.guide-index-meta {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.pro-guides {
+  margin-top: 2rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(46, 41, 36, 0.9);
+}
+
+.pro-guides-title {
+  margin: 0 0 0.65rem;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.pro-guides-nav {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.pro-guides-nav a {
+  color: var(--accent-2);
+  font-weight: 560;
+  font-size: 0.95rem;
+}
+
+.pro-guides-nav a:hover {
+  color: var(--text);
 }
 
 .landing-follow-title {

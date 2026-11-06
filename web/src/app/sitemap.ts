@@ -29,6 +29,30 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.85,
     },
     {
+      url: absoluteUrl("/guides"),
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.82,
+    },
+    {
+      url: absoluteUrl("/guides/pokemon-tcg-fair-value"),
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
+      url: absoluteUrl("/guides/should-i-grade"),
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.78,
+    },
+    {
+      url: absoluteUrl("/guides/trade-fairness"),
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.78,
+    },
+    {
       url: absoluteUrl("/radar"),
       lastModified: now,
       changeFrequency: "daily",
