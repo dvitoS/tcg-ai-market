@@ -112,6 +112,21 @@ export type CardPriceSourcesResponse = {
   cache?: "hit" | "miss" | null;
 };
 
+export type IdentifyMatch = {
+  score: number;
+  reasons: string[];
+  card: CatalogCard;
+};
+
+export type IdentifyResponse = {
+  matches: IdentifyMatch[];
+  total: number;
+  source: "supabase" | "demo" | "empty";
+  name_hints: string[];
+  number?: string | null;
+  collector?: string | null;
+};
+
 export type SealedQuoteItem = {
   card_id: string;
   name: string;

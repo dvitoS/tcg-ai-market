@@ -7,6 +7,7 @@ import type {
   CardPriceSourcesResponse,
   CatalogMode,
   CatalogResponse,
+  IdentifyResponse,
   DataHealthResponse,
   DealerResponse,
   DealerStatus,
@@ -100,6 +101,25 @@ export async function readApiError(
     return fallback;
   }
   return trimmed || fallback;
+}
+
+export async function identifyFromOcrText(
+  text: string,
+  limit = 8,
+): Promise<IdentifyResponse> {
+  const res = await fetch(apiUrl("/api/identify"), {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    cache: "no-store",
+    body: JSON.stringify({ text, limit }),
+  });
+  if (!res.ok) {
+    throw new Error(`Identify failed (${res.status})`);
+  }
+  return res.json() as Promise<IdentifyResponse>;
 }
 
 export async function fetchCatalog(

@@ -44,6 +44,7 @@ export function SiteHeader() {
 
   const moreNav = useMemo<NavItem[]>(
     () => [
+      { href: "/identify", labelKey: "nav_identify" },
       { href: "/scanner", labelKey: "nav_scanner" },
       { href: "/binder", labelKey: "nav_binder" },
       { href: "/dealer", labelKey: "nav_dealer" },

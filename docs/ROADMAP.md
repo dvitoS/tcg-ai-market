@@ -86,8 +86,8 @@ These close the loop we actually need before marketing spend. Do **not** reorder
 
 | ID | Item | Note |
 | --- | --- | --- |
-| D1 | PWA + installable Soft Ink | **Shipping** — manifest, home-screen install, offline shell |
-| D2 | Camera OCR scan | Photo ID → card → **same** fair/edge desk (OCR is input, not the product) |
+| D1 | PWA + installable Soft Ink | **Done** — manifest, home-screen install, offline shell |
+| D2 | Camera OCR scan | **Shipping** — `/identify` camera/upload → OCR → catalog match → card detail |
 | D3 | #5 Alert channels | **Telegram skipped** for now; push deferred. Email + Discord already live. |
 | D4 | Cardmarket / EU pricing | HR/EU dual-currency spots |
 | D5 | Seller inventory sync | TCGplayer / CSV auto for dealer desk |
@@ -109,4 +109,4 @@ These close the loop we actually need before marketing spend. Do **not** reorder
 
 ## Suggested next move
 
-**D1 PWA shipping.** Next: **D2 Camera OCR** (Telegram alerts skipped).
+**D2 Camera OCR shipping.** Next: **D4 Cardmarket / EU** (D3 Telegram skipped).
