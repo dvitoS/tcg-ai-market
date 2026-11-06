@@ -150,36 +150,131 @@ def normalize_card_number(value: str | None) -> str:
     return text.lstrip("0") or "0"
 
 
+# Soft Ink lot labels → JustTCG API condition / printing strings.
+CONDITION_TO_JUSTTCG: dict[str, str] = {
+    "NM": "Near Mint",
+    "LP": "Lightly Played",
+    "MP": "Moderately Played",
+    "HP": "Heavily Played",
+    "DMG": "Damaged",
+}
+PRINTING_TO_JUSTTCG: dict[str, str] = {
+    "Normal": "Normal",
+    "Reverse": "Reverse Holofoil",
+    "Holo": "Holofoil",
+}
+
+
+def _variant_condition(v: dict[str, Any]) -> str:
+    return str(v.get("condition") or "").strip().lower()
+
+
+def _variant_printing(v: dict[str, Any]) -> str:
+    return str(v.get("printing") or "").strip().lower()
+
+
+def _variant_has_price(v: dict[str, Any]) -> bool:
+    price = v.get("price")
+    if price is None:
+        price = v.get("lastKnownPrice")
+    try:
+        return price is not None and float(price) > 0
+    except (TypeError, ValueError):
+        return False
+
+
+def _condition_matches(raw: str, wanted: str) -> bool:
+    text = (raw or "").strip().lower()
+    key = (wanted or "").strip().lower()
+    if not text or not key:
+        return False
+    aliases = {
+        "nm": ("near mint", "nm", "near_mint"),
+        "near mint": ("near mint", "nm", "near_mint"),
+        "lp": ("lightly played", "lp", "lightly_played"),
+        "lightly played": ("lightly played", "lp", "lightly_played"),
+        "mp": ("moderately played", "mp", "moderately_played"),
+        "moderately played": ("moderately played", "mp", "moderately_played"),
+        "hp": ("heavily played", "hp", "heavily_played"),
+        "heavily played": ("heavily played", "hp", "heavily_played"),
+        "dmg": ("damaged", "dmg"),
+        "damaged": ("damaged", "dmg"),
+    }
+    needles = aliases.get(key, (key,))
+    return any(n in text or text == n for n in needles)
+
+
+def _printing_matches(raw: str, wanted: str) -> bool:
+    text = (raw or "").strip().lower()
+    key = (wanted or "").strip().lower()
+    if not text or not key:
+        return False
+    if key in {"normal", "nonfoil", "non-foil"}:
+        return "normal" in text or text in {"normal", "nonfoil", "non-foil"}
+    if key in {"reverse", "reverse holo", "reverse holofoil"}:
+        return "reverse" in text
+    if key in {"holo", "holofoil", "foil"}:
+        return ("holo" in text or "foil" in text) and "reverse" not in text
+    return key in text or text == key
+
+
 def pick_nm_variant(variants: list[dict[str, Any]]) -> dict[str, Any] | None:
     """Preferiraj Near Mint Holofoil, zatim NM bilo koji printing, zatim prva s cijenom."""
     if not variants:
         return None
 
-    def cond(v: dict[str, Any]) -> str:
-        return str(v.get("condition") or "").strip().lower()
-
-    def printing(v: dict[str, Any]) -> str:
-        return str(v.get("printing") or "").strip().lower()
-
-    def has_price(v: dict[str, Any]) -> bool:
-        price = v.get("price")
-        if price is None:
-            price = v.get("lastKnownPrice")
-        try:
-            return price is not None and float(price) > 0
-        except (TypeError, ValueError):
-            return False
-
-    nm = [v for v in variants if "near mint" in cond(v) or cond(v) in {"nm", "near_mint"}]
+    nm = [
+        v
+        for v in variants
+        if _condition_matches(_variant_condition(v), "Near Mint")
+    ]
     pool = nm or variants
     for preferred in ("holofoil", "holo", "reverse holofoil", "reverse holo", "normal"):
         for variant in pool:
-            if preferred in printing(variant) and has_price(variant):
+            if preferred in _variant_printing(variant) and _variant_has_price(variant):
                 return variant
     for variant in pool:
-        if has_price(variant):
+        if _variant_has_price(variant):
             return variant
     return pool[0] if pool else None
+
+
+def pick_variant(
+    variants: list[dict[str, Any]],
+    *,
+    condition: str = "NM",
+    printing: str = "Normal",
+) -> dict[str, Any] | None:
+    """Pick the JustTCG variant matching Soft Ink condition + printing labels."""
+    if not variants:
+        return None
+    from services.lot_price_adjust import normalize_condition, normalize_printing
+
+    cond = normalize_condition(condition)
+    print_ = normalize_printing(printing)
+    wanted_cond = CONDITION_TO_JUSTTCG.get(cond, "Near Mint")
+    wanted_print = PRINTING_TO_JUSTTCG.get(print_, "Normal")
+
+    matched = [
+        v
+        for v in variants
+        if _condition_matches(_variant_condition(v), wanted_cond)
+        and _printing_matches(_variant_printing(v), wanted_print)
+    ]
+    for variant in matched:
+        if _variant_has_price(variant):
+            return variant
+    if matched:
+        return matched[0]
+
+    # Soft fallback: same condition, any printing with a price.
+    same_cond = [
+        v for v in variants if _condition_matches(_variant_condition(v), wanted_cond)
+    ]
+    for variant in same_cond:
+        if _variant_has_price(variant):
+            return variant
+    return None
 
 
 def variant_price_usd(variant: dict[str, Any] | None) -> float | None:
@@ -629,6 +724,40 @@ def batch_by_tcgplayer_ids(tcgplayer_ids: list[str]) -> list[dict[str, Any]]:
     # History duration je query na GET; za batch pokušaj kao query param ako API podržava.
     payload = _post(
         f"/cards?priceHistoryDuration={JUSTTCG_HISTORY_DURATION}&include_price_history=true",
+        body,
+    )
+    return list(payload.get("data") or [])
+
+
+def batch_variant_lookups(
+    items: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """POST batch lookup with per-item condition + printing (max JUSTTCG_BATCH_SIZE).
+
+    Each item: {tcgplayerId, condition?, printing?} using Soft Ink or JustTCG labels.
+    """
+    if not items:
+        return []
+    from services.lot_price_adjust import normalize_condition, normalize_printing
+
+    body: list[dict[str, str]] = []
+    for raw in items[:JUSTTCG_BATCH_SIZE]:
+        tid = str(raw.get("tcgplayerId") or raw.get("tcgplayer_id") or "").strip()
+        if not tid:
+            continue
+        cond = normalize_condition(raw.get("condition") or "NM")
+        print_ = normalize_printing(raw.get("printing") or "Normal")
+        body.append(
+            {
+                "tcgplayerId": tid,
+                "condition": CONDITION_TO_JUSTTCG.get(cond, "Near Mint"),
+                "printing": PRINTING_TO_JUSTTCG.get(print_, "Normal"),
+            }
+        )
+    if not body:
+        return []
+    payload = _post(
+        f"/cards?priceHistoryDuration={JUSTTCG_HISTORY_DURATION}",
         body,
     )
     return list(payload.get("data") or [])
