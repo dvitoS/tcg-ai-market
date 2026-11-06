@@ -257,11 +257,17 @@ def attach_price_change_7d(quotes: pd.DataFrame, history: pd.DataFrame) -> pd.Da
 def build_market_board(
     *,
     persist: bool = True,
+    history: pd.DataFrame | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, object]:
-    """Full rebuild: history → model → quotes. Used by nightly and slow-path boot."""
+    """Full rebuild: history → model → quotes. Used by nightly and slow-path boot.
+
+    Pass a preloaded ``history`` frame (e.g. from nightly retrain) to skip another
+    full Supabase price_history pull (~20–30m on large catalogs).
+    """
     from services.quotes_store import save_market_quotes
 
-    history = load_history()
+    if history is None:
+        history = load_history()
     featured, encoders = add_time_features(history)
     model, _trained_now, meta = _resolve_model(featured, encoders=encoders)
     quotes = assign_signals(
