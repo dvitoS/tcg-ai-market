@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import os
+from typing import Annotated, Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from api.catalog_service import load_board
+from api.deps import require_ops_user
 from api.price_sources_service import clear_price_sources_cache
 from api.schemas import DataHealthResponse, HealthResponse
 from justtcg_client import justtcg_api_key
@@ -44,7 +46,9 @@ def health() -> HealthResponse:
 
 
 @router.get("/data-health", response_model=DataHealthResponse)
-def data_health() -> DataHealthResponse:
+def data_health(
+    _ops: Annotated[dict[str, Any], Depends(require_ops_user)],
+) -> DataHealthResponse:
     summary = justtcg_observability_summary()
     try:
         from services.spot_qa import data_health_spot_fields
@@ -99,8 +103,10 @@ def data_health() -> DataHealthResponse:
 
 
 @router.post("/data-health/reset", response_model=DataHealthResponse)
-def data_health_reset() -> DataHealthResponse:
+def data_health_reset(
+    ops: Annotated[dict[str, Any], Depends(require_ops_user)],
+) -> DataHealthResponse:
     """Clear Soft Ink price-source TTL cache + zero process JustTCG counters."""
     clear_price_sources_cache()
     reset_justtcg_observability()
-    return data_health()
+    return data_health(ops)

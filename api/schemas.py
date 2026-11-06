@@ -76,6 +76,7 @@ class AuthUser(BaseModel):
     id: str
     email: str | None = None
     dev: bool = False
+    ops: bool = False
 
 
 class AuthSessionResponse(BaseModel):

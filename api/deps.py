@@ -11,6 +11,7 @@ from supabase import Client, create_client
 from config import DEV_USER_EMAIL, DEV_USER_ID, get_supabase_auth_credentials, normalize_supabase_url
 
 from api.demo_mode import demo_mode
+from services.ops import is_ops_user, with_ops_flag
 
 LOG = logging.getLogger("kestrel.api.auth")
 
@@ -28,7 +29,9 @@ def auth_client() -> Client:
 
 
 def _dev_user() -> dict[str, Any]:
-    return {"id": str(DEV_USER_ID), "email": str(DEV_USER_EMAIL), "dev": True}
+    return with_ops_flag(
+        {"id": str(DEV_USER_ID), "email": str(DEV_USER_EMAIL), "dev": True}
+    )
 
 
 def _user_from_payload(payload: Any) -> dict[str, Any] | None:
@@ -39,12 +42,16 @@ def _user_from_payload(payload: Any) -> dict[str, Any] | None:
         email = payload.get("email")
         if not user_id:
             return None
-        return {"id": user_id, "email": str(email) if email else None, "dev": False}
+        return with_ops_flag(
+            {"id": user_id, "email": str(email) if email else None, "dev": False}
+        )
     user_id = str(getattr(payload, "id", "") or "").strip()
     if not user_id:
         return None
     email = getattr(payload, "email", None)
-    return {"id": user_id, "email": str(email) if email else None, "dev": False}
+    return with_ops_flag(
+        {"id": user_id, "email": str(email) if email else None, "dev": False}
+    )
 
 
 def optional_user(
@@ -82,5 +89,17 @@ def require_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Sign in required.",
             headers={"WWW-Authenticate": "Bearer"},
+        )
+    return user
+
+
+def require_ops_user(
+    user: Annotated[dict[str, Any], Depends(require_user)],
+) -> dict[str, Any]:
+    """System status / data-health — operator allowlist only."""
+    if not is_ops_user(user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Ops access required.",
         )
     return user
