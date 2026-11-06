@@ -162,6 +162,8 @@ export type AuthUser = {
   id: string;
   email?: string | null;
   dev?: boolean;
+  /** Soft Ink operator — System status / data-health. */
+  ops?: boolean;
 };
 
 export type PortfolioLot = {

@@ -21,10 +21,32 @@ from api.schemas import (
     UpdatePasswordRequest,
 )
 from config import DEV_USER_EMAIL, DEV_USER_ID, get_soft_ink_url
+from services.ops import is_ops_user
 
 LOG = logging.getLogger("kestrel.api.auth")
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+def _auth_user_from(user: Any, *, email_fallback: str | None = None) -> AuthUser:
+    if isinstance(user, dict):
+        payload = {
+            "id": str(user.get("id") or ""),
+            "email": str(user.get("email") or email_fallback or "") or None,
+            "dev": bool(user.get("dev")),
+        }
+    else:
+        payload = {
+            "id": str(getattr(user, "id", "") or ""),
+            "email": str(getattr(user, "email", "") or email_fallback or "") or None,
+            "dev": False,
+        }
+    return AuthUser(
+        id=payload["id"],
+        email=payload["email"],
+        dev=bool(payload["dev"]),
+        ops=is_ops_user(payload),
+    )
 
 
 def _session_payload(session: Any, user: Any) -> AuthSessionResponse:
@@ -34,18 +56,7 @@ def _session_payload(session: Any, user: Any) -> AuthSessionResponse:
     else:
         access = str(getattr(session, "access_token", "") or "")
         refresh = getattr(session, "refresh_token", None)
-    if isinstance(user, dict):
-        auth_user = AuthUser(
-            id=str(user.get("id") or ""),
-            email=str(user.get("email") or "") or None,
-            dev=bool(user.get("dev")),
-        )
-    else:
-        auth_user = AuthUser(
-            id=str(getattr(user, "id", "") or ""),
-            email=str(getattr(user, "email", "") or "") or None,
-            dev=False,
-        )
+    auth_user = _auth_user_from(user)
     if not access or not auth_user.id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -64,7 +75,9 @@ def login(body: LoginRequest) -> AuthSessionResponse:
         return AuthSessionResponse(
             access_token=DEV_TOKEN,
             refresh_token=None,
-            user=AuthUser(id=str(DEV_USER_ID), email=body.email.strip() or str(DEV_USER_EMAIL), dev=True),
+            user=_auth_user_from(
+                {"id": str(DEV_USER_ID), "email": body.email.strip() or str(DEV_USER_EMAIL), "dev": True}
+            ),
         )
     try:
         client = auth_client()
@@ -113,10 +126,12 @@ def signup(body: SignupRequest) -> SignupResponse:
             needs_confirmation=False,
             access_token=DEV_TOKEN,
             refresh_token=None,
-            user=AuthUser(
-                id=str(DEV_USER_ID),
-                email=email or str(DEV_USER_EMAIL),
-                dev=True,
+            user=_auth_user_from(
+                {
+                    "id": str(DEV_USER_ID),
+                    "email": email or str(DEV_USER_EMAIL),
+                    "dev": True,
+                }
             ),
             message=f"Account created. You are signed in as {email or DEV_USER_EMAIL}.",
         )
@@ -153,7 +168,9 @@ def signup(body: SignupRequest) -> SignupResponse:
             needs_confirmation=True,
             access_token=None,
             refresh_token=None,
-            user=AuthUser(id=user_id or "pending", email=email, dev=False),
+            user=_auth_user_from(
+                {"id": user_id or "pending", "email": email, "dev": False}
+            ),
             message="Account created. Check your email to confirm, then sign in.",
         )
     payload = _session_payload(session, user)
@@ -170,7 +187,7 @@ def signup(body: SignupRequest) -> SignupResponse:
 def me(user: Annotated[dict | None, Depends(optional_user)]) -> MeResponse:
     if user is None:
         return MeResponse(authenticated=False, user=None)
-    return MeResponse(authenticated=True, user=AuthUser(**user))
+    return MeResponse(authenticated=True, user=_auth_user_from(user))
 
 
 @router.post("/forgot-password", response_model=ForgotPasswordResponse)
