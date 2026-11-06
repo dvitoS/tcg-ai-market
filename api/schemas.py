@@ -133,6 +133,13 @@ class CatalogResponse(BaseModel):
     meta: CatalogMeta
 
 
+class FxQuoteResponse(BaseModel):
+    usd_eur: float
+    as_of: str | None = None
+    source: str = "fallback"
+    fallback: bool = False
+
+
 class IdentifyRequest(BaseModel):
     text: str = Field(..., min_length=1, max_length=8000)
     limit: int = Field(default=8, ge=1, le=24)

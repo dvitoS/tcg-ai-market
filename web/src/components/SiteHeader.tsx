@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
+import { CurrencySwitcher } from "@/components/CurrencySwitcher";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { useLocale } from "@/components/LocaleProvider";
 import type { MessageKey } from "@/lib/i18n/messages";
@@ -156,6 +157,7 @@ export function SiteHeader() {
 
       <div className="header-actions">
         <LocaleSwitcher />
+        <CurrencySwitcher />
         <span className="tagline">{t("brand_tagline")}</span>
         {user ? (
           <button type="button" className="btn-ghost header-auth" onClick={logout}>
@@ -209,6 +211,7 @@ export function SiteHeader() {
           ))}
           <div className="nav-mobile-locale">
             <LocaleSwitcher />
+            <CurrencySwitcher />
           </div>
           {user ? (
             <button

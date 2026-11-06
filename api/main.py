@@ -21,6 +21,7 @@ from api.routers import (
     cards,
     catalog,
     dealer,
+    fx,
     health,
     identify,
     portfolio,
@@ -86,6 +87,7 @@ app.add_middleware(
 )
 
 app.include_router(health.router, prefix="/api")
+app.include_router(fx.router, prefix="/api")
 app.include_router(billing.router, prefix="/api")
 app.include_router(auth.router, prefix="/api")
 app.include_router(catalog.router, prefix="/api")

@@ -581,6 +581,11 @@ const en = {
   identify_clue_number: "Number ~{n}",
   identify_clue_name: "Name ~{name}",
   identify_raw_ocr: "Raw OCR text",
+  fx_currency_aria: "Spot currency",
+  fx_rate_tip: "FX: 1 USD = {rate} EUR",
+  fx_fallback: "stale rate",
+  fx_loading: "Loading FX…",
+  detail_cardmarket: "Cardmarket ↗",
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -1155,6 +1160,11 @@ const hr: Dictionary = {
   identify_clue_number: "Broj ~{n}",
   identify_clue_name: "Ime ~{name}",
   identify_raw_ocr: "Sirovi OCR tekst",
+  fx_currency_aria: "Valuta spota",
+  fx_rate_tip: "FX: 1 USD = {rate} EUR",
+  fx_fallback: "stara stopa",
+  fx_loading: "Učitavam FX…",
+  detail_cardmarket: "Cardmarket ↗",
 };
 
 export const MESSAGES: Record<Locale, Dictionary> = { en, hr };

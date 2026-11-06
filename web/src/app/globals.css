@@ -280,7 +280,16 @@ a {
 }
 
 .nav-mobile-locale {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
   padding: 0.35rem 0 0.15rem;
+}
+
+.detail-fx-note {
+  margin: 0.15rem 0 0.35rem;
+  color: var(--muted);
+  font-size: 0.78rem;
 }
 
 .nav-toggle {

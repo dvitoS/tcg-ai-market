@@ -4,12 +4,14 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { AddLotForm } from "@/components/AddLotForm";
+import { useCurrency } from "@/components/CurrencyProvider";
 import { EbayComps } from "@/components/EbayComps";
 import { GradingEvPanel } from "@/components/GradingEvPanel";
 import { useLocale } from "@/components/LocaleProvider";
 import { PriceChart } from "@/components/PriceChart";
 import { WatchToggle } from "@/components/WatchToggle";
-import { formatChange, formatMoney } from "@/lib/api";
+import { formatChange } from "@/lib/api";
+import { cardmarketSearchUrl } from "@/lib/cardmarket";
 import { decisionOneLiner, signalLabel } from "@/lib/i18n/messages";
 import type { CardDetailResponse, HistoryPoint } from "@/lib/types";
 
@@ -35,6 +37,7 @@ export function CardDetailView({
   points: HistoryPoint[];
 }) {
   const { locale, t } = useLocale();
+  const { formatSpot, currency, usdEur, fxFallback } = useCurrency();
   const { card, pred_lo_pct, pred_hi_pct, explain } = detail;
   const prices = points.map((p) => p.price).filter((n) => Number.isFinite(n));
   const fromPoints = {
@@ -110,7 +113,7 @@ export function CardDetailView({
                   {formatChange(card.expected_change_pct, 2)}
                 </p>
                 <p className="detail-under-price">
-                  {t("detail_predicted")}: {formatMoney(card.predicted_price, "USD", 2)}
+                  {t("detail_predicted")}: {formatSpot(card.predicted_price, 2)}
                 </p>
                 {band ? (
                   <p className="detail-under-caption" title={t("glossary_band_tip")}>
@@ -134,8 +137,14 @@ export function CardDetailView({
               <h1 className="detail-name">{card.name}</h1>
               <p className="detail-meta">{meta}</p>
               <div className="detail-price">
-                {formatMoney(history.last_price ?? card.price, "USD", 2)}
+                {formatSpot(history.last_price ?? card.price, 2)}
               </div>
+              {currency === "EUR" && usdEur != null ? (
+                <p className="detail-fx-note">
+                  {t("fx_rate_tip", { rate: usdEur.toFixed(4) })}
+                  {fxFallback ? ` · ${t("fx_fallback")}` : ""}
+                </p>
+              ) : null}
               <div className={`detail-hero-delta ${deltaClass(dayChange)}`}>
                 {formatChange(dayChange, 2)}
                 {showSignal ? ` · ${signalText}` : ""}
@@ -157,15 +166,23 @@ export function CardDetailView({
                 >
                   {t("detail_trade_them")}
                 </Link>
+                <a
+                  className="btn-ghost"
+                  href={cardmarketSearchUrl(card.name, card.set_name)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {t("detail_cardmarket")}
+                </a>
               </div>
               <div className="stat-row">
                 <div className="stat-chip">
                   <span>{t("detail_range_min")}</span>
-                  <strong>{formatMoney(history.min_price, "USD", 0)}</strong>
+                  <strong>{formatSpot(history.min_price, 0)}</strong>
                 </div>
                 <div className="stat-chip">
                   <span>{t("detail_range_max")}</span>
-                  <strong>{formatMoney(history.max_price, "USD", 0)}</strong>
+                  <strong>{formatSpot(history.max_price, 0)}</strong>
                 </div>
                 <div className="stat-chip">
                   <span>{t("detail_points")}</span>
