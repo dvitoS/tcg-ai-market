@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
@@ -12,11 +12,11 @@ import { PortfolioBarsChart } from "@/components/PortfolioBarsChart";
 import { PortfolioPerfChart } from "@/components/PortfolioPerfChart";
 import { SealedAddPanel } from "@/components/SealedAddPanel";
 import { SearchSuggest } from "@/components/SearchSuggest";
+import { SignInView } from "@/components/SignInView";
 import {
   deletePortfolioLot,
   fetchPortfolioBootstrap,
   fetchPortfolioPerformance,
-  forgotPasswordRequest,
   formatChange,
   formatMoney,
   removeWatchlistCard,
@@ -106,10 +106,9 @@ function safeNextPath(raw: string | null): string | null {
 
 export function PortfolioView() {
   const { locale, t } = useLocale();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const nextPath = safeNextPath(searchParams.get("next"));
-  const { user, loading: authLoading, login, signup, ensureDemoSession } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [lots, setLots] = useState<PortfolioLot[]>([]);
   const [summary, setSummary] = useState<PortfolioSummary>(EMPTY_SUMMARY);
   const [perfPoints, setPerfPoints] = useState<PortfolioPerfPoint[]>([]);
@@ -122,9 +121,6 @@ export function PortfolioView() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [booted, setBooted] = useState(false);
-  const [authMode, setAuthMode] = useState<"signin" | "signup" | "forgot">("signin");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [thresholdPct, setThresholdPct] = useState(5);
   const [sureOnly, setSureOnly] = useState(true);
   const [dismissed, setDismissed] = useState<string[]>([]);
@@ -273,56 +269,6 @@ export function PortfolioView() {
     void load();
   }, [authLoading, user, load]);
 
-  async function onLogin(event: FormEvent) {
-    event.preventDefault();
-    setBusy(true);
-    setError(null);
-    setNotice(null);
-    try {
-      if (authMode === "forgot") {
-        const origin =
-          typeof window !== "undefined" ? window.location.origin : "";
-        const result = await forgotPasswordRequest(
-          email.trim(),
-          origin ? `${origin}/auth/reset` : undefined,
-        );
-        setNotice(result.message);
-        return;
-      }
-      if (authMode === "signup") {
-        const outcome = await signup(email.trim(), password);
-        if (outcome.needsConfirmation) {
-          setNotice(
-            outcome.message ||
-              "Account created. Check your email to confirm, then sign in.",
-          );
-          setAuthMode("signin");
-          return;
-        }
-        setNotice(outcome.message || "Account created.");
-      } else {
-        await login(email.trim(), password);
-      }
-      if (nextPath) {
-        router.replace(nextPath);
-        return;
-      }
-      await load();
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : authMode === "signup"
-            ? "Sign up failed"
-            : authMode === "forgot"
-              ? "Could not start password reset"
-              : "Login failed",
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
-
   async function onRemoveLot(id: number | string) {
     setBusy(true);
     setNotice(null);
@@ -415,150 +361,12 @@ export function PortfolioView() {
 
   if (!user) {
     return (
-      <section className="portfolio-page">
-        <div className="explore-command">
-          <p className="explore-command-eyebrow">{t("port_eyebrow")}</p>
-          <h1 className="explore-title">
-            {authMode === "signup"
-              ? t("auth_create_account")
-              : authMode === "forgot"
-                ? t("auth_forgot_title")
-                : t("auth_sign_in")}
-          </h1>
-          <p className="explore-lede">
-            {authMode === "signup"
-              ? t("auth_signup_lede")
-              : authMode === "forgot"
-                ? t("auth_forgot_lede")
-                : t("auth_signin_lede")}
-          </p>
-        </div>
-        <form className="auth-card" onSubmit={onLogin}>
-          {authMode !== "forgot" ? (
-            <div className="auth-mode-toggle" role="tablist" aria-label={t("auth_mode")}>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={authMode === "signin"}
-                className={authMode === "signin" ? "is-active" : undefined}
-                disabled={busy}
-                onClick={() => {
-                  setAuthMode("signin");
-                  setError(null);
-                }}
-              >
-                {t("auth_sign_in")}
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={authMode === "signup"}
-                className={authMode === "signup" ? "is-active" : undefined}
-                disabled={busy}
-                onClick={() => {
-                  setAuthMode("signup");
-                  setError(null);
-                }}
-              >
-                {t("auth_create_account")}
-              </button>
-            </div>
-          ) : null}
-          <label>
-            <span>{t("auth_email")}</span>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-            />
-          </label>
-          {authMode !== "forgot" ? (
-            <label>
-              <span>{authMode === "signup" ? t("auth_password_min") : t("auth_password")}</span>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={authMode === "signup" ? 6 : undefined}
-                autoComplete={authMode === "signup" ? "new-password" : "current-password"}
-              />
-            </label>
-          ) : null}
-          {error ? <p className="banner-error">{error}</p> : null}
-          {notice ? <p className="banner-ok">{notice}</p> : null}
-          <div className="auth-actions">
-            <button type="submit" className="btn-primary" disabled={busy}>
-              {authMode === "signup"
-                ? t("auth_create_account")
-                : authMode === "forgot"
-                  ? t("auth_forgot_submit")
-                  : t("auth_sign_in")}
-            </button>
-            {authMode === "signin" ? (
-              <>
-                <button
-                  type="button"
-                  className="btn-ghost"
-                  disabled={busy}
-                  onClick={() => {
-                    setAuthMode("forgot");
-                    setError(null);
-                    setNotice(null);
-                  }}
-                >
-                  {t("auth_forgot")}
-                </button>
-                <button
-                  type="button"
-                  className="btn-ghost"
-                  disabled={busy}
-                  onClick={() => {
-                    void (async () => {
-                      setBusy(true);
-                      setError(null);
-                      try {
-                        const ok = await ensureDemoSession();
-                        if (!ok) {
-                          setError(t("auth_demo_blocked"));
-                          return;
-                        }
-                        if (nextPath) {
-                          router.replace(nextPath);
-                          return;
-                        }
-                        await load();
-                      } catch (err) {
-                        setError(err instanceof Error ? err.message : "Demo login failed");
-                      } finally {
-                        setBusy(false);
-                      }
-                    })();
-                  }}
-                >
-                  {t("auth_demo")}
-                </button>
-              </>
-            ) : null}
-            {authMode === "forgot" ? (
-              <button
-                type="button"
-                className="btn-ghost"
-                disabled={busy}
-                onClick={() => {
-                  setAuthMode("signin");
-                  setError(null);
-                  setNotice(null);
-                }}
-              >
-                {t("auth_forgot_back")}
-              </button>
-            ) : null}
-          </div>
-        </form>
-      </section>
+      <SignInView
+        nextPath={nextPath}
+        onAuthenticated={async () => {
+          await load();
+        }}
+      />
     );
   }
 

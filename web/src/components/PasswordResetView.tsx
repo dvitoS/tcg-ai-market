@@ -77,67 +77,82 @@ export function PasswordResetView() {
   }
 
   if (!ready) {
-    return <p className="empty-state">{t("port_loading")}</p>;
+    return (
+      <section className="auth-page">
+        <p className="auth-lede">{t("port_loading")}</p>
+      </section>
+    );
   }
 
   if (!session?.accessToken) {
     return (
-      <section className="portfolio-page">
-        <div className="explore-command">
-          <p className="explore-command-eyebrow">{t("auth_reset_eyebrow")}</p>
-          <h1 className="explore-title">{t("auth_reset_missing_title")}</h1>
-          <p className="explore-lede">{t("auth_reset_missing_lede")}</p>
+      <section className="auth-page">
+        <div className="auth-atmosphere" aria-hidden>
+          <div className="auth-glow auth-glow-a" />
+          <div className="auth-glow auth-glow-b" />
+          <div className="auth-grain" />
         </div>
-        <div className="detail-actions">
-          <Link href="/portfolio" className="btn-primary">
-            {t("auth_sign_in")}
-          </Link>
+        <div className="auth-stage">
+          <p className="auth-brand">Kestrel</p>
+          <h1 className="auth-title">{t("auth_reset_missing_title")}</h1>
+          <p className="auth-lede">{t("auth_reset_missing_lede")}</p>
+          <div className="auth-actions auth-actions-center">
+            <Link href="/portfolio" className="btn-primary">
+              {t("auth_sign_in")}
+            </Link>
+          </div>
         </div>
       </section>
     );
   }
 
   return (
-    <section className="portfolio-page">
-      <div className="explore-command">
-        <p className="explore-command-eyebrow">{t("auth_reset_eyebrow")}</p>
-        <h1 className="explore-title">{t("auth_reset_title")}</h1>
-        <p className="explore-lede">{t("auth_reset_lede")}</p>
+    <section className="auth-page">
+      <div className="auth-atmosphere" aria-hidden>
+        <div className="auth-glow auth-glow-a" />
+        <div className="auth-glow auth-glow-b" />
+        <div className="auth-grain" />
       </div>
-      <form className="auth-card" onSubmit={onSubmit}>
-        <label>
-          <span>{t("auth_password_min")}</span>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            minLength={6}
-            autoComplete="new-password"
-          />
-        </label>
-        <label>
-          <span>{t("auth_password_confirm")}</span>
-          <input
-            type="password"
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-            required
-            minLength={6}
-            autoComplete="new-password"
-          />
-        </label>
-        {error ? <p className="banner-error">{error}</p> : null}
-        {notice ? <p className="banner-ok">{notice}</p> : null}
-        <div className="auth-actions">
-          <button type="submit" className="btn-primary" disabled={busy}>
-            {t("auth_password_save")}
-          </button>
-          <Link href="/portfolio" className="btn-ghost">
-            {t("auth_sign_in")}
-          </Link>
-        </div>
-      </form>
+      <div className="auth-stage">
+        <p className="auth-brand">Kestrel</p>
+        <h1 className="auth-title">{t("auth_reset_title")}</h1>
+        <p className="auth-lede">{t("auth_reset_lede")}</p>
+        <form className="auth-form" onSubmit={onSubmit}>
+          <label>
+            <span>{t("auth_password_min")}</span>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={6}
+              autoComplete="new-password"
+              autoFocus
+            />
+          </label>
+          <label>
+            <span>{t("auth_password_confirm")}</span>
+            <input
+              type="password"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              required
+              minLength={6}
+              autoComplete="new-password"
+            />
+          </label>
+          {error ? <p className="banner-error">{error}</p> : null}
+          {notice ? <p className="banner-ok">{notice}</p> : null}
+          <div className="auth-actions">
+            <button type="submit" className="btn-primary auth-submit" disabled={busy}>
+              {t("auth_password_save")}
+            </button>
+            <Link href="/portfolio" className="btn-ghost">
+              {t("auth_sign_in")}
+            </Link>
+          </div>
+        </form>
+      </div>
     </section>
   );
 }
