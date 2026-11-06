@@ -67,12 +67,12 @@ export function BrowseMarket({
           setTotal(data.total);
           setItems((prev) => (append ? [...prev, ...data.items] : data.items));
           setError(null);
-        } catch (err) {
-          setError(err instanceof Error ? err.message : "Failed to load catalog");
+        } catch {
+          setError(t("explore_load_failed"));
         }
       });
     },
-    [mode, setName, signal, submittedQuery, minPrice, maxPrice],
+    [mode, setName, signal, submittedQuery, minPrice, maxPrice, t],
   );
 
   useEffect(() => {
@@ -107,6 +107,11 @@ export function BrowseMarket({
 
   const sets = useMemo(() => meta.sets || [], [meta.sets]);
   const canLoadMore = items.length < total;
+  const filtersActive =
+    Boolean(setName) ||
+    Boolean(signal) ||
+    Boolean(minPrice.trim()) ||
+    Boolean(maxPrice.trim());
 
   return (
     <section className="browse">
@@ -155,59 +160,64 @@ export function BrowseMarket({
         </button>
       </form>
 
-      <div className="filter-row">
-        <label>
-          <span>{t("explore_set")}</span>
-          <select value={setName} onChange={(e) => setSetName(e.target.value)}>
-            <option value="">{t("explore_all_sets")}</option>
-            {sets.map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-          </select>
-        </label>
-        {mode === "signals" ? (
+      <details className="browse-filters" open={filtersActive || undefined}>
+        <summary className="browse-filters-summary">
+          {t("explore_filters")}
+          <span className="result-count">
+            {t("explore_results", { n: total })}
+            {meta.source === "demo" ? ` · ${t("explore_demo")}` : null}
+            {pending ? ` · ${t("explore_updating")}` : null}
+          </span>
+        </summary>
+        <div className="filter-row">
           <label>
-            <span>{t("explore_signal")}</span>
-            <select value={signal} onChange={(e) => setSignal(e.target.value)}>
-              <option value="">{t("explore_all")}</option>
-              <option value="BUY">{signalLabel(locale, "BUY")}</option>
-              <option value="SELL">{signalLabel(locale, "SELL")}</option>
-              <option value="HOLD">{signalLabel(locale, "HOLD")}</option>
+            <span>{t("explore_set")}</span>
+            <select value={setName} onChange={(e) => setSetName(e.target.value)}>
+              <option value="">{t("explore_all_sets")}</option>
+              {sets.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
             </select>
           </label>
-        ) : null}
-        <label>
-          <span>{t("explore_min")}</span>
-          <input
-            type="number"
-            min={0}
-            step={1}
-            inputMode="decimal"
-            value={minPrice}
-            onChange={(e) => setMinPrice(e.target.value)}
-            placeholder="0"
-          />
-        </label>
-        <label>
-          <span>{t("explore_max")}</span>
-          <input
-            type="number"
-            min={0}
-            step={1}
-            inputMode="decimal"
-            value={maxPrice}
-            onChange={(e) => setMaxPrice(e.target.value)}
-            placeholder={t("explore_any")}
-          />
-        </label>
-        <p className="result-count">
-          {t("explore_results", { n: total })}
-          {meta.source === "demo" ? ` · ${t("explore_demo")}` : null}
-          {pending ? ` · ${t("explore_updating")}` : null}
-        </p>
-      </div>
+          {mode === "signals" ? (
+            <label>
+              <span>{t("explore_signal")}</span>
+              <select value={signal} onChange={(e) => setSignal(e.target.value)}>
+                <option value="">{t("explore_all")}</option>
+                <option value="BUY">{signalLabel(locale, "BUY")}</option>
+                <option value="SELL">{signalLabel(locale, "SELL")}</option>
+                <option value="HOLD">{signalLabel(locale, "HOLD")}</option>
+              </select>
+            </label>
+          ) : null}
+          <label>
+            <span>{t("explore_min")}</span>
+            <input
+              type="number"
+              min={0}
+              step={1}
+              inputMode="decimal"
+              value={minPrice}
+              onChange={(e) => setMinPrice(e.target.value)}
+              placeholder="0"
+            />
+          </label>
+          <label>
+            <span>{t("explore_max")}</span>
+            <input
+              type="number"
+              min={0}
+              step={1}
+              inputMode="decimal"
+              value={maxPrice}
+              onChange={(e) => setMaxPrice(e.target.value)}
+              placeholder={t("explore_any")}
+            />
+          </label>
+        </div>
+      </details>
 
       {error ? <p className="banner-error">{error}</p> : null}
 
