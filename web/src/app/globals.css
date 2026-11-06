@@ -99,6 +99,8 @@ a {
 }
 
 .site-header {
+  position: relative;
+  z-index: 50;
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -162,13 +164,14 @@ a {
 }
 
 .nav-more-summary {
-  list-style: none;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  color: inherit;
   cursor: pointer;
   user-select: none;
-}
-
-.nav-more-summary::-webkit-details-marker {
-  display: none;
 }
 
 .nav-more-summary::after {
@@ -177,29 +180,48 @@ a {
   opacity: 0.7;
 }
 
+.nav-more.is-open .nav-more-summary {
+  color: var(--accent-2);
+}
+
 .nav-more-menu {
   position: absolute;
-  top: calc(100% + 0.45rem);
+  /* Flush with trigger so the hit target has no dead gap; visual inset via padding. */
+  top: 100%;
   left: 0;
-  z-index: 40;
+  z-index: 60;
   min-width: 10.5rem;
   display: grid;
   gap: 0.15rem;
-  padding: 0.45rem;
+  padding: 0.55rem 0.45rem 0.45rem;
+  margin: 0;
   border-radius: 10px;
   background: rgba(18, 16, 14, 0.96);
   border: 1px solid rgba(184, 115, 51, 0.28);
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
 }
 
+.nav-more-menu::before {
+  /* Hit-area bridge into the trigger so the cursor never falls through a gap. */
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -0.75rem;
+  height: 0.75rem;
+}
+
 .nav-more-menu .nav-link {
   display: block;
   padding: 0.4rem 0.55rem;
   border-radius: 6px;
+  box-shadow: none;
 }
 
-.nav-more-menu .nav-link:hover {
+.nav-more-menu .nav-link:hover,
+.nav-more-menu .nav-link:focus-visible {
   background: rgba(184, 115, 51, 0.12);
+  color: var(--accent-2);
 }
 
 .nav-mobile-section {
