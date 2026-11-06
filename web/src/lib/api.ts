@@ -916,7 +916,9 @@ export async function fetchTradeStatus(): Promise<TradeStatus> {
     cache: "no-store",
   });
   if (!res.ok) {
-    throw new Error(`Trade status failed (${res.status})`);
+    throw new Error(
+      await readApiError(res, `Trade status failed (${res.status})`),
+    );
   }
   return res.json();
 }
@@ -936,8 +938,9 @@ export async function scoreTrade(input: {
     body: JSON.stringify(input),
   });
   if (!res.ok) {
-    const detail = await res.text();
-    throw new Error(detail || `Trade score failed (${res.status})`);
+    throw new Error(
+      await readApiError(res, `Trade score failed (${res.status})`),
+    );
   }
   return res.json();
 }
@@ -957,8 +960,9 @@ export async function createTradeShare(input: {
     body: JSON.stringify(input),
   });
   if (!res.ok) {
-    const detail = await res.text();
-    throw new Error(detail || `Trade share failed (${res.status})`);
+    throw new Error(
+      await readApiError(res, `Trade share failed (${res.status})`),
+    );
   }
   return res.json();
 }
@@ -970,8 +974,9 @@ export async function fetchTradeShare(shareId: string): Promise<TradeShareView> 
     cache: "no-store",
   });
   if (!res.ok) {
-    const detail = await res.text();
-    throw new Error(detail || `Trade share not found (${res.status})`);
+    throw new Error(
+      await readApiError(res, `Trade share not found (${res.status})`),
+    );
   }
   return res.json();
 }
