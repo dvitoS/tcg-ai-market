@@ -553,6 +553,11 @@ const en = {
   binder_share_copied: "Set link copied — opens this binder when signed in.",
   binder_share_error: "Could not copy set link",
   binder_share_blurb: "Kestrel binder — {set} is {pct}% complete.",
+  pwa_install_title: "Install Kestrel",
+  pwa_install_lede: "Add Soft Ink to your home screen for a faster desk.",
+  pwa_install_ios: "Tap Share, then Add to Home Screen.",
+  pwa_install_cta: "Install",
+  pwa_install_dismiss: "Not now",
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -1099,6 +1104,11 @@ const hr: Dictionary = {
   binder_share_copied: "Set link kopiran — otvara ovaj binder kad si prijavljen.",
   binder_share_error: "Nisam uspio kopirati set link",
   binder_share_blurb: "Kestrel binder — {set} je {pct}% kompletan.",
+  pwa_install_title: "Instaliraj Kestrel",
+  pwa_install_lede: "Dodaj Soft Ink na početni zaslon za brži desk.",
+  pwa_install_ios: "Dodirni Share, zatim Dodaj na početni zaslon.",
+  pwa_install_cta: "Instaliraj",
+  pwa_install_dismiss: "Ne sada",
 };
 
 export const MESSAGES: Record<Locale, Dictionary> = { en, hr };
