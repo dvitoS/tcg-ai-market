@@ -158,7 +158,6 @@ export function SiteHeader() {
       <div className="header-actions">
         <LocaleSwitcher />
         <CurrencySwitcher />
-        <span className="tagline">{t("brand_tagline")}</span>
         {user ? (
           <button type="button" className="btn-ghost header-auth" onClick={logout}>
             {user.email || t("auth_sign_out")}

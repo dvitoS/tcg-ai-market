@@ -200,9 +200,6 @@ export function DealerView() {
         <p className="explore-command-eyebrow">{t("dealer_eyebrow")}</p>
         <h1 className="explore-title">{t("dealer_title")}</h1>
         <p className="explore-lede">{t("dealer_lede")}</p>
-        {status?.csv_hint ? (
-          <p className="explore-lede dealer-csv-hint">{status.csv_hint}</p>
-        ) : null}
       </div>
 
       {status && !status.allowed ? (
@@ -263,6 +260,7 @@ export function DealerView() {
               onChange={(e) => setCsvText(e.target.value)}
               rows={8}
               spellCheck={false}
+              title={status.csv_hint || undefined}
             />
           </label>
           <div className="dealer-sync-bar">

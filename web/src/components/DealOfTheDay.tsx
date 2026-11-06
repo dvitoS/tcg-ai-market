@@ -24,7 +24,7 @@ function bandLabel(card: RadarCard): string | null {
 }
 
 function TeaserRow({ card }: { card: RadarCard }) {
-  const { t, locale } = useLocale();
+  const { t } = useLocale();
   const { formatSpot } = useCurrency();
   const fair = formatSpot(card.fair_price ?? card.predicted_price);
   const edge = formatChange(card.edge_pct);
@@ -42,9 +42,6 @@ function TeaserRow({ card }: { card: RadarCard }) {
         />
       </div>
       <div>
-        <div className="radar-side" title={t(sideTipKey(card.side || "UNDER"))}>
-          {sideLabel(locale, card.side || "UNDER")}
-        </div>
         <div className="lot-name">{card.name}</div>
         <div className="lot-meta">
           {[card.set_name, card.rarity].filter(Boolean).join(" · ")}
@@ -141,7 +138,9 @@ export function DealOfTheDay({
       </h2>
       <p className="explore-lede">
         {lede}
-        {preview?.source === "demo" ? ` · ${t("explore_demo")}` : ""}
+        {variant !== "landing" && preview?.source === "demo"
+          ? ` · ${t("explore_demo")}`
+          : ""}
       </p>
 
       {loading ? (
@@ -166,18 +165,24 @@ export function DealOfTheDay({
             />
           </div>
           <div className="deal-of-day-copy">
-            <div
-              className="radar-side"
-              title={t(sideTipKey(featured.side || "UNDER"))}
-            >
-              {sideLabel(locale, featured.side || "UNDER")}
-            </div>
+            {!featuredVerdict ? (
+              <div
+                className="radar-side"
+                title={t(sideTipKey(featured.side || "UNDER"))}
+              >
+                {sideLabel(locale, featured.side || "UNDER")}
+              </div>
+            ) : null}
             <div className="lot-name">{featured.name}</div>
             <div className="lot-meta">
               {[featured.set_name, featured.rarity].filter(Boolean).join(" · ")}
             </div>
             {featuredVerdict ? (
               <p className="decision-line">{featuredVerdict}</p>
+            ) : featuredBand ? (
+              <p className="lot-meta" title={t("glossary_band_tip")}>
+                {t("landing_dotd_band", { band: featuredBand })}
+              </p>
             ) : null}
             <div className="deal-of-day-metrics">
               <strong>{formatSpot(featured.spot ?? featured.price)}</strong>
@@ -187,11 +192,6 @@ export function DealOfTheDay({
               <span className="pnl-up" title={t("glossary_edge_tip")}>
                 {t("metric_edge", { pct: featuredEdge })}
               </span>
-              {featuredBand ? (
-                <span className="lot-meta" title={t("glossary_band_tip")}>
-                  {t("landing_dotd_band", { band: featuredBand })}
-                </span>
-              ) : null}
             </div>
           </div>
         </Link>

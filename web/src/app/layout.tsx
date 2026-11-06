@@ -3,8 +3,8 @@ import { DM_Sans, Fraunces } from "next/font/google";
 
 import { AuthProvider } from "@/components/AuthProvider";
 import { CurrencyProvider } from "@/components/CurrencyProvider";
-import { DataHealthPanel } from "@/components/DataHealthPanel";
 import { LocaleProvider } from "@/components/LocaleProvider";
+import { OpsHealthGate } from "@/components/OpsHealthGate";
 import { PwaChrome } from "@/components/PwaChrome";
 import { SiteHeader } from "@/components/SiteHeader";
 import { WatchAlertBanners } from "@/components/WatchAlertBanners";
@@ -64,7 +64,7 @@ export default function RootLayout({
                 <WatchAlertBanners />
                 <PwaChrome />
                 <main>{children}</main>
-                <DataHealthPanel />
+                <OpsHealthGate />
               </div>
             </AuthProvider>
           </CurrencyProvider>
