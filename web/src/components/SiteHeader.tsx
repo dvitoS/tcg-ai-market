@@ -27,17 +27,24 @@ export function SiteHeader() {
   const [open, setOpen] = useState(false);
   const menuId = useId();
 
-  const nav = useMemo<NavItem[]>(
+  // Decision desk first — secondary tools stay available but stop crowding cold visitors.
+  const primaryNav = useMemo<NavItem[]>(
     () => [
-      { href: "/browse", labelKey: "nav_browse" },
-      { href: "/browse#signals", labelKey: "nav_signals" },
-      { href: "/portfolio", labelKey: "nav_portfolio" },
-      { href: "/binder", labelKey: "nav_binder" },
-      { href: "/scanner", labelKey: "nav_scanner" },
       { href: "/radar", labelKey: "nav_radar" },
       { href: "/trade", labelKey: "nav_trade" },
-      { href: "/dealer", labelKey: "nav_dealer" },
+      { href: "/browse", labelKey: "nav_browse" },
+      { href: "/portfolio", labelKey: "nav_portfolio" },
       { href: "/pro", labelKey: "nav_pro" },
+    ],
+    [],
+  );
+
+  const moreNav = useMemo<NavItem[]>(
+    () => [
+      { href: "/scanner", labelKey: "nav_scanner" },
+      { href: "/binder", labelKey: "nav_binder" },
+      { href: "/dealer", labelKey: "nav_dealer" },
+      { href: "/browse#signals", labelKey: "nav_signals" },
     ],
     [],
   );
@@ -80,7 +87,7 @@ export function SiteHeader() {
       </Link>
 
       <nav className="site-nav site-nav-desktop" aria-label={t("nav_primary")}>
-        {nav.map((item) => (
+        {primaryNav.map((item) => (
           <Link
             key={item.href}
             href={item.href}
@@ -89,6 +96,20 @@ export function SiteHeader() {
             {t(item.labelKey)}
           </Link>
         ))}
+        <details className="nav-more">
+          <summary className="nav-link nav-more-summary">{t("nav_more")}</summary>
+          <div className="nav-more-menu" role="group" aria-label={t("nav_more")}>
+            {moreNav.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`nav-link ${linkActive(pathname, item.href) ? "is-active" : ""}`}
+              >
+                {t(item.labelKey)}
+              </Link>
+            ))}
+          </div>
+        </details>
       </nav>
 
       <div className="header-actions">
@@ -123,7 +144,18 @@ export function SiteHeader() {
         hidden={!open}
       >
         <nav className="site-nav-mobile" aria-label={t("nav_mobile")}>
-          {nav.map((item) => (
+          {primaryNav.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`nav-link ${linkActive(pathname, item.href) ? "is-active" : ""}`}
+              onClick={() => setOpen(false)}
+            >
+              {t(item.labelKey)}
+            </Link>
+          ))}
+          <p className="nav-mobile-section">{t("nav_more")}</p>
+          {moreNav.map((item) => (
             <Link
               key={item.href}
               href={item.href}

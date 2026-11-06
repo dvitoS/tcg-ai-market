@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { DeskLoading } from "@/components/DeskLoading";
 import { useLocale } from "@/components/LocaleProvider";
 import { fetchRadarPreview, formatChange, formatMoney } from "@/lib/api";
 import {
@@ -140,7 +141,9 @@ export function DealOfTheDay({
         {preview?.source === "demo" ? ` · ${t("explore_demo")}` : ""}
       </p>
 
-      {loading ? <p className="explore-lede">{loadingLabel}</p> : null}
+      {loading ? (
+        <DeskLoading label={loadingLabel} variant="banner" />
+      ) : null}
       {error ? <p className="form-error">{error}</p> : null}
       {!loading && !error && rows.length === 0 ? (
         <p className="explore-lede">{empty}</p>

@@ -155,6 +155,62 @@ a {
   cursor: default;
 }
 
+.nav-more {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.nav-more-summary {
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+}
+
+.nav-more-summary::-webkit-details-marker {
+  display: none;
+}
+
+.nav-more-summary::after {
+  content: " ▾";
+  font-size: 0.75em;
+  opacity: 0.7;
+}
+
+.nav-more-menu {
+  position: absolute;
+  top: calc(100% + 0.45rem);
+  left: 0;
+  z-index: 40;
+  min-width: 10.5rem;
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.45rem;
+  border-radius: 10px;
+  background: rgba(18, 16, 14, 0.96);
+  border: 1px solid rgba(184, 115, 51, 0.28);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+}
+
+.nav-more-menu .nav-link {
+  display: block;
+  padding: 0.4rem 0.55rem;
+  border-radius: 6px;
+}
+
+.nav-more-menu .nav-link:hover {
+  background: rgba(184, 115, 51, 0.12);
+}
+
+.nav-mobile-section {
+  margin: 0.85rem 0 0.15rem;
+  padding: 0 0.15rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 .header-actions {
   margin-left: auto;
   display: inline-flex;
