@@ -11,6 +11,7 @@ import { SearchSuggest } from "@/components/SearchSuggest";
 import { TradeReportExport } from "@/components/TradeReportExport";
 import {
   createTradeShare,
+  fetchCardDetail,
   fetchCatalog,
   fetchTradeStatus,
   formatChange,
@@ -34,8 +35,37 @@ import {
 
 type SideKey = "you" | "them";
 
-function lineKey(line: Pick<TradeLineIn, "card_id" | "condition" | "printing">): string {
+/** Local draft — preview art/name stay client-side until Score fills TradeSide. */
+type TradeLineDraft = TradeLineIn & {
+  name?: string | null;
+  set_name?: string | null;
+  image_url?: string | null;
+};
+
+function lineKey(
+  line: Pick<TradeLineIn, "card_id" | "condition" | "printing">,
+): string {
   return `${line.card_id}|${normalizeCondition(line.condition)}|${normalizePrinting(line.printing)}`;
+}
+
+function toTradePayload(lines: TradeLineDraft[]): TradeLineIn[] {
+  return lines.map((line) => ({
+    card_id: line.card_id,
+    quantity: line.quantity,
+    condition: normalizeCondition(line.condition),
+    printing: normalizePrinting(line.printing),
+  }));
+}
+
+function previewFromCard(card: CatalogCard): Pick<
+  TradeLineDraft,
+  "name" | "set_name" | "image_url"
+> {
+  return {
+    name: card.name,
+    set_name: card.set_name,
+    image_url: card.image_url,
+  };
 }
 
 function verdictClass(verdict: string): string {
@@ -61,10 +91,10 @@ function SidePanel({
 }: {
   title: string;
   side: TradeSide | null;
-  lines: TradeLineIn[];
-  onRemove: (line: TradeLineIn) => void;
+  lines: TradeLineDraft[];
+  onRemove: (line: TradeLineDraft) => void;
   onPatch: (
-    line: TradeLineIn,
+    line: TradeLineDraft,
     patch: Partial<Pick<TradeLineIn, "condition" | "printing">>,
   ) => void;
 }) {
@@ -92,20 +122,24 @@ function SidePanel({
                 normalizeCondition(r.condition) === normalizeCondition(line.condition) &&
                 normalizePrinting(r.printing) === normalizePrinting(line.printing),
             );
+            const name = scored?.name || line.name || line.card_id;
+            const image = scored?.image_url || line.image_url || "/kestrel-logo.png";
+            const setName = scored?.set_name || line.set_name;
             return (
               <div key={lineKey(line)} className="trade-line">
                 <div className="scan-art">
                   <Image
-                    src={scored?.image_url || "/kestrel-logo.png"}
-                    alt={scored?.name || line.card_id}
+                    src={image}
+                    alt={name}
                     width={40}
                     height={56}
                   />
                 </div>
                 <div>
-                  <div className="lot-name">{scored?.name || line.card_id}</div>
+                  <div className="lot-name">{name}</div>
                   <div className="lot-meta">
                     ×{line.quantity}
+                    {setName ? ` · ${setName}` : ""}
                     {scored?.spot != null ? ` · ${formatMoney(scored.spot)}` : ""}
                     {scored?.expected_change_pct != null
                       ? ` · AI ${formatChange(scored.expected_change_pct)}`
@@ -164,8 +198,8 @@ export function TradeView() {
   const seededRef = useRef(false);
   const [status, setStatus] = useState<TradeStatus | null>(null);
   const [statusReady, setStatusReady] = useState(false);
-  const [you, setYou] = useState<TradeLineIn[]>([]);
-  const [them, setThem] = useState<TradeLineIn[]>([]);
+  const [you, setYou] = useState<TradeLineDraft[]>([]);
+  const [them, setThem] = useState<TradeLineDraft[]>([]);
   const [result, setResult] = useState<TradeResponse | null>(null);
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<CatalogCard[]>([]);
@@ -217,6 +251,25 @@ export function TradeView() {
     setSeedNote(
       t(side === "you" ? "trade_seed_you" : "trade_seed_them", { n: ids.length }),
     );
+    // Hydrate name + art for deeplinked ids (payload only has card_id).
+    void Promise.all(
+      ids.map(async (cardId) => {
+        try {
+          const detail = await fetchCardDetail(cardId);
+          const preview = previewFromCard(detail.card);
+          const apply = (prev: TradeLineDraft[]) =>
+            prev.map((line) =>
+              line.card_id === cardId && !line.image_url && !line.name
+                ? { ...line, ...preview }
+                : line,
+            );
+          if (side === "you") setYou(apply);
+          else setThem(apply);
+        } catch {
+          /* keep id-only line */
+        }
+      }),
+    );
     router.replace("/trade", { scroll: false });
   }, [searchParams, router, t]);
 
@@ -243,6 +296,7 @@ export function TradeView() {
   }, [authLoading, user, t]);
 
   function addCard(card: CatalogCard) {
+    const preview = previewFromCard(card);
     const setter = target === "you" ? setYou : setThem;
     setter((prev) => {
       const existing = prev.find(
@@ -256,13 +310,19 @@ export function TradeView() {
           r.card_id === card.id &&
           normalizeCondition(r.condition) === "NM" &&
           normalizePrinting(r.printing) === "Normal"
-            ? { ...r, quantity: r.quantity + 1 }
+            ? { ...r, ...preview, quantity: r.quantity + 1 }
             : r,
         );
       }
       return [
         ...prev,
-        { card_id: card.id, quantity: 1, condition: "NM", printing: "Normal" },
+        {
+          card_id: card.id,
+          quantity: 1,
+          condition: "NM",
+          printing: "Normal",
+          ...preview,
+        },
       ];
     });
     setResult(null);
@@ -273,7 +333,7 @@ export function TradeView() {
 
   function patchLine(
     side: SideKey,
-    line: TradeLineIn,
+    line: TradeLineDraft,
     patch: Partial<Pick<TradeLineIn, "condition" | "printing">>,
   ) {
     const setter = side === "you" ? setYou : setThem;
@@ -338,7 +398,7 @@ export function TradeView() {
     void runSearch(query);
   }
 
-  function removeFrom(side: SideKey, line: TradeLineIn) {
+  function removeFrom(side: SideKey, line: TradeLineDraft) {
     const setter = side === "you" ? setYou : setThem;
     const key = lineKey(line);
     setter((prev) => prev.filter((r) => lineKey(r) !== key));
@@ -351,7 +411,10 @@ export function TradeView() {
     setError(null);
     setShareNote(null);
     try {
-      const scored = await scoreTrade({ you, them });
+      const scored = await scoreTrade({
+        you: toTradePayload(you),
+        them: toTradePayload(them),
+      });
       setResult(scored);
     } catch (err) {
       setResult(null);
@@ -369,7 +432,10 @@ export function TradeView() {
     setShareNote(null);
     setError(null);
     try {
-      const created = await createTradeShare({ you, them });
+      const created = await createTradeShare({
+        you: toTradePayload(you),
+        them: toTradePayload(them),
+      });
       const href =
         created.url ||
         `${typeof window !== "undefined" ? window.location.origin : ""}${created.path}`;
