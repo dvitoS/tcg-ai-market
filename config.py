@@ -222,9 +222,12 @@ TCG_API_KEY = _secret("TCG_API_KEY")
 TCG_API_BASE_URL = "https://api.pokewallet.io"
 JUSTTCG_API_KEY = _secret("JUSTTCG_API_KEY")
 JUSTTCG_API_BASE_URL = "https://api.justtcg.com/v1"
-# Free: 20 / request, 100 / day, 10 / min — delay ≥ 6s; identical GETs use in-process cache.
-JUSTTCG_BATCH_SIZE = 20
-JUSTTCG_REQUEST_DELAY_SECONDS = 6.0
+# Paid Soft Ink JustTCG: 1000/day, 10k/month (~330/day avg), 50/min, 100 cards/req.
+# Nightly soft-caps via JUSTTCG_MAX_REQUESTS — stay under monthly, leave Soft Ink room.
+JUSTTCG_BATCH_SIZE = 100
+JUSTTCG_REQUEST_DELAY_SECONDS = 1.25  # 50/min → ≥1.2s between calls
+# ~200/night ≈ 6k/month; Soft Ink keeps the rest of the 10k.
+JUSTTCG_NIGHTLY_MAX_REQUESTS = 200
 # Soft Ink "All" + nightly replace_card_history use this window.
 # 90d keeps charts useful without the free-tier payload of 180d/1y.
 JUSTTCG_HISTORY_DURATION = "90d"
@@ -455,6 +458,24 @@ def nightly_slo_max_seconds() -> int:
     if raw.isdigit():
         return max(600, min(int(raw), 180 * 60))
     return int(NIGHTLY_SLO_MAX_SECONDS)
+
+
+def justtcg_max_requests() -> int | None:
+    """Soft outbound JustTCG budget for this process, or None if uncapped.
+
+    Empty / 0 / off → unlimited (interactive Soft Ink).
+    Nightly sets ~200 so 10k/month stays intact with Soft Ink daytime use.
+    """
+    raw = (
+        _secret("JUSTTCG_MAX_REQUESTS")
+        or os.getenv("JUSTTCG_MAX_REQUESTS", "")
+        or ""
+    ).strip().lower()
+    if raw in {"", "0", "off", "none", "unlimited"}:
+        return None
+    if raw.isdigit():
+        return max(1, min(int(raw), 1000))
+    return int(JUSTTCG_NIGHTLY_MAX_REQUESTS)
 
 
 def board_cache_ttl_seconds() -> float:

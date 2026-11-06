@@ -22,12 +22,34 @@ from justtcg_client import (
     fetch_set_cards_page,
     history_points_from_variant,
     justtcg_api_key,
+    justtcg_request_count,
     list_pokemon_sets,
     normalize_card_number,
     pick_nm_variant,
     resolve_set_id,
     variant_price_usd,
 )
+
+
+def _known_unmatched_set_codes() -> set[str]:
+    """Skip sets that already failed JustTCG match on a prior nightly."""
+    try:
+        from services.spot_qa import load_spot_qa_snapshot
+
+        snap = load_spot_qa_snapshot() or {}
+    except Exception:
+        return set()
+    codes = {
+        str(c).strip()
+        for c in list(snap.get("unmatched_set_codes") or [])
+        if str(c).strip()
+    }
+    for row in list(snap.get("unmatched_sets_sample") or []):
+        if isinstance(row, dict):
+            code = str(row.get("set_code") or "").strip()
+            if code:
+                codes.add(code)
+    return codes
 
 
 def _index_db_cards() -> dict[str, list]:
@@ -102,6 +124,24 @@ def sync_justtcg_price_history(*, limit: int | None = None) -> dict[str, int]:
     unmatched_seen: set[str] = set()
     have_history = distinct_history_card_ids()
     ordered_sets = _sets_prioritized_by_coverage(by_set)
+    known_unmatched = _known_unmatched_set_codes()
+    if known_unmatched:
+        print(
+            f"Skipping {len(known_unmatched)} previously unmatched JustTCG sets "
+            f"(from spot QA snapshot)"
+        )
+
+    def _stats_payload() -> dict:
+        total = table_count("price_history")
+        return {
+            "updated": updated,
+            "skipped": skipped,
+            "saved": saved,
+            "total_history": int(total),
+            "unmatched_sets": unmatched_sets,
+            "unmatched_sets_count": len(unmatched_sets),
+            "justtcg_requests": justtcg_request_count(),
+        }
 
     # One catalog fetch — local resolve for every set (avoids ~12s/set search).
     catalog_rows: list | None
@@ -109,16 +149,8 @@ def sync_justtcg_price_history(*, limit: int | None = None) -> dict[str, int]:
         catalog_rows = list_pokemon_sets()
         print(f"JustTCG pokemon set catalog: {len(catalog_rows)} rows (local resolve)")
     except JustTCGRateLimitError:
-        print("JustTCG rate limit pri list_pokemon_sets.", file=sys.stderr)
-        total = table_count("price_history")
-        return {
-            "updated": 0,
-            "skipped": 0,
-            "saved": 0,
-            "total_history": int(total),
-            "unmatched_sets": [],
-            "unmatched_sets_count": 0,
-        }
+        print("JustTCG rate/budget stop pri list_pokemon_sets.", file=sys.stderr)
+        return _stats_payload()
     except Exception as exc:
         print(f"JustTCG list_pokemon_sets failed ({exc}) — falling back to per-set q=", file=sys.stderr)
         catalog_rows = None
@@ -132,6 +164,13 @@ def sync_justtcg_price_history(*, limit: int | None = None) -> dict[str, int]:
     for missing_only in passes:
         for set_code, set_name in ordered_sets:
             if set_code not in by_set:
+                continue
+            if set_code in known_unmatched:
+                if set_code not in unmatched_seen:
+                    unmatched_seen.add(set_code)
+                    unmatched_sets.append(
+                        {"set_code": set_code, "set_name": set_name}
+                    )
                 continue
             if missing_only:
                 missing_n = sum(
@@ -147,16 +186,12 @@ def sync_justtcg_price_history(*, limit: int | None = None) -> dict[str, int]:
                     catalog_rows=catalog_rows,
                 )
             except JustTCGRateLimitError:
-                print("JustTCG rate limit pri resolve setova.", file=sys.stderr)
-                total = table_count("price_history")
-                return {
-                    "updated": updated,
-                    "skipped": skipped,
-                    "saved": saved,
-                    "total_history": int(total),
-                    "unmatched_sets": unmatched_sets,
-                    "unmatched_sets_count": len(unmatched_sets),
-                }
+                print(
+                    f"JustTCG rate/budget stop pri resolve "
+                    f"(requests={justtcg_request_count()}).",
+                    file=sys.stderr,
+                )
+                return _stats_payload()
             except Exception as exc:
                 print(f"  set '{set_name}' resolve fail: {exc}", file=sys.stderr)
                 continue
@@ -178,16 +213,12 @@ def sync_justtcg_price_history(*, limit: int | None = None) -> dict[str, int]:
                         jset, offset=offset, limit=JUSTTCG_BATCH_SIZE
                     )
                 except JustTCGRateLimitError:
-                    print("JustTCG rate limit — stop set sync.", file=sys.stderr)
-                    total = table_count("price_history")
-                    return {
-                        "updated": updated,
-                        "skipped": skipped,
-                        "saved": saved,
-                        "total_history": int(total),
-                        "unmatched_sets": unmatched_sets,
-                        "unmatched_sets_count": len(unmatched_sets),
-                    }
+                    print(
+                        f"JustTCG rate/budget stop set sync "
+                        f"(requests={justtcg_request_count()}).",
+                        file=sys.stderr,
+                    )
+                    return _stats_payload()
                 except Exception as exc:
                     print(f"  page offset={offset} greška: {exc}", file=sys.stderr)
                     break
@@ -236,33 +267,24 @@ def sync_justtcg_price_history(*, limit: int | None = None) -> dict[str, int]:
                         f"  OK {card.id} · ${price if price is not None else '?'} · {len(points)} pts"
                     )
                     if limit is not None and updated >= limit:
-                        total = table_count("price_history")
-                        return {
-                            "updated": updated,
-                            "skipped": skipped,
-                            "saved": saved,
-                            "total_history": int(total),
-                            "unmatched_sets": unmatched_sets,
-                            "unmatched_sets_count": len(unmatched_sets),
-                        }
+                        payload = _stats_payload()
+                        print(
+                            f"JustTCG limit hit: updated={updated} "
+                            f"requests={payload['justtcg_requests']}"
+                        )
+                        return payload
 
                 if not has_more:
                     break
                 offset += JUSTTCG_BATCH_SIZE
 
-    total = table_count("price_history")
+    payload = _stats_payload()
     print(
         f"JustTCG gotovo: updated={updated} skipped={skipped} "
-        f"saved_rows={saved} total_history={total}"
+        f"saved_rows={saved} total_history={payload['total_history']} "
+        f"requests={payload['justtcg_requests']}"
     )
-    return {
-        "updated": updated,
-        "skipped": skipped,
-        "saved": saved,
-        "total_history": int(total),
-        "unmatched_sets": unmatched_sets,
-        "unmatched_sets_count": len(unmatched_sets),
-    }
+    return payload
 
 
 def main() -> int:

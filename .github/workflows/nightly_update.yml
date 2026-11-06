@@ -119,6 +119,8 @@ jobs:
           NIGHTLY_BACKFILL_TCP_LIMIT: "60"
           # Keep JustTCG search off by default (429 risk); TCP search is primary.
           NIGHTLY_BACKFILL_JUSTTCG: "0"
+          # Paid tier: 1000/day, 10k/month — nightly soft-cap leaves Soft Ink headroom.
+          JUSTTCG_MAX_REQUESTS: "200"
           # Soft wall-clock SLO (default 150m) before GitHub's 180m hard kill.
           # Fail the job if retrain writes 0 quotes or elapsed exceeds this budget.
           NIGHTLY_SLO_MAX_SECONDS: "9000"

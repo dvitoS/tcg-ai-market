@@ -174,9 +174,14 @@ def refresh_card_catalog() -> int:
 
 
 def refresh_price_history() -> dict[str, int]:
-    from config import _secret
+    from config import _secret, justtcg_max_requests
     from generate_history import ensure_price_history, generate_price_history
-    from justtcg_client import justtcg_api_key
+    from justtcg_client import (
+        configure_justtcg_request_budget,
+        justtcg_api_key,
+        justtcg_request_count,
+        reset_justtcg_request_count,
+    )
     from sync_justtcg import sync_justtcg_price_history
     from sync_live_data import sync_live_price_history
 
@@ -190,20 +195,26 @@ def refresh_price_history() -> dict[str, int]:
 
     # Preferiraj JustTCG (NM + history); fallback PokéWallet; pa sintetički.
     if justtcg_api_key():
+        budget = justtcg_max_requests()
+        reset_justtcg_request_count()
+        configure_justtcg_request_budget(budget)
         LOG.info(
-            "JustTCG sync (NM) — limit: %s",
-            "svi curated setovi" if limit is None else f"top {limit}",
+            "JustTCG sync (NM) — card_limit=%s request_budget=%s",
+            "all" if limit is None else limit,
+            budget if budget is not None else "unlimited",
         )
         stats = sync_justtcg_price_history(limit=limit)
         filled = generate_price_history(replace=False)
         LOG.info(
-            "JustTCG: updated=%s skipped=%s saved=%s total_history=%s synthetic_new=%s unmatched_sets=%s",
+            "JustTCG: updated=%s skipped=%s saved=%s total_history=%s "
+            "synthetic_new=%s unmatched_sets=%s requests=%s",
             stats["updated"],
             stats["skipped"],
             stats["saved"],
             stats["total_history"],
             filled,
             stats.get("unmatched_sets_count", 0),
+            stats.get("justtcg_requests", justtcg_request_count()),
         )
         try:
             from services.spot_qa import build_and_save_snapshot
