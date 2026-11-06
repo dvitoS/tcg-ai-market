@@ -42,6 +42,9 @@ class DataHealthResponse(BaseModel):
     unmatched_sets_sample: list[dict[str, str]] = Field(default_factory=list)
     spot_qa_captured_at: str | None = None
     board_source: str = "empty"
+    nightly_slo_ok: bool | None = None
+    nightly_elapsed_s: float | None = None
+    quotes_written: int | None = None
 
 
 class LoginRequest(BaseModel):

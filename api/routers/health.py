@@ -80,6 +80,21 @@ def data_health() -> DataHealthResponse:
         unmatched_sets_sample=list(spot.get("unmatched_sets_sample") or []),
         spot_qa_captured_at=spot.get("spot_qa_captured_at"),
         board_source=str(spot.get("board_source") or "empty"),
+        nightly_slo_ok=(
+            bool(spot["nightly_slo_ok"])
+            if spot.get("nightly_slo_ok") is not None
+            else None
+        ),
+        nightly_elapsed_s=(
+            float(spot["nightly_elapsed_s"])
+            if spot.get("nightly_elapsed_s") is not None
+            else None
+        ),
+        quotes_written=(
+            int(spot["quotes_written"])
+            if spot.get("quotes_written") is not None
+            else None
+        ),
     )
 
 

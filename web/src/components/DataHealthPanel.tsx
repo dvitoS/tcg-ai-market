@@ -176,6 +176,35 @@ export function DataHealthPanel() {
                 {t("obs_qa_snapshot", { when: stats.spot_qa_captured_at })}
               </p>
             ) : null}
+            <p className="data-health-qa-title">{t("obs_slo_title")}</p>
+            <div className="data-health-metrics">
+              <div>
+                <span>{t("obs_slo_status")}</span>
+                <strong>
+                  {stats.nightly_slo_ok == null
+                    ? t("obs_slo_na")
+                    : stats.nightly_slo_ok
+                      ? t("obs_slo_ok")
+                      : t("obs_slo_fail")}
+                </strong>
+              </div>
+              <div>
+                <span>{t("obs_slo_elapsed")}</span>
+                <strong>
+                  {stats.nightly_elapsed_s == null
+                    ? t("obs_slo_na")
+                    : `${Math.round(stats.nightly_elapsed_s / 60)}m`}
+                </strong>
+              </div>
+              <div>
+                <span>{t("obs_slo_quotes")}</span>
+                <strong>
+                  {stats.quotes_written == null
+                    ? t("obs_slo_na")
+                    : stats.quotes_written}
+                </strong>
+              </div>
+            </div>
           </div>
 
           {error ? <p className="data-health-error">{error}</p> : null}
