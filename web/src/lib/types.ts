@@ -471,6 +471,8 @@ export type DealerStatus = {
   default_fee_pct: number;
   default_ship_usd: number;
   sample_csv: string;
+  sample_tcgplayer_csv?: string;
+  csv_hint?: string;
 };
 
 export type DealerRow = {
@@ -504,6 +506,7 @@ export type DealerResponse = {
   ship_usd: number;
   source: "supabase" | "demo" | "empty";
   demo: boolean;
+  inventory_format?: "soft_ink" | "tcgplayer" | "generic";
 };
 
 export type EbayListing = {
