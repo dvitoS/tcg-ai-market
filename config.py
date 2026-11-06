@@ -399,8 +399,9 @@ MAX_RETRIES = 3
 CATALOG_HTTP_MAX_ATTEMPTS = 10
 # Gap-fill catalog: max sets fetched per nightly when many are still missing.
 NIGHTLY_CATALOG_SET_BUDGET = 50
-# Schedule JustTCG drip — fill missing history over nights; always leave room for retrain.
-NIGHTLY_CARD_LIMIT_DEFAULT = 400
+# Batch-first JustTCG (100 cards/req, ≤100 req/night) — ~8k cards/night fits the budget.
+# Full ~20k catalog refreshes in ~3 nights; missing-history cards stay prioritized.
+NIGHTLY_CARD_LIMIT_DEFAULT = 8000
 NIGHTLY_TASK_NAME = "TCGMarketNightlyUpdate"
 NIGHTLY_SCHEDULE_TIME = "03:00"
 # Soft SLO vs GitHub hard timeout (180m). Fail the job if wall clock exceeds this.
