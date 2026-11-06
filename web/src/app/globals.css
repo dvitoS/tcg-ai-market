@@ -650,8 +650,15 @@ a {
 
 .btn-primary:disabled {
   opacity: 0.55;
-  cursor: wait;
+  cursor: not-allowed;
   transform: none;
+}
+
+.btn-primary.is-busy:disabled,
+.btn-ghost.is-busy:disabled,
+.btn-primary[aria-busy="true"],
+.btn-ghost[aria-busy="true"] {
+  cursor: wait;
 }
 
 .btn-ghost {

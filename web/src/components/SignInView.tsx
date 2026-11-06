@@ -199,7 +199,12 @@ export function SignInView({
           {notice ? <p className="banner-ok">{notice}</p> : null}
 
           <div className="auth-actions">
-            <button type="submit" className="btn-primary auth-submit" disabled={busy}>
+            <button
+              type="submit"
+              className={`btn-primary auth-submit${busy ? " is-busy" : ""}`}
+              disabled={busy}
+              aria-busy={busy}
+            >
               {authMode === "signup"
                 ? t("auth_create_account")
                 : authMode === "forgot"

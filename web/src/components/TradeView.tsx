@@ -503,7 +503,12 @@ export function TradeView() {
           ariaLabel={t("trade_search_aria")}
           recentScope="trade"
         />
-        <button type="submit" className="btn-primary" disabled={searching}>
+        <button
+          type="submit"
+          className={`btn-primary${searching ? " is-busy" : ""}`}
+          disabled={searching}
+          aria-busy={searching}
+        >
           {searching ? t("search_loading") : t("trade_search_btn")}
         </button>
       </form>
@@ -552,23 +557,25 @@ export function TradeView() {
       <div className="detail-actions">
         <button
           type="button"
-          className="btn-primary"
+          className={`btn-primary${busy ? " is-busy" : ""}`}
           disabled={
             busy || !status?.allowed || (you.length === 0 && them.length === 0)
           }
+          aria-busy={busy}
           onClick={() => void onScore()}
         >
           {busy ? t("trade_scoring") : t("trade_score")}
         </button>
         <button
           type="button"
-          className="btn-ghost"
+          className={`btn-ghost${shareBusy ? " is-busy" : ""}`}
           disabled={
             shareBusy ||
             busy ||
             !status?.allowed ||
             (you.length === 0 && them.length === 0)
           }
+          aria-busy={shareBusy}
           onClick={() => void onShare()}
         >
           {shareBusy ? t("trade_share_busy") : t("trade_share_copy")}
