@@ -19,8 +19,9 @@ LOG = logging.getLogger("kestrel.api.price_sources")
 # Nightly already writes JustTCG NM into price_history — prefer that for NM.
 _SOURCES_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
 _SOURCES_CACHE_LOCK = threading.Lock()
-_SOURCES_CACHE_TTL_SECONDS = 45 * 60
-_SOURCES_CACHE_EMPTY_TTL_SECONDS = 15 * 60
+# Long TTL: NM comes from nightly DB; PSA live calls are the Soft Ink quota burn.
+_SOURCES_CACHE_TTL_SECONDS = 6 * 60 * 60
+_SOURCES_CACHE_EMPTY_TTL_SECONDS = 45 * 60
 _SOURCES_CACHE_MAX = 256
 _DB_NM_MIN_POINTS = 7
 _DB_NM_MAX_AGE_DAYS = 3
