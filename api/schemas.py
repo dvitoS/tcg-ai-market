@@ -646,6 +646,7 @@ class DealerResponse(BaseModel):
     ship_usd: float = 4.0
     source: Literal["supabase", "demo", "empty"] = "empty"
     demo: bool = False
+    inventory_format: Literal["soft_ink", "tcgplayer", "generic"] = "generic"
 
 
 class EbayListing(BaseModel):

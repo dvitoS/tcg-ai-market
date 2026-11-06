@@ -350,7 +350,7 @@ const en = {
   dealer_title: "Desk",
   dealer_signin_lede: "Sign in to score inventory against the Soft Ink market board.",
   dealer_lede:
-    "Upload inventory CSV, apply sell fee + shipping, and rank LIST / BUY MORE when the conformal gate is green.",
+    "Upload Soft Ink or TCGplayer inventory CSV — Soft Ink keeps the last sync and re-scores on return.",
   dealer_locked: "Dealer desk is a Kestrel Pro surface.",
   dealer_locked_lede:
     "Upgrade with the same email you use to sign in, then come back to score inventory.",
@@ -362,6 +362,12 @@ const en = {
   dealer_csv: "Inventory CSV",
   dealer_score: "Score desk",
   dealer_sample: "Load sample",
+  dealer_sample_tcgplayer: "TCGplayer sample",
+  dealer_auto_score: "Auto-score synced inventory",
+  dealer_synced: "Synced {when}",
+  dealer_not_synced: "Not synced yet — score or upload to save",
+  dealer_clear_sync: "Clear sync",
+  dealer_format_tcgplayer: "TCGplayer CSV",
   dealer_rows: "Rows",
   dealer_matched: "Matched",
   dealer_actions: "Actions",
@@ -931,7 +937,7 @@ const hr: Dictionary = {
   dealer_title: "Stol",
   dealer_signin_lede: "Prijavi se da ocijeniš inventar prema Soft Ink boardu.",
   dealer_lede:
-    "Uploadaj inventar CSV, primijeni sell fee + shipping, i rangiraj LIST / BUY MORE kad je conformal gate zelen.",
+    "Upload Soft Ink ili TCGplayer inventar CSV — Soft Ink pamti zadnji sync i ponovno ocijeni kad se vratiš.",
   dealer_locked: "Dealer stol je Kestrel Pro površina.",
   dealer_locked_lede:
     "Nadogradi s istim emailom koji koristiš za prijavu, pa se vrati ocijeniti inventar.",
@@ -943,6 +949,12 @@ const hr: Dictionary = {
   dealer_csv: "Inventar CSV",
   dealer_score: "Ocijeni stol",
   dealer_sample: "Učitaj uzorak",
+  dealer_sample_tcgplayer: "TCGplayer uzorak",
+  dealer_auto_score: "Auto-ocijeni sinkronizirani inventar",
+  dealer_synced: "Sinkronizirano {when}",
+  dealer_not_synced: "Još nije sinkronizirano — ocijeni ili uploadaj za spremanje",
+  dealer_clear_sync: "Obriši sync",
+  dealer_format_tcgplayer: "TCGplayer CSV",
   dealer_rows: "Redovi",
   dealer_matched: "Matchano",
   dealer_actions: "Akcije",

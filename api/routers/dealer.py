@@ -17,6 +17,7 @@ from services.dealer_desk import (
     DEFAULT_SELL_FEE_PCT,
     DEFAULT_SHIP_USD,
     build_dealer_board,
+    detect_inventory_format,
     parse_inventory_csv,
 )
 from services.pro import is_pro_user, pro_checkout_url, pro_gate_reason
@@ -30,6 +31,14 @@ def _pro_allowed(user: dict[str, Any]) -> bool:
     return bool(is_pro_user(user))
 
 
+_SAMPLE_SOFT_INK = "card_id,quantity,cost\nsv1-1,2,3.20\nsv1-45,1,1.70\nsv1-32,1,1.40\n"
+_SAMPLE_TCGPLAYER = (
+    "TCGplayer Id,Product Name,Set Name,Number,Total Quantity,Market Price\n"
+    "123456,Pikachu,Obsidian Flames,025,2,1.25\n"
+    "234567,Charizard ex,Obsidian Flames,223,1,42.00\n"
+)
+
+
 @router.get("/status")
 def dealer_status(user: Annotated[dict, Depends(require_user)]) -> dict[str, Any]:
     allowed = _pro_allowed(user)
@@ -39,7 +48,12 @@ def dealer_status(user: Annotated[dict, Depends(require_user)]) -> dict[str, Any
         "checkout_url": pro_checkout_url(),
         "default_fee_pct": DEFAULT_SELL_FEE_PCT,
         "default_ship_usd": DEFAULT_SHIP_USD,
-        "sample_csv": "card_id,quantity,cost\nsv1-1,2,3.20\nsv1-45,1,1.70\nsv1-32,1,1.40\n",
+        "sample_csv": _SAMPLE_SOFT_INK,
+        "sample_tcgplayer_csv": _SAMPLE_TCGPLAYER,
+        "csv_hint": (
+            "Soft Ink: card_id,quantity,cost — or paste a TCGplayer Inventory / "
+            "Mass Entry export (Product Name, Set Name, Number, Total Quantity)."
+        ),
     }
 
 
@@ -114,6 +128,20 @@ def dealer_score(
     inventory_value = float(
         sum(float(r.get("inventory_value") or 0.0) for r in rows if r.get("matched"))
     )
+    fmt = "generic"
+    if "format" in inventory.columns and not inventory.empty:
+        fmt = str(inventory.iloc[0].get("format") or "generic")
+    else:
+        try:
+            # Re-detect from raw headers if needed.
+            import csv
+            import io
+
+            reader = csv.reader(io.StringIO(body.csv_text.splitlines()[0]))
+            headers = next(reader, [])
+            fmt = detect_inventory_format([str(h) for h in headers])
+        except Exception:
+            fmt = "generic"
 
     return DealerResponse(
         items=[DealerRow(**r) for r in rows],
@@ -126,4 +154,5 @@ def dealer_score(
         ship_usd=ship,
         source=source,
         demo=demo_mode(),
+        inventory_format=fmt,
     )

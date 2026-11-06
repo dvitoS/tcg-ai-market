@@ -89,8 +89,8 @@ These close the loop we actually need before marketing spend. Do **not** reorder
 | D1 | PWA + installable Soft Ink | **Done** — manifest, home-screen install, offline shell |
 | D2 | Camera OCR scan | **Done** — `/identify` camera/upload → OCR → catalog match → card detail |
 | D3 | #5 Alert channels | **Telegram skipped** for now; push deferred. Email + Discord already live. |
-| D4 | Cardmarket / EU pricing | **Shipping** — USD/EUR spot toggle (ECB FX) + Cardmarket deep-link on detail |
-| D5 | Seller inventory sync | TCGplayer / CSV auto for dealer desk |
+| D4 | Cardmarket / EU pricing | **Done** — USD/EUR spot toggle (ECB FX) + Cardmarket deep-link on detail |
+| D5 | Seller inventory sync | **Shipping** — TCGplayer CSV dialects + local auto-sync / re-score on dealer desk |
 | D6 | Multi-TCG / JP lanes | Only with a data partner + proven Pokémon Pro retention |
 
 ---
@@ -109,4 +109,4 @@ These close the loop we actually need before marketing spend. Do **not** reorder
 
 ## Suggested next move
 
-**D4 Cardmarket / EU shipping.** Next: **D5 Seller inventory sync** (D3 Telegram skipped).
+**D5 Seller inventory sync shipping.** Next: **D6 Multi-TCG** only with a data partner (D3 Telegram skipped).

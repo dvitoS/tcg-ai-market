@@ -22,6 +22,66 @@ def test_parse_inventory_csv_aliases():
     assert list(frame["card_id"]) == ["sv3-1"]
     assert int(frame.loc[0, "quantity"]) == 3
     assert float(frame.loc[0, "unit_cost"]) == 12.5
+    assert frame.loc[0, "format"] == "soft_ink"
+
+
+def test_parse_tcgplayer_inventory_csv():
+    from services.dealer_desk import detect_inventory_format
+
+    raw = (
+        "TCGplayer Id,Product Name,Set Name,Number,Total Quantity,Market Price\n"
+        "999001,Charizard ex,Obsidian Flames,223,1,40.0\n"
+        "999002,Pikachu,Obsidian Flames,025,2,1.5\n"
+    )
+    frame = parse_inventory_csv(raw)
+    assert detect_inventory_format(
+        ["TCGplayer Id", "Product Name", "Set Name", "Number", "Total Quantity"]
+    ) == "tcgplayer"
+    assert frame.loc[0, "format"] == "tcgplayer"
+    # Numeric TCGplayer Id must not pretend to be Soft Ink card_id.
+    assert frame.loc[0, "card_id"] == ""
+    assert frame.loc[0, "tcgplayer_id"] == "999001"
+    assert frame.loc[0, "name"] == "Charizard ex"
+    assert frame.loc[0, "set_name"] == "Obsidian Flames"
+    assert frame.loc[0, "number"] == "223"
+    assert int(frame.loc[0, "quantity"]) == 1
+
+
+def test_build_dealer_board_matches_name_set_number():
+    inventory = parse_inventory_csv(
+        "Product Name,Set Name,Number,Total Quantity\n"
+        "Charizard ex,Obsidian Flames,223,1\n"
+    )
+    market = pd.DataFrame(
+        [
+            {
+                "id": "sv3-6",
+                "name": "Charmander",
+                "set_name": "Obsidian Flames",
+                "price": 1.0,
+                "expected_change_pct": 0.0,
+                "signal": SIGNAL_HOLD,
+                "confidence_ok": True,
+                "conformal_ok": True,
+            },
+            {
+                "id": "sv3-223",
+                "name": "Charizard ex",
+                "set_name": "Obsidian Flames",
+                "price": 40.0,
+                "expected_change_pct": -8.0,
+                "signal": SIGNAL_SELL,
+                "confidence_ok": True,
+                "conformal_ok": True,
+                "pred_lo_pct": -12.0,
+                "pred_hi_pct": -2.0,
+            },
+        ]
+    )
+    board = build_dealer_board(inventory, market, fee_pct=10.0, ship_usd=0.0)
+    assert board.attrs["unmatched"] == 0
+    assert board.iloc[0]["card_id"] == "sv3-223"
+    assert board.iloc[0]["action"] == ACTION_LIST
 
 
 def test_net_proceeds_applies_fee_and_ship():
