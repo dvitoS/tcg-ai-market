@@ -181,6 +181,7 @@ def resolve_variant_spots(
         from justtcg_client import (
             JustTCGRateLimitError,
             batch_variant_lookups,
+            card_tcgplayer_id,
             justtcg_api_key,
             pick_variant,
             variant_price_usd,
@@ -235,11 +236,7 @@ def resolve_variant_spots(
             # Index returned cards by tcgplayerId; pick matching variant.
             by_tcp: dict[str, dict[str, Any]] = {}
             for row in rows:
-                tid = str(
-                    row.get("tcgplayerId")
-                    or row.get("tcgplayer_id")
-                    or ""
-                ).strip()
+                tid = card_tcgplayer_id(row) or ""
                 if tid:
                     by_tcp[tid] = row
             for req in chunk:

@@ -21,9 +21,13 @@ from config import (
 
 LOG = logging.getLogger("tcg.justtcg")
 
-# Graded (PSA …) živi na /v2/cards (beta). v1 base ostaje za NM.
+# NM + graded cards: prefer /v2/cards (beta). /sets and /games stay on v1.
+# Docs: https://justtcg.com/docs/api/cards-v2
 JUSTTCG_API_V2_BASE_URL = "https://api.justtcg.com/v2"
 JUSTTCG_PSA10_HISTORY_INCLUDE = "periods.30d,periods.90d,periods.1y,price_history.90d"
+# v2 examples use game id "pokemon" (not display name "Pokemon").
+JUSTTCG_GAME = "pokemon"
+JUSTTCG_REGION = "NA"
 
 # In-process response cache — skip delay on identical GETs/POSTs within one process.
 _GET_CACHE: dict[str, dict[str, Any]] = {}
@@ -40,15 +44,16 @@ def _cache_key(base: str, path: str, params: dict[str, Any] | None) -> str:
     return f"{base}|{path}|{items}"
 
 
-def _post_cache_key(path: str, payload: Any) -> str:
+def _post_cache_key(path: str, payload: Any, *, base_url: str | None = None) -> str:
     """Stable key for JSON-serializable batch bodies."""
     import json
 
+    root = (base_url or JUSTTCG_API_BASE_URL).rstrip("/")
     try:
         body = json.dumps(payload, sort_keys=True, default=str)
     except TypeError:
         body = repr(payload)
-    return f"POST|{JUSTTCG_API_BASE_URL}|{path}|{body}"
+    return f"POST|{root}|{path}|{body}"
 
 
 def clear_justtcg_cache() -> None:
@@ -113,6 +118,61 @@ def _headers() -> dict[str, str]:
     return {"x-api-key": key, "Accept": "application/json", "Content-Type": "application/json"}
 
 
+def _v2_history_include() -> str:
+    """Narrow periods + price_history windows (docs: include=periods.Xd,price_history.Xd)."""
+    duration = str(JUSTTCG_HISTORY_DURATION or "90d").strip() or "90d"
+    return f"periods.{duration},price_history.{duration}"
+
+
+def _v2_raw_params(**extra: Any) -> dict[str, Any]:
+    """GET/POST /v2/cards for raw NM — graded=exclude keeps base request cost."""
+    params: dict[str, Any] = {
+        "regions": JUSTTCG_REGION,
+        "graded": "exclude",
+        "include": _v2_history_include(),
+    }
+    params.update(extra)
+    return params
+
+
+def _v2_spot_params(**extra: Any) -> dict[str, Any]:
+    """Portfolio/trade spots — periods only, no price_history series."""
+    params: dict[str, Any] = {
+        "regions": JUSTTCG_REGION,
+        "graded": "exclude",
+        "include": "periods.30d",
+    }
+    params.update(extra)
+    return params
+
+
+def _v2_batch_path(*, history: bool) -> str:
+    """POST /v2/cards query string (include + regions apply to the whole batch)."""
+    base = _v2_raw_params() if history else _v2_spot_params()
+    qs = "&".join(f"{k}={v}" for k, v in sorted(base.items()))
+    return f"/cards?{qs}"
+
+
+def _parse_next_cursor(link_header: str | None) -> str | None:
+    """Extract cursor from ``Link: <…&cursor=…>; rel="next"`` (v2 pagination)."""
+    if not link_header:
+        return None
+    import re
+    from urllib.parse import parse_qs, urlparse
+
+    for part in str(link_header).split(","):
+        if 'rel="next"' not in part and "rel=next" not in part:
+            continue
+        match = re.search(r"<([^>]+)>", part)
+        if not match:
+            continue
+        query = parse_qs(urlparse(match.group(1)).query)
+        cursors = query.get("cursor") or []
+        if cursors and str(cursors[0]).strip():
+            return str(cursors[0]).strip()
+    return None
+
+
 def _get(
     path: str,
     params: dict[str, Any] | None = None,
@@ -147,15 +207,21 @@ def _get_v2(path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
     return _get(path, params, base_url=JUSTTCG_API_V2_BASE_URL)
 
 
-def _post(path: str, payload: Any) -> dict[str, Any]:
-    key = _post_cache_key(path, payload)
+def _post(
+    path: str,
+    payload: Any,
+    *,
+    base_url: str | None = None,
+) -> dict[str, Any]:
+    root = (base_url or JUSTTCG_API_BASE_URL).rstrip("/")
+    key = _post_cache_key(path, payload, base_url=root)
     cached = _POST_CACHE.get(key)
     if cached is not None:
         return cached
 
     _consume_request_budget()
     sleep(JUSTTCG_REQUEST_DELAY_SECONDS)
-    url = f"{JUSTTCG_API_BASE_URL.rstrip('/')}{path}"
+    url = f"{root}{path}"
     response = requests.post(url, json=payload, headers=_headers(), timeout=60)
     if response.status_code == 429:
         retry = response.headers.get("Retry-After")
@@ -167,6 +233,30 @@ def _post(path: str, payload: Any) -> dict[str, Any]:
         _POST_CACHE.pop(next(iter(_POST_CACHE)), None)
     _POST_CACHE[key] = data
     return data
+
+
+def _post_v2(path: str, payload: Any) -> dict[str, Any]:
+    return _post(path, payload, base_url=JUSTTCG_API_V2_BASE_URL)
+
+
+def _get_v2_page(
+    path: str,
+    params: dict[str, Any] | None = None,
+) -> tuple[dict[str, Any], str | None]:
+    """GET /v2/… bypassing response cache so Link ``rel=next`` cursor stays accurate."""
+    _consume_request_budget()
+    sleep(JUSTTCG_REQUEST_DELAY_SECONDS)
+    url = f"{JUSTTCG_API_V2_BASE_URL.rstrip('/')}{path}"
+    response = requests.get(url, params=params or {}, headers=_headers(), timeout=45)
+    if response.status_code == 429:
+        retry = response.headers.get("Retry-After")
+        LOG.warning("JustTCG 429 (Retry-After=%s) — raising", retry or "?")
+        raise JustTCGRateLimitError(response=response)
+    response.raise_for_status()
+    payload = response.json()
+    if not isinstance(payload, dict):
+        raise RuntimeError("JustTCG unexpected payload shape")
+    return payload, _parse_next_cursor(response.headers.get("Link"))
 
 
 def extract_tcgplayer_product_id(card: dict[str, Any]) -> str | None:
@@ -213,13 +303,7 @@ def _variant_printing(v: dict[str, Any]) -> str:
 
 
 def _variant_has_price(v: dict[str, Any]) -> bool:
-    price = v.get("price")
-    if price is None:
-        price = v.get("lastKnownPrice")
-    try:
-        return price is not None and float(price) > 0
-    except (TypeError, ValueError):
-        return False
+    return variant_price_usd(v) is not None
 
 
 def _condition_matches(raw: str, wanted: str) -> bool:
@@ -257,17 +341,30 @@ def _printing_matches(raw: str, wanted: str) -> bool:
     return key in text or text == key
 
 
+def _is_graded_variant(variant: dict[str, Any]) -> bool:
+    if str(variant.get("type") or "").lower() == "graded":
+        return True
+    cond = _variant_condition(variant)
+    return cond.startswith("psa") or cond.startswith("cgc") or cond.startswith("bgs")
+
+
+def _raw_variants(variants: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    raw = [v for v in variants if not _is_graded_variant(v)]
+    return raw or list(variants)
+
+
 def pick_nm_variant(variants: list[dict[str, Any]]) -> dict[str, Any] | None:
     """Preferiraj Near Mint Holofoil, zatim NM bilo koji printing, zatim prva s cijenom."""
     if not variants:
         return None
 
+    pool_src = _raw_variants(variants)
     nm = [
         v
-        for v in variants
+        for v in pool_src
         if _condition_matches(_variant_condition(v), "Near Mint")
     ]
-    pool = nm or variants
+    pool = nm or pool_src
     for preferred in ("holofoil", "holo", "reverse holofoil", "reverse holo", "normal"):
         for variant in pool:
             if preferred in _variant_printing(variant) and _variant_has_price(variant):
@@ -293,10 +390,11 @@ def pick_variant(
     print_ = normalize_printing(printing)
     wanted_cond = CONDITION_TO_JUSTTCG.get(cond, "Near Mint")
     wanted_print = PRINTING_TO_JUSTTCG.get(print_, "Normal")
+    pool = _raw_variants(variants)
 
     matched = [
         v
-        for v in variants
+        for v in pool
         if _condition_matches(_variant_condition(v), wanted_cond)
         and _printing_matches(_variant_printing(v), wanted_print)
     ]
@@ -308,7 +406,7 @@ def pick_variant(
 
     # Soft fallback: same condition, any printing with a price.
     same_cond = [
-        v for v in variants if _condition_matches(_variant_condition(v), wanted_cond)
+        v for v in pool if _condition_matches(_variant_condition(v), wanted_cond)
     ]
     for variant in same_cond:
         if _variant_has_price(variant):
@@ -316,21 +414,86 @@ def pick_variant(
     return None
 
 
-def variant_price_usd(variant: dict[str, Any] | None) -> float | None:
+def card_tcgplayer_id(card: dict[str, Any] | None) -> str | None:
+    """TCGPlayer product id from v2 ``tcgplayer_id`` / ``external_ids`` or v1 camelCase."""
+    if not card:
+        return None
+    for key in ("tcgplayer_id", "tcgplayerId"):
+        raw = card.get(key)
+        if raw is not None and str(raw).strip():
+            return str(raw).strip()
+    external = card.get("external_ids")
+    if isinstance(external, dict):
+        raw = external.get("tcgplayer") or external.get("tcgplayer_id")
+        if raw is not None and str(raw).strip():
+            return str(raw).strip()
+    return None
+
+
+def _prefer_na_market(variant: dict[str, Any] | None) -> dict[str, Any] | None:
+    """v2 ``markets[]`` entry for NA (or first priced); None when absent (v1 flat)."""
     if not variant:
         return None
-    for key in ("price", "lastKnownPrice"):
-        raw = variant.get(key)
+    markets = variant.get("markets")
+    if not isinstance(markets, list) or not markets:
+        return None
+    for region in (JUSTTCG_REGION, "US", "USA"):
+        for market in markets:
+            if (
+                isinstance(market, dict)
+                and str(market.get("region") or "").upper() == region
+            ):
+                return market
+    for market in markets:
+        if isinstance(market, dict):
+            return market
+    return None
+
+
+def variant_price_usd(variant: dict[str, Any] | None) -> float | None:
+    """Effective USD spot — v2 markets[] first, then v1 flat priceStatus fields."""
+    if not variant:
+        return None
+
+    def _pos(raw: Any) -> float | None:
         try:
             value = float(raw)
         except (TypeError, ValueError):
-            continue
-        if value > 0:
-            return value
+            return None
+        return value if value > 0 else None
+
+    market = _prefer_na_market(variant)
+    source = market if market is not None else variant
+    status = str(
+        source.get("price_status")
+        or source.get("priceStatus")
+        or ""
+    ).strip().lower()
+    price = _pos(source.get("price"))
+    last = _pos(
+        source.get("last_price")
+        or source.get("lastKnownPrice")
+        or variant.get("lastKnownPrice")
+        or variant.get("last_price")
+    )
+    if price is not None:
+        return price
+    if status == "unpriced":
+        return None
+    if last is not None and status in {"", "expired"}:
+        return last
+    if last is not None:
+        return last
     return None
 
 
 def _history_list_from_variant(variant: dict[str, Any]) -> list[Any]:
+    market = _prefer_na_market(variant)
+    if market is not None:
+        for key in ("price_history", "priceHistory"):
+            raw = market.get(key)
+            if isinstance(raw, list) and raw:
+                return raw
     for key in (
         "priceHistory",
         "price_history",
@@ -382,27 +545,22 @@ def history_points_from_variant(variant: dict[str, Any] | None) -> list[dict[str
 
 
 def fetch_card_by_tcgplayer_id(tcgplayer_id: str) -> dict[str, Any] | None:
-    """Jedna karta po TCGplayer product id (GET first for cache, POST fallback)."""
+    """Jedna karta po TCGplayer product id via GET /v2/cards (empty data = not found)."""
     tid = str(tcgplayer_id or "").strip()
     if not tid:
         return None
 
-    # Soft Ink detail remounts: GET hits the in-process cache; POST used to burn quota.
-    payload = _get(
+    # Soft Ink detail remounts: GET hits the in-process cache.
+    # Do not POST-fallback on empty data[] — same id will not appear in batch.
+    payload = _get_v2(
         "/cards",
-        {
-            "tcgplayerId": tid,
-            "condition": "NM",
-            "include_price_history": "true",
-            "priceHistoryDuration": JUSTTCG_HISTORY_DURATION,
-            "limit": 5,
-        },
+        _v2_raw_params(
+            tcgplayer_id=tid,
+            condition="NM",
+            limit=5,
+        ),
     )
     rows = list(payload.get("data") or [])
-    if rows:
-        return rows[0]
-
-    rows = batch_by_tcgplayer_ids([tid])
     return rows[0] if rows else None
 
 
@@ -455,23 +613,28 @@ def _score_search_row(
     return score
 
 
-def _search_cards_raw(q: str, *, limit: int = 20) -> list[dict[str, Any]]:
+def _search_cards_raw(
+    q: str,
+    *,
+    limit: int = 20,
+    number: str | None = None,
+) -> list[dict[str, Any]]:
     query = (q or "").strip()
     if not query:
         return []
-    # Free tier rejects limits above ~20.
+    # Plan max cards/request (Free 20 … Pro 100) — clamp to JUSTTCG_BATCH_SIZE.
     safe_limit = max(1, min(int(limit), JUSTTCG_BATCH_SIZE))
-    payload = _get(
-        "/cards",
-        {
-            "game": "pokemon",
-            "q": query,
-            "condition": "NM",
-            "include_price_history": "true",
-            "priceHistoryDuration": JUSTTCG_HISTORY_DURATION,
-            "limit": safe_limit,
-        },
+    # v2: game id ``pokemon``; ``query`` + optional ``number``; graded=exclude.
+    params = _v2_raw_params(
+        game=JUSTTCG_GAME,
+        query=query,
+        condition="NM",
+        limit=safe_limit,
     )
+    num = normalize_card_number(number) if number else ""
+    if num and num != "0":
+        params["number"] = num
+    payload = _get_v2("/cards", params)
     return list(payload.get("data") or [])
 
 
@@ -514,7 +677,11 @@ def search_pokemon_card(
             continue
         seen_q.add(key)
         try:
-            rows = _search_cards_raw(q, limit=JUSTTCG_BATCH_SIZE)
+            rows = _search_cards_raw(
+                q,
+                limit=JUSTTCG_BATCH_SIZE,
+                number=wanted_number or None,
+            )
         except JustTCGRateLimitError:
             raise
         except Exception as exc:
@@ -554,7 +721,7 @@ def nm_history_for_card(
     card = search_pokemon_card(name=str(name or ""), number=number, set_name=set_name)
     if not card:
         return [], resolved
-    resolved = str(card.get("tcgplayerId") or resolved or "") or resolved
+    resolved = card_tcgplayer_id(card) or resolved
     variant = pick_nm_variant(list(card.get("variants") or []))
     points = history_points_from_variant(variant)
     # If the top match has no series, try other strong number matches via a fresh number query.
@@ -563,6 +730,7 @@ def nm_history_for_card(
             rows = _search_cards_raw(
                 f"{name} {normalize_card_number(number)}".strip(),
                 limit=JUSTTCG_BATCH_SIZE,
+                number=normalize_card_number(number),
             )
             wanted = normalize_card_number(number)
             for row in rows:
@@ -571,7 +739,7 @@ def nm_history_for_card(
                 variant = pick_nm_variant(list(row.get("variants") or []))
                 points = history_points_from_variant(variant)
                 if points:
-                    resolved = str(row.get("tcgplayerId") or resolved or "") or resolved
+                    resolved = card_tcgplayer_id(row) or resolved
                     break
         except Exception as exc:
             LOG.warning("JustTCG number retry failed: %s", exc)
@@ -579,7 +747,7 @@ def nm_history_for_card(
 
 
 def list_pokemon_sets() -> list[dict[str, Any]]:
-    payload = _get("/sets", {"game": "pokemon"})
+    payload = _get("/sets", {"game": JUSTTCG_GAME})
     return list(payload.get("data") or [])
 
 
@@ -717,7 +885,7 @@ def resolve_set_id(
     seen_ids: set[str] = set()
     for q in queries:
         try:
-            payload = _get("/sets", {"game": "pokemon", "q": q})
+            payload = _get("/sets", {"game": JUSTTCG_GAME, "q": q})
         except Exception as exc:
             LOG.warning("JustTCG set query %r failed: %s", q, exc)
             continue
@@ -744,49 +912,48 @@ def resolve_set_id(
 def fetch_set_cards_page(
     set_id: str,
     *,
+    cursor: str | None = None,
     offset: int = 0,
     limit: int = JUSTTCG_BATCH_SIZE,
-) -> tuple[list[dict[str, Any]], bool]:
-    """Jedna stranica karata seta s NM filterom i history."""
-    payload = _get(
-        "/cards",
-        {
-            "game": "pokemon",
-            "set": set_id,
-            "condition": "NM",
-            "priceHistoryDuration": JUSTTCG_HISTORY_DURATION,
-            "include_price_history": "true",
-            "limit": min(int(limit), JUSTTCG_BATCH_SIZE),
-            "offset": int(offset),
-        },
+) -> tuple[list[dict[str, Any]], str | None]:
+    """One /v2/cards page for a set. Returns ``(rows, next_cursor)``.
+
+    v2 dropped ``offset`` — pass ``cursor`` from the previous page's Link header.
+    ``offset`` is accepted for call-site compatibility but ignored.
+    """
+    del offset  # v2 has no offset pagination
+    params = _v2_raw_params(
+        game=JUSTTCG_GAME,
+        set=set_id,
+        condition="NM",
+        limit=min(int(limit), JUSTTCG_BATCH_SIZE),
     )
+    if cursor:
+        params["cursor"] = str(cursor)
+    payload, next_cursor = _get_v2_page("/cards", params)
     rows = list(payload.get("data") or [])
-    meta = payload.get("meta") or {}
-    has_more = bool(meta.get("hasMore"))
-    return rows, has_more
+    return rows, next_cursor
 
 
 def batch_by_tcgplayer_ids(tcgplayer_ids: list[str]) -> list[dict[str, Any]]:
-    """POST batch lookup (max JUSTTCG_BATCH_SIZE)."""
+    """POST /v2/cards batch NM lookup with history (nightly sync)."""
     if not tcgplayer_ids:
         return []
+    # v2 batch body is snake_case; abbreviated conditions (NM / LP).
     body = [
-        {"tcgplayerId": str(tid), "condition": "NM"}
+        {"tcgplayer_id": str(tid), "condition": "NM"}
         for tid in tcgplayer_ids[:JUSTTCG_BATCH_SIZE]
     ]
-    # History duration je query na GET; za batch pokušaj kao query param ako API podržava.
-    payload = _post(
-        f"/cards?priceHistoryDuration={JUSTTCG_HISTORY_DURATION}&include_price_history=true",
-        body,
-    )
+    payload = _post_v2(_v2_batch_path(history=True), body)
     return list(payload.get("data") or [])
 
 
 def batch_variant_lookups(
     items: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
-    """POST batch lookup with per-item condition + printing (max JUSTTCG_BATCH_SIZE).
+    """POST /v2/cards batch with per-item condition + printing (max JUSTTCG_BATCH_SIZE).
 
+    Spot-only include (periods, no price_history) — Soft Ink portfolio/trade.
     Each item: {tcgplayerId, condition?, printing?} using Soft Ink or JustTCG labels.
     """
     if not items:
@@ -802,17 +969,14 @@ def batch_variant_lookups(
         print_ = normalize_printing(raw.get("printing") or "Normal")
         body.append(
             {
-                "tcgplayerId": tid,
-                "condition": CONDITION_TO_JUSTTCG.get(cond, "Near Mint"),
+                "tcgplayer_id": tid,
+                "condition": cond if cond in CONDITION_TO_JUSTTCG else "NM",
                 "printing": PRINTING_TO_JUSTTCG.get(print_, "Normal"),
             }
         )
     if not body:
         return []
-    payload = _post(
-        f"/cards?priceHistoryDuration={JUSTTCG_HISTORY_DURATION}",
-        body,
-    )
+    payload = _post_v2(_v2_batch_path(history=False), body)
     return list(payload.get("data") or [])
 
 
