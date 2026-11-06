@@ -34,8 +34,10 @@ export function PwaChrome() {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [showIos, setShowIos] = useState(false);
   const [visible, setVisible] = useState(false);
-  // Keep the landing hero clean — install prompt belongs on desk pages.
-  const onLanding = pathname === "/";
+  const [watchBusy, setWatchBusy] = useState(false);
+  // Quiet chrome on marketing / upgrade pitch; defer while a watch banner is up.
+  const quietPath =
+    pathname === "/" || Boolean(pathname?.startsWith("/pro"));
 
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
@@ -44,6 +46,19 @@ export function PwaChrome() {
     void navigator.serviceWorker.register("/sw.js").catch(() => {
       /* installable desk is best-effort */
     });
+  }, []);
+
+  useEffect(() => {
+    function syncWatch() {
+      try {
+        setWatchBusy(window.sessionStorage.getItem("kestrel_watch_banner") === "1");
+      } catch {
+        setWatchBusy(false);
+      }
+    }
+    syncWatch();
+    window.addEventListener("kestrel-watch-banner", syncWatch);
+    return () => window.removeEventListener("kestrel-watch-banner", syncWatch);
   }, []);
 
   useEffect(() => {
@@ -69,7 +84,7 @@ export function PwaChrome() {
     return () => window.removeEventListener("beforeinstallprompt", onBip);
   }, []);
 
-  if (!visible || onLanding) return null;
+  if (!visible || quietPath || watchBusy) return null;
 
   function dismiss() {
     setVisible(false);
