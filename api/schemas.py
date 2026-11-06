@@ -133,6 +133,26 @@ class CatalogResponse(BaseModel):
     meta: CatalogMeta
 
 
+class IdentifyRequest(BaseModel):
+    text: str = Field(..., min_length=1, max_length=8000)
+    limit: int = Field(default=8, ge=1, le=24)
+
+
+class IdentifyMatch(BaseModel):
+    score: float
+    reasons: list[str] = Field(default_factory=list)
+    card: CatalogCard
+
+
+class IdentifyResponse(BaseModel):
+    matches: list[IdentifyMatch] = Field(default_factory=list)
+    total: int = 0
+    source: Literal["supabase", "demo", "empty"] = "empty"
+    name_hints: list[str] = Field(default_factory=list)
+    number: str | None = None
+    collector: str | None = None
+
+
 class HistoryPoint(BaseModel):
     date: str
     price: float
