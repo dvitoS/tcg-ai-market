@@ -2117,23 +2117,6 @@ a {
   flex: 1 1 10rem;
 }
 
-.auth-demo-link {
-  border: 0;
-  background: transparent;
-  color: var(--muted);
-  font: inherit;
-  font-size: 0.86rem;
-  padding: 0.15rem 0;
-  cursor: pointer;
-  justify-self: center;
-}
-
-.auth-demo-link:hover,
-.auth-demo-link:focus-visible {
-  color: var(--accent-2);
-  outline: none;
-}
-
 .auth-foot {
   margin: 0.35rem 0 0;
   color: var(--muted);
