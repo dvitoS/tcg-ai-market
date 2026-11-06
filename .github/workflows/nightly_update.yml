@@ -19,9 +19,9 @@ on:
           - skip
         default: gapfill
       card_limit:
-        description: "JustTCG sync card limit (all, or e.g. 400). Missing history first."
+        description: "JustTCG sync card limit (all, or e.g. 8000). Missing history first; batch=100/req."
         type: string
-        default: "400"
+        default: "8000"
       catalog_set_budget:
         description: "Max sets to fetch in gapfill mode (ignored for full)"
         type: string
@@ -112,7 +112,7 @@ jobs:
           PYTHONUNBUFFERED: "1"
           # Schedule → gapfill + drip. Manual → honor workflow_dispatch inputs.
           NIGHTLY_CATALOG_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.catalog_mode || 'gapfill' }}
-          NIGHTLY_CARD_LIMIT: ${{ github.event_name == 'workflow_dispatch' && inputs.card_limit || '400' }}
+          NIGHTLY_CARD_LIMIT: ${{ github.event_name == 'workflow_dispatch' && inputs.card_limit || '8000' }}
           NIGHTLY_CATALOG_SET_BUDGET: ${{ github.event_name == 'workflow_dispatch' && inputs.catalog_set_budget || '50' }}
           # Resolve missing cards.tcgplayer_id via TCGplayer public search (drip).
           NIGHTLY_BACKFILL_TCP: "1"
