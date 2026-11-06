@@ -32,20 +32,11 @@ export const metadata: Metadata = {
     title: TITLE,
     description: DESCRIPTION,
     locale: "en_US",
-    images: [
-      {
-        url: absoluteUrl("/kestrel-logo.png"),
-        width: 512,
-        height: 512,
-        alt: "Kestrel Soft Ink",
-      },
-    ],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: TITLE,
     description: DESCRIPTION,
-    images: [absoluteUrl("/kestrel-logo.png")],
   },
   robots: {
     index: true,

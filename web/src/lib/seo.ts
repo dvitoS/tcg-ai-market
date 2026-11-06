@@ -47,7 +47,7 @@ export function cardMetadata(card: CatalogCard): Metadata {
   const title = cardSeoTitle(card);
   const description = cardSeoDescription(card);
   const url = absoluteUrl(cardPagePath(card.id));
-  const image = card.image_url || absoluteUrl("/kestrel-logo.png");
+  // Share preview image comes from app/cards/[id]/opengraph-image.tsx (1200×630).
   return {
     title,
     description,
@@ -58,18 +58,11 @@ export function cardMetadata(card: CatalogCard): Metadata {
       siteName: "Kestrel",
       title,
       description,
-      images: [
-        {
-          url: image,
-          alt: card.name,
-        },
-      ],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [image],
     },
   };
 }
