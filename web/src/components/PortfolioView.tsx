@@ -5,6 +5,7 @@ import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
+import { DeskLoading } from "@/components/DeskLoading";
 import { useLocale } from "@/components/LocaleProvider";
 import { PortfolioBarsChart } from "@/components/PortfolioBarsChart";
 import { PortfolioPerfChart } from "@/components/PortfolioPerfChart";
@@ -111,6 +112,7 @@ export function PortfolioView() {
   const [demo, setDemo] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [booted, setBooted] = useState(false);
   const [authMode, setAuthMode] = useState<"signin" | "signup" | "forgot">("signin");
   const [email, setEmail] = useState("dev@local");
   const [password, setPassword] = useState("demo");
@@ -163,6 +165,7 @@ export function PortfolioView() {
         writeSureOnly(false);
       }
       setBusy(false);
+      setBooted(true);
       void fetchPortfolioPerformance({ max_days: 120 })
         .then((performance) => {
           setPerfPoints(performance.points || []);
@@ -180,6 +183,7 @@ export function PortfolioView() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load portfolio");
       setBusy(false);
+      setBooted(true);
     }
   }, [dismissed, sureOnly, thresholdPct]);
 
@@ -253,8 +257,11 @@ export function PortfolioView() {
   }
 
   useEffect(() => {
+    if (!user) {
+      setBooted(false);
+      return;
+    }
     if (authLoading) return;
-    if (!user) return;
     void load();
   }, [authLoading, user, load]);
 
@@ -375,7 +382,23 @@ export function PortfolioView() {
   }
 
   if (authLoading) {
-    return <p className="empty-state">{t("port_loading")}</p>;
+    return (
+      <section className="portfolio-page">
+        <DeskLoading label={t("port_loading")} variant="panel" skeletonCount={4} />
+      </section>
+    );
+  }
+
+  if (user && !booted) {
+    return (
+      <section className="portfolio-page">
+        <div className="explore-command">
+          <p className="explore-command-eyebrow">{t("port_eyebrow")}</p>
+          <h1 className="explore-title">{t("port_title")}</h1>
+        </div>
+        <DeskLoading label={t("port_loading_desk")} variant="panel" skeletonCount={6} />
+      </section>
+    );
   }
 
   if (!user) {
@@ -547,6 +570,7 @@ export function PortfolioView() {
 
       {error ? <p className="banner-error">{error}</p> : null}
       {notice ? <p className="banner-ok">{notice}</p> : null}
+      {busy ? <DeskLoading label={t("explore_updating")} variant="banner" /> : null}
 
       <div className="alert-digest" aria-live="polite">
         <div className="alert-digest-head">
