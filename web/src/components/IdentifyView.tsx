@@ -4,8 +4,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { useCurrency } from "@/components/CurrencyProvider";
 import { useLocale } from "@/components/LocaleProvider";
-import { identifyFromOcrText, formatChange, formatMoney } from "@/lib/api";
+import { identifyFromOcrText, formatChange } from "@/lib/api";
 import {
   canvasFromFile,
   canvasFromVideo,
@@ -18,6 +19,7 @@ type Phase = "idle" | "camera" | "ocr" | "match" | "done";
 
 export function IdentifyView() {
   const { t, locale } = useLocale();
+  const { formatSpot } = useCurrency();
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -295,7 +297,7 @@ export function IdentifyView() {
                       </span>
                     ) : null}
                     <span className="identify-match-price">
-                      {formatMoney(card.price)} ·{" "}
+                      {formatSpot(card.price)} ·{" "}
                       {formatChange(card.expected_change_pct)}
                     </span>
                   </div>

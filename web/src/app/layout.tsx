@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { DM_Sans, Fraunces } from "next/font/google";
 
 import { AuthProvider } from "@/components/AuthProvider";
+import { CurrencyProvider } from "@/components/CurrencyProvider";
 import { DataHealthPanel } from "@/components/DataHealthPanel";
 import { LocaleProvider } from "@/components/LocaleProvider";
 import { PwaChrome } from "@/components/PwaChrome";
@@ -56,15 +57,17 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${dmSans.variable} ${fraunces.variable} antialiased`}>
         <LocaleProvider>
-          <AuthProvider>
-            <div className="app-shell">
-              <SiteHeader />
-              <WatchAlertBanners />
-              <PwaChrome />
-              <main>{children}</main>
-              <DataHealthPanel />
-            </div>
-          </AuthProvider>
+          <CurrencyProvider>
+            <AuthProvider>
+              <div className="app-shell">
+                <SiteHeader />
+                <WatchAlertBanners />
+                <PwaChrome />
+                <main>{children}</main>
+                <DataHealthPanel />
+              </div>
+            </AuthProvider>
+          </CurrencyProvider>
         </LocaleProvider>
       </body>
     </html>

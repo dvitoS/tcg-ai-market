@@ -4,9 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { useCurrency } from "@/components/CurrencyProvider";
 import { DeskLoading } from "@/components/DeskLoading";
 import { useLocale } from "@/components/LocaleProvider";
-import { fetchRadarPreview, formatChange, formatMoney } from "@/lib/api";
+import { fetchRadarPreview, formatChange } from "@/lib/api";
 import {
   decisionOneLiner,
   sideLabel,
@@ -24,7 +25,8 @@ function bandLabel(card: RadarCard): string | null {
 
 function TeaserRow({ card }: { card: RadarCard }) {
   const { t, locale } = useLocale();
-  const fair = formatMoney(card.fair_price ?? card.predicted_price);
+  const { formatSpot } = useCurrency();
+  const fair = formatSpot(card.fair_price ?? card.predicted_price);
   const edge = formatChange(card.edge_pct);
   return (
     <Link
@@ -49,7 +51,7 @@ function TeaserRow({ card }: { card: RadarCard }) {
         </div>
       </div>
       <div className="scan-metrics">
-        <strong>{formatMoney(card.spot ?? card.price)}</strong>
+        <strong>{formatSpot(card.spot ?? card.price)}</strong>
         <span title={t("glossary_fair_tip")}>{t("metric_fair", { price: fair })}</span>
         <span className="pnl-up" title={t("glossary_edge_tip")}>
           {t("metric_edge", { pct: edge })}
@@ -69,6 +71,7 @@ export function DealOfTheDay({
   className?: string;
 }) {
   const { t, locale } = useLocale();
+  const { formatSpot } = useCurrency();
   const [preview, setPreview] = useState<RadarPreviewResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -122,7 +125,7 @@ export function DealOfTheDay({
     : null;
   const featuredBand = featured ? bandLabel(featured) : null;
   const featuredFair = featured
-    ? formatMoney(featured.fair_price ?? featured.predicted_price)
+    ? formatSpot(featured.fair_price ?? featured.predicted_price)
     : "";
   const featuredEdge = featured ? formatChange(featured.edge_pct) : "";
 
@@ -177,7 +180,7 @@ export function DealOfTheDay({
               <p className="decision-line">{featuredVerdict}</p>
             ) : null}
             <div className="deal-of-day-metrics">
-              <strong>{formatMoney(featured.spot ?? featured.price)}</strong>
+              <strong>{formatSpot(featured.spot ?? featured.price)}</strong>
               <span title={t("glossary_fair_tip")}>
                 {t("metric_fair", { price: featuredFair })}
               </span>

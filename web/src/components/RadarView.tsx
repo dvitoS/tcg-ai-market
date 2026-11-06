@@ -13,6 +13,7 @@ import {
 } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
+import { useCurrency } from "@/components/CurrencyProvider";
 import { DeskLoading } from "@/components/DeskLoading";
 import { useLocale } from "@/components/LocaleProvider";
 import { SearchSuggest } from "@/components/SearchSuggest";
@@ -21,7 +22,6 @@ import {
   fetchRadar,
   fetchRadarBootstrap,
   formatChange,
-  formatMoney,
 } from "@/lib/api";
 import {
   decisionOneLiner,
@@ -60,13 +60,14 @@ const EMPTY: RadarResponse = {
 
 function RadarRow({ card }: { card: RadarCard }) {
   const { t, locale } = useLocale();
+  const { formatSpot } = useCurrency();
   const band =
     card.pred_lo_pct != null && card.pred_hi_pct != null
       ? `${formatChange(card.pred_lo_pct, 1)}…${formatChange(card.pred_hi_pct, 1)}`
       : null;
   const edgeUp = (card.edge_pct ?? 0) >= 0;
   const verdict = decisionOneLiner(locale, card.side, card.edge_pct);
-  const fair = formatMoney(card.fair_price ?? card.predicted_price);
+  const fair = formatSpot(card.fair_price ?? card.predicted_price);
   const edge = formatChange(card.edge_pct);
   return (
     <Link
@@ -98,7 +99,7 @@ function RadarRow({ card }: { card: RadarCard }) {
         ) : null}
       </div>
       <div className="scan-metrics">
-        <strong>{formatMoney(card.spot ?? card.price)}</strong>
+        <strong>{formatSpot(card.spot ?? card.price)}</strong>
         <span title={t("glossary_fair_tip")}>{t("metric_fair", { price: fair })}</span>
         <span className={edgeUp ? "pnl-up" : "pnl-down"} title={t("glossary_edge_tip")}>
           {t("metric_edge", { pct: edge })}

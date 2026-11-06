@@ -3,8 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { useCurrency } from "@/components/CurrencyProvider";
 import { useLocale } from "@/components/LocaleProvider";
-import { formatChange, formatMoney } from "@/lib/api";
+import { formatChange } from "@/lib/api";
 import { signalLabel } from "@/lib/i18n/messages";
 import type { CatalogCard } from "@/lib/types";
 
@@ -31,6 +32,7 @@ export function ExploreCard({
   showSignal?: boolean;
 }) {
   const { locale } = useLocale();
+  const { formatSpot } = useCurrency();
   const meta = [card.set_name, card.rarity].filter(Boolean).join(" · ");
   const image = card.image_url || "/kestrel-logo.png";
   const tone = showSignal ? signalTone(card.signal) : "";
@@ -51,7 +53,7 @@ export function ExploreCard({
           sizes="(max-width: 640px) 45vw, (max-width: 1024px) 22vw, 180px"
         />
         <div className="explore-card-readout" aria-hidden={false}>
-          <span className="explore-card-price">{formatMoney(card.price)}</span>
+          <span className="explore-card-price">{formatSpot(card.price)}</span>
           <span className={`explore-card-change ${delta}`}>
             {formatChange(card.expected_change_pct)}
             {showSignal && card.signal
