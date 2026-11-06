@@ -265,6 +265,12 @@ export type WatchAlertsResponse = {
   source: "supabase" | "demo" | "empty";
 };
 
+export type PortfolioBootstrapResponse = {
+  portfolio: PortfolioResponse;
+  watchlist: WatchlistResponse;
+  alerts: WatchAlertsResponse;
+};
+
 export type ScannerCard = CatalogCard & {
   current_price?: number | null;
   ai_target_price?: number | null;
@@ -318,6 +324,11 @@ export type RadarResponse = {
   underpriced: RadarCard[];
   overpriced: RadarCard[];
   source: "supabase" | "demo" | "empty";
+};
+
+export type RadarBootstrapResponse = {
+  status: RadarStatus;
+  board: RadarResponse | null;
 };
 
 export type RadarPreviewResponse = {

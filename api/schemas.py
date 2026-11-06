@@ -374,6 +374,14 @@ class WatchAlertsResponse(BaseModel):
     source: Literal["supabase", "demo", "empty"] = "empty"
 
 
+class PortfolioBootstrapResponse(BaseModel):
+    """One-shot portfolio desk payload (lots + watch + alerts)."""
+
+    portfolio: PortfolioResponse
+    watchlist: WatchlistResponse
+    alerts: WatchAlertsResponse
+
+
 class ScannerCard(CatalogCard):
     current_price: float | None = None
     ai_target_price: float | None = None
@@ -476,6 +484,13 @@ class RadarResponse(BaseModel):
     underpriced: list[RadarCard] = Field(default_factory=list)
     overpriced: list[RadarCard] = Field(default_factory=list)
     source: Literal["supabase", "demo", "empty"] = "empty"
+
+
+class RadarBootstrapResponse(BaseModel):
+    """One-shot Radar desk payload (Pro status + board when allowed)."""
+
+    status: RadarStatus
+    board: RadarResponse | None = None
 
 
 class RadarPreviewResponse(BaseModel):

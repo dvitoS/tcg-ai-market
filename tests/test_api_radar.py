@@ -23,6 +23,46 @@ def test_radar_status_allowed_in_demo() -> None:
     assert "edge_floor" in body
 
 
+def test_radar_bootstrap_status_and_board() -> None:
+    """Desk mount: Pro status + first board in one round-trip."""
+    client = TestClient(app)
+    res = client.get("/api/radar/bootstrap", params={"min_edge": 0, "limit": 12})
+    assert res.status_code == 200
+    body = res.json()
+    assert body["status"]["allowed"] is True
+    assert "edge_floor" in body["status"]
+    board = body["board"]
+    assert board is not None
+    assert "underpriced" in board
+    assert "overpriced" in board
+    assert board["scoped"] >= 0
+
+
+def test_radar_bootstrap_locked_skips_board() -> None:
+    """Non-Pro bootstrap returns status only — no board build cost."""
+    from unittest.mock import patch
+
+    from api.deps import require_user
+
+    def _free_user() -> dict:
+        return {"id": "free-1", "email": "free@x.com", "dev": False}
+
+    app.dependency_overrides[require_user] = _free_user
+    try:
+        with patch("api.routers.radar.demo_mode", return_value=False), patch(
+            "api.routers.radar.is_pro_user", return_value=False
+        ), patch("api.routers.radar.build_radar") as build:
+            client = TestClient(app)
+            res = client.get("/api/radar/bootstrap", params={"limit": 12})
+        assert res.status_code == 200
+        body = res.json()
+        assert body["status"]["allowed"] is False
+        assert body["board"] is None
+        build.assert_not_called()
+    finally:
+        app.dependency_overrides.pop(require_user, None)
+
+
 def test_radar_preview_public_under_only() -> None:
     client = TestClient(app)
     res = client.get("/api/radar/preview", params={"limit": 5})

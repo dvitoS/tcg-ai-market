@@ -42,6 +42,53 @@ def test_portfolio_and_watchlist_demo_session() -> None:
     assert wbody["demo"] is True
 
 
+def test_portfolio_bootstrap_one_shot() -> None:
+    """Desk mount: lots + watch + alerts in a single response."""
+    client = TestClient(app)
+    resp = client.get(
+        "/api/portfolio/bootstrap",
+        params={"include_sold": "true", "threshold_pct": 5, "sure_only": "false"},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "portfolio" in body and "watchlist" in body and "alerts" in body
+    assert body["portfolio"]["demo"] is True
+    assert "items" in body["portfolio"]
+    assert "summary" in body["portfolio"]
+    assert "items" in body["watchlist"]
+    assert body["watchlist"]["demo"] is True
+    alerts = body["alerts"]
+    assert "items" in alerts
+    assert "threshold_pct" in alerts
+    assert "sure_only_allowed" in alerts
+    assert "watch_count" in alerts
+    assert alerts["demo"] is True
+
+
+def test_portfolio_bootstrap_reuses_watch_rows() -> None:
+    """Bootstrap should hit list_watchlist once (alerts reuse the rows)."""
+    with patch("api.routers.portfolio.list_watchlist", return_value=[]) as watch, patch(
+        "api.routers.portfolio.list_portfolio", return_value=[]
+    ), patch(
+        "api.routers.portfolio.collect_user_watchlist_alerts",
+        return_value={
+            "items": [],
+            "threshold_pct": 5.0,
+            "sure_only": False,
+            "sure_only_allowed": True,
+            "watch_count": 0,
+            "demo": True,
+            "source": "demo",
+        },
+    ) as alerts:
+        client = TestClient(app)
+        resp = client.get("/api/portfolio/bootstrap")
+    assert resp.status_code == 200
+    assert watch.call_count == 1
+    kwargs = alerts.call_args.kwargs
+    assert kwargs.get("watch_rows") == []
+
+
 def test_portfolio_performance_demo_session() -> None:
     client = TestClient(app)
     resp = client.get("/api/portfolio/performance", params={"max_days": 90})

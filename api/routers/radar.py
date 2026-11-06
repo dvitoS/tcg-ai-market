@@ -9,7 +9,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from api.demo_mode import demo_mode
 from api.deps import require_user
 from api.radar_service import build_radar, radar_defaults
-from api.schemas import RadarPreviewResponse, RadarResponse, RadarStatus
+from api.schemas import (
+    RadarBootstrapResponse,
+    RadarPreviewResponse,
+    RadarResponse,
+    RadarStatus,
+)
 from services.pro import is_pro_user, pro_checkout_url, pro_gate_reason
 
 router = APIRouter(prefix="/radar", tags=["radar"])
@@ -19,6 +24,18 @@ def _pro_allowed(user: dict[str, Any]) -> bool:
     if demo_mode() or user.get("dev"):
         return True
     return bool(is_pro_user(user))
+
+
+def _radar_status_payload(user: dict[str, Any]) -> RadarStatus:
+    allowed = _pro_allowed(user)
+    defaults = radar_defaults()
+    return RadarStatus(
+        allowed=allowed,
+        reason="demo" if demo_mode() or user.get("dev") else pro_gate_reason(user),
+        checkout_url=pro_checkout_url(),
+        forecast_days=int(defaults["forecast_days"]),
+        edge_floor=float(defaults["edge_floor"]),
+    )
 
 
 @router.get("/preview", response_model=RadarPreviewResponse)
@@ -37,15 +54,36 @@ def radar_preview(
 
 @router.get("/status", response_model=RadarStatus)
 def radar_status(user: Annotated[dict, Depends(require_user)]) -> RadarStatus:
-    allowed = _pro_allowed(user)
+    return _radar_status_payload(user)
+
+
+@router.get("/bootstrap", response_model=RadarBootstrapResponse)
+def radar_bootstrap(
+    user: Annotated[dict, Depends(require_user)],
+    q: str | None = Query(default=None),
+    set_name: str | None = Query(default=None, alias="set"),
+    rarity: str | None = Query(default=None),
+    min_price: float | None = Query(default=None, ge=0),
+    max_price: float | None = Query(default=None, ge=0),
+    min_edge: float | None = Query(default=None, ge=0, le=100),
+    limit: int = Query(default=24, ge=1, le=100),
+) -> RadarBootstrapResponse:
+    """Single round-trip for Soft Ink Radar mount (status + board when Pro)."""
+    status = _radar_status_payload(user)
+    if not status.allowed:
+        return RadarBootstrapResponse(status=status, board=None)
     defaults = radar_defaults()
-    return RadarStatus(
-        allowed=allowed,
-        reason="demo" if demo_mode() or user.get("dev") else pro_gate_reason(user),
-        checkout_url=pro_checkout_url(),
-        forecast_days=int(defaults["forecast_days"]),
-        edge_floor=float(defaults["edge_floor"]),
+    edge = float(min_edge) if min_edge is not None else float(defaults["edge_floor"])
+    payload = build_radar(
+        q=q,
+        set_name=set_name,
+        rarity=rarity,
+        min_price=min_price,
+        max_price=max_price,
+        min_edge=edge,
+        limit=limit,
     )
+    return RadarBootstrapResponse(status=status, board=RadarResponse(**payload))
 
 
 @router.get("", response_model=RadarResponse)

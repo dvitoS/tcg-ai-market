@@ -26,6 +26,7 @@ from api.portfolio_service import (
 from api.schemas import (
     AddLotRequest,
     AddWatchRequest,
+    PortfolioBootstrapResponse,
     PortfolioDrawdownCallout,
     PortfolioLot,
     PortfolioPerformanceResponse,
@@ -66,6 +67,68 @@ def get_portfolio(
         items=[PortfolioLot(**row) for row in items],
         summary=summary,
         demo=demo_mode(),
+    )
+
+
+@router.get("/portfolio/bootstrap", response_model=PortfolioBootstrapResponse)
+def get_portfolio_bootstrap(
+    user: Annotated[dict, Depends(require_user)],
+    authorization: Annotated[str | None, Header()] = None,
+    include_sold: bool = Query(default=True),
+    threshold_pct: float = Query(default=5.0, ge=1.0, le=50.0),
+    sure_only: bool = Query(default=True),
+    dismissed: str | None = Query(
+        default=None,
+        description="Comma-separated card ids to hide from the digest.",
+    ),
+) -> PortfolioBootstrapResponse:
+    """Single round-trip for Soft Ink portfolio desk mount."""
+    token = bearer_from_authorization(authorization)
+    dismissed_ids = [part.strip() for part in (dismissed or "").split(",") if part.strip()]
+    try:
+        lots = list_portfolio(
+            user_id=str(user["id"]),
+            include_sold=include_sold,
+            access_token=token,
+        )
+        watch_rows = list_watchlist(user_id=str(user["id"]), access_token=token)
+        alerts_payload = collect_user_watchlist_alerts(
+            user_id=str(user["id"]),
+            threshold_pct=threshold_pct,
+            sure_only=sure_only,
+            access_token=token,
+            dismissed=dismissed_ids,
+            user=user,
+            watch_rows=watch_rows,
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Portfolio bootstrap unavailable: {exc}",
+        ) from exc
+
+    portfolio = PortfolioResponse(
+        items=[PortfolioLot(**row) for row in lots],
+        summary=PortfolioSummary(**portfolio_summary(lots)),
+        demo=demo_mode(),
+    )
+    watchlist = WatchlistResponse(
+        items=[WatchlistItem(**row) for row in watch_rows],
+        demo=demo_mode(),
+    )
+    alerts = WatchAlertsResponse(
+        items=[WatchAlertItem(**row) for row in alerts_payload["items"]],
+        threshold_pct=float(alerts_payload["threshold_pct"]),
+        sure_only=bool(alerts_payload["sure_only"]),
+        sure_only_allowed=bool(alerts_payload["sure_only_allowed"]),
+        watch_count=int(alerts_payload["watch_count"]),
+        demo=bool(alerts_payload["demo"]),
+        source=alerts_payload["source"],
+    )
+    return PortfolioBootstrapResponse(
+        portfolio=portfolio,
+        watchlist=watchlist,
+        alerts=alerts,
     )
 
 

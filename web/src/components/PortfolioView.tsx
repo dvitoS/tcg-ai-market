@@ -13,10 +13,8 @@ import { SealedAddPanel } from "@/components/SealedAddPanel";
 import { SearchSuggest } from "@/components/SearchSuggest";
 import {
   deletePortfolioLot,
-  fetchPortfolio,
+  fetchPortfolioBootstrap,
   fetchPortfolioPerformance,
-  fetchWatchlist,
-  fetchWatchlistAlerts,
   forgotPasswordRequest,
   formatChange,
   formatMoney,
@@ -144,23 +142,22 @@ export function PortfolioView() {
     setBusy(true);
     setError(null);
     try {
-      // First paint: lots + watch + alerts. Equity chart is secondary — soft-load after.
-      const [portfolio, watchlist, digest] = await Promise.all([
-        fetchPortfolio({ include_sold: true }),
-        fetchWatchlist(),
-        fetchWatchlistAlerts({
-          threshold_pct: thresholdPct,
-          sure_only: sureOnly,
-          dismissed,
-        }),
-      ]);
-      setLots(portfolio.items);
-      setSummary(portfolio.summary);
-      setDemo(portfolio.demo || watchlist.demo || digest.demo);
-      setWatch(watchlist.items);
-      setAlerts(digest.items);
-      setSureOnlyAllowed(digest.sure_only_allowed);
-      if (!digest.sure_only_allowed && sureOnly) {
+      // One round-trip for lots + watch + alerts; equity chart soft-loads after.
+      const boot = await fetchPortfolioBootstrap({
+        include_sold: true,
+        threshold_pct: thresholdPct,
+        sure_only: sureOnly,
+        dismissed,
+      });
+      setLots(boot.portfolio.items);
+      setSummary(boot.portfolio.summary);
+      setDemo(
+        boot.portfolio.demo || boot.watchlist.demo || boot.alerts.demo,
+      );
+      setWatch(boot.watchlist.items);
+      setAlerts(boot.alerts.items);
+      setSureOnlyAllowed(boot.alerts.sure_only_allowed);
+      if (!boot.alerts.sure_only_allowed && sureOnly) {
         setSureOnly(false);
         writeSureOnly(false);
       }
