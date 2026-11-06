@@ -100,3 +100,35 @@ def test_identify_api_rejects_empty() -> None:
     client = TestClient(app)
     res = client.post("/api/identify", json={"text": "ab"})
     assert res.status_code == 422 or res.status_code == 400
+
+
+def test_identify_demotes_number_when_name_mismatches(monkeypatch) -> None:
+    board = pd.DataFrame(
+        [
+            {
+                "id": "sv3-25",
+                "name": "Toedscool",
+                "set_name": "Obsidian Flames",
+                "price": 0.1,
+                "expected_change_pct": 0.0,
+                "signal": "HOLD",
+                "confidence_ok": True,
+            },
+            {
+                "id": "sv3-50",
+                "name": "Pikachu",
+                "set_name": "Obsidian Flames",
+                "price": 3.0,
+                "expected_change_pct": 2.0,
+                "signal": "BUY",
+                "confidence_ok": True,
+            },
+        ]
+    )
+    monkeypatch.setattr(
+        "api.identify_service.load_board",
+        lambda: (board, "demo"),
+    )
+    out = identify_from_text("Pikachu\n025/197\nObsidian Flames", limit=5)
+    assert out["matches"]
+    assert out["matches"][0]["card"]["name"] == "Pikachu"

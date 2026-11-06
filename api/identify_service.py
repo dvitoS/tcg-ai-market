@@ -146,10 +146,15 @@ def score_card(row: dict[str, Any], clues: dict[str, Any]) -> tuple[float, list[
             score += 45.0
             reasons.append("number")
 
-    name_s = _name_score(name, list(clues.get("name_hints") or []))
+    hints = list(clues.get("name_hints") or [])
+    name_s = _name_score(name, hints)
     if name_s >= 0.55:
         score += 40.0 * name_s
         reasons.append("name")
+    elif hints and name_s < 0.35 and "number" in reasons:
+        # OCR clearly saw a title that isn't this card — don't trust number alone.
+        score = min(score, 16.0)
+        reasons.append("name-mismatch")
 
     blob = str(clues.get("text") or "").lower()
     if set_name and len(set_name) >= 4 and set_name.lower() in blob:
