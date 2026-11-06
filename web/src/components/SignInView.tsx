@@ -19,7 +19,7 @@ type Props = {
 export function SignInView({ nextPath, onAuthenticated }: Props) {
   const { t } = useLocale();
   const router = useRouter();
-  const { login, signup, ensureDemoSession } = useAuth();
+  const { login, signup } = useAuth();
   const [authMode, setAuthMode] = useState<AuthMode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -88,24 +88,6 @@ export function SignInView({ nextPath, onAuthenticated }: Props) {
               ? t("auth_forgot_failed")
               : t("auth_signin_failed"),
       );
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function onDemo() {
-    setBusy(true);
-    setError(null);
-    setNotice(null);
-    try {
-      const ok = await ensureDemoSession();
-      if (!ok) {
-        setError(t("auth_demo_blocked"));
-        return;
-      }
-      await finishAuthenticated();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("auth_demo_failed"));
     } finally {
       setBusy(false);
     }
@@ -232,16 +214,6 @@ export function SignInView({ nextPath, onAuthenticated }: Props) {
             ) : null}
           </div>
 
-          {authMode === "signin" ? (
-            <button
-              type="button"
-              className="auth-demo-link"
-              disabled={busy}
-              onClick={() => void onDemo()}
-            >
-              {t("auth_demo")}
-            </button>
-          ) : null}
         </form>
 
         <p className="auth-foot">
