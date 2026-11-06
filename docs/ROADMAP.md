@@ -2,7 +2,7 @@
 
 **Positioning:** Collectr tracks *what you own*. PriceCharting shows *what sold*. TCGplayer is *where you buy*. **Kestrel** is the desk that answers *should I buy / sell / trade / grade — with conformal AI, not vibes*.
 
-Last updated: 2026-11-05. Living doc — ship order can move; the wedge should not.
+Last updated: 2026-11-06. Living doc — ship order can move; the wedge should not.
 
 **North star for the next stretch:** make the wedge obvious in ~10 seconds for a non-Pro visitor (*fair / not fair — here’s why*), then earn Pro with shareable verdicts and trustworthy spots — **not** by becoming another binder scanner.
 
@@ -82,15 +82,13 @@ These close the loop we actually need before marketing spend. Do **not** reorder
 
 **Exit check:** random Radar UNDER spots survive manual TCGplayer/eBay sniff test; unmatched-set rate tracked and trending down.
 
-### Phase D — Reach only after Pro retention *(later)*
-
-Ship these **after** A–C show Pro trial→paid and returning Radar/Trade use. Do not pull forward to “grow top of funnel.”
+### Phase D — Reach *(in progress)*
 
 | ID | Item | Note |
 | --- | --- | --- |
-| D1 | PWA + installable Soft Ink | Bridge before native; home-screen + offline shell |
+| D1 | PWA + installable Soft Ink | **Shipping** — manifest, home-screen install, offline shell |
 | D2 | Camera OCR scan | Photo ID → card → **same** fair/edge desk (OCR is input, not the product) |
-| D3 | #5 Alert channels | Telegram / push (email + Discord already live) |
+| D3 | #5 Alert channels | **Telegram skipped** for now; push deferred. Email + Discord already live. |
 | D4 | Cardmarket / EU pricing | HR/EU dual-currency spots |
 | D5 | Seller inventory sync | TCGplayer / CSV auto for dealer desk |
 | D6 | Multi-TCG / JP lanes | Only with a data partner + proven Pokémon Pro retention |
@@ -105,10 +103,10 @@ Ship these **after** A–C show Pro trial→paid and returning Radar/Trade use. 
 - **Casual Mode vs Investor Mode** dual UI — one desk, clearer copy instead
 - **24–48h delayed AI freemium** — wrong lever; use capped live teaser instead
 - Native app before PWA + proven OCR need
+- Telegram alert channel (skipped; revisit with push later)
 
 ---
 
 ## Suggested next move
 
-**Phase C complete (C1–C4 shipping).**  
-Next: hold for Pro retention signals, then Phase D (PWA / OCR / alerts) only after trial→paid.
+**D1 PWA shipping.** Next: **D2 Camera OCR** (Telegram alerts skipped).
