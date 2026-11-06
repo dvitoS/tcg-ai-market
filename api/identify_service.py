@@ -148,10 +148,11 @@ def score_card(row: dict[str, Any], clues: dict[str, Any]) -> tuple[float, list[
 
     hints = list(clues.get("name_hints") or [])
     name_s = _name_score(name, hints)
-    if name_s >= 0.55:
+    # 0.72 avoids near-misses like Pikachu → Pachirisu (~0.63).
+    if name_s >= 0.72:
         score += 40.0 * name_s
         reasons.append("name")
-    elif hints and name_s < 0.35 and "number" in reasons:
+    elif hints and name_s < 0.45 and "number" in reasons:
         # OCR clearly saw a title that isn't this card — don't trust number alone.
         score = min(score, 16.0)
         reasons.append("name-mismatch")
