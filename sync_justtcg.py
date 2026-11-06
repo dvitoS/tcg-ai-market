@@ -22,6 +22,7 @@ from justtcg_client import (
     fetch_set_cards_page,
     history_points_from_variant,
     justtcg_api_key,
+    list_pokemon_sets,
     normalize_card_number,
     pick_nm_variant,
     resolve_set_id,
@@ -102,6 +103,26 @@ def sync_justtcg_price_history(*, limit: int | None = None) -> dict[str, int]:
     have_history = distinct_history_card_ids()
     ordered_sets = _sets_prioritized_by_coverage(by_set)
 
+    # One catalog fetch — local resolve for every set (avoids ~12s/set search).
+    catalog_rows: list | None
+    try:
+        catalog_rows = list_pokemon_sets()
+        print(f"JustTCG pokemon set catalog: {len(catalog_rows)} rows (local resolve)")
+    except JustTCGRateLimitError:
+        print("JustTCG rate limit pri list_pokemon_sets.", file=sys.stderr)
+        total = table_count("price_history")
+        return {
+            "updated": 0,
+            "skipped": 0,
+            "saved": 0,
+            "total_history": int(total),
+            "unmatched_sets": [],
+            "unmatched_sets_count": 0,
+        }
+    except Exception as exc:
+        print(f"JustTCG list_pokemon_sets failed ({exc}) — falling back to per-set q=", file=sys.stderr)
+        catalog_rows = None
+
     print(
         "JustTCG set sync (NM + 30d history) — sets by missing history first: %s"
         % ", ".join(f"{n}({c})" for c, n in ordered_sets)
@@ -112,9 +133,18 @@ def sync_justtcg_price_history(*, limit: int | None = None) -> dict[str, int]:
         for set_code, set_name in ordered_sets:
             if set_code not in by_set:
                 continue
+            if missing_only:
+                missing_n = sum(
+                    1 for _n, card in by_set[set_code] if str(card.id) not in have_history
+                )
+                if missing_n <= 0:
+                    continue
             try:
                 jset = resolve_set_id(
-                    set_name, set_code=set_code, cache=set_cache
+                    set_name,
+                    set_code=set_code,
+                    cache=set_cache,
+                    catalog_rows=catalog_rows,
                 )
             except JustTCGRateLimitError:
                 print("JustTCG rate limit pri resolve setova.", file=sys.stderr)

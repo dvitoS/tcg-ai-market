@@ -594,11 +594,15 @@ def retrain_model(
     *,
     horizon_days: int | None = None,
     artifact_id: str | None = None,
+    history: pd.DataFrame | None = None,
 ) -> dict[str, float | int]:
     """Ponovno trenira XGBoost na cijelom price_history. Za nightly_update.
 
     Persists the artifact to Supabase / local disk so Streamlit can skip retrain.
     Use horizon_days=30 + artifact latest_30d for portfolio-native outlook.
+
+    Pass a preloaded ``history`` frame to avoid a second/third Supabase pull
+    when nightly trains both 7d and 30d models in one job.
     """
     horizon = int(horizon_days if horizon_days is not None else HORIZON_DAYS)
     art_id = artifact_id or (
@@ -615,7 +619,8 @@ def retrain_model(
         else float(CONFORMAL_WIDTH_CAP)
     )
 
-    history = load_history()
+    if history is None:
+        history = load_history()
     featured, _encoders = add_time_features(history, horizon_days=horizon)
     trainable = drop_incomplete_rows(featured)
     if len(trainable) < 20:

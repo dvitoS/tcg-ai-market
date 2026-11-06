@@ -102,6 +102,26 @@ def test_resolve_caches_negative(monkeypatch):
     assert resolve_set_id("sv8", set_code="sv8", cache=cache) is None
 
 
+def test_resolve_uses_catalog_rows_without_network(monkeypatch):
+    """Nightly path: one list_pokemon_sets + local match — no per-set /sets?q=."""
+    monkeypatch.setattr(
+        "justtcg_client._get",
+        lambda *a, **k: (_ for _ in ()).throw(RuntimeError("no network")),
+    )
+    catalog = [ALT, SV10, ES, PF]
+    assert (
+        resolve_set_id(
+            "Evolving Skies",
+            set_code="swsh7",
+            catalog_rows=catalog,
+        )
+        == ES["id"]
+    )
+    assert (
+        resolve_set_id("Ghost Set", set_code="zzz", catalog_rows=catalog) is None
+    )
+
+
 def test_display_set_name_prefers_card_majority():
     cards = [
         ( "1", SimpleNamespace(set_name="Paldea Evolved", id="sv2-1") ),

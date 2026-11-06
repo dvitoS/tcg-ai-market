@@ -248,12 +248,14 @@ def refresh_price_history() -> dict[str, int]:
 
 
 def retrain_ai() -> dict[str, float | int]:
-    from ai_xgboost import ARTIFACT_ID_30D, retrain_model
+    from ai_xgboost import ARTIFACT_ID_30D, load_history, retrain_model
     from services.exchange import build_market_board
     from trading_signals import PORTFOLIO_HORIZON_DAYS
 
     LOG.info("Korak 3/3: re-trening XGBoost (7d board + %sd portfolio)...", PORTFOLIO_HORIZON_DAYS)
-    metrics = retrain_model()
+    # One Supabase history pull for 7d + 30d + board rebuild (was 3× ~20–30m each).
+    history = load_history()
+    metrics = retrain_model(history=history)
     LOG.info(
         "Model 7d: cards=%s rows=%s RMSE=%.4f R2=%.4f "
         "rmse/naive=%s dir_acc=%s%% pred_flat=%s%% conformal_q=%s "
@@ -278,6 +280,7 @@ def retrain_ai() -> dict[str, float | int]:
         metrics_30 = retrain_model(
             horizon_days=int(PORTFOLIO_HORIZON_DAYS),
             artifact_id=ARTIFACT_ID_30D,
+            history=history,
         )
         LOG.info(
             "Model 30d: cards=%s rows=%s RMSE=%.4f R2=%.4f "
@@ -313,7 +316,7 @@ def retrain_ai() -> dict[str, float | int]:
         }
     except Exception as exc:
         LOG.warning("30d portfolio model retrain failed: %s", exc)
-    _history, quotes, _model = build_market_board(persist=True)
+    _history, quotes, _model = build_market_board(persist=True, history=history)
     quote_n = int(len(quotes)) if quotes is not None else 0
     metrics = dict(metrics)
     metrics["quotes"] = quote_n

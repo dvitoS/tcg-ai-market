@@ -641,10 +641,15 @@ def resolve_set_id(
     *,
     set_code: str | None = None,
     cache: dict[str, str] | None = None,
+    catalog_rows: list[dict[str, Any]] | None = None,
 ) -> str | None:
     """Map our set name/code (e.g. '151' / 'sv3pt5') to a JustTCG set id.
 
     Returns None when no confident match exists — never falls back to rows[0].
+
+    Pass ``catalog_rows`` (from one ``list_pokemon_sets()`` call) to match
+    locally and avoid a 6s+ network round-trip per set. Nightly used to burn
+    hours resolving unmatched sets one query at a time.
     """
     wanted = (set_name or "").strip()
     code = (set_code or "").strip() or None
@@ -654,6 +659,15 @@ def resolve_set_id(
     if cache is not None and cache_key in cache:
         hit = cache[cache_key]
         return hit or None
+
+    label = wanted or (code or "")
+
+    # Prefer one-shot catalog match — no per-set /sets?q= delay.
+    if catalog_rows is not None:
+        set_id = pick_justtcg_set_id(catalog_rows, set_name=label, set_code=code)
+        if cache is not None:
+            cache[cache_key] = set_id or ""
+        return set_id
 
     queries: list[str] = []
     for q in (wanted, code):
@@ -682,7 +696,7 @@ def resolve_set_id(
             LOG.warning("JustTCG list_pokemon_sets failed: %s", exc)
             rows = []
 
-    set_id = pick_justtcg_set_id(rows, set_name=wanted or (code or ""), set_code=code)
+    set_id = pick_justtcg_set_id(rows, set_name=label, set_code=code)
     if cache is not None:
         cache[cache_key] = set_id or ""
     return set_id
