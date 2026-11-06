@@ -108,6 +108,7 @@ export type CardPriceSourcesResponse = {
     period_key?: string | null;
     sales_count?: number | null;
   };
+  grades?: "none" | "psa10" | "all";
   cache?: "hit" | "miss" | null;
 };
 

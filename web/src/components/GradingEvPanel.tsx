@@ -63,25 +63,19 @@ export function GradingEvPanel({
     let alive = true;
     setLoading(true);
     setError(null);
-    void fetchCardPriceSources(cardId)
+    // PSA 10 only — PSA 9 uses the built-in ratio in computeGradingEv (saves quota).
+    void fetchCardPriceSources(cardId, { grades: "psa10" })
       .then((payload) => {
         if (!alive) return;
         if (payload.psa10_error) {
           setError(payload.psa10_error);
-        } else if (payload.psa9_error) {
-          setError(payload.psa9_error);
         }
         setPsa10(lastPrice(payload.psa10));
-        setPsa9(lastPrice(payload.psa9));
+        setPsa9(null);
         const s10 = payload.psa10_stats?.sales_count;
-        const s9 = payload.psa9_stats?.sales_count;
         setSales10(s10 != null && Number.isFinite(Number(s10)) ? Number(s10) : null);
-        setSales9(s9 != null && Number.isFinite(Number(s9)) ? Number(s9) : null);
-        setPeriodKey(
-          payload.psa10_stats?.period_key ||
-            payload.psa9_stats?.period_key ||
-            null,
-        );
+        setSales9(null);
+        setPeriodKey(payload.psa10_stats?.period_key || null);
       })
       .catch((err) => {
         if (!alive) return;

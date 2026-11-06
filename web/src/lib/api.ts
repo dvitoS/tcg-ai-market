@@ -200,17 +200,25 @@ const _priceSourcesInflight = new Map<
   Promise<CardPriceSourcesResponse>
 >();
 
+export type PriceSourcesGrades = "none" | "psa10" | "all";
+
 export async function fetchCardPriceSources(
   cardId: string,
-  limit = 180,
+  options: { limit?: number; grades?: PriceSourcesGrades } = {},
 ): Promise<CardPriceSourcesResponse> {
-  const key = `${cardId}|${limit}`;
+  const limit = options.limit ?? 180;
+  const grades = options.grades ?? "none";
+  const key = `${cardId}|${limit}|${grades}`;
   const existing = _priceSourcesInflight.get(key);
   if (existing) return existing;
 
   const promise = (async () => {
+    const qs = new URLSearchParams({
+      limit: String(limit),
+      grades,
+    });
     const res = await fetch(
-      apiUrl(`/api/cards/${encodeURIComponent(cardId)}/sources?limit=${limit}`),
+      apiUrl(`/api/cards/${encodeURIComponent(cardId)}/sources?${qs}`),
       {
         headers: { Accept: "application/json" },
         cache: "no-store",

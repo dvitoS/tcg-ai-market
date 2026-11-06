@@ -117,12 +117,23 @@ def _cache_put(cache_key: str, payload: dict[str, Any], *, ttl: float) -> None:
         _SOURCES_CACHE[cache_key] = (time.monotonic() + ttl, dict(payload))
 
 
+def normalize_grades_mode(raw: str | None) -> str:
+    """none | psa10 | all — default none so Soft Ink detail does not burn graded quota."""
+    value = str(raw or "none").strip().lower()
+    if value in {"1", "true", "yes", "on", "psa10", "10"}:
+        return "psa10"
+    if value in {"all", "both", "psa9", "full"}:
+        return "all"
+    return "none"
+
+
 def _fetch_psa_pair(
     *,
     tcp: str | None,
     name: str,
     number: str,
     set_name: str,
+    grades: str = "psa10",
 ) -> tuple[
     list[dict[str, Any]],
     str | None,
@@ -133,9 +144,10 @@ def _fetch_psa_pair(
     str | None,
     bool,
 ]:
-    """Fetch PSA 10 ∥ PSA 9. Returns (psa10, err10, stats10, psa9, err9, stats9, tcp, rate_limited)."""
+    """Fetch PSA grades. grades=psa10 → PSA10 only; all → PSA10 ∥ PSA9."""
     from justtcg_client import psa10_history_for_card, psa9_history_for_card
 
+    mode = normalize_grades_mode(grades)
     psa10: list[dict[str, Any]] = []
     psa10_error: str | None = None
     psa10_stats: dict[str, Any] = {}
@@ -144,6 +156,18 @@ def _fetch_psa_pair(
     psa9_stats: dict[str, Any] = {}
     rate_limited = False
     resolved_tcp = tcp
+
+    if mode == "none":
+        return (
+            psa10,
+            psa10_error,
+            psa10_stats,
+            psa9,
+            psa9_error,
+            psa9_stats,
+            resolved_tcp,
+            False,
+        )
 
     def _psa10():
         return psa10_history_for_card(
@@ -161,8 +185,9 @@ def _fetch_psa_pair(
             set_name=set_name or None,
         )
 
+    want_psa9 = mode == "all"
     fut10 = _PSA_POOL.submit(_psa10)
-    fut9 = _PSA_POOL.submit(_psa9)
+    fut9 = _PSA_POOL.submit(_psa9) if want_psa9 else None
 
     try:
         points, resolved, stats = fut10.result()
@@ -179,22 +204,24 @@ def _fetch_psa_pair(
         LOG.info("psa10_history_for_card failed for %s: %s", name, exc)
 
     if rate_limited:
-        fut9.cancel()
+        if fut9 is not None:
+            fut9.cancel()
         return psa10, psa10_error, psa10_stats, psa9, psa9_error, psa9_stats, resolved_tcp, True
 
-    try:
-        points9, resolved9, stats9 = fut9.result()
-        if resolved9:
-            resolved_tcp = str(resolved9)
-        psa9 = _points_from_rows(points9)
-        psa9_stats = dict(stats9 or {})
-    except JustTCGRateLimitError:
-        rate_limited = True
-        psa9_error = "JustTCG rate limited — try again later."
-        LOG.warning("psa9_history_for_card rate-limited for %s", name)
-    except Exception as exc:
-        psa9_error = str(exc)[:180]
-        LOG.info("psa9_history_for_card failed for %s: %s", name, exc)
+    if fut9 is not None:
+        try:
+            points9, resolved9, stats9 = fut9.result()
+            if resolved9:
+                resolved_tcp = str(resolved9)
+            psa9 = _points_from_rows(points9)
+            psa9_stats = dict(stats9 or {})
+        except JustTCGRateLimitError:
+            rate_limited = True
+            psa9_error = "JustTCG rate limited — try again later."
+            LOG.warning("psa9_history_for_card rate-limited for %s", name)
+        except Exception as exc:
+            psa9_error = str(exc)[:180]
+            LOG.info("psa9_history_for_card failed for %s: %s", name, exc)
 
     return (
         psa10,
@@ -208,7 +235,13 @@ def _fetch_psa_pair(
     )
 
 
-def _build_card_price_sources_uncached(card_id: str, *, limit: int) -> dict[str, Any]:
+def _build_card_price_sources_uncached(
+    card_id: str,
+    *,
+    limit: int,
+    grades: str = "none",
+) -> dict[str, Any]:
+    grades_mode = normalize_grades_mode(grades)
     market = _points_from_rows(load_card_history(card_id, limit=limit))
     name, set_name, tcp = _resolve_tcp_from_board(card_id)
     has_key = bool(justtcg_api_key())
@@ -236,6 +269,15 @@ def _build_card_price_sources_uncached(card_id: str, *, limit: int) -> dict[str,
         justtcg_from_db = True
         nm_outcome = "db"
         LOG.info("using DB NM history for %s (%s pts) — skip live JustTCG NM", card_id, len(market))
+    elif has_key and grades_mode != "none":
+        # Graded follow-up (chart PSA / grading EV): Soft Ink already loaded grades=none.
+        # Reuse DB market for NM — never spend a second live NM call.
+        if market:
+            justtcg = list(market)
+            justtcg_from_db = True
+            nm_outcome = "db"
+        else:
+            nm_outcome = None
     elif has_key:
         try:
             from justtcg_client import nm_history_for_card
@@ -272,7 +314,8 @@ def _build_card_price_sources_uncached(card_id: str, *, limit: int) -> dict[str,
     if nm_outcome:
         record_justtcg_event(nm_outcome)
 
-    if has_key and not rate_limited:
+    # Graded prints are optional — default Soft Ink detail skips them (quota).
+    if has_key and not rate_limited and grades_mode != "none":
         (
             psa10,
             psa10_error,
@@ -282,7 +325,13 @@ def _build_card_price_sources_uncached(card_id: str, *, limit: int) -> dict[str,
             psa9_stats,
             tcp,
             psa_rate_limited,
-        ) = _fetch_psa_pair(tcp=tcp, name=name, number=number, set_name=set_name)
+        ) = _fetch_psa_pair(
+            tcp=tcp,
+            name=name,
+            number=number,
+            set_name=set_name,
+            grades=grades_mode,
+        )
         if psa_rate_limited:
             rate_limited = True
 
@@ -310,6 +359,7 @@ def _build_card_price_sources_uncached(card_id: str, *, limit: int) -> dict[str,
         "psa9": psa9,
         "psa9_error": psa9_error,
         "psa9_stats": _grade_stats(psa9_stats),
+        "grades": grades_mode,
         "cache": "miss",
     }
 
@@ -321,15 +371,25 @@ def _build_card_price_sources_uncached(card_id: str, *, limit: int) -> dict[str,
             if (justtcg or psa10 or psa9 or market)
             else _SOURCES_CACHE_EMPTY_TTL_SECONDS
         )
-        _cache_put(cache_key=f"v2|{card_id}|{limit}", payload={k: v for k, v in payload.items() if k != "cache"}, ttl=ttl)
+        _cache_put(
+            cache_key=f"v3|{card_id}|{limit}|{grades_mode}",
+            payload={k: v for k, v in payload.items() if k != "cache"},
+            ttl=ttl,
+        )
 
     return payload
 
 
-def build_card_price_sources(card_id: str, *, limit: int = 180) -> dict[str, Any]:
+def build_card_price_sources(
+    card_id: str,
+    *,
+    limit: int = 180,
+    grades: str | None = "none",
+) -> dict[str, Any]:
     card_id = str(card_id).strip()
     limit = max(1, min(int(limit or 180), 365))
-    cache_key = f"v2|{card_id}|{limit}"
+    grades_mode = normalize_grades_mode(grades)
+    cache_key = f"v3|{card_id}|{limit}|{grades_mode}"
     cached = _cache_get(cache_key)
     if cached is not None:
         cached["cache"] = "hit"
@@ -352,7 +412,11 @@ def build_card_price_sources(card_id: str, *, limit: int = 180) -> dict[str, Any
         return payload
 
     try:
-        payload = _build_card_price_sources_uncached(card_id, limit=limit)
+        payload = _build_card_price_sources_uncached(
+            card_id,
+            limit=limit,
+            grades=grades_mode,
+        )
         inflight.set_result({k: v for k, v in payload.items() if k != "cache"})
         return payload
     except Exception as exc:
