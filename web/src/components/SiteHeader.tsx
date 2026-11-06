@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
@@ -25,7 +25,10 @@ export function SiteHeader() {
   const { user, logout } = useAuth();
   const { t } = useLocale();
   const [open, setOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const menuId = useId();
+  const moreMenuId = useId();
+  const moreRef = useRef<HTMLDivElement>(null);
 
   // Decision desk first — secondary tools stay available but stop crowding cold visitors.
   const primaryNav = useMemo<NavItem[]>(
@@ -51,16 +54,33 @@ export function SiteHeader() {
 
   useEffect(() => {
     setOpen(false);
+    setMoreOpen(false);
   }, [pathname]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open && !moreOpen) return;
     function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") {
+        setOpen(false);
+        setMoreOpen(false);
+      }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
+  }, [open, moreOpen]);
+
+  useEffect(() => {
+    if (!moreOpen) return;
+    function onPointerDown(event: MouseEvent | PointerEvent) {
+      const root = moreRef.current;
+      if (!root) return;
+      if (event.target instanceof Node && !root.contains(event.target)) {
+        setMoreOpen(false);
+      }
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [moreOpen]);
 
   useEffect(() => {
     if (!open) return;
@@ -96,20 +116,41 @@ export function SiteHeader() {
             {t(item.labelKey)}
           </Link>
         ))}
-        <details className="nav-more">
-          <summary className="nav-link nav-more-summary">{t("nav_more")}</summary>
-          <div className="nav-more-menu" role="group" aria-label={t("nav_more")}>
-            {moreNav.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`nav-link ${linkActive(pathname, item.href) ? "is-active" : ""}`}
-              >
-                {t(item.labelKey)}
-              </Link>
-            ))}
-          </div>
-        </details>
+        <div
+          className={`nav-more${moreOpen ? " is-open" : ""}`}
+          ref={moreRef}
+        >
+          <button
+            type="button"
+            className="nav-link nav-more-summary"
+            aria-expanded={moreOpen}
+            aria-haspopup="menu"
+            aria-controls={moreMenuId}
+            onClick={() => setMoreOpen((value) => !value)}
+          >
+            {t("nav_more")}
+          </button>
+          {moreOpen ? (
+            <div
+              id={moreMenuId}
+              className="nav-more-menu"
+              role="menu"
+              aria-label={t("nav_more")}
+            >
+              {moreNav.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  role="menuitem"
+                  className={`nav-link ${linkActive(pathname, item.href) ? "is-active" : ""}`}
+                  onClick={() => setMoreOpen(false)}
+                >
+                  {t(item.labelKey)}
+                </Link>
+              ))}
+            </div>
+          ) : null}
+        </div>
       </nav>
 
       <div className="header-actions">
