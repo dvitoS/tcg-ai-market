@@ -68,8 +68,8 @@ def reset_justtcg_request_count() -> None:
 def configure_justtcg_request_budget(max_requests: int | None) -> None:
     """Cap outbound JustTCG calls for this process (None = unlimited).
 
-    Account is ~1000/day and ~10k/month (~330/day average). Nightly defaults to
-    ~200 so Soft Ink keeps daytime headroom without blowing the monthly cap.
+    Account is ~1000/day and ~10k/month. Nightly defaults to ~100 so Soft Ink +
+    nightly fit in ≤~9k/month.
     """
     global _REQUEST_BUDGET
     if max_requests is None:

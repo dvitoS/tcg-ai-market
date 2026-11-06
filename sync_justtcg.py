@@ -1,6 +1,7 @@
 """Sinkronizira NM cijene + history s JustTCG u Supabase (Phase A).
 
-Free tier: paginacija po curated setovima (~50 req/noć, 20/batch, 10/min).
+Paid Soft Ink tier: 100 cards/req, 50/min, 1000/day, 10k/month.
+Prefer tcgplayer_id batch POSTs (≈1 req / 100 cards) over set pagination.
 """
 
 from __future__ import annotations
@@ -13,12 +14,14 @@ from database import (
     distinct_history_card_ids,
     init_db,
     list_cards,
+    list_cards_for_sync,
     replace_card_history,
     table_count,
     update_card_market_price,
 )
 from justtcg_client import (
     JustTCGRateLimitError,
+    batch_by_tcgplayer_ids,
     fetch_set_cards_page,
     history_points_from_variant,
     justtcg_api_key,
@@ -86,10 +89,7 @@ def _display_set_name(set_code: str, cards: list) -> str:
 
 
 def _sets_prioritized_by_coverage(by_set: dict[str, list]) -> list[tuple[str, str]]:
-    """Prefer sets with more cards missing price_history (fill gaps first).
-
-    Includes every set present in the DB (full catalog), not only the curated pin list.
-    """
+    """Prefer sets with more cards missing price_history (fill gaps first)."""
     have_history = distinct_history_card_ids()
     scored: list[tuple[int, str, str]] = []
     for set_code, cards in by_set.items():
@@ -99,8 +99,45 @@ def _sets_prioritized_by_coverage(by_set: dict[str, list]) -> list[tuple[str, st
     return [(sid, name) for _m, sid, name in scored]
 
 
+def _ingest_card_row(
+    card,
+    row: dict,
+    *,
+    have_history: set[str],
+    matched_ids: set[str],
+) -> tuple[str, int]:
+    """Apply one JustTCG card payload. Returns (status, history_rows_written).
+
+    status: ok | skip_weak | skip_empty | skip_dup
+    """
+    if card.id in matched_ids:
+        return "skip_dup", 0
+    variant = pick_nm_variant(list(row.get("variants") or []))
+    points = history_points_from_variant(variant)
+    price = variant_price_usd(variant)
+    tcp = str(row.get("tcgplayerId") or "") or None
+    if not points and price is None:
+        return "skip_empty", 0
+
+    written = 0
+    if points:
+        # Never wipe a multi-day series with spot-only / tiny payloads.
+        min_points = 7
+        already = str(card.id) in have_history
+        if len(points) < min_points and already:
+            if price is not None:
+                update_card_market_price(card.id, price, tcgplayer_id=tcp)
+            return "skip_weak", 0
+        written = replace_card_history(card.id, points)
+        have_history.add(str(card.id))
+    if price is not None:
+        update_card_market_price(card.id, price, tcgplayer_id=tcp)
+    matched_ids.add(card.id)
+    return "ok", written
+
+
 def sync_justtcg_price_history(*, limit: int | None = None) -> dict[str, int]:
-    """Live sync: JustTCG NM + history (JUSTTCG_HISTORY_DURATION) po curated catalog sets."""
+    """Live sync: prefer tcgplayerId batches; set pagination only as fallback."""
     if not justtcg_api_key():
         raise RuntimeError("JUSTTCG_API_KEY nije postavljen.")
 
@@ -115,21 +152,18 @@ def sync_justtcg_price_history(*, limit: int | None = None) -> dict[str, int]:
             "total_history": 0,
             "unmatched_sets": [],
             "unmatched_sets_count": 0,
+            "justtcg_requests": 0,
+            "batch_updated": 0,
         }
 
     updated = skipped = saved = 0
+    batch_updated = 0
     set_cache: dict[str, str] = {}
     matched_ids: set[str] = set()
     unmatched_sets: list[dict[str, str]] = []
     unmatched_seen: set[str] = set()
     have_history = distinct_history_card_ids()
-    ordered_sets = _sets_prioritized_by_coverage(by_set)
     known_unmatched = _known_unmatched_set_codes()
-    if known_unmatched:
-        print(
-            f"Skipping {len(known_unmatched)} previously unmatched JustTCG sets "
-            f"(from spot QA snapshot)"
-        )
 
     def _stats_payload() -> dict:
         total = table_count("price_history")
@@ -141,146 +175,207 @@ def sync_justtcg_price_history(*, limit: int | None = None) -> dict[str, int]:
             "unmatched_sets": unmatched_sets,
             "unmatched_sets_count": len(unmatched_sets),
             "justtcg_requests": justtcg_request_count(),
+            "batch_updated": batch_updated,
         }
 
-    # One catalog fetch — local resolve for every set (avoids ~12s/set search).
+    # --- Path A: tcgplayer_id batches (≈1 req / 100 cards) ---
+    targets = list_cards_for_sync(limit=limit)
+    with_tcp = [
+        c
+        for c in targets
+        if str(getattr(c, "tcgplayer_id", None) or "").strip()
+    ]
+    tcp_to_card = {
+        str(c.tcgplayer_id).strip(): c
+        for c in with_tcp
+        if str(getattr(c, "tcgplayer_id", None) or "").strip()
+    }
+    tcp_ids = list(tcp_to_card.keys())
+    print(
+        f"JustTCG batch sync: {len(tcp_ids)} cards with tcgplayer_id "
+        f"(of {len(targets)} prioritized, batch={JUSTTCG_BATCH_SIZE})"
+    )
+    for i in range(0, len(tcp_ids), JUSTTCG_BATCH_SIZE):
+        if limit is not None and updated >= limit:
+            break
+        chunk = tcp_ids[i : i + JUSTTCG_BATCH_SIZE]
+        try:
+            rows = batch_by_tcgplayer_ids(chunk)
+        except JustTCGRateLimitError:
+            print(
+                f"JustTCG rate/budget stop pri batch "
+                f"(requests={justtcg_request_count()}).",
+                file=sys.stderr,
+            )
+            return _stats_payload()
+        except Exception as exc:
+            print(f"  batch offset={i} greška: {exc}", file=sys.stderr)
+            continue
+
+        for row in rows:
+            tid = str(row.get("tcgplayerId") or "").strip()
+            card = tcp_to_card.get(tid)
+            if card is None:
+                continue
+            status, written = _ingest_card_row(
+                card,
+                row,
+                have_history=have_history,
+                matched_ids=matched_ids,
+            )
+            if status == "ok":
+                updated += 1
+                batch_updated += 1
+                saved += written
+                print(f"  OK {card.id} · batch · {written} history pts")
+            elif status in {"skip_weak", "skip_empty"}:
+                skipped += 1
+            if limit is not None and updated >= limit:
+                payload = _stats_payload()
+                print(
+                    f"JustTCG limit hit via batch: updated={updated} "
+                    f"requests={payload['justtcg_requests']}"
+                )
+                return payload
+
+    if limit is not None and updated >= limit:
+        payload = _stats_payload()
+        print(
+            f"JustTCG gotovo (batch only): updated={updated} "
+            f"requests={payload['justtcg_requests']}"
+        )
+        return payload
+
+    # --- Path B: set pagination only for remaining gaps without tcp ---
+    remaining = 0 if limit is None else max(0, int(limit) - updated)
+    if remaining == 0 and limit is not None:
+        return _stats_payload()
+
+    ordered_sets = _sets_prioritized_by_coverage(by_set)
+    if known_unmatched:
+        print(
+            f"Skipping {len(known_unmatched)} previously unmatched JustTCG sets"
+        )
+
     catalog_rows: list | None
     try:
         catalog_rows = list_pokemon_sets()
-        print(f"JustTCG pokemon set catalog: {len(catalog_rows)} rows (local resolve)")
+        print(f"JustTCG set catalog: {len(catalog_rows)} rows (fallback path)")
     except JustTCGRateLimitError:
         print("JustTCG rate/budget stop pri list_pokemon_sets.", file=sys.stderr)
         return _stats_payload()
     except Exception as exc:
-        print(f"JustTCG list_pokemon_sets failed ({exc}) — falling back to per-set q=", file=sys.stderr)
+        print(
+            f"JustTCG list_pokemon_sets failed ({exc}) — per-set q= fallback",
+            file=sys.stderr,
+        )
         catalog_rows = None
 
     print(
-        "JustTCG set sync (NM + 30d history) — sets by missing history first: %s"
-        % ", ".join(f"{n}({c})" for c, n in ordered_sets)
+        "JustTCG set fallback — missing history first: %s"
+        % ", ".join(f"{n}({c})" for c, n in ordered_sets[:40])
+        + ("…" if len(ordered_sets) > 40 else "")
     )
-    # Two passes when limited: fill missing history first, then refresh others.
-    passes = (True, False) if limit is not None else (False,)
-    for missing_only in passes:
-        for set_code, set_name in ordered_sets:
-            if set_code not in by_set:
-                continue
-            if set_code in known_unmatched:
-                if set_code not in unmatched_seen:
-                    unmatched_seen.add(set_code)
-                    unmatched_sets.append(
-                        {"set_code": set_code, "set_name": set_name}
-                    )
-                continue
-            if missing_only:
-                missing_n = sum(
-                    1 for _n, card in by_set[set_code] if str(card.id) not in have_history
-                )
-                if missing_n <= 0:
-                    continue
+
+    for set_code, set_name in ordered_sets:
+        if limit is not None and updated >= limit:
+            break
+        if set_code not in by_set:
+            continue
+        if set_code in known_unmatched:
+            if set_code not in unmatched_seen:
+                unmatched_seen.add(set_code)
+                unmatched_sets.append({"set_code": set_code, "set_name": set_name})
+            continue
+        # Only pull sets that still have missing cards without a successful match.
+        missing_n = sum(
+            1
+            for _n, card in by_set[set_code]
+            if str(card.id) not in have_history and card.id not in matched_ids
+        )
+        if missing_n <= 0:
+            continue
+        try:
+            jset = resolve_set_id(
+                set_name,
+                set_code=set_code,
+                cache=set_cache,
+                catalog_rows=catalog_rows,
+            )
+        except JustTCGRateLimitError:
+            print(
+                f"JustTCG rate/budget stop pri resolve "
+                f"(requests={justtcg_request_count()}).",
+                file=sys.stderr,
+            )
+            return _stats_payload()
+        except Exception as exc:
+            print(f"  set '{set_name}' resolve fail: {exc}", file=sys.stderr)
+            continue
+        if not jset:
+            print(f"  JustTCG set nije pronađen za '{set_name}' ({set_code})")
+            if set_code not in unmatched_seen:
+                unmatched_seen.add(set_code)
+                unmatched_sets.append({"set_code": set_code, "set_name": set_name})
+            continue
+
+        offset = 0
+        print(f"  set {set_name} ({set_code}) → {jset} [fallback]")
+        while True:
             try:
-                jset = resolve_set_id(
-                    set_name,
-                    set_code=set_code,
-                    cache=set_cache,
-                    catalog_rows=catalog_rows,
+                rows, has_more = fetch_set_cards_page(
+                    jset, offset=offset, limit=JUSTTCG_BATCH_SIZE
                 )
             except JustTCGRateLimitError:
                 print(
-                    f"JustTCG rate/budget stop pri resolve "
+                    f"JustTCG rate/budget stop set sync "
                     f"(requests={justtcg_request_count()}).",
                     file=sys.stderr,
                 )
                 return _stats_payload()
             except Exception as exc:
-                print(f"  set '{set_name}' resolve fail: {exc}", file=sys.stderr)
-                continue
-            if not jset:
-                print(f"  JustTCG set nije pronađen za '{set_name}' ({set_code})")
-                if set_code not in unmatched_seen:
-                    unmatched_seen.add(set_code)
-                    unmatched_sets.append(
-                        {"set_code": set_code, "set_name": set_name}
-                    )
-                continue
+                print(f"  page offset={offset} greška: {exc}", file=sys.stderr)
+                break
 
-            offset = 0
-            pass_label = "missing" if missing_only else "refresh"
-            print(f"  set {set_name} ({set_code}) → {jset} [{pass_label}]")
-            while True:
-                try:
-                    rows, has_more = fetch_set_cards_page(
-                        jset, offset=offset, limit=JUSTTCG_BATCH_SIZE
-                    )
-                except JustTCGRateLimitError:
-                    print(
-                        f"JustTCG rate/budget stop set sync "
-                        f"(requests={justtcg_request_count()}).",
-                        file=sys.stderr,
-                    )
-                    return _stats_payload()
-                except Exception as exc:
-                    print(f"  page offset={offset} greška: {exc}", file=sys.stderr)
-                    break
+            if not rows:
+                break
 
-                if not rows:
-                    break
-
-                for row in rows:
-                    card = _match_card(by_set, set_code, str(row.get("number") or ""))
-                    if card is None:
-                        continue
-                    if card.id in matched_ids:
-                        continue
-                    if missing_only and str(card.id) in have_history:
-                        continue
-
-                    variant = pick_nm_variant(list(row.get("variants") or []))
-                    points = history_points_from_variant(variant)
-                    price = variant_price_usd(variant)
-                    tcp = str(row.get("tcgplayerId") or "") or None
-                    if not points and price is None:
-                        skipped += 1
-                        continue
-
-                    if points:
-                        # Never wipe a multi-day series with spot-only / tiny payloads.
-                        # Soft Ink charts look "broken" when nightly replace leaves 1–2 pts.
-                        min_points = 7
-                        already = str(card.id) in have_history
-                        if len(points) < min_points and already:
-                            skipped += 1
-                            print(
-                                f"  skip weak history {card.id} · {len(points)} pts "
-                                f"(keep existing)"
-                            )
-                        else:
-                            written = replace_card_history(card.id, points)
-                            saved += written
-                            have_history.add(str(card.id))
-                    if price is not None:
-                        update_card_market_price(card.id, price, tcgplayer_id=tcp)
-
+            for row in rows:
+                card = _match_card(by_set, set_code, str(row.get("number") or ""))
+                if card is None:
+                    continue
+                if str(card.id) in have_history and card.id in matched_ids:
+                    continue
+                # Prefer filling gaps; skip cards that already have history on fallback.
+                if str(card.id) in have_history:
+                    continue
+                status, written = _ingest_card_row(
+                    card,
+                    row,
+                    have_history=have_history,
+                    matched_ids=matched_ids,
+                )
+                if status == "ok":
                     updated += 1
-                    matched_ids.add(card.id)
+                    saved += written
+                    print(f"  OK {card.id} · set · {written} history pts")
+                elif status in {"skip_weak", "skip_empty"}:
+                    skipped += 1
+                if limit is not None and updated >= limit:
+                    payload = _stats_payload()
                     print(
-                        f"  OK {card.id} · ${price if price is not None else '?'} · {len(points)} pts"
+                        f"JustTCG limit hit: updated={updated} "
+                        f"requests={payload['justtcg_requests']}"
                     )
-                    if limit is not None and updated >= limit:
-                        payload = _stats_payload()
-                        print(
-                            f"JustTCG limit hit: updated={updated} "
-                            f"requests={payload['justtcg_requests']}"
-                        )
-                        return payload
+                    return payload
 
-                if not has_more:
-                    break
-                offset += JUSTTCG_BATCH_SIZE
+            if not has_more:
+                break
+            offset += JUSTTCG_BATCH_SIZE
 
     payload = _stats_payload()
     print(
-        f"JustTCG gotovo: updated={updated} skipped={skipped} "
+        f"JustTCG gotovo: updated={updated} batch={batch_updated} skipped={skipped} "
         f"saved_rows={saved} total_history={payload['total_history']} "
         f"requests={payload['justtcg_requests']}"
     )
