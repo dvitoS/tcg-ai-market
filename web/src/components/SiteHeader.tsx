@@ -224,13 +224,22 @@ export function SiteHeader() {
               {t("auth_sign_out")} · {user.email || "Account"}
             </button>
           ) : (
-            <Link
-              href="/portfolio"
-              className="btn-primary nav-mobile-auth"
-              onClick={() => setOpen(false)}
-            >
-              {t("auth_sign_in")}
-            </Link>
+            <div className="nav-mobile-auth-row">
+              <Link
+                href="/portfolio"
+                className="btn-primary"
+                onClick={() => setOpen(false)}
+              >
+                {t("auth_sign_in")}
+              </Link>
+              <Link
+                href="/portfolio?auth=signup"
+                className="btn-ghost"
+                onClick={() => setOpen(false)}
+              >
+                {t("auth_create_account")}
+              </Link>
+            </div>
           )}
         </nav>
       </div>

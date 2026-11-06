@@ -3320,6 +3320,12 @@ a {
     left: 0;
     right: 0;
     z-index: 45;
+    /* Keep room under the sticky header so the drawer can scroll on short phones. */
+    max-height: min(78dvh, calc(100dvh - 4.25rem));
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
     padding: 0.85rem 0.9rem 1rem;
     border: 1px solid var(--border);
     border-radius: 14px;
@@ -3362,7 +3368,28 @@ a {
 
   .nav-mobile-auth {
     margin-top: 0.55rem;
-    justify-self: start;
+    justify-self: stretch;
+  }
+
+  .nav-mobile-auth-row {
+    display: grid;
+    gap: 0.45rem;
+    margin-top: 0.65rem;
+    padding-top: 0.65rem;
+    border-top: 1px solid var(--border);
+    position: sticky;
+    bottom: 0;
+    background: linear-gradient(
+      180deg,
+      rgba(18, 18, 18, 0.2),
+      rgba(18, 18, 18, 0.98) 28%
+    );
+  }
+
+  .nav-mobile-auth-row .btn-primary,
+  .nav-mobile-auth-row .btn-ghost {
+    justify-self: stretch;
+    text-align: center;
   }
 
   .nav-backdrop {
