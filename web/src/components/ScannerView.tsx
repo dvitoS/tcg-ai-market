@@ -5,6 +5,7 @@ import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useState, useTransition } from "react";
 
 import { CardSkeletonGrid } from "@/components/CardSkeletonGrid";
+import { DeskLoading } from "@/components/DeskLoading";
 import { ExploreCard } from "@/components/ExploreCard";
 import { useLocale } from "@/components/LocaleProvider";
 import { SearchSuggest } from "@/components/SearchSuggest";
@@ -74,6 +75,7 @@ export function ScannerView() {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [hydrated, setHydrated] = useState(false);
+  const [booted, setBooted] = useState(false);
 
   const load = useCallback(() => {
     startTransition(async () => {
@@ -91,6 +93,8 @@ export function ScannerView() {
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Scanner failed");
+      } finally {
+        setBooted(true);
       }
     });
   }, [submitted, setName, rarity, minGrowth, minPrice, maxPrice]);
@@ -116,6 +120,18 @@ export function ScannerView() {
     applyQuery(query);
   }
 
+  if (!hydrated || !booted) {
+    return (
+      <section className="scanner-page">
+        <div className="explore-command">
+          <p className="explore-command-eyebrow">{t("scan_eyebrow")}</p>
+          <h1 className="explore-title">{t("scan_title")}</h1>
+        </div>
+        <DeskLoading label={t("scan_loading")} variant="panel" skeletonCount={8} />
+      </section>
+    );
+  }
+
   return (
     <section className="scanner-page">
       <div className="explore-command">
@@ -126,6 +142,8 @@ export function ScannerView() {
           {data.source === "demo" ? ` · ${t("explore_demo")}` : ""}
         </p>
       </div>
+
+      {pending ? <DeskLoading label={t("explore_updating")} variant="banner" /> : null}
 
       <form className="search-strip scanner-search" onSubmit={onSearch}>
         <SearchSuggest
@@ -201,7 +219,6 @@ export function ScannerView() {
         </label>
         <p className="result-count">
           {t("scan_scoped_count", { n: data.scoped })}
-          {pending ? ` · ${t("explore_updating")}` : null}
         </p>
       </div>
 
@@ -231,12 +248,12 @@ export function ScannerView() {
         <p className="empty-state">{t("scan_opps_empty")}</p>
       ) : (
         <>
-          <div className="explore-grid scanner-grid">
+          <div className={`explore-grid scanner-grid${pending ? " is-pending" : ""}`}>
             {data.opportunities.slice(0, 12).map((card) => (
               <ExploreCard key={card.id} card={card} showSignal />
             ))}
           </div>
-          <div className="scan-list">
+          <div className={`scan-list${pending ? " is-pending" : ""}`}>
             {data.opportunities.map((card) => (
               <ScanRow key={`opp-${card.id}`} card={card} />
             ))}

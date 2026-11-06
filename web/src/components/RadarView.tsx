@@ -13,6 +13,7 @@ import {
 } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
+import { DeskLoading } from "@/components/DeskLoading";
 import { useLocale } from "@/components/LocaleProvider";
 import { SearchSuggest } from "@/components/SearchSuggest";
 import { TrustPanel } from "@/components/TrustPanel";
@@ -113,6 +114,7 @@ export function RadarView() {
   const searchParams = useSearchParams();
   const shareBoot = useRef<RadarShareFilters | null | undefined>(undefined);
   const skipFilterLoad = useRef(false);
+  const [booted, setBooted] = useState(false);
   const [status, setStatus] = useState<RadarStatus | null>(null);
   const [data, setData] = useState<RadarResponse>(EMPTY);
   const [query, setQuery] = useState("");
@@ -167,6 +169,8 @@ export function RadarView() {
           setError(null);
         } catch (err) {
           setError(err instanceof Error ? err.message : t("radar_error"));
+        } finally {
+          setBooted(true);
         }
       });
     },
@@ -178,6 +182,7 @@ export function RadarView() {
     if (!user) {
       setStatus(null);
       setData(EMPTY);
+      setBooted(false);
       return;
     }
     startTransition(async () => {
@@ -211,6 +216,8 @@ export function RadarView() {
       } catch (err) {
         setStatus(null);
         setError(err instanceof Error ? err.message : t("radar_error"));
+      } finally {
+        setBooted(true);
       }
     });
     // Initial boot only — filter changes go through `load`.
@@ -260,10 +267,14 @@ export function RadarView() {
     }
   }
 
-  if (authLoading || !hydrated) {
+  if (authLoading || !hydrated || (user && !booted)) {
     return (
       <section className="scanner-page radar-page">
-        <p className="explore-lede">{t("radar_loading")}</p>
+        <div className="explore-command">
+          <p className="explore-command-eyebrow">{t("radar_eyebrow")}</p>
+          <h1 className="explore-title">{t("radar_title")}</h1>
+        </div>
+        <DeskLoading label={t("radar_loading")} variant="panel" skeletonCount={6} />
       </section>
     );
   }
@@ -400,12 +411,11 @@ export function RadarView() {
         </label>
         <p className="result-count">
           {t("radar_kpi_sure")}: {data.sure_scoped}
-          {pending ? ` · ${t("explore_updating")}` : null}
         </p>
       </div>
 
       {error ? <p className="form-error">{error}</p> : null}
-      {pending ? <p className="explore-lede">{t("explore_updating")}</p> : null}
+      {pending ? <DeskLoading label={t("explore_updating")} variant="banner" /> : null}
 
       <div className="stat-row scanner-kpis">
         <div className="stat-chip">
@@ -425,10 +435,12 @@ export function RadarView() {
       <TrustPanel />
 
       <h2 className="section-title">{t("radar_under_title")}</h2>
-      {data.underpriced.length === 0 ? (
+      {pending && data.underpriced.length === 0 ? (
+        <DeskLoading label={t("explore_updating")} variant="panel" skeletonCount={4} />
+      ) : data.underpriced.length === 0 ? (
         <p className="explore-lede">{t("radar_under_empty")}</p>
       ) : (
-        <div className="scan-list">
+        <div className={`scan-list${pending ? " is-pending" : ""}`}>
           {data.underpriced.map((card) => (
             <RadarRow key={`u-${card.id}`} card={card} />
           ))}
@@ -436,10 +448,12 @@ export function RadarView() {
       )}
 
       <h2 className="section-title">{t("radar_over_title")}</h2>
-      {data.overpriced.length === 0 ? (
+      {pending && data.overpriced.length === 0 ? (
+        <DeskLoading label={t("explore_updating")} variant="panel" skeletonCount={4} />
+      ) : data.overpriced.length === 0 ? (
         <p className="explore-lede">{t("radar_over_empty")}</p>
       ) : (
-        <div className="scan-list">
+        <div className={`scan-list${pending ? " is-pending" : ""}`}>
           {data.overpriced.map((card) => (
             <RadarRow key={`o-${card.id}`} card={card} />
           ))}

@@ -13,6 +13,7 @@ import {
 
 import { useAuth } from "@/components/AuthProvider";
 import { BinderReportExport } from "@/components/BinderReportExport";
+import { DeskLoading } from "@/components/DeskLoading";
 import { useLocale } from "@/components/LocaleProvider";
 import { fetchBinder, fetchBinderSets, formatMoney } from "@/lib/api";
 import type { BinderMissingCard, BinderResponse, BinderSetSummary } from "@/lib/types";
@@ -63,6 +64,7 @@ export function BinderView() {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [hydrated, setHydrated] = useState(false);
+  const [booted, setBooted] = useState(false);
 
   useEffect(() => {
     if (setBoot.current !== undefined) return;
@@ -95,8 +97,10 @@ export function BinderView() {
         if (detailBoot && boot && detailBoot.set_name === boot) {
           setDetail(detailBoot);
         }
+        setBooted(true);
       } catch (err) {
         setError(err instanceof Error ? err.message : t("binder_load_error"));
+        setBooted(true);
       }
     });
   }, [t]);
@@ -126,7 +130,11 @@ export function BinderView() {
   }, []);
 
   useEffect(() => {
-    if (!hydrated || !user) return;
+    if (!user) {
+      setBooted(false);
+      return;
+    }
+    if (!hydrated) return;
     loadSets();
   }, [hydrated, user, loadSets]);
 
@@ -137,10 +145,14 @@ export function BinderView() {
     loadDetail(selected);
   }, [hydrated, user, selected, loadDetail, detail?.set_name]);
 
-  if (authLoading) {
+  if (authLoading || (user && !booted)) {
     return (
       <section className="scanner-page binder-page">
-        <p className="explore-lede">{t("binder_loading")}</p>
+        <div className="explore-command">
+          <p className="explore-command-eyebrow">{t("binder_eyebrow")}</p>
+          <h1 className="explore-title">{t("binder_title")}</h1>
+        </div>
+        <DeskLoading label={t("binder_loading")} variant="panel" skeletonCount={6} />
       </section>
     );
   }
@@ -186,6 +198,7 @@ export function BinderView() {
       </div>
 
       {error ? <p className="banner-error">{error}</p> : null}
+      {pending ? <DeskLoading label={t("explore_updating")} variant="banner" /> : null}
 
       <div className="filter-row binder-filters">
         <label>
@@ -248,13 +261,13 @@ export function BinderView() {
             {t("binder_missing_title", { n: detail?.missing ?? 0 })}
           </h2>
           {pending && !detail ? (
-            <p className="explore-lede">{t("binder_loading")}</p>
+            <DeskLoading label={t("binder_loading")} variant="panel" skeletonCount={4} />
           ) : null}
           {detail && detail.missing_cards.length === 0 ? (
             <p className="empty-state">{t("binder_complete")}</p>
           ) : null}
           {detail && detail.missing_cards.length > 0 ? (
-            <div className="scan-list">
+            <div className={`scan-list${pending ? " is-pending" : ""}`}>
               {detail.missing_cards.map((card) => (
                 <MissingRow key={card.id} card={card} />
               ))}
