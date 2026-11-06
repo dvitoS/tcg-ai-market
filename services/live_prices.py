@@ -46,7 +46,7 @@ def resolve_tcgplayer_id(card_id: str) -> str | None:
                 set_name=str(db_card.set_name or "") or None,
             )
             if hit:
-                product_id = str(hit.get("tcgplayerId") or "").strip() or None
+                product_id = jtcg.card_tcgplayer_id(hit)
         except Exception:
             product_id = None
 

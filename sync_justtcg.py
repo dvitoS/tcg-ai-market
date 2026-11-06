@@ -22,6 +22,7 @@ from database import (
 from justtcg_client import (
     JustTCGRateLimitError,
     batch_by_tcgplayer_ids,
+    card_tcgplayer_id,
     fetch_set_cards_page,
     history_points_from_variant,
     justtcg_api_key,
@@ -115,7 +116,7 @@ def _ingest_card_row(
     variant = pick_nm_variant(list(row.get("variants") or []))
     points = history_points_from_variant(variant)
     price = variant_price_usd(variant)
-    tcp = str(row.get("tcgplayerId") or "") or None
+    tcp = card_tcgplayer_id(row)
     if not points and price is None:
         return "skip_empty", 0
 
@@ -213,7 +214,7 @@ def sync_justtcg_price_history(*, limit: int | None = None) -> dict[str, int]:
             continue
 
         for row in rows:
-            tid = str(row.get("tcgplayerId") or "").strip()
+            tid = card_tcgplayer_id(row) or ""
             card = tcp_to_card.get(tid)
             if card is None:
                 continue
@@ -319,12 +320,12 @@ def sync_justtcg_price_history(*, limit: int | None = None) -> dict[str, int]:
                 unmatched_sets.append({"set_code": set_code, "set_name": set_name})
             continue
 
-        offset = 0
+        cursor: str | None = None
         print(f"  set {set_name} ({set_code}) → {jset} [fallback]")
         while True:
             try:
-                rows, has_more = fetch_set_cards_page(
-                    jset, offset=offset, limit=JUSTTCG_BATCH_SIZE
+                rows, cursor = fetch_set_cards_page(
+                    jset, cursor=cursor, limit=JUSTTCG_BATCH_SIZE
                 )
             except JustTCGRateLimitError:
                 print(
@@ -334,7 +335,7 @@ def sync_justtcg_price_history(*, limit: int | None = None) -> dict[str, int]:
                 )
                 return _stats_payload()
             except Exception as exc:
-                print(f"  page offset={offset} greška: {exc}", file=sys.stderr)
+                print(f"  page cursor={cursor!r} greška: {exc}", file=sys.stderr)
                 break
 
             if not rows:
@@ -369,9 +370,8 @@ def sync_justtcg_price_history(*, limit: int | None = None) -> dict[str, int]:
                     )
                     return payload
 
-            if not has_more:
+            if not cursor:
                 break
-            offset += JUSTTCG_BATCH_SIZE
 
     payload = _stats_payload()
     print(

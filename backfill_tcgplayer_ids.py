@@ -203,7 +203,12 @@ def backfill_tcgplayer_ids(
         get_supabase,
         update_card_tcgplayer_id,
     )
-    from justtcg_client import JustTCGRateLimitError, justtcg_api_key, search_pokemon_card
+    from justtcg_client import (
+        JustTCGRateLimitError,
+        card_tcgplayer_id,
+        justtcg_api_key,
+        search_pokemon_card,
+    )
 
     pause = float(1.25 if pause_seconds is None else pause_seconds)
     justtcg_pause = float(JUSTTCG_REQUEST_DELAY_SECONDS)
@@ -283,7 +288,7 @@ def backfill_tcgplayer_ids(
                     quick=True,
                 )
                 consecutive_429 = 0
-                tcp = str((hit or {}).get("tcgplayerId") or "").strip() or None
+                tcp = card_tcgplayer_id(hit) if hit else None
                 if tcp:
                     source = "justtcg"
                     stats["from_justtcg"] += 1
