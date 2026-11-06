@@ -19,7 +19,7 @@ import { SearchSuggest } from "@/components/SearchSuggest";
 import { TrustPanel } from "@/components/TrustPanel";
 import {
   fetchRadar,
-  fetchRadarStatus,
+  fetchRadarBootstrap,
   formatChange,
   formatMoney,
 } from "@/lib/api";
@@ -189,27 +189,24 @@ export function RadarView() {
       try {
         const boot = shareBoot.current;
         const edgeGuess = boot?.min_edge ?? minEdge;
-        // Status + first board in parallel — shaves a full round-trip on cold Radar.
-        const [st, board] = await Promise.all([
-          fetchRadarStatus(),
-          fetchRadar({
-            q: boot?.q || submitted || undefined,
-            set: boot?.set || setName || undefined,
-            rarity: boot?.rarity || rarity || undefined,
-            min_price: boot?.min_price ?? parsePrice(minPrice),
-            max_price: boot?.max_price ?? parsePrice(maxPrice),
-            min_edge: edgeGuess,
-            limit: 24,
-          }).catch(() => null),
-        ]);
-        setStatus(st);
+        // One round-trip: Pro status + first board when allowed.
+        const payload = await fetchRadarBootstrap({
+          q: boot?.q || submitted || undefined,
+          set: boot?.set || setName || undefined,
+          rarity: boot?.rarity || rarity || undefined,
+          min_price: boot?.min_price ?? parsePrice(minPrice),
+          max_price: boot?.max_price ?? parsePrice(maxPrice),
+          min_edge: edgeGuess,
+          limit: 24,
+        });
+        setStatus(payload.status);
         if (boot?.min_edge == null) {
-          setMinEdge(st.edge_floor);
+          setMinEdge(payload.status.edge_floor);
         }
-        if (st.allowed && board) {
-          setData(board);
+        if (payload.status.allowed && payload.board) {
+          setData(payload.board);
           skipFilterLoad.current = true;
-        } else if (!st.allowed) {
+        } else if (!payload.status.allowed) {
           setData(EMPTY);
         }
         setError(null);

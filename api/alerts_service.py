@@ -46,15 +46,20 @@ def collect_user_watchlist_alerts(
     access_token: str | None = None,
     dismissed: list[str] | None = None,
     user: dict[str, Any] | None = None,
+    watch_rows: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    """Build Soft Ink alert digest payload for one authenticated user."""
+    """Build Soft Ink alert digest payload for one authenticated user.
+
+    Pass ``watch_rows`` from a portfolio bootstrap to avoid a second Supabase hit.
+    """
     band = max(1.0, min(50.0, float(threshold_pct)))
     pro = bool(is_pro_user(user))
     # Sure-only is a Pro surface (matches Streamlit portfolio).
     effective_sure = bool(sure_only) if pro else False
 
     board, source = load_board()
-    watch_rows = list_watchlist(user_id=user_id, access_token=access_token)
+    if watch_rows is None:
+        watch_rows = list_watchlist(user_id=user_id, access_token=access_token)
     watch = _watch_frame(watch_rows)
     dismissed_set = {str(x) for x in (dismissed or []) if str(x).strip()}
 

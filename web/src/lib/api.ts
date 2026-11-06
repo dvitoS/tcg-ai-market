@@ -22,9 +22,11 @@ import type {
   TradeShareCreated,
   TradeShareView,
   TradeStatus,
+  PortfolioBootstrapResponse,
   PortfolioLot,
   PortfolioPerformanceResponse,
   PortfolioResponse,
+  RadarBootstrapResponse,
   ScannerResponse,
   WatchAlertsResponse,
   WatchlistResponse,
@@ -374,6 +376,44 @@ export async function fetchPortfolio(
   });
   if (!res.ok) {
     throw new Error(`Portfolio failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function fetchPortfolioBootstrap(
+  opts: {
+    include_sold?: boolean;
+    threshold_pct?: number;
+    sure_only?: boolean;
+    dismissed?: string[];
+  } = {},
+): Promise<PortfolioBootstrapResponse> {
+  const params = new URLSearchParams();
+  if (opts.include_sold != null) {
+    params.set("include_sold", opts.include_sold ? "true" : "false");
+  }
+  if (opts.threshold_pct != null) {
+    params.set("threshold_pct", String(opts.threshold_pct));
+  }
+  if (opts.sure_only != null) {
+    params.set("sure_only", opts.sure_only ? "true" : "false");
+  }
+  if (opts.dismissed?.length) {
+    params.set("dismissed", opts.dismissed.join(","));
+  }
+  const qs = params.toString();
+  const res = await fetch(
+    apiUrl(`/api/portfolio/bootstrap${qs ? `?${qs}` : ""}`),
+    {
+      headers: {
+        Accept: "application/json",
+        ...authHeaders(),
+      },
+      cache: "no-store",
+    },
+  );
+  if (!res.ok) {
+    throw new Error(`Portfolio bootstrap failed (${res.status})`);
   }
   return res.json();
 }
@@ -744,6 +784,36 @@ export async function fetchRadarStatus(): Promise<RadarStatus> {
   });
   if (!res.ok) {
     throw new Error(`Radar status failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function fetchRadarBootstrap(
+  query: RadarQuery = {},
+): Promise<RadarBootstrapResponse> {
+  const params = new URLSearchParams();
+  if (query.q) params.set("q", query.q);
+  if (query.set) params.set("set", query.set);
+  if (query.rarity) params.set("rarity", query.rarity);
+  if (query.min_price != null) params.set("min_price", String(query.min_price));
+  if (query.max_price != null) params.set("max_price", String(query.max_price));
+  if (query.min_edge != null) params.set("min_edge", String(query.min_edge));
+  if (query.limit != null) params.set("limit", String(query.limit));
+  const qs = params.toString();
+  const res = await fetch(
+    apiUrl(`/api/radar/bootstrap${qs ? `?${qs}` : ""}`),
+    {
+      headers: {
+        Accept: "application/json",
+        ...authHeaders(),
+      },
+      cache: "no-store",
+    },
+  );
+  if (!res.ok) {
+    throw new Error(
+      await readApiError(res, `Radar bootstrap failed (${res.status})`),
+    );
   }
   return res.json();
 }
