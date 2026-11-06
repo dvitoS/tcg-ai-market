@@ -151,20 +151,11 @@ export function CardDetailView({
               </div>
               <div className="detail-actions">
                 <WatchToggle cardId={card.id} />
-                <Link href="/portfolio#watchlist" className="btn-ghost">
-                  {t("detail_watchlist")}
-                </Link>
                 <Link
                   href={`/trade?add=${encodeURIComponent(card.id)}&side=you`}
-                  className="btn-ghost"
+                  className="btn-primary"
                 >
                   {t("detail_trade_you")}
-                </Link>
-                <Link
-                  href={`/trade?add=${encodeURIComponent(card.id)}&side=them`}
-                  className="btn-ghost"
-                >
-                  {t("detail_trade_them")}
                 </Link>
                 <a
                   className="btn-ghost"
@@ -174,6 +165,20 @@ export function CardDetailView({
                 >
                   {t("detail_cardmarket")}
                 </a>
+                <details className="detail-actions-more">
+                  <summary>{t("detail_more")}</summary>
+                  <div className="detail-actions-more-menu">
+                    <Link href="/portfolio#watchlist" className="btn-ghost">
+                      {t("detail_watchlist")}
+                    </Link>
+                    <Link
+                      href={`/trade?add=${encodeURIComponent(card.id)}&side=them`}
+                      className="btn-ghost"
+                    >
+                      {t("detail_trade_them")}
+                    </Link>
+                  </div>
+                </details>
               </div>
               <div className="stat-row">
                 <div className="stat-chip">

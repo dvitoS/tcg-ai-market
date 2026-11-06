@@ -285,7 +285,7 @@ export function RadarView() {
           <h1 className="explore-title">{t("radar_title")}</h1>
           <p className="explore-lede">{t("radar_signin_lede")}</p>
         </div>
-        <Link href="/portfolio" className="btn-primary">
+        <Link href="/portfolio?next=/radar" className="btn-primary">
           {t("auth_sign_in")}
         </Link>
       </section>

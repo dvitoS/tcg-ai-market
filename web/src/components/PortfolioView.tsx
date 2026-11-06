@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
@@ -96,9 +97,19 @@ function lotActionClass(action?: string | null): string {
   return "lot-action-hold";
 }
 
+function safeNextPath(raw: string | null): string | null {
+  if (!raw) return null;
+  const path = raw.trim();
+  if (!path.startsWith("/") || path.startsWith("//")) return null;
+  return path;
+}
+
 export function PortfolioView() {
   const { locale, t } = useLocale();
-  const { user, loading: authLoading, login, signup, logout, ensureDemoSession } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextPath = safeNextPath(searchParams.get("next"));
+  const { user, loading: authLoading, login, signup, ensureDemoSession } = useAuth();
   const [lots, setLots] = useState<PortfolioLot[]>([]);
   const [summary, setSummary] = useState<PortfolioSummary>(EMPTY_SUMMARY);
   const [perfPoints, setPerfPoints] = useState<PortfolioPerfPoint[]>([]);
@@ -112,8 +123,8 @@ export function PortfolioView() {
   const [busy, setBusy] = useState(false);
   const [booted, setBooted] = useState(false);
   const [authMode, setAuthMode] = useState<"signin" | "signup" | "forgot">("signin");
-  const [email, setEmail] = useState("dev@local");
-  const [password, setPassword] = useState("demo");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [thresholdPct, setThresholdPct] = useState(5);
   const [sureOnly, setSureOnly] = useState(true);
   const [dismissed, setDismissed] = useState<string[]>([]);
@@ -177,12 +188,12 @@ export function PortfolioView() {
         .catch(() => {
           /* equity chart is optional — keep desk usable */
         });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load portfolio");
+    } catch {
+      setError(t("port_load_failed"));
       setBusy(false);
       setBooted(true);
     }
-  }, [dismissed, sureOnly, thresholdPct]);
+  }, [dismissed, sureOnly, thresholdPct, t]);
 
   const alertCaption = useMemo(() => {
     if (sureOnly) {
@@ -291,6 +302,10 @@ export function PortfolioView() {
         setNotice(outcome.message || "Account created.");
       } else {
         await login(email.trim(), password);
+      }
+      if (nextPath) {
+        router.replace(nextPath);
+        return;
       }
       await load();
     } catch (err) {
@@ -443,8 +458,6 @@ export function PortfolioView() {
                 onClick={() => {
                   setAuthMode("signup");
                   setError(null);
-                  if (email === "dev@local") setEmail("");
-                  if (password === "demo") setPassword("");
                 }}
               >
                 {t("auth_create_account")}
@@ -494,7 +507,6 @@ export function PortfolioView() {
                     setAuthMode("forgot");
                     setError(null);
                     setNotice(null);
-                    if (email === "dev@local") setEmail("");
                   }}
                 >
                   {t("auth_forgot")}
@@ -511,6 +523,10 @@ export function PortfolioView() {
                         const ok = await ensureDemoSession();
                         if (!ok) {
                           setError(t("auth_demo_blocked"));
+                          return;
+                        }
+                        if (nextPath) {
+                          router.replace(nextPath);
                           return;
                         }
                         await load();
@@ -557,25 +573,54 @@ export function PortfolioView() {
             {demo ? ` · ${t("port_demo_session")}` : ""}
           </p>
         </div>
-        <div className="portfolio-user">
-          <span>{user.email || user.id}</span>
-          <button type="button" className="btn-ghost" onClick={logout}>
-            {t("auth_sign_out")}
-          </button>
-        </div>
       </div>
 
       {error ? <p className="banner-error">{error}</p> : null}
       {notice ? <p className="banner-ok">{notice}</p> : null}
       {busy ? <DeskLoading label={t("explore_updating")} variant="banner" /> : null}
 
-      <div className="alert-digest" aria-live="polite">
-        <div className="alert-digest-head">
+      <div className="kpi-row">
+        <div className="kpi-chip">
+          <span>{t("kpi_value")}</span>
+          <strong>{formatMoney(summary.value)}</strong>
+        </div>
+        <div className="kpi-chip">
+          <span>{t("kpi_invested")}</span>
+          <strong>{formatMoney(summary.invested)}</strong>
+        </div>
+        <div className={`kpi-chip ${pnlClass(summary.pnl)}`}>
+          <span>{t("kpi_pnl")}</span>
+          <strong>
+            {formatMoney(summary.pnl)} / {formatChange(summary.pnl_pct)}
+          </strong>
+        </div>
+        <div className={`kpi-chip ${pnlClass(summary.outlook_pct)}`}>
+          <span>
+            {t("kpi_outlook_days", {
+              days: summary.outlook_horizon_days || 7,
+            })}
+          </span>
+          <strong>
+            {formatMoney(summary.outlook_value)} / {formatChange(summary.outlook_pct)}
+          </strong>
+        </div>
+      </div>
+
+      <details
+        className={`alert-digest${alerts.length === 0 ? " is-quiet" : ""}`}
+        open={alerts.length > 0}
+        aria-live="polite"
+      >
+        <summary className="alert-digest-head">
           <div>
-            <h2>{t("alert_digest_title", { n: alerts.length })}</h2>
+            <h2>
+              {alerts.length > 0
+                ? t("alert_digest_title", { n: alerts.length })
+                : t("alert_digest_empty_title")}
+            </h2>
             <p className="alert-digest-caption">{alertCaption}</p>
           </div>
-          <div className="alert-controls">
+          <div className="alert-controls" onClick={(e) => e.stopPropagation()}>
             <label className="alert-threshold">
               <span>{t("alert_threshold")}</span>
               <input
@@ -612,7 +657,7 @@ export function PortfolioView() {
               </span>
             </label>
           </div>
-        </div>
+        </summary>
         {alerts.length === 0 ? (
           <p className="empty-state alert-digest-empty">
             {sureOnly
@@ -647,34 +692,7 @@ export function PortfolioView() {
             {t("alert_more", { n: alerts.length - 15 })}
           </p>
         ) : null}
-      </div>
-
-      <div className="kpi-row">
-        <div className="kpi-chip">
-          <span>{t("kpi_value")}</span>
-          <strong>{formatMoney(summary.value)}</strong>
-        </div>
-        <div className="kpi-chip">
-          <span>{t("kpi_invested")}</span>
-          <strong>{formatMoney(summary.invested)}</strong>
-        </div>
-        <div className={`kpi-chip ${pnlClass(summary.pnl)}`}>
-          <span>{t("kpi_pnl")}</span>
-          <strong>
-            {formatMoney(summary.pnl)} / {formatChange(summary.pnl_pct)}
-          </strong>
-        </div>
-        <div className={`kpi-chip ${pnlClass(summary.outlook_pct)}`}>
-          <span>
-            {t("kpi_outlook_days", {
-              days: summary.outlook_horizon_days || 7,
-            })}
-          </span>
-          <strong>
-            {formatMoney(summary.outlook_value)} / {formatChange(summary.outlook_pct)}
-          </strong>
-        </div>
-      </div>
+      </details>
 
       <PortfolioPerfChart
         points={perfPoints}
