@@ -19,6 +19,7 @@ export function MarketingLanding() {
             width={1920}
             height={1080}
             decoding="async"
+            fetchPriority="high"
           />
           <div className="landing-hero-veil" />
         </div>
@@ -39,6 +40,27 @@ export function MarketingLanding() {
       </section>
 
       <DealOfTheDay limit={5} variant="landing" />
+
+      <section className="landing-path" aria-labelledby="landing-path-title">
+        <h2 id="landing-path-title" className="landing-path-title">
+          {t("landing_path_title")}
+        </h2>
+        <p className="landing-path-lede">{t("landing_path_lede")}</p>
+        <nav className="landing-path-nav" aria-label="Kestrel desks">
+          <Link href="/radar" className="landing-path-link">
+            <span className="landing-path-link-title">{t("landing_path_radar")}</span>
+            <span className="landing-path-link-meta">{t("landing_path_radar_meta")}</span>
+          </Link>
+          <Link href="/trade" className="landing-path-link">
+            <span className="landing-path-link-title">{t("landing_path_trade")}</span>
+            <span className="landing-path-link-meta">{t("landing_path_trade_meta")}</span>
+          </Link>
+          <Link href="/browse" className="landing-path-link">
+            <span className="landing-path-link-title">{t("landing_path_browse")}</span>
+            <span className="landing-path-link-meta">{t("landing_path_browse_meta")}</span>
+          </Link>
+        </nav>
+      </section>
 
       <section className="landing-follow" aria-labelledby="landing-follow-title">
         <h2 id="landing-follow-title" className="landing-follow-title">
