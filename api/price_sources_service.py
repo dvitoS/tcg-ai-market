@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import threading
 import time
+from concurrent.futures import Future, ThreadPoolExecutor
 from datetime import date, timedelta
 from typing import Any
 
@@ -23,6 +24,11 @@ _SOURCES_CACHE_EMPTY_TTL_SECONDS = 15 * 60
 _SOURCES_CACHE_MAX = 256
 _DB_NM_MIN_POINTS = 7
 _DB_NM_MAX_AGE_DAYS = 3
+
+# Single-flight: PriceChart + GradingEv both hit /sources on first paint.
+_SOURCES_INFLIGHT: dict[str, Future] = {}
+_SOURCES_INFLIGHT_LOCK = threading.Lock()
+_PSA_POOL = ThreadPoolExecutor(max_workers=4, thread_name_prefix="justtcg-psa")
 
 
 def clear_price_sources_cache() -> None:
@@ -110,16 +116,98 @@ def _cache_put(cache_key: str, payload: dict[str, Any], *, ttl: float) -> None:
         _SOURCES_CACHE[cache_key] = (time.monotonic() + ttl, dict(payload))
 
 
-def build_card_price_sources(card_id: str, *, limit: int = 180) -> dict[str, Any]:
-    card_id = str(card_id).strip()
-    limit = max(1, min(int(limit or 180), 365))
-    cache_key = f"v2|{card_id}|{limit}"
-    cached = _cache_get(cache_key)
-    if cached is not None:
-        cached["cache"] = "hit"
-        record_justtcg_event("cache_hit")
-        return cached
+def _fetch_psa_pair(
+    *,
+    tcp: str | None,
+    name: str,
+    number: str,
+    set_name: str,
+) -> tuple[
+    list[dict[str, Any]],
+    str | None,
+    dict[str, Any],
+    list[dict[str, Any]],
+    str | None,
+    dict[str, Any],
+    str | None,
+    bool,
+]:
+    """Fetch PSA 10 ∥ PSA 9. Returns (psa10, err10, stats10, psa9, err9, stats9, tcp, rate_limited)."""
+    from justtcg_client import psa10_history_for_card, psa9_history_for_card
 
+    psa10: list[dict[str, Any]] = []
+    psa10_error: str | None = None
+    psa10_stats: dict[str, Any] = {}
+    psa9: list[dict[str, Any]] = []
+    psa9_error: str | None = None
+    psa9_stats: dict[str, Any] = {}
+    rate_limited = False
+    resolved_tcp = tcp
+
+    def _psa10():
+        return psa10_history_for_card(
+            tcgplayer_id=tcp,
+            name=name,
+            number=number or None,
+            set_name=set_name or None,
+        )
+
+    def _psa9():
+        return psa9_history_for_card(
+            tcgplayer_id=tcp,
+            name=name,
+            number=number or None,
+            set_name=set_name or None,
+        )
+
+    fut10 = _PSA_POOL.submit(_psa10)
+    fut9 = _PSA_POOL.submit(_psa9)
+
+    try:
+        points, resolved, stats = fut10.result()
+        if resolved:
+            resolved_tcp = str(resolved)
+        psa10 = _points_from_rows(points)
+        psa10_stats = dict(stats or {})
+    except JustTCGRateLimitError:
+        rate_limited = True
+        psa10_error = "JustTCG rate limited — try again later."
+        LOG.warning("psa10_history_for_card rate-limited for %s", name)
+    except Exception as exc:
+        psa10_error = str(exc)[:180]
+        LOG.info("psa10_history_for_card failed for %s: %s", name, exc)
+
+    if rate_limited:
+        fut9.cancel()
+        return psa10, psa10_error, psa10_stats, psa9, psa9_error, psa9_stats, resolved_tcp, True
+
+    try:
+        points9, resolved9, stats9 = fut9.result()
+        if resolved9:
+            resolved_tcp = str(resolved9)
+        psa9 = _points_from_rows(points9)
+        psa9_stats = dict(stats9 or {})
+    except JustTCGRateLimitError:
+        rate_limited = True
+        psa9_error = "JustTCG rate limited — try again later."
+        LOG.warning("psa9_history_for_card rate-limited for %s", name)
+    except Exception as exc:
+        psa9_error = str(exc)[:180]
+        LOG.info("psa9_history_for_card failed for %s: %s", name, exc)
+
+    return (
+        psa10,
+        psa10_error,
+        psa10_stats,
+        psa9,
+        psa9_error,
+        psa9_stats,
+        resolved_tcp,
+        rate_limited,
+    )
+
+
+def _build_card_price_sources_uncached(card_id: str, *, limit: int) -> dict[str, Any]:
     market = _points_from_rows(load_card_history(card_id, limit=limit))
     name, set_name, tcp = _resolve_tcp_from_board(card_id)
     has_key = bool(justtcg_api_key())
@@ -184,48 +272,18 @@ def build_card_price_sources(card_id: str, *, limit: int = 180) -> dict[str, Any
         record_justtcg_event(nm_outcome)
 
     if has_key and not rate_limited:
-        try:
-            from justtcg_client import psa10_history_for_card
-
-            points, resolved, stats = psa10_history_for_card(
-                tcgplayer_id=tcp,
-                name=name,
-                number=number or None,
-                set_name=set_name or None,
-            )
-            if resolved:
-                tcp = str(resolved)
-            psa10 = _points_from_rows(points)
-            psa10_stats = dict(stats or {})
-        except JustTCGRateLimitError:
+        (
+            psa10,
+            psa10_error,
+            psa10_stats,
+            psa9,
+            psa9_error,
+            psa9_stats,
+            tcp,
+            psa_rate_limited,
+        ) = _fetch_psa_pair(tcp=tcp, name=name, number=number, set_name=set_name)
+        if psa_rate_limited:
             rate_limited = True
-            psa10_error = "JustTCG rate limited — try again later."
-            LOG.warning("psa10_history_for_card rate-limited for %s", card_id)
-        except Exception as exc:
-            psa10_error = str(exc)[:180]
-            LOG.info("psa10_history_for_card failed for %s: %s", card_id, exc)
-
-    if has_key and not rate_limited:
-        try:
-            from justtcg_client import psa9_history_for_card
-
-            points9, resolved9, stats9 = psa9_history_for_card(
-                tcgplayer_id=tcp,
-                name=name,
-                number=number or None,
-                set_name=set_name or None,
-            )
-            if resolved9:
-                tcp = str(resolved9)
-            psa9 = _points_from_rows(points9)
-            psa9_stats = dict(stats9 or {})
-        except JustTCGRateLimitError:
-            rate_limited = True
-            psa9_error = "JustTCG rate limited — try again later."
-            LOG.warning("psa9_history_for_card rate-limited for %s", card_id)
-        except Exception as exc:
-            psa9_error = str(exc)[:180]
-            LOG.info("psa9_history_for_card failed for %s: %s", card_id, exc)
 
     def _grade_stats(raw: dict[str, Any]) -> dict[str, Any]:
         return {
@@ -262,6 +320,45 @@ def build_card_price_sources(card_id: str, *, limit: int = 180) -> dict[str, Any
             if (justtcg or psa10 or psa9 or market)
             else _SOURCES_CACHE_EMPTY_TTL_SECONDS
         )
-        _cache_put(cache_key, {k: v for k, v in payload.items() if k != "cache"}, ttl=ttl)
+        _cache_put(cache_key=f"v2|{card_id}|{limit}", payload={k: v for k, v in payload.items() if k != "cache"}, ttl=ttl)
 
     return payload
+
+
+def build_card_price_sources(card_id: str, *, limit: int = 180) -> dict[str, Any]:
+    card_id = str(card_id).strip()
+    limit = max(1, min(int(limit or 180), 365))
+    cache_key = f"v2|{card_id}|{limit}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        cached["cache"] = "hit"
+        record_justtcg_event("cache_hit")
+        return cached
+
+    owner = False
+    with _SOURCES_INFLIGHT_LOCK:
+        inflight = _SOURCES_INFLIGHT.get(cache_key)
+        if inflight is None:
+            inflight = Future()
+            _SOURCES_INFLIGHT[cache_key] = inflight
+            owner = True
+
+    if not owner:
+        result = inflight.result()
+        payload = dict(result)
+        payload["cache"] = "hit"
+        record_justtcg_event("cache_hit")
+        return payload
+
+    try:
+        payload = _build_card_price_sources_uncached(card_id, limit=limit)
+        inflight.set_result({k: v for k, v in payload.items() if k != "cache"})
+        return payload
+    except Exception as exc:
+        inflight.set_exception(exc)
+        raise
+    finally:
+        with _SOURCES_INFLIGHT_LOCK:
+            current = _SOURCES_INFLIGHT.get(cache_key)
+            if current is inflight:
+                _SOURCES_INFLIGHT.pop(cache_key, None)

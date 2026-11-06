@@ -65,6 +65,7 @@ def card_detail(card_id: str) -> CardDetailResponse:
         pred_lo_pct=pred_lo_f,
         pred_hi_pct=pred_hi_f,
         history=HistoryStats(**stats),
+        points=[HistoryPoint(**p) for p in points],
         explain=CardExplain(
             confidence_level=str(explain_payload["confidence_level"]),
             confidence_ok=bool(explain_payload["confidence_ok"]),

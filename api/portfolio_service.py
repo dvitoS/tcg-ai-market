@@ -112,29 +112,30 @@ def _seed_demo_user(user_id: str) -> None:
     _SEEDED.add(user_id)
 
 
-def _quotes_by_id() -> dict[str, dict[str, Any]]:
+def _board_indexes() -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
+    """Build quotes + raw encodings in one board pass."""
     board, _ = load_board()
     if board is None or board.empty:
-        return {}
-    out: dict[str, dict[str, Any]] = {}
-    for _, row in board.iterrows():
+        return {}, {}
+    quotes: dict[str, dict[str, Any]] = {}
+    encodings: dict[str, dict[str, Any]] = {}
+    for row in board.to_dict(orient="records"):
         card = row_to_card(row)
-        out[str(card["id"])] = card
-    return out
+        card_id = str(card.get("id") or "")
+        if not card_id:
+            continue
+        quotes[card_id] = card
+        encodings[card_id] = row
+    return quotes, encodings
+
+
+def _quotes_by_id() -> dict[str, dict[str, Any]]:
+    return _board_indexes()[0]
 
 
 def _board_encoding_by_id() -> dict[str, dict[str, Any]]:
     """Raw board rows keyed by card id (includes rarity/supertype encodings)."""
-    board, _ = load_board()
-    if board is None or board.empty:
-        return {}
-    out: dict[str, dict[str, Any]] = {}
-    for _, row in board.iterrows():
-        card_id = str(row.get("id") or row.get("card_id") or "")
-        if not card_id:
-            continue
-        out[card_id] = row.to_dict()
-    return out
+    return _board_indexes()[1]
 
 
 def _fallback_board_model():
@@ -150,7 +151,11 @@ def _fallback_board_model():
         return None
 
 
-def _attach_lot_outlook(lots: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _attach_lot_outlook(
+    lots: list[dict[str, Any]],
+    *,
+    encodings: dict[str, dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
     """Attach 30d (preferred) ADD/TRIM/HOLD coach fields; fall back to 7d board model."""
     if not lots:
         return lots
@@ -164,7 +169,8 @@ def _attach_lot_outlook(lots: list[dict[str, Any]]) -> list[dict[str, Any]]:
         LOG.info("portfolio outlook import failed: %s", exc)
         return lots
 
-    encodings = _board_encoding_by_id()
+    if encodings is None:
+        encodings = _board_encoding_by_id()
     rows: list[dict[str, Any]] = []
     for lot in lots:
         card_id = str(lot.get("card_id") or "")
@@ -241,7 +247,7 @@ def enrich_lots(lots: list[dict[str, Any]]) -> list[dict[str, Any]]:
         normalize_printing,
     )
 
-    quotes = _quotes_by_id()
+    quotes, encodings = _board_indexes()
     enriched: list[dict[str, Any]] = []
     for lot in lots:
         card_id = str(lot.get("card_id") or "")
@@ -311,7 +317,7 @@ def enrich_lots(lots: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "is_top_ai": False,
             }
         )
-    return _attach_lot_outlook(enriched)
+    return _attach_lot_outlook(enriched, encodings=encodings)
 
 
 def enrich_watch(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:

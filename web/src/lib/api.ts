@@ -193,21 +193,37 @@ export async function fetchCardHistory(
   return res.json() as Promise<CardHistoryResponse>;
 }
 
+const _priceSourcesInflight = new Map<
+  string,
+  Promise<CardPriceSourcesResponse>
+>();
+
 export async function fetchCardPriceSources(
   cardId: string,
   limit = 180,
 ): Promise<CardPriceSourcesResponse> {
-  const res = await fetch(
-    apiUrl(`/api/cards/${encodeURIComponent(cardId)}/sources?limit=${limit}`),
-    {
-      headers: { Accept: "application/json" },
-      cache: "no-store",
-    },
-  );
-  if (!res.ok) {
-    throw new Error(`Card price sources failed (${res.status})`);
-  }
-  return res.json() as Promise<CardPriceSourcesResponse>;
+  const key = `${cardId}|${limit}`;
+  const existing = _priceSourcesInflight.get(key);
+  if (existing) return existing;
+
+  const promise = (async () => {
+    const res = await fetch(
+      apiUrl(`/api/cards/${encodeURIComponent(cardId)}/sources?limit=${limit}`),
+      {
+        headers: { Accept: "application/json" },
+        cache: "no-store",
+      },
+    );
+    if (!res.ok) {
+      throw new Error(`Card price sources failed (${res.status})`);
+    }
+    return res.json() as Promise<CardPriceSourcesResponse>;
+  })().finally(() => {
+    _priceSourcesInflight.delete(key);
+  });
+
+  _priceSourcesInflight.set(key, promise);
+  return promise;
 }
 
 export async function fetchEbayComps(

@@ -168,6 +168,8 @@ class CardDetailResponse(BaseModel):
     pred_lo_pct: float | None = None
     pred_hi_pct: float | None = None
     history: HistoryStats = Field(default_factory=HistoryStats)
+    # Same series as /history — included so Soft Ink SSR skips a second round-trip.
+    points: list[HistoryPoint] = Field(default_factory=list)
     explain: CardExplain = Field(default_factory=CardExplain)
     source: Literal["supabase", "demo", "empty"] = "empty"
 

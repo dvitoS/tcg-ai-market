@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { CardDetailView } from "@/components/CardDetailView";
-import { fetchCardDetail, fetchCardHistory } from "@/lib/api";
+import { fetchCardDetail } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
@@ -20,13 +20,8 @@ export default async function CardDetailPage({
     notFound();
   }
 
-  let points = [] as Awaited<ReturnType<typeof fetchCardHistory>>["points"];
-  try {
-    const history = await fetchCardHistory(id, 180);
-    points = history.points;
-  } catch {
-    points = [];
-  }
+  // Prefer points embedded on detail (one round-trip); fall back to empty.
+  const points = detail.points ?? [];
 
   return <CardDetailView detail={detail} points={points} />;
 }

@@ -114,7 +114,8 @@ export function PriceChart({
   const { t } = useLocale();
   const [range, setRange] = useState<RangeKey>("1m");
   const [sources, setSources] = useState<CardPriceSourcesResponse | null>(null);
-  const [loading, setLoading] = useState(Boolean(cardId));
+  // SSR points paint immediately; JustTCG/PSA enhance in the background.
+  const [loading, setLoading] = useState(Boolean(cardId) && points.length === 0);
   const [error, setError] = useState<string | null>(null);
   const [visible, setVisible] = useState<Record<SeriesKey, boolean>>({
     tcgplayer: true,
@@ -133,7 +134,8 @@ export function PriceChart({
       return;
     }
     let cancelled = false;
-    setLoading(true);
+    // Keep chart interactive on SSR history; only show loading if we have nothing yet.
+    if (points.length === 0) setLoading(true);
     setError(null);
     fetchCardPriceSources(cardId)
       .then((data) => {
@@ -150,7 +152,7 @@ export function PriceChart({
     return () => {
       cancelled = true;
     };
-  }, [cardId]);
+  }, [cardId, points.length]);
 
   const tcgAll = sources?.tcgplayer?.length ? sources.tcgplayer : points;
   const justAll = sources?.justtcg || [];

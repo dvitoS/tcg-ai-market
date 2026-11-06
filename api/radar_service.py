@@ -20,41 +20,7 @@ def radar_defaults() -> dict[str, Any]:
     }
 
 
-def _edge_under(row: pd.Series) -> float | None:
-    """Conservative underprice edge: pred_lo_pct, else expected_change_pct."""
-    lo = row.get("pred_lo_pct")
-    if lo is not None and not (isinstance(lo, float) and pd.isna(lo)):
-        try:
-            return float(lo)
-        except (TypeError, ValueError):
-            pass
-    exp = row.get("expected_change_pct")
-    if exp is None or (isinstance(exp, float) and pd.isna(exp)):
-        return None
-    try:
-        return float(exp)
-    except (TypeError, ValueError):
-        return None
-
-
-def _edge_over(row: pd.Series) -> float | None:
-    """Conservative overprice edge: pred_hi_pct, else expected_change_pct (negative = rich)."""
-    hi = row.get("pred_hi_pct")
-    if hi is not None and not (isinstance(hi, float) and pd.isna(hi)):
-        try:
-            return float(hi)
-        except (TypeError, ValueError):
-            pass
-    exp = row.get("expected_change_pct")
-    if exp is None or (isinstance(exp, float) and pd.isna(exp)):
-        return None
-    try:
-        return float(exp)
-    except (TypeError, ValueError):
-        return None
-
-
-def _fair_price(row: pd.Series, spot: float | None) -> float | None:
+def _fair_price_from_row(row: pd.Series, spot: float | None) -> float | None:
     predicted = row.get("predicted_price")
     if predicted is not None and not (isinstance(predicted, float) and pd.isna(predicted)):
         try:
@@ -70,6 +36,44 @@ def _fair_price(row: pd.Series, spot: float | None) -> float | None:
         return float(spot) * (1.0 + float(exp) / 100.0)
     except (TypeError, ValueError):
         return None
+
+
+def _rows_from_frame(frame: pd.DataFrame, *, side: str) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    for _, row in frame.iterrows():
+        card = row_to_card(row)
+        spot = card.get("price")
+        fair = _fair_price_from_row(row, spot if isinstance(spot, (int, float)) else None)
+        lo = None
+        hi = None
+        raw_lo = row.get("pred_lo_pct")
+        raw_hi = row.get("pred_hi_pct")
+        try:
+            if raw_lo is not None and not (isinstance(raw_lo, float) and pd.isna(raw_lo)):
+                lo = float(raw_lo)
+        except (TypeError, ValueError):
+            lo = None
+        try:
+            if raw_hi is not None and not (isinstance(raw_hi, float) and pd.isna(raw_hi)):
+                hi = float(raw_hi)
+        except (TypeError, ValueError):
+            hi = None
+        edge = float(row["_edge"])
+        out.append(
+            {
+                **card,
+                "spot": spot,
+                "fair_price": fair,
+                "pred_lo_pct": lo,
+                "pred_hi_pct": hi,
+                "current_price": spot,
+                "ai_target_price": fair,
+                "side": side,
+                "edge_pct": edge,
+                "expected_roi_pct": card.get("expected_change_pct"),
+            }
+        )
+    return out
 
 
 def build_radar(
@@ -131,69 +135,33 @@ def build_radar(
     )
     sure = scoped.loc[conf_ok & conformal_ok].copy()
 
-    under_rows: list[dict[str, Any]] = []
-    over_rows: list[dict[str, Any]] = []
+    # Vectorized edge ranking — only materialize top-N card dicts.
+    lo = pd.to_numeric(sure.get("pred_lo_pct"), errors="coerce")
+    hi = pd.to_numeric(sure.get("pred_hi_pct"), errors="coerce")
+    exp = pd.to_numeric(sure.get("expected_change_pct"), errors="coerce")
+    edge_u = lo.where(lo.notna(), exp)
+    edge_o = hi.where(hi.notna(), exp)
+    floor = float(min_edge)
+    if floor == 0.0:
+        under_mask = edge_u.notna() & (edge_u > 0)
+        over_mask = edge_o.notna() & (edge_o < 0)
+    else:
+        under_mask = edge_u.notna() & (edge_u >= floor)
+        over_mask = edge_o.notna() & (edge_o <= -floor)
 
-    for _, row in sure.iterrows():
-        card = row_to_card(row)
-        spot = card.get("price")
-        fair = _fair_price(row, spot if isinstance(spot, (int, float)) else None)
-        lo = None
-        hi = None
-        raw_lo = row.get("pred_lo_pct")
-        raw_hi = row.get("pred_hi_pct")
-        try:
-            if raw_lo is not None and not (isinstance(raw_lo, float) and pd.isna(raw_lo)):
-                lo = float(raw_lo)
-        except (TypeError, ValueError):
-            lo = None
-        try:
-            if raw_hi is not None and not (isinstance(raw_hi, float) and pd.isna(raw_hi)):
-                hi = float(raw_hi)
-        except (TypeError, ValueError):
-            hi = None
+    under_frame = (
+        sure.loc[under_mask]
+        .assign(_edge=edge_u.loc[under_mask])
+        .sort_values("_edge", ascending=False)
+    )
+    over_frame = (
+        sure.loc[over_mask]
+        .assign(_edge=edge_o.loc[over_mask])
+        .sort_values("_edge", ascending=True)
+    )
 
-        edge_u = _edge_under(row)
-        edge_o = _edge_over(row)
-        base = {
-            **card,
-            "spot": spot,
-            "fair_price": fair,
-            "pred_lo_pct": lo,
-            "pred_hi_pct": hi,
-            "current_price": spot,
-            "ai_target_price": fair,
-        }
-        floor = float(min_edge)
-        under_ok = (
-            edge_u is not None
-            and (edge_u > 0 if floor == 0.0 else edge_u >= floor)
-        )
-        over_ok = (
-            edge_o is not None
-            and (edge_o < 0 if floor == 0.0 else edge_o <= -floor)
-        )
-        if under_ok:
-            under_rows.append(
-                {
-                    **base,
-                    "side": "UNDER",
-                    "edge_pct": float(edge_u),
-                    "expected_roi_pct": card.get("expected_change_pct"),
-                }
-            )
-        if over_ok:
-            over_rows.append(
-                {
-                    **base,
-                    "side": "OVER",
-                    "edge_pct": float(edge_o),
-                    "expected_roi_pct": card.get("expected_change_pct"),
-                }
-            )
-
-    under_rows.sort(key=lambda r: float(r["edge_pct"]), reverse=True)
-    over_rows.sort(key=lambda r: float(r["edge_pct"]))
+    under_rows = _rows_from_frame(under_frame.head(int(limit)), side="UNDER")
+    over_rows = _rows_from_frame(over_frame.head(int(limit)), side="OVER")
 
     rarities = sorted(
         {
@@ -218,8 +186,8 @@ def build_radar(
         "min_edge": float(min_edge),
         "sets": sets,
         "rarities": rarities,
-        "underpriced": under_rows[: int(limit)],
-        "overpriced": over_rows[: int(limit)],
-        "under_total": int(len(under_rows)),
-        "over_total": int(len(over_rows)),
+        "underpriced": under_rows,
+        "overpriced": over_rows,
+        "under_total": int(under_mask.sum()),
+        "over_total": int(over_mask.sum()),
     }

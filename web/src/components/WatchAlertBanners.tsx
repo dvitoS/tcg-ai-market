@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
@@ -23,10 +24,13 @@ const BANNER_LIMIT = 5;
 export function WatchAlertBanners() {
   const { user, loading } = useAuth();
   const { t } = useLocale();
+  const pathname = usePathname();
+  // Portfolio already loads its own alert digest — skip a duplicate request.
+  const skipFetch = Boolean(pathname?.startsWith("/portfolio"));
   const [alerts, setAlerts] = useState<WatchAlertItem[]>([]);
 
   const refresh = useCallback(async () => {
-    if (!user) {
+    if (!user || skipFetch) {
       setAlerts([]);
       return;
     }
@@ -51,7 +55,7 @@ export function WatchAlertBanners() {
     } catch {
       setAlerts([]);
     }
-  }, [user]);
+  }, [user, skipFetch]);
 
   useEffect(() => {
     if (loading) return;

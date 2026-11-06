@@ -112,6 +112,7 @@ export function RadarView() {
   const { user, loading: authLoading } = useAuth();
   const searchParams = useSearchParams();
   const shareBoot = useRef<RadarShareFilters | null | undefined>(undefined);
+  const skipFilterLoad = useRef(false);
   const [status, setStatus] = useState<RadarStatus | null>(null);
   const [data, setData] = useState<RadarResponse>(EMPTY);
   const [query, setQuery] = useState("");
@@ -147,19 +148,64 @@ export function RadarView() {
     if (boot.max_price != null) setMaxPrice(String(boot.max_price));
   }, [searchParams]);
 
+  const load = useCallback(
+    (edgeOverride?: number) => {
+      if (!user) return;
+      const edge = edgeOverride ?? minEdge;
+      startTransition(async () => {
+        try {
+          const next = await fetchRadar({
+            q: submitted || undefined,
+            set: setName || undefined,
+            rarity: rarity || undefined,
+            min_price: parsePrice(minPrice),
+            max_price: parsePrice(maxPrice),
+            min_edge: edge,
+            limit: 24,
+          });
+          setData(next);
+          setError(null);
+        } catch (err) {
+          setError(err instanceof Error ? err.message : t("radar_error"));
+        }
+      });
+    },
+    [user, submitted, setName, rarity, minEdge, minPrice, maxPrice, t],
+  );
+
   useEffect(() => {
     if (authLoading || !hydrated) return;
     if (!user) {
       setStatus(null);
+      setData(EMPTY);
       return;
     }
     startTransition(async () => {
       try {
-        const st = await fetchRadarStatus();
-        setStatus(st);
         const boot = shareBoot.current;
+        const edgeGuess = boot?.min_edge ?? minEdge;
+        // Status + first board in parallel — shaves a full round-trip on cold Radar.
+        const [st, board] = await Promise.all([
+          fetchRadarStatus(),
+          fetchRadar({
+            q: boot?.q || submitted || undefined,
+            set: boot?.set || setName || undefined,
+            rarity: boot?.rarity || rarity || undefined,
+            min_price: boot?.min_price ?? parsePrice(minPrice),
+            max_price: boot?.max_price ?? parsePrice(maxPrice),
+            min_edge: edgeGuess,
+            limit: 24,
+          }).catch(() => null),
+        ]);
+        setStatus(st);
         if (boot?.min_edge == null) {
           setMinEdge(st.edge_floor);
+        }
+        if (st.allowed && board) {
+          setData(board);
+          skipFilterLoad.current = true;
+        } else if (!st.allowed) {
+          setData(EMPTY);
         }
         setError(null);
       } catch (err) {
@@ -167,43 +213,18 @@ export function RadarView() {
         setError(err instanceof Error ? err.message : t("radar_error"));
       }
     });
+    // Initial boot only — filter changes go through `load`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, user, hydrated, t]);
 
-  const load = useCallback(() => {
-    if (!user || !status?.allowed) return;
-    startTransition(async () => {
-      try {
-        const next = await fetchRadar({
-          q: submitted || undefined,
-          set: setName || undefined,
-          rarity: rarity || undefined,
-          min_price: parsePrice(minPrice),
-          max_price: parsePrice(maxPrice),
-          min_edge: minEdge,
-          limit: 24,
-        });
-        setData(next);
-        setError(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : t("radar_error"));
-      }
-    });
-  }, [
-    user,
-    status?.allowed,
-    submitted,
-    setName,
-    rarity,
-    minEdge,
-    minPrice,
-    maxPrice,
-    t,
-  ]);
-
   useEffect(() => {
-    if (!hydrated || !status?.allowed) return;
+    if (!hydrated || !status?.allowed || !user) return;
+    if (skipFilterLoad.current) {
+      skipFilterLoad.current = false;
+      return;
+    }
     load();
-  }, [hydrated, status?.allowed, load]);
+  }, [hydrated, status?.allowed, user, load]);
 
   function applyQuery(next: string) {
     const q = next.trim();

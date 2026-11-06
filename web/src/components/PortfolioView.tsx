@@ -142,7 +142,8 @@ export function PortfolioView() {
     setBusy(true);
     setError(null);
     try {
-      const [portfolio, watchlist, digest, performance] = await Promise.all([
+      // First paint: lots + watch + alerts. Equity chart is secondary — soft-load after.
+      const [portfolio, watchlist, digest] = await Promise.all([
         fetchPortfolio({ include_sold: true }),
         fetchWatchlist(),
         fetchWatchlistAlerts({
@@ -150,16 +151,10 @@ export function PortfolioView() {
           sure_only: sureOnly,
           dismissed,
         }),
-        fetchPortfolioPerformance({ max_days: 120 }),
       ]);
       setLots(portfolio.items);
       setSummary(portfolio.summary);
-      setPerfPoints(performance.points || []);
-      setPerfAiFair(
-        performance.ai_fair_value != null ? Number(performance.ai_fair_value) : null,
-      );
-      setPerfCallouts(performance.drawdown_callouts || []);
-      setDemo(portfolio.demo || watchlist.demo || digest.demo || performance.demo);
+      setDemo(portfolio.demo || watchlist.demo || digest.demo);
       setWatch(watchlist.items);
       setAlerts(digest.items);
       setSureOnlyAllowed(digest.sure_only_allowed);
@@ -167,9 +162,23 @@ export function PortfolioView() {
         setSureOnly(false);
         writeSureOnly(false);
       }
+      setBusy(false);
+      void fetchPortfolioPerformance({ max_days: 120 })
+        .then((performance) => {
+          setPerfPoints(performance.points || []);
+          setPerfAiFair(
+            performance.ai_fair_value != null
+              ? Number(performance.ai_fair_value)
+              : null,
+          );
+          setPerfCallouts(performance.drawdown_callouts || []);
+          if (performance.demo) setDemo(true);
+        })
+        .catch(() => {
+          /* equity chart is optional — keep desk usable */
+        });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load portfolio");
-    } finally {
       setBusy(false);
     }
   }, [dismissed, sureOnly, thresholdPct]);
