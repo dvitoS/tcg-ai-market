@@ -133,11 +133,20 @@ export function SearchSuggest({
       ? recent.slice(0, 6)
       : recent.filter((r) => r.toLowerCase().includes(q)).slice(0, 4);
 
-  const hits: Hit[] = [
-    ...recentHits.map((text) => ({ kind: "recent" as const, text })),
-    ...catalogHits.map((card) => ({ kind: "catalog" as const, card })),
-    ...localHits.map((item) => ({ kind: "local" as const, item })),
-  ];
+  // Prefer live catalog/local matches over recents when the desk can pick a card
+  // (Trade / add-lot). Otherwise typing + Enter keeps selecting an old query.
+  const hits: Hit[] =
+    onPickCard || onPickLocal
+      ? [
+          ...catalogHits.map((card) => ({ kind: "catalog" as const, card })),
+          ...localHits.map((item) => ({ kind: "local" as const, item })),
+          ...recentHits.map((text) => ({ kind: "recent" as const, text })),
+        ]
+      : [
+          ...recentHits.map((text) => ({ kind: "recent" as const, text })),
+          ...catalogHits.map((card) => ({ kind: "catalog" as const, card })),
+          ...localHits.map((item) => ({ kind: "local" as const, item })),
+        ];
 
   const showPanel =
     open &&

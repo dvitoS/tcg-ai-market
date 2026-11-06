@@ -11,6 +11,7 @@ import { SearchSuggest } from "@/components/SearchSuggest";
 import { TradeReportExport } from "@/components/TradeReportExport";
 import {
   createTradeShare,
+  fetchCatalog,
   fetchTradeStatus,
   formatChange,
   formatMoney,
@@ -32,6 +33,10 @@ import {
 } from "@/lib/lotPriceAdjust";
 
 type SideKey = "you" | "them";
+
+function lineKey(line: Pick<TradeLineIn, "card_id" | "condition" | "printing">): string {
+  return `${line.card_id}|${normalizeCondition(line.condition)}|${normalizePrinting(line.printing)}`;
+}
 
 function verdictClass(verdict: string): string {
   if (verdict === "YOU_AHEAD") return "trade-you";
@@ -57,9 +62,9 @@ function SidePanel({
   title: string;
   side: TradeSide | null;
   lines: TradeLineIn[];
-  onRemove: (cardId: string) => void;
+  onRemove: (line: TradeLineIn) => void;
   onPatch: (
-    cardId: string,
+    line: TradeLineIn,
     patch: Partial<Pick<TradeLineIn, "condition" | "printing">>,
   ) => void;
 }) {
@@ -84,14 +89,11 @@ function SidePanel({
             const scored = side?.lines.find(
               (r) =>
                 r.card_id === line.card_id &&
-                (r.condition || "NM") === (line.condition || "NM") &&
-                (r.printing || "Normal") === (line.printing || "Normal"),
+                normalizeCondition(r.condition) === normalizeCondition(line.condition) &&
+                normalizePrinting(r.printing) === normalizePrinting(line.printing),
             );
             return (
-              <div
-                key={`${line.card_id}-${line.condition || "NM"}-${line.printing || "Normal"}`}
-                className="trade-line"
-              >
+              <div key={lineKey(line)} className="trade-line">
                 <div className="scan-art">
                   <Image
                     src={scored?.image_url || "/kestrel-logo.png"}
@@ -114,7 +116,7 @@ function SidePanel({
                       aria-label={t("port_condition")}
                       value={normalizeCondition(line.condition)}
                       onChange={(e) =>
-                        onPatch(line.card_id, { condition: e.target.value })
+                        onPatch(line, { condition: e.target.value })
                       }
                     >
                       {RAW_CONDITIONS.map((c) => (
@@ -127,7 +129,7 @@ function SidePanel({
                       aria-label={t("port_printing")}
                       value={normalizePrinting(line.printing)}
                       onChange={(e) =>
-                        onPatch(line.card_id, { printing: e.target.value })
+                        onPatch(line, { printing: e.target.value })
                       }
                     >
                       {PRINTINGS.map((p) => (
@@ -141,7 +143,7 @@ function SidePanel({
                 <button
                   type="button"
                   className="btn-ghost trade-remove"
-                  onClick={() => onRemove(line.card_id)}
+                  onClick={() => onRemove(line)}
                 >
                   {t("trade_remove")}
                 </button>
@@ -161,13 +163,17 @@ export function TradeView() {
   const searchParams = useSearchParams();
   const seededRef = useRef(false);
   const [status, setStatus] = useState<TradeStatus | null>(null);
+  const [statusReady, setStatusReady] = useState(false);
   const [you, setYou] = useState<TradeLineIn[]>([]);
   const [them, setThem] = useState<TradeLineIn[]>([]);
   const [result, setResult] = useState<TradeResponse | null>(null);
   const [query, setQuery] = useState("");
+  const [hits, setHits] = useState<CatalogCard[]>([]);
+  const [searchedFor, setSearchedFor] = useState<string | null>(null);
   const [target, setTarget] = useState<SideKey>("you");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [searching, setSearching] = useState(false);
   const [shareBusy, setShareBusy] = useState(false);
   const [shareNote, setShareNote] = useState<string | null>(null);
   const [seedNote, setSeedNote] = useState<string | null>(null);
@@ -187,16 +193,26 @@ export function TradeView() {
     setTarget(side);
     const setter = side === "you" ? setYou : setThem;
     setter((prev) => {
-      const qty = new Map(prev.map((r) => [r.card_id, r.quantity]));
+      const qty = new Map(prev.map((r) => [lineKey(r), r]));
       for (const cardId of ids) {
-        qty.set(cardId, (qty.get(cardId) || 0) + 1);
+        const key = lineKey({
+          card_id: cardId,
+          condition: "NM",
+          printing: "Normal",
+        });
+        const existing = qty.get(key);
+        if (existing) {
+          qty.set(key, { ...existing, quantity: existing.quantity + 1 });
+        } else {
+          qty.set(key, {
+            card_id: cardId,
+            quantity: 1,
+            condition: "NM",
+            printing: "Normal",
+          });
+        }
       }
-      return Array.from(qty.entries()).map(([card_id, quantity]) => ({
-        card_id,
-        quantity,
-        condition: "NM",
-        printing: "Normal",
-      }));
+      return Array.from(qty.values());
     });
     setSeedNote(
       t(side === "you" ? "trade_seed_you" : "trade_seed_them", { n: ids.length }),
@@ -208,8 +224,10 @@ export function TradeView() {
     if (authLoading) return;
     if (!user) {
       setStatus(null);
+      setStatusReady(true);
       return;
     }
+    setStatusReady(false);
     void fetchTradeStatus()
       .then((st) => {
         setStatus(st);
@@ -218,6 +236,9 @@ export function TradeView() {
       .catch((err) => {
         setStatus(null);
         setError(err instanceof Error ? err.message : t("trade_error"));
+      })
+      .finally(() => {
+        setStatusReady(true);
       });
   }, [authLoading, user, t]);
 
@@ -246,42 +267,81 @@ export function TradeView() {
     });
     setResult(null);
     setShareNote(null);
+    setHits((prev) => prev.filter((h) => h.id !== card.id));
     setQuery("");
   }
 
   function patchLine(
     side: SideKey,
-    cardId: string,
+    line: TradeLineIn,
     patch: Partial<Pick<TradeLineIn, "condition" | "printing">>,
   ) {
     const setter = side === "you" ? setYou : setThem;
-    setter((prev) =>
-      prev.map((r) => {
-        if (r.card_id !== cardId) return r;
-        return {
-          ...r,
-          condition: patch.condition
-            ? normalizeCondition(patch.condition)
-            : normalizeCondition(r.condition),
-          printing: patch.printing
-            ? normalizePrinting(patch.printing)
-            : normalizePrinting(r.printing),
-        };
-      }),
-    );
+    const fromKey = lineKey(line);
+    setter((prev) => {
+      const nextCond = patch.condition
+        ? normalizeCondition(patch.condition)
+        : normalizeCondition(line.condition);
+      const nextPrint = patch.printing
+        ? normalizePrinting(patch.printing)
+        : normalizePrinting(line.printing);
+      const nextKey = lineKey({
+        card_id: line.card_id,
+        condition: nextCond,
+        printing: nextPrint,
+      });
+      const without = prev.filter((r) => lineKey(r) !== fromKey);
+      const collide = without.find((r) => lineKey(r) === nextKey);
+      if (collide) {
+        return without.map((r) =>
+          lineKey(r) === nextKey
+            ? { ...r, quantity: r.quantity + line.quantity }
+            : r,
+        );
+      }
+      return without.concat([
+        {
+          ...line,
+          condition: nextCond,
+          printing: nextPrint,
+        },
+      ]);
+    });
     setResult(null);
     setShareNote(null);
   }
 
-  function onSearch(event: FormEvent) {
-    event.preventDefault();
-    const q = query.trim();
-    if (q) pushRecentSearch("trade", q);
+  async function runSearch(raw: string) {
+    const q = raw.trim();
+    if (!q) {
+      setHits([]);
+      setSearchedFor(null);
+      return;
+    }
+    pushRecentSearch("trade", q);
+    setSearching(true);
+    setError(null);
+    setSearchedFor(q);
+    try {
+      const catalog = await fetchCatalog({ q, limit: 8, mode: "browse" });
+      setHits(catalog.items || []);
+    } catch (err) {
+      setHits([]);
+      setError(err instanceof Error ? err.message : t("trade_error"));
+    } finally {
+      setSearching(false);
+    }
   }
 
-  function removeFrom(side: SideKey, cardId: string) {
+  function onSearch(event: FormEvent) {
+    event.preventDefault();
+    void runSearch(query);
+  }
+
+  function removeFrom(side: SideKey, line: TradeLineIn) {
     const setter = side === "you" ? setYou : setThem;
-    setter((prev) => prev.filter((r) => r.card_id !== cardId));
+    const key = lineKey(line);
+    setter((prev) => prev.filter((r) => lineKey(r) !== key));
     setResult(null);
   }
 
@@ -326,7 +386,7 @@ export function TradeView() {
     }
   }
 
-  if (authLoading) {
+  if (authLoading || (user && !statusReady)) {
     return (
       <section className="scanner-page trade-page">
         <p className="explore-lede">{t("trade_loading")}</p>
@@ -345,6 +405,38 @@ export function TradeView() {
         <Link href="/portfolio?next=/trade" className="btn-primary">
           {t("auth_sign_in")}
         </Link>
+      </section>
+    );
+  }
+
+  if (error && !status) {
+    return (
+      <section className="scanner-page trade-page">
+        <div className="explore-command">
+          <p className="explore-command-eyebrow">{t("trade_eyebrow")}</p>
+          <h1 className="explore-title">{t("trade_title")}</h1>
+          <p className="form-error">{error}</p>
+        </div>
+        <button
+          type="button"
+          className="btn-primary"
+          onClick={() => {
+            setStatusReady(false);
+            setError(null);
+            void fetchTradeStatus()
+              .then((st) => {
+                setStatus(st);
+                setError(null);
+              })
+              .catch((err) => {
+                setStatus(null);
+                setError(err instanceof Error ? err.message : t("trade_error"));
+              })
+              .finally(() => setStatusReady(true));
+          }}
+        >
+          {t("port_refresh")}
+        </button>
       </section>
     );
   }
@@ -404,32 +496,56 @@ export function TradeView() {
           onChange={setQuery}
           onCommit={(q) => {
             setQuery(q);
-            if (q) pushRecentSearch("trade", q);
+            void runSearch(q);
           }}
           onPickCard={addCard}
           placeholder={t("trade_search_ph")}
           ariaLabel={t("trade_search_aria")}
           recentScope="trade"
         />
-        <button type="submit" className="btn-primary">
-          {t("trade_search_btn")}
+        <button type="submit" className="btn-primary" disabled={searching}>
+          {searching ? t("search_loading") : t("trade_search_btn")}
         </button>
       </form>
+
+      {hits.length > 0 ? (
+        <div className="trade-hits">
+          {hits.map((card) => (
+            <button
+              key={card.id}
+              type="button"
+              className="trade-hit"
+              onClick={() => addCard(card)}
+            >
+              <span className="lot-name">{card.name}</span>
+              <span className="lot-meta">
+                {[card.set_name, formatMoney(card.price)].filter(Boolean).join(" · ")}
+              </span>
+            </button>
+          ))}
+        </div>
+      ) : searching ? (
+        <p className="lot-meta">{t("search_loading")}</p>
+      ) : searchedFor &&
+        searchedFor === query.trim() &&
+        hits.length === 0 ? (
+        <p className="lot-meta">{t("search_no_hits")}</p>
+      ) : null}
 
       <div className="trade-board">
         <SidePanel
           title={t("trade_you_give")}
           side={result?.you ?? null}
           lines={you}
-          onRemove={(id) => removeFrom("you", id)}
-          onPatch={(id, patch) => patchLine("you", id, patch)}
+          onRemove={(line) => removeFrom("you", line)}
+          onPatch={(line, patch) => patchLine("you", line, patch)}
         />
         <SidePanel
           title={t("trade_them_give")}
           side={result?.them ?? null}
           lines={them}
-          onRemove={(id) => removeFrom("them", id)}
-          onPatch={(id, patch) => patchLine("them", id, patch)}
+          onRemove={(line) => removeFrom("them", line)}
+          onPatch={(line, patch) => patchLine("them", line, patch)}
         />
       </div>
 
@@ -437,7 +553,9 @@ export function TradeView() {
         <button
           type="button"
           className="btn-primary"
-          disabled={busy || (you.length === 0 && them.length === 0)}
+          disabled={
+            busy || !status?.allowed || (you.length === 0 && them.length === 0)
+          }
           onClick={() => void onScore()}
         >
           {busy ? t("trade_scoring") : t("trade_score")}
@@ -446,7 +564,10 @@ export function TradeView() {
           type="button"
           className="btn-ghost"
           disabled={
-            shareBusy || busy || (you.length === 0 && them.length === 0)
+            shareBusy ||
+            busy ||
+            !status?.allowed ||
+            (you.length === 0 && them.length === 0)
           }
           onClick={() => void onShare()}
         >
@@ -460,6 +581,8 @@ export function TradeView() {
             setThem([]);
             setResult(null);
             setQuery("");
+            setHits([]);
+            setSearchedFor(null);
             setShareNote(null);
           }}
         >
