@@ -1,26 +1,113 @@
 import type { MetadataRoute } from "next";
 
-const SITE = "https://www.kestreltcg.app";
+import { fetchCatalog } from "@/lib/api";
+import { absoluteUrl, cardPagePath } from "@/lib/seo";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+const PAGE_SIZE = 500;
+/** Cap crawl budget — top priced board first; expand later if Search Console wants more. */
+const MAX_CARD_URLS = 2000;
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
-  const paths = [
-    { path: "/", priority: 1, changeFrequency: "daily" as const },
-    { path: "/browse", priority: 0.9, changeFrequency: "daily" as const },
-    { path: "/pro", priority: 0.85, changeFrequency: "weekly" as const },
-    { path: "/radar", priority: 0.8, changeFrequency: "daily" as const },
-    { path: "/trade", priority: 0.8, changeFrequency: "weekly" as const },
-    { path: "/portfolio", priority: 0.6, changeFrequency: "weekly" as const },
-    { path: "/binder", priority: 0.55, changeFrequency: "weekly" as const },
-    { path: "/scanner", priority: 0.5, changeFrequency: "weekly" as const },
-    { path: "/identify", priority: 0.5, changeFrequency: "weekly" as const },
-    { path: "/dealer", priority: 0.45, changeFrequency: "weekly" as const },
+  const staticPaths: MetadataRoute.Sitemap = [
+    {
+      url: absoluteUrl("/"),
+      lastModified: now,
+      changeFrequency: "daily",
+      priority: 1,
+    },
+    {
+      url: absoluteUrl("/browse"),
+      lastModified: now,
+      changeFrequency: "daily",
+      priority: 0.9,
+    },
+    {
+      url: absoluteUrl("/pro"),
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.85,
+    },
+    {
+      url: absoluteUrl("/radar"),
+      lastModified: now,
+      changeFrequency: "daily",
+      priority: 0.8,
+    },
+    {
+      url: absoluteUrl("/trade"),
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    {
+      url: absoluteUrl("/portfolio"),
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.55,
+    },
+    {
+      url: absoluteUrl("/binder"),
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.5,
+    },
+    {
+      url: absoluteUrl("/scanner"),
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.45,
+    },
+    {
+      url: absoluteUrl("/identify"),
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.45,
+    },
+    {
+      url: absoluteUrl("/dealer"),
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.4,
+    },
   ];
 
-  return paths.map(({ path, priority, changeFrequency }) => ({
-    url: `${SITE}${path === "/" ? "" : path}`,
-    lastModified: now,
-    changeFrequency,
-    priority,
-  }));
+  const cardEntries: MetadataRoute.Sitemap = [];
+  const seen = new Set<string>();
+
+  try {
+    let offset = 0;
+    while (cardEntries.length < MAX_CARD_URLS) {
+      const page = await fetchCatalog(
+        {
+          mode: "browse",
+          limit: PAGE_SIZE,
+          offset,
+          sort: "price_desc",
+        },
+        { next: { revalidate: 3600 } },
+      );
+      const items = page.items || [];
+      if (items.length === 0) break;
+
+      for (const card of items) {
+        if (!card?.id || seen.has(card.id)) continue;
+        seen.add(card.id);
+        cardEntries.push({
+          url: absoluteUrl(cardPagePath(card.id)),
+          lastModified: now,
+          changeFrequency: "daily",
+          priority: 0.7,
+        });
+        if (cardEntries.length >= MAX_CARD_URLS) break;
+      }
+
+      offset += PAGE_SIZE;
+      if (offset >= (page.total || 0) || items.length < PAGE_SIZE) break;
+    }
+  } catch {
+    // Keep static sitemap if the API is cold / unreachable at build/request time.
+  }
+
+  return [...staticPaths, ...cardEntries];
 }

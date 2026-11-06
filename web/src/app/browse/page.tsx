@@ -1,8 +1,18 @@
+import type { Metadata } from "next";
+
 import { BrowseMarket } from "@/components/BrowseMarket";
 import { fetchCatalog } from "@/lib/api";
+import { absoluteUrl } from "@/lib/seo";
 import type { CatalogMeta } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Browse Pokémon TCG prices",
+  description:
+    "Browse live Pokémon TCG spot prices, Kestrel fair bands, and AI signals on Soft Ink.",
+  alternates: { canonical: absoluteUrl("/browse") },
+};
 
 const EMPTY_META: CatalogMeta = {
   total: 0,

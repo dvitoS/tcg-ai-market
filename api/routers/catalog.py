@@ -20,7 +20,7 @@ def catalog(
     min_price: float | None = Query(default=None, ge=0),
     max_price: float | None = Query(default=None, ge=0),
     mode: Literal["browse", "signals"] = Query(default="browse"),
-    limit: int = Query(default=24, ge=1, le=100),
+    limit: int = Query(default=24, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
     sort: Literal["price_desc", "price_asc", "change_desc", "change_asc", "name"] = Query(
         default="price_desc"
