@@ -30,6 +30,9 @@ _GET_CACHE: dict[str, dict[str, Any]] = {}
 _POST_CACHE: dict[str, dict[str, Any]] = {}
 _GET_CACHE_MAX = 128
 _POST_CACHE_MAX = 64
+# Process-local network request counter (cache hits do not count).
+_REQUEST_COUNT = 0
+_REQUEST_BUDGET: int | None = None
 
 
 def _cache_key(base: str, path: str, params: dict[str, Any] | None) -> str:
@@ -53,8 +56,42 @@ def clear_justtcg_cache() -> None:
     _POST_CACHE.clear()
 
 
+def justtcg_request_count() -> int:
+    return int(_REQUEST_COUNT)
+
+
+def reset_justtcg_request_count() -> None:
+    global _REQUEST_COUNT
+    _REQUEST_COUNT = 0
+
+
+def configure_justtcg_request_budget(max_requests: int | None) -> None:
+    """Cap outbound JustTCG calls for this process (None = unlimited).
+
+    Account is ~1000/day and ~10k/month (~330/day average). Nightly defaults to
+    ~200 so Soft Ink keeps daytime headroom without blowing the monthly cap.
+    """
+    global _REQUEST_BUDGET
+    if max_requests is None:
+        _REQUEST_BUDGET = None
+        return
+    _REQUEST_BUDGET = max(1, int(max_requests))
+    LOG.info("JustTCG request budget: %s", _REQUEST_BUDGET)
+
+
+def _consume_request_budget() -> None:
+    """Increment counter; raise before the HTTP call if the soft budget is spent."""
+    global _REQUEST_COUNT
+    if _REQUEST_BUDGET is not None and _REQUEST_COUNT >= _REQUEST_BUDGET:
+        raise JustTCGRateLimitError(
+            f"JustTCG request budget exhausted ({_REQUEST_COUNT}/{_REQUEST_BUDGET})",
+            response=None,
+        )
+    _REQUEST_COUNT += 1
+
+
 class JustTCGRateLimitError(requests.HTTPError):
-    """429 ili mjesečni/dnevni limit."""
+    """429, mjesečni/dnevni limit, ili lokalni request budget."""
 
 
 def justtcg_api_key() -> str:
@@ -88,6 +125,7 @@ def _get(
     if cached is not None:
         return cached
 
+    _consume_request_budget()
     sleep(JUSTTCG_REQUEST_DELAY_SECONDS)
     url = f"{root}{path}"
     response = requests.get(url, params=params or {}, headers=_headers(), timeout=45)
@@ -115,6 +153,7 @@ def _post(path: str, payload: Any) -> dict[str, Any]:
     if cached is not None:
         return cached
 
+    _consume_request_budget()
     sleep(JUSTTCG_REQUEST_DELAY_SECONDS)
     url = f"{JUSTTCG_API_BASE_URL.rstrip('/')}{path}"
     response = requests.post(url, json=payload, headers=_headers(), timeout=60)

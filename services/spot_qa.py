@@ -153,14 +153,24 @@ def build_and_save_snapshot(
     """Compose nightly snapshot: live coverage + unmatched + fresh %."""
     live = compute_live_spot_qa()
     unmatched = list(unmatched_sets or [])
+    unmatched_codes = sorted(
+        {
+            str(row.get("set_code") or "").strip()
+            for row in unmatched
+            if isinstance(row, dict) and str(row.get("set_code") or "").strip()
+        }
+    )
     fresh = compute_fresh_history_pct()
     payload = {
         **live,
         "fresh_history_pct": fresh,
         "unmatched_sets_count": len(unmatched),
         "unmatched_sets_sample": unmatched[:12],
+        # Full code list so the next nightly can skip wasted JustTCG work.
+        "unmatched_set_codes": unmatched_codes,
         "justtcg_updated": int((justtcg_stats or {}).get("updated") or 0),
         "justtcg_skipped": int((justtcg_stats or {}).get("skipped") or 0),
+        "justtcg_requests": int((justtcg_stats or {}).get("justtcg_requests") or 0),
         "fresh_max_age_days": FRESH_MAX_AGE_DAYS,
         "fresh_min_points": FRESH_MIN_POINTS,
     }
