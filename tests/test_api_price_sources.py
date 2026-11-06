@@ -15,6 +15,54 @@ def setup_function() -> None:
     clear_price_sources_cache()
 
 
+def test_card_price_sources_single_flight(monkeypatch) -> None:
+    """Concurrent /sources callers share one JustTCG fill."""
+    import threading
+    import time
+
+    calls = {"n": 0}
+    lock = threading.Lock()
+
+    def _slow_nm(**_kwargs):
+        with lock:
+            calls["n"] += 1
+        time.sleep(0.05)
+        return ([{"date": "2024-01-01", "price": 9.0}], "tcp-sf")
+
+    monkeypatch.setattr("api.price_sources_service.justtcg_api_key", lambda: "test-key")
+    monkeypatch.setattr(
+        "api.price_sources_service._market_history_is_fresh",
+        lambda _m: False,
+    )
+    monkeypatch.setattr("justtcg_client.nm_history_for_card", _slow_nm)
+    monkeypatch.setattr(
+        "justtcg_client.psa10_history_for_card",
+        lambda **_k: ([], "tcp-sf", {"has_history_series": False}),
+    )
+    monkeypatch.setattr(
+        "justtcg_client.psa9_history_for_card",
+        lambda **_k: ([], "tcp-sf", {"has_history_series": False}),
+    )
+
+    from api.price_sources_service import build_card_price_sources, clear_price_sources_cache
+
+    clear_price_sources_cache()
+    results: list[dict] = []
+
+    def _run() -> None:
+        results.append(build_card_price_sources("sv3-1", limit=60))
+
+    threads = [threading.Thread(target=_run) for _ in range(3)]
+    for th in threads:
+        th.start()
+    for th in threads:
+        th.join()
+
+    assert len(results) == 3
+    assert calls["n"] == 1
+    assert all(r["justtcg"] and r["justtcg"][0]["price"] == 9.0 for r in results)
+
+
 def test_card_price_sources_without_justtcg_key(monkeypatch) -> None:
     monkeypatch.setattr("api.price_sources_service.justtcg_api_key", lambda: "")
     client = TestClient(app)

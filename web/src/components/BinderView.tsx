@@ -73,12 +73,18 @@ export function BinderView() {
   const loadSets = useCallback(() => {
     startTransition(async () => {
       try {
-        const next = await fetchBinderSets();
+        const boot = setBoot.current;
+        // When share/deeplink already names a set, fetch sets + detail together.
+        const [next, detailBoot] = await Promise.all([
+          fetchBinderSets(),
+          boot
+            ? fetchBinder({ set_name: boot, missing_limit: 120 }).catch(() => null)
+            : Promise.resolve(null),
+        ]);
         setSets(next.sets);
         setSource(next.source);
         setError(null);
         setSelected((prev) => {
-          const boot = setBoot.current;
           if (boot && next.sets.some((s) => s.set_name === boot)) {
             setBoot.current = null;
             return boot;
@@ -86,6 +92,9 @@ export function BinderView() {
           if (prev && next.sets.some((s) => s.set_name === prev)) return prev;
           return next.sets[0]?.set_name || "";
         });
+        if (detailBoot && boot && detailBoot.set_name === boot) {
+          setDetail(detailBoot);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : t("binder_load_error"));
       }
@@ -123,8 +132,10 @@ export function BinderView() {
 
   useEffect(() => {
     if (!hydrated || !user || !selected) return;
+    // Skip duplicate detail fetch when boot already hydrated this set.
+    if (detail?.set_name === selected) return;
     loadDetail(selected);
-  }, [hydrated, user, selected, loadDetail]);
+  }, [hydrated, user, selected, loadDetail, detail?.set_name]);
 
   if (authLoading) {
     return (

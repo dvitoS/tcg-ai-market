@@ -71,6 +71,8 @@ export type CardDetailResponse = {
   pred_lo_pct?: number | null;
   pred_hi_pct?: number | null;
   history: HistoryStats;
+  /** Same series as /history — preferred for SSR so we skip a second fetch. */
+  points?: HistoryPoint[];
   explain?: CardExplain;
   source: "supabase" | "demo" | "empty";
 };

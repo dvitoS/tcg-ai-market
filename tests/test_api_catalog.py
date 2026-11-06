@@ -63,6 +63,7 @@ def test_card_detail_and_history_roundtrip() -> None:
     assert body["card"]["id"] == card_id
     assert "history" in body
     assert "points" in body["history"]
+    assert isinstance(body.get("points"), list)
     assert "explain" in body
     explain = body["explain"]
     assert explain["confidence_level"] in {"low", "medium", "high"}

@@ -79,39 +79,36 @@ def binder_sets(*, user_id: str, access_token: str | None = None) -> dict[str, A
     if board is None or board.empty:
         return {"sets": [], "source": source or "empty", "demo": demo_mode()}
 
-    sets = sorted(
-        {
-            str(s).strip()
-            for s in board.get("set_name", pd.Series(dtype=str)).dropna().astype(str).tolist()
-            if str(s).strip()
-        }
-    )
+    frame = board.copy()
+    frame["_id"] = frame["id"].astype(str)
+    set_col = frame.get("set_name", pd.Series("", index=frame.index)).astype(str).str.strip()
+    frame["_set"] = set_col
+    frame = frame.loc[frame["_set"].ne("") & frame["_set"].notna()].copy()
+    if frame.empty:
+        return {"sets": [], "source": source, "demo": demo_mode()}
+
+    price_col = frame["price"] if "price" in frame.columns else frame.get("market_price")
+    prices = pd.to_numeric(price_col, errors="coerce")
+    owned_mask = frame["_id"].isin(owned)
+    miss_cost = prices.where(~owned_mask & prices.gt(0), 0.0).fillna(0.0)
+    frame = frame.assign(_owned=owned_mask, _miss_cost=miss_cost)
+
     summaries: list[dict[str, Any]] = []
-    for set_name in sets:
-        scoped = filter_board(board, set_name=set_name, mode="browse")
-        if scoped is None or scoped.empty:
+    for set_name, group in frame.groupby("_set", sort=False):
+        total = int(len(group))
+        if total <= 0:
             continue
-        ids = [str(x) for x in scoped["id"].astype(str).tolist()]
-        total = len(ids)
-        have = sum(1 for cid in ids if cid in owned)
-        missing_cost = 0.0
-        for _, row in scoped.iterrows():
-            cid = str(row.get("id") or "")
-            if cid in owned:
-                continue
-            price = _finite_price(row.get("price") if "price" in scoped.columns else row.get("market_price"))
-            if price is not None:
-                missing_cost += price
-        set_id = _set_id(ids[0]) if ids else None
+        have = int(group["_owned"].sum())
+        first_id = str(group["_id"].iloc[0])
         summaries.append(
             {
-                "set_name": set_name,
-                "set_id": set_id,
+                "set_name": str(set_name),
+                "set_id": _set_id(first_id),
                 "total": total,
                 "owned": have,
                 "missing": max(0, total - have),
                 "pct": round(100.0 * have / total, 1) if total else 0.0,
-                "missing_cost": round(missing_cost, 2),
+                "missing_cost": round(float(group["_miss_cost"].sum()), 2),
             }
         )
     summaries.sort(key=lambda s: (-float(s["pct"]), s["set_name"]))
