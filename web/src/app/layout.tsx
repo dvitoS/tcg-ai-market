@@ -23,6 +23,12 @@ const fraunces = Fraunces({
   display: "swap",
 });
 
+const googleVerification = (
+  process.env.GOOGLE_SITE_VERIFICATION ||
+  process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION ||
+  ""
+).trim();
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.kestreltcg.app"),
   title: {
@@ -44,8 +50,11 @@ export const metadata: Metadata = {
     locale: "en_US",
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
   },
+  ...(googleVerification
+    ? { verification: { google: googleVerification } }
+    : {}),
   icons: {
     icon: [
       { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
