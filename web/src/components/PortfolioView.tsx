@@ -108,6 +108,9 @@ export function PortfolioView() {
   const { locale, t } = useLocale();
   const searchParams = useSearchParams();
   const nextPath = safeNextPath(searchParams.get("next"));
+  const authParam = (searchParams.get("auth") || "").trim().toLowerCase();
+  const initialAuthMode =
+    authParam === "signup" || authParam === "forgot" ? authParam : "signin";
   const { user, loading: authLoading } = useAuth();
   const [lots, setLots] = useState<PortfolioLot[]>([]);
   const [summary, setSummary] = useState<PortfolioSummary>(EMPTY_SUMMARY);
@@ -363,6 +366,7 @@ export function PortfolioView() {
     return (
       <SignInView
         nextPath={nextPath}
+        initialMode={initialAuthMode}
         onAuthenticated={async () => {
           await load();
         }}

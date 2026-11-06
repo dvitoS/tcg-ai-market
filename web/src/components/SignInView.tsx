@@ -13,14 +13,22 @@ type AuthMode = "signin" | "signup" | "forgot";
 type Props = {
   /** Where to send the user after a successful session (safe relative path). */
   nextPath?: string | null;
+  /** Open on create-account tab when linked from mobile nav. */
+  initialMode?: AuthMode;
   onAuthenticated: () => void | Promise<void>;
 };
 
-export function SignInView({ nextPath, onAuthenticated }: Props) {
+export function SignInView({
+  nextPath,
+  initialMode = "signin",
+  onAuthenticated,
+}: Props) {
   const { t } = useLocale();
   const router = useRouter();
   const { login, signup } = useAuth();
-  const [authMode, setAuthMode] = useState<AuthMode>("signin");
+  const [authMode, setAuthMode] = useState<AuthMode>(
+    initialMode === "signup" || initialMode === "forgot" ? initialMode : "signin",
+  );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
