@@ -452,6 +452,8 @@ const en = {
   grade_ev_loading: "Loading PSA 9 / 10 comps…",
   grade_ev_error: "Could not load graded comps",
   grade_ev_need_psa: "Need a raw spot and a PSA 10 JustTCG print to score EV.",
+  grade_ev_rate_limited:
+    "JustTCG rate limit hit — PSA 10 comps are paused. Try again later (or after quota resets).",
   grade_ev_raw: "Raw spot",
   grade_ev_psa10: "PSA 10",
   grade_ev_psa9: "PSA 9",
@@ -491,6 +493,10 @@ const en = {
   chart_no_key: "Showing saved market history.",
   chart_just_fallback: "JustTCG live empty — showing saved market history.",
   chart_just_from_db: "JustTCG NM from nightly sync (saved) — no live call.",
+  chart_psa_rate_limited:
+    "PSA 10 paused — JustTCG rate limit. Try again later.",
+  chart_psa_unavailable: "PSA 10 comps unavailable right now.",
+  chart_psa_empty: "No PSA 10 print on JustTCG for this card.",
   chart_series_tcg: "Market (DB)",
   chart_series_just: "JustTCG NM",
   chart_series_psa: "PSA 10",
@@ -1040,6 +1046,8 @@ const hr: Dictionary = {
   grade_ev_loading: "Učitavam PSA 9 / 10 comps…",
   grade_ev_error: "Ne mogu učitati graded comps",
   grade_ev_need_psa: "Treba raw spot i PSA 10 JustTCG cijena za EV.",
+  grade_ev_rate_limited:
+    "JustTCG rate limit — PSA 10 comps su pauzirani. Pokušaj kasnije (ili nakon reset kvote).",
   grade_ev_raw: "Raw spot",
   grade_ev_psa10: "PSA 10",
   grade_ev_psa9: "PSA 9",
@@ -1079,6 +1087,10 @@ const hr: Dictionary = {
   chart_no_key: "Prikazujem spremljenu market povijest.",
   chart_just_fallback: "JustTCG live prazan — prikazujem spremljenu market povijest.",
   chart_just_from_db: "JustTCG NM iz noćnog synca (spremljeno) — bez live poziva.",
+  chart_psa_rate_limited:
+    "PSA 10 pauziran — JustTCG rate limit. Pokušaj kasnije.",
+  chart_psa_unavailable: "PSA 10 comps trenutno nisu dostupni.",
+  chart_psa_empty: "Nema PSA 10 printa na JustTCG za ovu kartu.",
   chart_series_tcg: "Market (DB)",
   chart_series_just: "JustTCG NM",
   chart_series_psa: "PSA 10",

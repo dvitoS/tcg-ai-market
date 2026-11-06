@@ -222,9 +222,13 @@ export function GradingEvPanel({
       </div>
 
       {loading ? <p className="explore-lede">{t("grade_ev_loading")}</p> : null}
-      {error && !ev.ready ? <p className="form-error">{error}</p> : null}
+      {error && !ev.ready ? (
+        <p className="form-error">
+          {/rate.?limit/i.test(error) ? t("grade_ev_rate_limited") : error}
+        </p>
+      ) : null}
 
-      {!loading && !ev.ready ? (
+      {!loading && !ev.ready && !error ? (
         <p className="explore-lede">{t("grade_ev_need_psa")}</p>
       ) : null}
 
