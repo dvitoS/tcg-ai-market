@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import threading
 import time
-from concurrent.futures import Future, ThreadPoolExecutor
+from concurrent.futures import Future
 from datetime import date, timedelta
 from typing import Any
 
@@ -29,7 +29,6 @@ _DB_NM_MAX_AGE_DAYS = 3
 # Single-flight: PriceChart + GradingEv both hit /sources on first paint.
 _SOURCES_INFLIGHT: dict[str, Future] = {}
 _SOURCES_INFLIGHT_LOCK = threading.Lock()
-_PSA_POOL = ThreadPoolExecutor(max_workers=4, thread_name_prefix="justtcg-psa")
 
 
 def clear_price_sources_cache() -> None:
@@ -144,8 +143,8 @@ def _fetch_psa_pair(
     str | None,
     bool,
 ]:
-    """Fetch PSA grades. grades=psa10 → PSA10 only; all → PSA10 ∥ PSA9."""
-    from justtcg_client import psa10_history_for_card, psa9_history_for_card
+    """Fetch PSA grades in one JustTCG call (grade=10 or grade=9,10)."""
+    from justtcg_client import psa_histories_for_card
 
     mode = normalize_grades_mode(grades)
     psa10: list[dict[str, Any]] = []
@@ -169,59 +168,35 @@ def _fetch_psa_pair(
             False,
         )
 
-    def _psa10():
-        return psa10_history_for_card(
-            tcgplayer_id=tcp,
-            name=name,
-            number=number or None,
-            set_name=set_name or None,
-        )
-
-    def _psa9():
-        return psa9_history_for_card(
-            tcgplayer_id=tcp,
-            name=name,
-            number=number or None,
-            set_name=set_name or None,
-        )
-
-    want_psa9 = mode == "all"
-    fut10 = _PSA_POOL.submit(_psa10)
-    fut9 = _PSA_POOL.submit(_psa9) if want_psa9 else None
-
+    wanted = [10.0, 9.0] if mode == "all" else [10.0]
     try:
-        points, resolved, stats = fut10.result()
+        bundle, resolved = psa_histories_for_card(
+            grades=wanted,
+            tcgplayer_id=tcp,
+            name=name,
+            number=number or None,
+            set_name=set_name or None,
+        )
         if resolved:
             resolved_tcp = str(resolved)
-        psa10 = _points_from_rows(points)
-        psa10_stats = dict(stats or {})
+        points10, stats10 = bundle.get(10.0, ([], {}))
+        psa10 = _points_from_rows(points10)
+        psa10_stats = dict(stats10 or {})
+        if mode == "all":
+            points9, stats9 = bundle.get(9.0, ([], {}))
+            psa9 = _points_from_rows(points9)
+            psa9_stats = dict(stats9 or {})
     except JustTCGRateLimitError:
         rate_limited = True
         psa10_error = "JustTCG rate limited — try again later."
-        LOG.warning("psa10_history_for_card rate-limited for %s", name)
+        if mode == "all":
+            psa9_error = psa10_error
+        LOG.warning("psa_histories_for_card rate-limited for %s", name)
     except Exception as exc:
         psa10_error = str(exc)[:180]
-        LOG.info("psa10_history_for_card failed for %s: %s", name, exc)
-
-    if rate_limited:
-        if fut9 is not None:
-            fut9.cancel()
-        return psa10, psa10_error, psa10_stats, psa9, psa9_error, psa9_stats, resolved_tcp, True
-
-    if fut9 is not None:
-        try:
-            points9, resolved9, stats9 = fut9.result()
-            if resolved9:
-                resolved_tcp = str(resolved9)
-            psa9 = _points_from_rows(points9)
-            psa9_stats = dict(stats9 or {})
-        except JustTCGRateLimitError:
-            rate_limited = True
-            psa9_error = "JustTCG rate limited — try again later."
-            LOG.warning("psa9_history_for_card rate-limited for %s", name)
-        except Exception as exc:
-            psa9_error = str(exc)[:180]
-            LOG.info("psa9_history_for_card failed for %s: %s", name, exc)
+        if mode == "all":
+            psa9_error = psa10_error
+        LOG.info("psa_histories_for_card failed for %s: %s", name, exc)
 
     return (
         psa10,
@@ -340,6 +315,11 @@ def _build_card_price_sources_uncached(
             "has_history_series": bool(raw.get("has_history_series")),
             "period_key": raw.get("period_key"),
             "sales_count": raw.get("sales_count"),
+            "price_status": raw.get("price_status"),
+            "last_sale_at": raw.get("last_sale_at"),
+            "price_expires_at": raw.get("price_expires_at"),
+            "price": raw.get("price"),
+            "canonical": raw.get("canonical"),
         }
 
     payload = {

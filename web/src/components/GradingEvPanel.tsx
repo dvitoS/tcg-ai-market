@@ -70,7 +70,13 @@ export function GradingEvPanel({
         if (payload.psa10_error) {
           setError(payload.psa10_error);
         }
-        setPsa10(lastPrice(payload.psa10));
+        // Prefer series spot; fall back to markets[].price / last_price from stats.
+        const fromSeries = lastPrice(payload.psa10);
+        const fromStats = Number(payload.psa10_stats?.price);
+        setPsa10(
+          fromSeries ??
+            (Number.isFinite(fromStats) && fromStats > 0 ? fromStats : null),
+        );
         setPsa9(null);
         const s10 = payload.psa10_stats?.sales_count;
         setSales10(s10 != null && Number.isFinite(Number(s10)) ? Number(s10) : null);
