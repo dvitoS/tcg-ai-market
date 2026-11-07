@@ -24,6 +24,7 @@ QUOTE_COLUMNS = [
     "market_price",
     "predicted_price",
     "expected_change_pct",
+    "price_change_3d_pct",
     "price_change_7d_pct",
     "pred_lo_pct",
     "pred_hi_pct",
@@ -62,6 +63,7 @@ def _rows_from_quotes(quotes: pd.DataFrame) -> list[dict[str, Any]]:
             "market_price": _float_or_none(row.get("market_price")),
             "predicted_price": _float_or_none(row.get("predicted_price")),
             "expected_change_pct": _float_or_none(row.get("expected_change_pct")),
+            "price_change_3d_pct": _float_or_none(row.get("price_change_3d_pct")),
             "price_change_7d_pct": _float_or_none(row.get("price_change_7d_pct")),
             "pred_lo_pct": _float_or_none(row.get("pred_lo_pct")),
             "pred_hi_pct": _float_or_none(row.get("pred_hi_pct")),
@@ -125,6 +127,7 @@ def save_market_quotes(quotes: pd.DataFrame) -> int:
             optional = (
                 "rarity_encoded",
                 "supertype_encoded",
+                "price_change_3d_pct",
                 "price_change_7d_pct",
                 "pred_lo_pct",
                 "pred_hi_pct",
@@ -145,6 +148,11 @@ def load_market_quotes() -> pd.DataFrame | None:
         from database import fetch_all
 
         select_attempts = (
+            "card_id,name,set_name,rarity,supertype,rarity_encoded,supertype_encoded,"
+            "price,market_price,predicted_price,expected_change_pct,"
+            "price_change_3d_pct,price_change_7d_pct,"
+            "pred_lo_pct,pred_hi_pct,conformal_ok,signal,confidence_ok,confidence_level,"
+            "history_points,updated_at",
             "card_id,name,set_name,rarity,supertype,rarity_encoded,supertype_encoded,"
             "price,market_price,predicted_price,expected_change_pct,price_change_7d_pct,"
             "pred_lo_pct,pred_hi_pct,conformal_ok,signal,confidence_ok,confidence_level,"

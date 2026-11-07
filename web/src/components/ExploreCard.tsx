@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useCurrency } from "@/components/CurrencyProvider";
 import { useLocale } from "@/components/LocaleProvider";
 import { formatChange } from "@/lib/api";
-import { signalLabel } from "@/lib/i18n/messages";
+import { signalLabel, translate } from "@/lib/i18n/messages";
 import type { CatalogCard } from "@/lib/types";
 
 function changeClass(value?: number | null): string {
@@ -24,6 +24,21 @@ function signalTone(signal?: string | null): string {
   return "";
 }
 
+function MoveRow({
+  label,
+  value,
+}: {
+  label: string;
+  value?: number | null;
+}) {
+  return (
+    <span className={`explore-card-move ${changeClass(value)}`}>
+      <span className="explore-card-move-label">{label}</span>
+      <span className="explore-card-move-value">{formatChange(value)}</span>
+    </span>
+  );
+}
+
 export function ExploreCard({
   card,
   showSignal = false,
@@ -36,7 +51,15 @@ export function ExploreCard({
   const meta = [card.set_name, card.rarity].filter(Boolean).join(" · ");
   const image = card.image_url || "/kestrel-logo.png";
   const tone = showSignal ? signalTone(card.signal) : "";
-  const delta = changeClass(card.expected_change_pct);
+  // Prefer true 3d history; fall back to 7d history so older boards still show a past move.
+  const histMove =
+    card.price_change_3d_pct != null
+      ? card.price_change_3d_pct
+      : card.price_change_7d_pct;
+  const histLabel =
+    card.price_change_3d_pct != null
+      ? translate(locale, "card_move_3d")
+      : translate(locale, "card_move_7d");
 
   return (
     <Link
@@ -54,12 +77,18 @@ export function ExploreCard({
         />
         <div className="explore-card-readout" aria-hidden={false}>
           <span className="explore-card-price">{formatSpot(card.price)}</span>
-          <span className={`explore-card-change ${delta}`}>
-            {formatChange(card.expected_change_pct)}
-            {showSignal && card.signal
-              ? ` · ${signalLabel(locale, card.signal)}`
-              : ""}
-          </span>
+          <div className="explore-card-moves">
+            <MoveRow label={histLabel} value={histMove} />
+            <MoveRow
+              label={translate(locale, "card_move_ai_7d")}
+              value={card.expected_change_pct}
+            />
+          </div>
+          {showSignal && card.signal ? (
+            <span className="explore-card-change flat">
+              {signalLabel(locale, card.signal)}
+            </span>
+          ) : null}
         </div>
       </div>
       <div className="explore-card-copy">
