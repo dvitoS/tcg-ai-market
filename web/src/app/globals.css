@@ -990,8 +990,8 @@ a {
 .explore-card-move-arrow {
   flex: 0 0 auto;
   display: block;
-  opacity: 0.92;
-  filter: drop-shadow(0 0.5px 0 rgba(0, 0, 0, 0.35));
+  opacity: 0.95;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.45));
 }
 
 .explore-card-move.up,
