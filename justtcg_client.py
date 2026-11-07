@@ -37,6 +37,9 @@ _POST_CACHE_MAX = 64
 # Process-local network request counter (cache hits do not count).
 _REQUEST_COUNT = 0
 _REQUEST_BUDGET: int | None = None
+# Trip after repeated hard failures so a flaky upstream cannot burn the daily quota.
+_CONSECUTIVE_FAILURES = 0
+_FAILURE_CIRCUIT_THRESHOLD = 8
 
 
 def _cache_key(base: str, path: str, params: dict[str, Any] | None) -> str:
@@ -66,8 +69,9 @@ def justtcg_request_count() -> int:
 
 
 def reset_justtcg_request_count() -> None:
-    global _REQUEST_COUNT
+    global _REQUEST_COUNT, _CONSECUTIVE_FAILURES
     _REQUEST_COUNT = 0
+    _CONSECUTIVE_FAILURES = 0
 
 
 def configure_justtcg_request_budget(max_requests: int | None) -> None:
@@ -76,7 +80,8 @@ def configure_justtcg_request_budget(max_requests: int | None) -> None:
     Account is ~1000/day and ~10k/month. Nightly defaults to ~100 so Soft Ink +
     nightly fit in ≤~9k/month.
     """
-    global _REQUEST_BUDGET
+    global _REQUEST_BUDGET, _CONSECUTIVE_FAILURES
+    _CONSECUTIVE_FAILURES = 0
     if max_requests is None:
         _REQUEST_BUDGET = None
         return
@@ -95,8 +100,26 @@ def _consume_request_budget() -> None:
     _REQUEST_COUNT += 1
 
 
+def _note_justtcg_success() -> None:
+    global _CONSECUTIVE_FAILURES
+    _CONSECUTIVE_FAILURES = 0
+
+
+def _note_justtcg_failure(exc: BaseException) -> None:
+    """Count consecutive hard failures; open circuit before another burn storm."""
+    global _CONSECUTIVE_FAILURES
+    _CONSECUTIVE_FAILURES += 1
+    if _CONSECUTIVE_FAILURES < _FAILURE_CIRCUIT_THRESHOLD:
+        return
+    raise JustTCGRateLimitError(
+        f"JustTCG circuit open after {_CONSECUTIVE_FAILURES} consecutive "
+        f"failures (last={type(exc).__name__}: {exc})",
+        response=getattr(exc, "response", None),
+    ) from exc
+
+
 class JustTCGRateLimitError(requests.HTTPError):
-    """429, mjesečni/dnevni limit, ili lokalni request budget."""
+    """429, mjesečni/dnevni limit, lokalni request budget, ili failure circuit."""
 
 
 def justtcg_api_key() -> str:
@@ -188,14 +211,21 @@ def _get(
     _consume_request_budget()
     sleep(JUSTTCG_REQUEST_DELAY_SECONDS)
     url = f"{root}{path}"
-    response = requests.get(url, params=params or {}, headers=_headers(), timeout=45)
-    if response.status_code == 429:
-        # Do not burn a second request — free-tier retries almost always 429 again.
-        retry = response.headers.get("Retry-After")
-        LOG.warning("JustTCG 429 (Retry-After=%s) — raising", retry or "?")
-        raise JustTCGRateLimitError(response=response)
-    response.raise_for_status()
-    payload = response.json()
+    try:
+        response = requests.get(url, params=params or {}, headers=_headers(), timeout=45)
+        if response.status_code == 429:
+            # Do not burn a second request — free-tier retries almost always 429 again.
+            retry = response.headers.get("Retry-After")
+            LOG.warning("JustTCG 429 (Retry-After=%s) — raising", retry or "?")
+            raise JustTCGRateLimitError(response=response)
+        response.raise_for_status()
+        payload = response.json()
+    except JustTCGRateLimitError:
+        raise
+    except Exception as exc:
+        _note_justtcg_failure(exc)
+        raise
+    _note_justtcg_success()
     if len(_GET_CACHE) >= _GET_CACHE_MAX:
         # Drop an arbitrary old entry (insertion order).
         _GET_CACHE.pop(next(iter(_GET_CACHE)), None)
@@ -222,13 +252,20 @@ def _post(
     _consume_request_budget()
     sleep(JUSTTCG_REQUEST_DELAY_SECONDS)
     url = f"{root}{path}"
-    response = requests.post(url, json=payload, headers=_headers(), timeout=60)
-    if response.status_code == 429:
-        retry = response.headers.get("Retry-After")
-        LOG.warning("JustTCG 429 (Retry-After=%s) — raising", retry or "?")
-        raise JustTCGRateLimitError(response=response)
-    response.raise_for_status()
-    data = response.json()
+    try:
+        response = requests.post(url, json=payload, headers=_headers(), timeout=60)
+        if response.status_code == 429:
+            retry = response.headers.get("Retry-After")
+            LOG.warning("JustTCG 429 (Retry-After=%s) — raising", retry or "?")
+            raise JustTCGRateLimitError(response=response)
+        response.raise_for_status()
+        data = response.json()
+    except JustTCGRateLimitError:
+        raise
+    except Exception as exc:
+        _note_justtcg_failure(exc)
+        raise
+    _note_justtcg_success()
     if len(_POST_CACHE) >= _POST_CACHE_MAX:
         _POST_CACHE.pop(next(iter(_POST_CACHE)), None)
     _POST_CACHE[key] = data
@@ -247,15 +284,23 @@ def _get_v2_page(
     _consume_request_budget()
     sleep(JUSTTCG_REQUEST_DELAY_SECONDS)
     url = f"{JUSTTCG_API_V2_BASE_URL.rstrip('/')}{path}"
-    response = requests.get(url, params=params or {}, headers=_headers(), timeout=45)
-    if response.status_code == 429:
-        retry = response.headers.get("Retry-After")
-        LOG.warning("JustTCG 429 (Retry-After=%s) — raising", retry or "?")
-        raise JustTCGRateLimitError(response=response)
-    response.raise_for_status()
-    payload = response.json()
+    try:
+        response = requests.get(url, params=params or {}, headers=_headers(), timeout=45)
+        if response.status_code == 429:
+            retry = response.headers.get("Retry-After")
+            LOG.warning("JustTCG 429 (Retry-After=%s) — raising", retry or "?")
+            raise JustTCGRateLimitError(response=response)
+        response.raise_for_status()
+        payload = response.json()
+    except JustTCGRateLimitError:
+        raise
+    except Exception as exc:
+        _note_justtcg_failure(exc)
+        raise
     if not isinstance(payload, dict):
+        _note_justtcg_failure(RuntimeError("JustTCG unexpected payload shape"))
         raise RuntimeError("JustTCG unexpected payload shape")
+    _note_justtcg_success()
     return payload, _parse_next_cursor(response.headers.get("Link"))
 
 

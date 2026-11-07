@@ -478,6 +478,33 @@ def justtcg_max_requests() -> int | None:
     return int(JUSTTCG_NIGHTLY_MAX_REQUESTS)
 
 
+def justtcg_nightly_request_budget() -> int | None:
+    """Nightly hard cap — never unlimited unless explicitly allowed.
+
+    Nov 5 burn: ``card_limit=all`` + per-card set sync with no budget burned
+    thousands of JustTCG calls before cancel. Empty env must not mean unlimited
+    on the Actions runner.
+    """
+    allow = (
+        _secret("NIGHTLY_ALLOW_UNLIMITED_JUSTTCG")
+        or os.getenv("NIGHTLY_ALLOW_UNLIMITED_JUSTTCG", "")
+        or ""
+    ).strip().lower() in {"1", "true", "yes", "on"}
+    raw = (
+        _secret("JUSTTCG_MAX_REQUESTS")
+        or os.getenv("JUSTTCG_MAX_REQUESTS", "")
+        or ""
+    ).strip().lower()
+    if raw in {"0", "off", "none", "unlimited"}:
+        if allow:
+            return None
+        return int(JUSTTCG_NIGHTLY_MAX_REQUESTS)
+    if raw.isdigit():
+        return max(1, min(int(raw), 1000))
+    # Empty / missing → default nightly cap (not Soft Ink's unlimited).
+    return int(JUSTTCG_NIGHTLY_MAX_REQUESTS)
+
+
 def board_cache_ttl_seconds() -> float:
     raw = (
         _secret("BOARD_CACHE_TTL_SECONDS")
