@@ -9,6 +9,7 @@ const en = {
   nav_signals: "AI signals",
   nav_portfolio: "Portfolio",
   nav_binder: "Binder",
+  nav_sealed: "Sealed",
   nav_scanner: "Scanner",
   nav_identify: "Scan card",
   nav_radar: "Radar",
@@ -188,6 +189,15 @@ const en = {
   port_lot_outlook_uncertain: "uncertain {days}d interval",
   port_open_lots: "Open lots · {n}",
   port_refresh: "Refresh",
+  sealed_desk_eyebrow: "Sealed desk",
+  sealed_desk_title: "Sealed products",
+  sealed_desk_lede:
+    "Quote ETBs, booster boxes, and tins via JustTCG — add lots to Soft Ink when signed in.",
+  sealed_desk_showcase: "Featured sealed seed — search a name, TCP id, or UPC for live quotes.",
+  sealed_desk_demo_live:
+    "Showing curated showcase — search to pull live JustTCG sealed quotes.",
+  sealed_desk_results: "{n} hit(s) for “{q}”",
+  sealed_desk_signin: "Sign in to add lot",
   sealed_title: "Add sealed",
   sealed_lede:
     "Quote an ETB, booster box, tin, or UPC via JustTCG — then log it as a portfolio lot (spot MTM, no condition multipliers).",
@@ -651,6 +661,7 @@ const hr: Dictionary = {
   nav_signals: "AI signali",
   nav_portfolio: "Portfelj",
   nav_binder: "Binder",
+  nav_sealed: "Sealed",
   nav_scanner: "Skener",
   nav_identify: "Skeniraj kartu",
   nav_radar: "Radar",
@@ -828,6 +839,15 @@ const hr: Dictionary = {
   port_lot_outlook_uncertain: "nesiguran {days}d interval",
   port_open_lots: "Otvoreni lotovi · {n}",
   port_refresh: "Osvježi",
+  sealed_desk_eyebrow: "Sealed desk",
+  sealed_desk_title: "Sealed proizvodi",
+  sealed_desk_lede:
+    "Quote ETB-ova, booster boxeva i tinova preko JustTCG — dodaj lotove u Soft Ink kad si prijavljen.",
+  sealed_desk_showcase: "Featured sealed seed — traži ime, TCP id ili UPC za live quoteove.",
+  sealed_desk_demo_live:
+    "Prikaz curated showcasea — traži za live JustTCG sealed quoteove.",
+  sealed_desk_results: "{n} hit(ova) za “{q}”",
+  sealed_desk_signin: "Prijavi se da dodaš lot",
   sealed_title: "Dodaj sealed",
   sealed_lede:
     "Quoteaj ETB, booster box, tin ili UPC preko JustTCG — pa zabilježi lot (spot MTM, bez condition multiplikatora).",

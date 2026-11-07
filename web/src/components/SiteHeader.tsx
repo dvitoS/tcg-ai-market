@@ -47,6 +47,7 @@ export function SiteHeader() {
     () => [
       { href: "/identify", labelKey: "nav_identify" },
       { href: "/scanner", labelKey: "nav_scanner" },
+      { href: "/sealed", labelKey: "nav_sealed" },
       { href: "/binder", labelKey: "nav_binder" },
       { href: "/dealer", labelKey: "nav_dealer" },
       { href: "/browse#signals", labelKey: "nav_signals" },
