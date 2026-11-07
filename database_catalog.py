@@ -15,6 +15,7 @@ from database_clients import (
     _as_iso_date,
     _card_from_row,
     _chunked,
+    call_with_supabase_reconnect,
     fetch_all,
     get_supabase,
     table_count,
@@ -285,8 +286,6 @@ def update_card_tcgplayer_id(card_id: str, tcgplayer_id: str) -> None:
 def replace_card_history(card_id: str, points: list[dict[str, Any]]) -> int:
     if not points:
         return 0
-    client = get_supabase()
-    client.table("price_history").delete().eq("card_id", card_id).execute()
     rows = [
         {
             "card_id": card_id,
@@ -295,9 +294,19 @@ def replace_card_history(card_id: str, points: list[dict[str, Any]]) -> int:
         }
         for point in points
     ]
-    for batch in _chunked(rows):
-        client.table("price_history").insert(batch).execute()
-    return len(rows)
+
+    def _write() -> int:
+        client = get_supabase()
+        client.table("price_history").delete().eq("card_id", card_id).execute()
+        for batch in _chunked(rows):
+            client.table("price_history").insert(batch).execute()
+        return len(rows)
+
+    # Nightly history writes can hit a stale HTTP/2 connection mid-card;
+    # reconnect + retry instead of failing the whole phase.
+    return call_with_supabase_reconnect(
+        _write, label=f"replace_card_history:{card_id}"
+    )
 
 
 def clear_price_history() -> None:
