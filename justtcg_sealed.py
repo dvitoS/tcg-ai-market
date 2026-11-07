@@ -65,17 +65,40 @@ def _spot_from_card(card: dict[str, Any] | None) -> float | None:
     return value if value > 0 else None
 
 
+def tcgplayer_product_image(tcgplayer_id: str | None) -> str | None:
+    """Stable TCGPlayer CDN art when JustTCG omits an image URL."""
+    tid = str(tcgplayer_id or "").strip()
+    if not re.fullmatch(r"\d{4,12}", tid):
+        return None
+    return f"https://tcgplayer-cdn.tcgplayer.com/product/{tid}_in_1000x1000.jpg"
+
+
+def _http_url(raw: Any) -> str | None:
+    text = str(raw or "").strip()
+    return text if text.startswith("http") else None
+
+
 def _image_from_card(card: dict[str, Any]) -> str | None:
-    for key in ("image_url", "imageUrl", "img"):
-        raw = card.get(key)
-        if raw and str(raw).startswith("http"):
-            return str(raw)
+    for key in ("image_url", "imageUrl", "img", "image", "artwork_url", "artworkUrl"):
+        hit = _http_url(card.get(key))
+        if hit:
+            return hit
     images = card.get("images")
     if isinstance(images, dict):
-        for key in ("large", "small", "url"):
-            raw = images.get(key)
-            if raw and str(raw).startswith("http"):
-                return str(raw)
+        for key in ("large", "small", "url", "default", "front"):
+            hit = _http_url(images.get(key))
+            if hit:
+                return hit
+    elif isinstance(images, list):
+        for item in images:
+            if isinstance(item, str):
+                hit = _http_url(item)
+            elif isinstance(item, dict):
+                hit = _http_url(item.get("url") or item.get("image_url") or item.get("src"))
+            else:
+                hit = None
+            if hit:
+                return hit
     return None
 
 
@@ -94,6 +117,7 @@ def normalize_sealed_hit(card: dict[str, Any]) -> dict[str, Any] | None:
         set_name = str(set_obj.get("name") or "")
     if not set_name:
         set_name = str(card.get("set_name") or card.get("setName") or "")
+    image = _image_from_card(card) or tcgplayer_product_image(tcp)
     return {
         "card_id": sealed_card_id(tcp),
         "name": name,
@@ -101,7 +125,7 @@ def normalize_sealed_hit(card: dict[str, Any]) -> dict[str, Any] | None:
         "tcgplayer_id": str(tcp),
         "gtin": str(card.get("gtin") or card.get("upc") or "") or None,
         "spot_usd": spot,
-        "image_url": _image_from_card(card),
+        "image_url": image,
         "source": "justtcg",
         "kind": "sealed",
     }
