@@ -2,18 +2,38 @@
 
 from __future__ import annotations
 
+import logging
+import time
 from contextvars import ContextVar, Token
 from dataclasses import dataclass
 from datetime import date, datetime
 from functools import lru_cache
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Callable, TypeVar
 
 from config import _secret, get_supabase_credentials
 
 if TYPE_CHECKING:
     from supabase import Client
 
+LOG = logging.getLogger("tcg.database")
 PAGE = 1000
+T = TypeVar("T")
+
+# Long nightlies reuse one PostgREST httpx client. With HTTP/2 the peer
+# (Cloudflare / Supabase) terminates around stream id 19999
+# (``RemoteProtocolError: ConnectionTerminated``). Prefer HTTP/1.1 and
+# reconnect on that class of transport failure.
+_TRANSIENT_TRANSPORT_NAMES = frozenset(
+    {
+        "RemoteProtocolError",
+        "ConnectError",
+        "ConnectTimeout",
+        "ReadTimeout",
+        "WriteTimeout",
+        "PoolTimeout",
+        "NetworkError",
+    }
+)
 
 # FastAPI (and other non-Streamlit) callers bind the Bearer access token here
 # so portfolio/watchlist RLS uses the same JWT that authenticated the request.
@@ -85,12 +105,147 @@ def _require_supabase_env() -> tuple[str, str]:
     return url, key
 
 
+def _http1_service_options():
+    """Build SyncClientOptions with an HTTP/1.1 httpx client when available."""
+    try:
+        import httpx
+        from supabase.lib.client_options import SyncClientOptions
+    except ImportError:
+        return None
+    timeout = httpx.Timeout(120.0)
+    return SyncClientOptions(
+        httpx_client=httpx.Client(
+            http2=False,
+            timeout=timeout,
+            follow_redirects=True,
+        ),
+        postgrest_client_timeout=timeout,
+    )
+
+
+def _force_postgrest_http1(client: Any) -> None:
+    """Fallback when SyncClientOptions.httpx_client is unavailable."""
+    try:
+        import httpx
+    except ImportError:
+        return
+    try:
+        pg = client.postgrest
+        old = getattr(pg, "session", None)
+        base = str(getattr(pg, "base_url", "") or "")
+        headers = dict(getattr(old, "headers", {}) or {})
+        timeout = getattr(old, "timeout", httpx.Timeout(120.0))
+        pg.session = httpx.Client(
+            base_url=base or None,
+            headers=headers,
+            timeout=timeout,
+            follow_redirects=True,
+            http2=False,
+        )
+        if old is not None:
+            try:
+                old.close()
+            except Exception:
+                pass
+    except Exception as exc:
+        LOG.warning("Could not force PostgREST HTTP/1.1: %s", exc)
+
+
+def _close_supabase_client(client: Any) -> None:
+    if client is None:
+        return
+    try:
+        http = getattr(getattr(client, "options", None), "httpx_client", None)
+        if http is not None:
+            http.close()
+            return
+    except Exception:
+        pass
+    try:
+        session = getattr(getattr(client, "postgrest", None), "session", None)
+        if session is not None:
+            session.close()
+    except Exception:
+        pass
+
+
 @lru_cache(maxsize=1)
 def get_supabase():
-    """Service-role (or configured key) client — catalog/history/sync."""
+    """Service-role (or configured key) client — catalog/history/sync.
+
+    Uses HTTP/1.1 for PostgREST to avoid HTTP/2 stream-id exhaustion on
+    multi-hour nightlies (see ConnectionTerminated last_stream_id≈19999).
+    """
     _, create_client = _supabase_api()
     url, key = _require_supabase_env()
-    return create_client(url, key)
+    options = _http1_service_options()
+    if options is not None:
+        try:
+            return create_client(url, key, options=options)
+        except TypeError:
+            # Older supabase-py without options= / SyncClientOptions support.
+            http = getattr(options, "httpx_client", None)
+            if http is not None:
+                try:
+                    http.close()
+                except Exception:
+                    pass
+    client = create_client(url, key)
+    _force_postgrest_http1(client)
+    return client
+
+
+def reset_supabase() -> None:
+    """Drop the cached service client so the next call opens a fresh connection."""
+    client = None
+    try:
+        # Peek without creating a new client if cache is empty.
+        cache_info = get_supabase.cache_info()
+        if cache_info.currsize:
+            client = get_supabase()
+    except Exception:
+        client = None
+    get_supabase.cache_clear()
+    _close_supabase_client(client)
+
+
+def is_transient_supabase_transport_error(exc: BaseException) -> bool:
+    """True for HTTP/2 terminate / connection blips worth a reconnect retry."""
+    name = type(exc).__name__
+    if name in _TRANSIENT_TRANSPORT_NAMES:
+        return True
+    # httpx sometimes wraps httpcore errors; match the wire signature too.
+    text = f"{name}: {exc}"
+    return "ConnectionTerminated" in text or "RemoteProtocolError" in text
+
+
+def call_with_supabase_reconnect(
+    op: Callable[[], T],
+    *,
+    retries: int = 2,
+    label: str = "supabase",
+) -> T:
+    """Run ``op``; on transient transport errors reset the client and retry."""
+    attempts = max(0, int(retries)) + 1
+    last: BaseException | None = None
+    for attempt in range(attempts):
+        try:
+            return op()
+        except Exception as exc:
+            last = exc
+            if attempt + 1 >= attempts or not is_transient_supabase_transport_error(exc):
+                raise
+            LOG.warning(
+                "%s transport error (attempt %s/%s): %s — reconnecting",
+                label,
+                attempt + 1,
+                attempts,
+                exc,
+            )
+            reset_supabase()
+            time.sleep(0.4 * (attempt + 1))
+    assert last is not None
+    raise last
 
 
 _JWT_FAIL_KEY = "_user_supabase_fail_reason"
