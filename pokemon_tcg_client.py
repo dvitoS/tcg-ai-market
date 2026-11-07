@@ -378,43 +378,32 @@ def fetch_cards_for_set(
     set_name: str | None = None,
     page_size: int = PAGE_SIZE,
 ) -> list[dict[str, Any]]:
-    """Povlači SVE karte jednog seta kroz paginaciju (max 250 / zahtjev + paced sleep)."""
+    """Povlači SVE karte jednog seta kroz paginaciju (max 250 / zahtjev + paced sleep).
+
+    Important: do **not** send ``orderBy``. On pokemontcg.io, ``orderBy=number``
+    often returns HTTP 5xx *or* a 200 with broken page windows (page 2 overlaps
+    page 1 → unique count stuck at pageSize, e.g. Ascended Heroes 250/295).
+    Unordered paging is stable for ``set.id`` queries.
+    """
     label = set_name or set_id
     page_size = min(int(page_size), POKEMON_TCG_MAX_PAGE_SIZE)
     print(f"Dohvaćam karte iz seta '{label}' ({set_id}), pageSize={page_size}...")
     cards: list[dict[str, Any]] = []
+    seen: set[str] = set()
     page = 1
     total_count: int | None = None
 
     while True:
         print(f"  [napredak] set '{label}' · stranica {page}...")
-        # orderBy ponekad okida 500 na pokemontcg.io — prvo s orderBy, fallback bez.
-        try:
-            payload = _pokemon_get(
-                POKEMON_TCG_API_URL,
-                {
-                    "q": f"set.id:{set_id}",
-                    "page": page,
-                    "pageSize": page_size,
-                    "orderBy": "number",
-                },
-                progress=f"cards '{label}' page {page}",
-            )
-        except (requests.HTTPError, requests.RequestException, RuntimeError) as primary_exc:
-            print(
-                f"  [fallback] set '{label}' page {page} bez orderBy "
-                f"nakon greške: {primary_exc}"
-            )
-            sleep(rate_limit_sleep_seconds())
-            payload = _pokemon_get(
-                POKEMON_TCG_API_URL,
-                {
-                    "q": f"set.id:{set_id}",
-                    "page": page,
-                    "pageSize": page_size,
-                },
-                progress=f"cards '{label}' page {page} (no orderBy)",
-            )
+        payload = _pokemon_get(
+            POKEMON_TCG_API_URL,
+            {
+                "q": f"set.id:{set_id}",
+                "page": page,
+                "pageSize": page_size,
+            },
+            progress=f"cards '{label}' page {page}",
+        )
         batch = payload.get("data") or []
         if total_count is None:
             total_count = int(payload.get("totalCount") or 0)
@@ -422,17 +411,54 @@ def fetch_cards_for_set(
             print(f"  ukupno u setu: {total_count} karata (~{total_pages} stranica)")
         if not batch:
             break
-        cards.extend(batch)
+
+        new_in_page = 0
+        for card in batch:
+            card_id = str(card.get("id") or "").strip()
+            if not card_id or card_id in seen:
+                continue
+            seen.add(card_id)
+            cards.append(card)
+            new_in_page += 1
+
+        total_pages = max(1, ((total_count or 0) + page_size - 1) // page_size)
         print(
-            f"  [napredak] set '{label}' · stranica {page}/{max(1, (total_count + page_size - 1) // page_size)}: "
-            f"+{len(batch)} karata (dosad {len(cards)}/{total_count})"
+            f"  [napredak] set '{label}' · stranica {page}/{total_pages}: "
+            f"+{len(batch)} raw / +{new_in_page} new "
+            f"(dosad {len(cards)}/{total_count})"
         )
-        finished = page * page_size >= total_count or len(batch) < page_size
+
+        # Broken pagination: API claimed more cards but this page added nothing.
+        if (
+            total_count
+            and len(cards) < total_count
+            and new_in_page == 0
+            and len(batch) > 0
+        ):
+            msg = (
+                f"Set '{label}' ({set_id}): page {page} returned {len(batch)} "
+                f"rows but 0 new ids (unique={len(cards)}/{total_count}). "
+                "Stopping — likely unstable pokemontcg.io pagination."
+            )
+            _append_automation_log(msg, level="WARNING")
+            break
+
+        finished = (
+            (total_count is not None and page * page_size >= total_count)
+            or len(batch) < page_size
+            or (total_count is not None and len(cards) >= total_count)
+        )
         if finished:
             break
         _pace_after_page(len(batch), context=f"cards '{label}' page {page}")
         page += 1
 
+    if total_count and len(cards) < total_count:
+        msg = (
+            f"Set '{label}' ({set_id}) incomplete after pagination: "
+            f"unique={len(cards)} totalCount={total_count}."
+        )
+        _append_automation_log(msg, level="WARNING")
     print(f"Set '{label}': {len(cards)} karata.")
     return cards
 
@@ -470,13 +496,13 @@ def fetch_cards(
         targets = [(set_id, set_name)]
     else:
         print(f"Dohvaćam do {page_size} karata iz seta '{set_name}' ({set_id})...")
+        # No orderBy — same broken window risk as fetch_cards_for_set.
         payload = _pokemon_get(
             POKEMON_TCG_API_URL,
             {
                 "q": f"set.id:{set_id}",
                 "page": 1,
                 "pageSize": page_size,
-                "orderBy": "number",
             },
             progress=f"cards '{set_name}' page 1",
         )
