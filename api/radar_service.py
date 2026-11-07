@@ -11,6 +11,9 @@ from services.spot_sanity import (
     RADAR_MAX_ABS_7D_CHANGE_PCT,
     RADAR_MAX_UNDER_EDGE_PCT,
     RADAR_MIN_UNDER_SPOT,
+    SHARE_SAFE_MAX_UNDER_EDGE_PCT,
+    SHARE_SAFE_MIN_UNDER_SPOT,
+    share_safe_under_deal,
     under_deal_allowed,
 )
 from trading_signals import FORECAST_DAYS
@@ -26,6 +29,8 @@ def radar_defaults() -> dict[str, Any]:
         "max_under_edge_pct": float(RADAR_MAX_UNDER_EDGE_PCT),
         "min_under_spot": float(RADAR_MIN_UNDER_SPOT),
         "max_abs_7d_change_pct": float(RADAR_MAX_ABS_7D_CHANGE_PCT),
+        "share_safe_max_under_edge_pct": float(SHARE_SAFE_MAX_UNDER_EDGE_PCT),
+        "share_safe_min_under_spot": float(SHARE_SAFE_MIN_UNDER_SPOT),
     }
 
 
@@ -94,6 +99,7 @@ def build_radar(
     max_price: float | None = None,
     min_edge: float = RADAR_EDGE_FLOOR,
     limit: int = 24,
+    share_safe: bool = False,
 ) -> dict[str, Any]:
     board, source = load_board()
     defaults = radar_defaults()
@@ -103,6 +109,7 @@ def build_radar(
         "scoped": 0,
         "sure_scoped": 0,
         "min_edge": float(min_edge),
+        "share_safe": bool(share_safe),
         "sets": [],
         "rarities": [],
         "underpriced": [],
@@ -128,7 +135,12 @@ def build_radar(
             ].reset_index(drop=True)
 
     if scoped is None or scoped.empty:
-        return {**empty, "source": source, "min_edge": float(min_edge)}
+        return {
+            **empty,
+            "source": source,
+            "min_edge": float(min_edge),
+            "share_safe": bool(share_safe),
+        }
 
     conf = scoped.get("confidence_ok")
     conf_ok = (
@@ -159,29 +171,66 @@ def build_radar(
         over_mask = edge_o.notna() & (edge_o <= -floor)
 
     # Trust gate: drop absurd edges, bulk UNDER noise, rarity/spot poison, 7d jumps.
+    # Public preview/DOTD uses share_safe (stricter edge/spot + no promo lanes).
     spot = pd.to_numeric(sure.get("price"), errors="coerce")
     chg7 = pd.to_numeric(sure.get("price_change_7d_pct"), errors="coerce")
     rarities = (
         sure["rarity"] if "rarity" in sure.columns else pd.Series([None] * len(sure), index=sure.index)
     )
-    trust_u = pd.Series(
-        [
-            under_deal_allowed(
-                spot=s,
-                edge_pct=e,
-                rarity=r,
-                price_change_7d_pct=c,
-            )
-            for s, e, r, c in zip(
-                spot.tolist(),
-                edge_u.tolist(),
-                rarities.tolist(),
-                chg7.tolist(),
-                strict=False,
-            )
-        ],
-        index=sure.index,
+    set_names = (
+        sure["set_name"]
+        if "set_name" in sure.columns
+        else pd.Series([None] * len(sure), index=sure.index)
     )
+    quarantined = (
+        sure["spot_quarantine"].fillna(False).astype(bool)
+        if "spot_quarantine" in sure.columns
+        else pd.Series(False, index=sure.index)
+    )
+    if share_safe:
+        trust_u = pd.Series(
+            [
+                share_safe_under_deal(
+                    spot=s,
+                    edge_pct=e,
+                    rarity=r,
+                    set_name=sn,
+                    price_change_7d_pct=c,
+                    spot_quarantine=qflag,
+                )
+                for s, e, r, sn, c, qflag in zip(
+                    spot.tolist(),
+                    edge_u.tolist(),
+                    rarities.tolist(),
+                    set_names.tolist(),
+                    chg7.tolist(),
+                    quarantined.tolist(),
+                    strict=False,
+                )
+            ],
+            index=sure.index,
+        )
+    else:
+        trust_u = pd.Series(
+            [
+                under_deal_allowed(
+                    spot=s,
+                    edge_pct=e,
+                    rarity=r,
+                    price_change_7d_pct=c,
+                )
+                and not bool(qflag)
+                for s, e, r, c, qflag in zip(
+                    spot.tolist(),
+                    edge_u.tolist(),
+                    rarities.tolist(),
+                    chg7.tolist(),
+                    quarantined.tolist(),
+                    strict=False,
+                )
+            ],
+            index=sure.index,
+        )
     under_mask = under_mask & trust_u
 
     under_frame = (
@@ -219,6 +268,7 @@ def build_radar(
         "scoped": int(len(scoped)),
         "sure_scoped": int(len(sure)),
         "min_edge": float(min_edge),
+        "share_safe": bool(share_safe),
         "sets": sets,
         "rarities": rarities,
         "underpriced": under_rows,
