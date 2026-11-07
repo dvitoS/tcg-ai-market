@@ -12,6 +12,7 @@ import type {
   DealerResponse,
   DealerStatus,
   EbayCompsResponse,
+  MarketPulseResponse,
   RadarPreviewResponse,
   RadarResponse,
   RadarStatus,
@@ -781,6 +782,21 @@ export type RadarQuery = {
   min_edge?: number;
   limit?: number;
 };
+
+export async function fetchMarketPulse(
+  movers = 5,
+  init?: RequestInit,
+): Promise<MarketPulseResponse> {
+  const res = await fetch(apiUrl(`/api/market/pulse?movers=${movers}`), {
+    headers: { Accept: "application/json" },
+    next: { revalidate: 60 },
+    ...init,
+  });
+  if (!res.ok) {
+    throw new Error(`Market pulse failed (${res.status})`);
+  }
+  return res.json();
+}
 
 export async function fetchRadarPreview(
   limit = 5,

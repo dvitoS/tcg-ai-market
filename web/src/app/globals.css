@@ -3953,12 +3953,92 @@ a {
   object-fit: cover;
   object-position: center right;
   transform: scale(1.02);
-  animation: landing-drift 22s ease-in-out infinite alternate;
+  animation: landing-drift 28s ease-in-out infinite alternate;
+}
+
+/* Soft Ink wash — paper fiber + copper bloom (distinct from particle / neon fields). */
+.soft-ink-wash {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+  mix-blend-mode: soft-light;
+}
+
+.soft-ink-wash-bloom {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(42px);
+  opacity: 0.55;
+  will-change: transform, opacity;
+}
+
+.soft-ink-wash-bloom-a {
+  width: min(48vw, 420px);
+  height: min(48vw, 420px);
+  left: -6%;
+  top: 18%;
+  background: radial-gradient(circle, rgba(192, 122, 58, 0.45), transparent 68%);
+  animation: soft-ink-bloom-a 16s ease-in-out infinite alternate;
+}
+
+.soft-ink-wash-bloom-b {
+  width: min(36vw, 320px);
+  height: min(36vw, 320px);
+  right: 8%;
+  bottom: 6%;
+  background: radial-gradient(circle, rgba(154, 92, 48, 0.38), transparent 70%);
+  animation: soft-ink-bloom-b 21s ease-in-out infinite alternate;
+}
+
+.soft-ink-wash-bloom-c {
+  width: min(28vw, 240px);
+  height: min(28vw, 240px);
+  left: 38%;
+  top: -8%;
+  background: radial-gradient(circle, rgba(90, 64, 42, 0.4), transparent 72%);
+  animation: soft-ink-bloom-c 19s ease-in-out infinite alternate;
+}
+
+.soft-ink-wash-fiber {
+  position: absolute;
+  inset: -40% 0;
+  opacity: 0.22;
+  background-image: repeating-linear-gradient(
+    180deg,
+    transparent 0,
+    transparent 3px,
+    rgba(247, 241, 232, 0.045) 3px,
+    rgba(247, 241, 232, 0.045) 4px
+  );
+  animation: soft-ink-fiber 36s linear infinite;
+  mask-image: linear-gradient(90deg, transparent 0%, #000 18%, #000 78%, transparent 100%);
+}
+
+.soft-ink-wash-mark {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.9;
+}
+
+.soft-ink-wash-blot {
+  transform-origin: 420px 170px;
+  animation: soft-ink-blot 24s ease-in-out infinite alternate;
+}
+
+.soft-ink-wash-stroke {
+  stroke-dasharray: 520;
+  stroke-dashoffset: 520;
+  animation: soft-ink-stroke 4.8s ease forwards 0.4s;
 }
 
 .landing-hero-veil {
   position: absolute;
   inset: 0;
+  z-index: 2;
   background:
     linear-gradient(105deg, rgba(10, 9, 8, 0.86) 0%, rgba(10, 9, 8, 0.48) 44%, rgba(10, 9, 8, 0.1) 100%),
     linear-gradient(180deg, rgba(10, 9, 8, 0.22) 0%, rgba(10, 9, 8, 0.06) 42%, rgba(10, 9, 8, 0.82) 100%),
@@ -3968,13 +4048,261 @@ a {
 
 .landing-hero-copy {
   position: relative;
-  z-index: 1;
+  z-index: 3;
   width: min(1180px, calc(100% - 2rem));
   margin: 0 auto;
   padding: 3.25rem 0 2.35rem;
   max-width: 34rem;
   justify-self: start;
   animation: landing-rise 0.85s ease both;
+}
+
+.landing-pulse,
+.landing-sealed {
+  display: grid;
+  gap: 1rem;
+  padding: 0.35rem 0 0.15rem;
+  animation: landing-rise 0.8s ease both;
+}
+
+.landing-pulse-eyebrow {
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent-2);
+}
+
+.landing-pulse-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 2.6vw, 1.85rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.landing-pulse-story {
+  margin: 0.55rem 0 0;
+  max-width: 40rem;
+  color: var(--muted);
+  font-size: 0.98rem;
+  line-height: 1.45;
+}
+
+.landing-pulse-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem 1rem;
+  margin: 0.35rem 0 0;
+}
+
+.landing-pulse-stats > div {
+  display: grid;
+  gap: 0.2rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid rgba(192, 122, 58, 0.22);
+}
+
+.landing-pulse-stats dt {
+  margin: 0;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.landing-pulse-stats dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.landing-pulse-stats dd.is-buy {
+  color: var(--buy);
+}
+
+.landing-pulse-stats dd.is-sell {
+  color: var(--sell);
+}
+
+.landing-pulse-sep {
+  margin: 0 0.28rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.landing-pulse-flat {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.landing-trends {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem 1.75rem;
+  margin-top: 0.35rem;
+}
+
+.landing-trends-title {
+  margin: 0 0 0.55rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.landing-trends-title.is-up {
+  color: var(--buy);
+}
+
+.landing-trends-title.is-down {
+  color: var(--sell);
+}
+
+.landing-movers {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.landing-mover {
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  gap: 0.65rem;
+  align-items: center;
+  padding: 0.35rem 0;
+  text-decoration: none;
+  color: inherit;
+  border-bottom: 1px solid rgba(42, 42, 42, 0.55);
+}
+
+.landing-mover:last-child {
+  border-bottom: 0;
+}
+
+.landing-mover:hover .landing-mover-name {
+  color: var(--accent-2);
+}
+
+.landing-mover-art {
+  display: block;
+  width: 36px;
+  height: 50px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: rgba(20, 18, 16, 0.6);
+}
+
+.landing-mover-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.landing-mover-copy {
+  display: grid;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.landing-mover-name {
+  font-size: 0.92rem;
+  font-weight: 560;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.landing-mover-meta {
+  font-size: 0.75rem;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.landing-mover-chg {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.landing-mover-chg.is-up {
+  color: var(--buy);
+}
+
+.landing-mover-chg.is-down {
+  color: var(--sell);
+}
+
+.landing-pulse-foot {
+  margin: 0.35rem 0 0;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+.landing-pulse-foot a {
+  color: var(--accent-2);
+  text-decoration: none;
+}
+
+.landing-pulse-foot a:hover {
+  text-decoration: underline;
+}
+
+.landing-sealed-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.landing-sealed-tile {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 0.65rem;
+  align-items: center;
+  padding: 0.45rem 0;
+  text-decoration: none;
+  color: inherit;
+  border-top: 1px solid rgba(192, 122, 58, 0.18);
+}
+
+.landing-sealed-art {
+  display: block;
+  width: 64px;
+  height: 64px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: rgba(20, 18, 16, 0.55);
+}
+
+.landing-sealed-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.landing-sealed-copy {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.landing-sealed-name {
+  font-size: 0.86rem;
+  font-weight: 560;
+  color: var(--ink);
+  line-height: 1.25;
+}
+
+.landing-sealed-spot {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  color: var(--accent-2);
 }
 
 .landing-brand {
@@ -4377,10 +4705,80 @@ a {
 
 @keyframes landing-drift {
   from {
-    transform: scale(1.04) translate3d(0, 0, 0);
+    transform: scale(1.03) translate3d(0, 0, 0);
   }
   to {
-    transform: scale(1.08) translate3d(-1.5%, 1%, 0);
+    transform: scale(1.06) translate3d(-1.1%, 0.6%, 0);
+  }
+}
+
+@keyframes soft-ink-bloom-a {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.4;
+  }
+  to {
+    transform: translate3d(8%, 6%, 0) scale(1.18);
+    opacity: 0.7;
+  }
+}
+
+@keyframes soft-ink-bloom-b {
+  from {
+    transform: translate3d(0, 0, 0) scale(1.05);
+    opacity: 0.35;
+  }
+  to {
+    transform: translate3d(-10%, -8%, 0) scale(1.22);
+    opacity: 0.62;
+  }
+}
+
+@keyframes soft-ink-bloom-c {
+  from {
+    transform: translate3d(0, 4%, 0) scale(0.92);
+    opacity: 0.28;
+  }
+  to {
+    transform: translate3d(6%, -4%, 0) scale(1.14);
+    opacity: 0.5;
+  }
+}
+
+@keyframes soft-ink-fiber {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(0, 12%, 0);
+  }
+}
+
+@keyframes soft-ink-blot {
+  from {
+    transform: scale(0.92);
+    opacity: 0.7;
+  }
+  to {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+}
+
+@keyframes soft-ink-stroke {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (max-width: 900px) {
+  .landing-pulse-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .landing-trends,
+  .landing-sealed-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -4408,6 +4806,10 @@ a {
   .landing-hero-copy {
     max-width: none;
     padding: 3.25rem 0 2.5rem;
+  }
+
+  .soft-ink-wash-fiber {
+    opacity: 0.14;
   }
 }
 

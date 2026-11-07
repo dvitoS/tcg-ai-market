@@ -24,6 +24,7 @@ from api.routers import (
     fx,
     health,
     identify,
+    market,
     portfolio,
     radar,
     scanner,
@@ -93,6 +94,7 @@ app.include_router(auth.router, prefix="/api")
 app.include_router(catalog.router, prefix="/api")
 app.include_router(cards.router, prefix="/api")
 app.include_router(identify.router, prefix="/api")
+app.include_router(market.router, prefix="/api")
 app.include_router(portfolio.router, prefix="/api")
 app.include_router(binder.router, prefix="/api")
 app.include_router(scanner.router, prefix="/api")

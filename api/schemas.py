@@ -275,6 +275,34 @@ class SignalBoardResponse(BaseModel):
     source: Literal["supabase", "demo", "empty"] = "empty"
 
 
+class MarketMover(BaseModel):
+    id: str
+    name: str
+    set_name: str | None = None
+    image_url: str | None = None
+    price: float | None = None
+    price_change_7d_pct: float | None = None
+    signal: str | None = None
+
+
+class MarketPulseResponse(BaseModel):
+    """Landing desk pulse — sure band breadth + past-7d movers (not a Fear/Greed meter)."""
+
+    source: Literal["supabase", "demo", "empty"] = "empty"
+    board_total: int = 0
+    sure_under: int = 0
+    sure_over: int = 0
+    signals: dict[str, int] = Field(default_factory=dict)
+    median_change_7d_pct: float | None = None
+    rising_n: int = 0
+    falling_n: int = 0
+    flat_n: int = 0
+    observed_n: int = 0
+    rising_share_pct: float | None = None
+    risers: list[MarketMover] = Field(default_factory=list)
+    fallers: list[MarketMover] = Field(default_factory=list)
+
+
 class PortfolioLot(BaseModel):
     id: int | str
     user_id: str | None = None
