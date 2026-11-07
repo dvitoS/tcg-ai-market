@@ -42,8 +42,8 @@ def _radar_status_payload(user: dict[str, Any]) -> RadarStatus:
 def radar_preview(
     limit: int = Query(default=5, ge=1, le=8),
 ) -> RadarPreviewResponse:
-    """Public Kestrel Pro teaser — top conformal UNDER edges only."""
-    payload = build_radar(min_edge=0, limit=int(limit))
+    """Public Kestrel Pro teaser — share-safe UNDER edges only (Deal of the Day)."""
+    payload = build_radar(min_edge=0, limit=int(limit), share_safe=True)
     return RadarPreviewResponse(
         forecast_days=int(payload.get("forecast_days") or 7),
         under_total=int(payload.get("under_total") or 0),

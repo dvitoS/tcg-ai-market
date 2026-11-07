@@ -10,7 +10,9 @@ import pandas as pd
 from api.radar_service import build_radar
 from services.spot_sanity import (
     RADAR_MAX_UNDER_EDGE_PCT,
+    SHARE_SAFE_MAX_UNDER_EDGE_PCT,
     is_absurd_spot_jump,
+    share_safe_under_deal,
     under_deal_allowed,
 )
 import sync_justtcg as sync
@@ -36,6 +38,46 @@ def test_under_deal_rejects_poisoned_common_spot() -> None:
     assert under_deal_allowed(spot=68.15, edge_pct=32.0, rarity="Rare") is True
     assert under_deal_allowed(spot=20.14, edge_pct=40.0, rarity="Uncommon") is True
     assert under_deal_allowed(spot=40.0, edge_pct=40.0, rarity="Uncommon") is False
+
+
+def test_share_safe_rejects_promo_and_quarantine() -> None:
+    assert (
+        share_safe_under_deal(
+            spot=48.0,
+            edge_pct=27.0,
+            rarity="Promo",
+            set_name="XY Black Star Promos",
+        )
+        is False
+    )
+    assert (
+        share_safe_under_deal(
+            spot=26.0,
+            edge_pct=20.0,
+            rarity="Illustration Rare",
+            set_name="Twilight Masquerade",
+            spot_quarantine=True,
+        )
+        is False
+    )
+    assert (
+        share_safe_under_deal(
+            spot=26.0,
+            edge_pct=20.0,
+            rarity="Illustration Rare",
+            set_name="Twilight Masquerade",
+        )
+        is True
+    )
+    assert (
+        share_safe_under_deal(
+            spot=26.0,
+            edge_pct=SHARE_SAFE_MAX_UNDER_EDGE_PCT + 1,
+            rarity="Illustration Rare",
+            set_name="Twilight Masquerade",
+        )
+        is False
+    )
 
 
 def test_under_deal_rejects_wild_7d_move() -> None:
@@ -188,9 +230,29 @@ def test_build_radar_filters_poisoned_under(monkeypatch) -> None:
             },
             {
                 "id": "ok-under",
-                "name": "Sharpedo",
-                "set_name": "XY Promos",
-                "rarity": "Rare Ultra",
+                "name": "Growlithe",
+                "set_name": "Twilight Masquerade",
+                "rarity": "Illustration Rare",
+                "supertype": "Pokémon",
+                "price": 26.0,
+                "market_price": 26.0,
+                "predicted_price": 31.0,
+                "expected_change_pct": 20.0,
+                "pred_lo_pct": 20.0,
+                "pred_hi_pct": 25.0,
+                "price_change_7d_pct": 2.0,
+                "signal": "BUY",
+                "confidence_ok": True,
+                "conformal_ok": True,
+                "confidence_level": "high",
+                "history_points": 90,
+                "image_url": None,
+            },
+            {
+                "id": "promo-thin",
+                "name": "M Sharpedo-EX",
+                "set_name": "XY Black Star Promos",
+                "rarity": "Promo",
                 "supertype": "Pokémon",
                 "price": 48.0,
                 "market_price": 48.0,
@@ -219,6 +281,14 @@ def test_build_radar_filters_poisoned_under(monkeypatch) -> None:
 
     payload = build_radar(min_edge=0, limit=10)
     ids = [r["id"] for r in payload["underpriced"]]
-    assert ids == ["ok-under"]
-    assert payload["under_total"] == 1
-    assert float(payload["underpriced"][0]["edge_pct"]) == 25.0
+    assert "ok-under" in ids
+    assert "poison-common" not in ids
+    assert "extreme-edge" not in ids
+    # Pro desk may still show promo UNDER; preview must not.
+    assert "promo-thin" in ids
+
+    preview = build_radar(min_edge=0, limit=10, share_safe=True)
+    preview_ids = [r["id"] for r in preview["underpriced"]]
+    assert preview_ids == ["ok-under"]
+    assert preview["share_safe"] is True
+    assert float(preview["underpriced"][0]["edge_pct"]) == 20.0

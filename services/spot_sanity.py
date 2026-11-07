@@ -33,6 +33,17 @@ POISON_CLUSTER_MIN_SIZE = 10
 POISON_CLUSTER_MIN_SETS = 3
 POISON_CLUSTER_MIN_SPOT = 20.0
 
+# Public Deal of the Day / radar preview — stricter than Pro desk UNDER.
+SHARE_SAFE_MAX_UNDER_EDGE_PCT = 30.0
+SHARE_SAFE_MIN_UNDER_SPOT = 2.0
+_SHARE_UNSAFE_TOKENS = (
+    "promo",
+    "black star",
+    "staff",
+    "prize",
+    "league",
+)
+
 
 def _as_positive_float(value: Any) -> float | None:
     try:
@@ -128,6 +139,41 @@ def under_deal_allowed(
         pass
 
     return True
+
+
+def _looks_like_thin_promo(rarity: Any, set_name: Any) -> bool:
+    blob = f"{rarity or ''} {set_name or ''}".strip().lower()
+    if not blob:
+        return False
+    return any(token in blob for token in _SHARE_UNSAFE_TOKENS)
+
+
+def share_safe_under_deal(
+    *,
+    spot: Any,
+    edge_pct: Any,
+    rarity: Any = None,
+    set_name: Any = None,
+    price_change_7d_pct: Any = None,
+    spot_quarantine: Any = False,
+) -> bool:
+    """Public-surface UNDER gate (Deal of the Day / radar preview).
+
+    Stricter than Pro Radar: lower edge/spot caps, no promo/prize lanes, and
+    explicit reject when ``spot_quarantine`` is set.
+    """
+    if bool(spot_quarantine):
+        return False
+    if _looks_like_thin_promo(rarity, set_name):
+        return False
+    return under_deal_allowed(
+        spot=spot,
+        edge_pct=edge_pct,
+        rarity=rarity,
+        price_change_7d_pct=price_change_7d_pct,
+        max_edge_pct=SHARE_SAFE_MAX_UNDER_EDGE_PCT,
+        min_spot=SHARE_SAFE_MIN_UNDER_SPOT,
+    )
 
 
 def _frame_spots(quotes: pd.DataFrame) -> pd.Series:
