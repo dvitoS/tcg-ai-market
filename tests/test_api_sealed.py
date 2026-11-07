@@ -29,6 +29,19 @@ def test_sealed_quote_showcase_without_query() -> None:
     assert body["source"] == "demo"
     assert len(body["items"]) >= 1
     assert body["items"][0]["card_id"].startswith("sealed:")
+    # Showcase uses real TCP ids → CDN art URLs.
+    with_art = [row for row in body["items"] if row.get("image_url")]
+    assert len(with_art) >= 3
+    assert "tcgplayer-cdn.tcgplayer.com" in str(with_art[0]["image_url"])
+
+
+def test_tcgplayer_product_image_helper() -> None:
+    from justtcg_sealed import tcgplayer_product_image
+
+    assert tcgplayer_product_image("600518") == (
+        "https://tcgplayer-cdn.tcgplayer.com/product/600518_in_1000x1000.jpg"
+    )
+    assert tcgplayer_product_image("demo-x") is None
 
 
 def test_ensure_sealed_demo() -> None:

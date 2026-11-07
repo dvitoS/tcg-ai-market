@@ -9,55 +9,117 @@ from api.demo_mode import demo_mode
 
 LOG = logging.getLogger("kestrel.api.sealed")
 
-# Demo / no-key fallbacks — illustrative Soft Ink seed (not live quotes).
+# Demo / no-key Soft Ink showcase — real TCGPlayer ids so CDN art works.
+# Spots are illustrative until JustTCG is queried live.
 _DEMO_SEALED: list[dict[str, Any]] = [
     {
-        "card_id": "sealed:demo-surging-etb",
-        "name": "Surging Sparks Elite Trainer Box",
+        "card_id": "sealed:565630",
+        "name": "Surging Sparks Elite Trainer Box (ETB)",
         "set_name": "Surging Sparks",
-        "tcgplayer_id": "demo-surging-etb",
+        "tcgplayer_id": "565630",
         "gtin": None,
         "spot_usd": 49.99,
-        "image_url": None,
         "source": "demo",
         "kind": "sealed",
     },
     {
-        "card_id": "sealed:demo-prism-box",
+        "card_id": "sealed:600518",
         "name": "Prismatic Evolutions Booster Bundle",
         "set_name": "Prismatic Evolutions",
-        "tcgplayer_id": "demo-prism-box",
+        "tcgplayer_id": "600518",
         "gtin": None,
         "spot_usd": 64.5,
-        "image_url": None,
         "source": "demo",
         "kind": "sealed",
     },
     {
-        "card_id": "sealed:demo-151-upc",
-        "name": "Scarlet & Violet—151 Ultra-Premium Collection",
+        "card_id": "sealed:593355",
+        "name": "Prismatic Evolutions Elite Trainer Box (ETB)",
+        "set_name": "Prismatic Evolutions",
+        "tcgplayer_id": "593355",
+        "gtin": None,
+        "spot_usd": 89.99,
+        "source": "demo",
+        "kind": "sealed",
+    },
+    {
+        "card_id": "sealed:544199",
+        "name": "Scarlet & Violet—151 Ultra-Premium Collection (UPC)",
         "set_name": "151",
-        "tcgplayer_id": "demo-151-upc",
+        "tcgplayer_id": "544199",
         "gtin": None,
         "spot_usd": 129.99,
-        "image_url": None,
+        "source": "demo",
+        "kind": "sealed",
+    },
+    {
+        "card_id": "sealed:539927",
+        "name": "Paldean Fates Elite Trainer Box (ETB)",
+        "set_name": "Paldean Fates",
+        "tcgplayer_id": "539927",
+        "gtin": None,
+        "spot_usd": 79.99,
+        "source": "demo",
+        "kind": "sealed",
+    },
+    {
+        "card_id": "sealed:561447",
+        "name": "Stellar Crown Elite Trainer Box (ETB)",
+        "set_name": "Stellar Crown",
+        "tcgplayer_id": "561447",
+        "gtin": None,
+        "spot_usd": 54.99,
+        "source": "demo",
+        "kind": "sealed",
+    },
+    {
+        "card_id": "sealed:546116",
+        "name": "Twilight Masquerade Elite Trainer Box (ETB)",
+        "set_name": "Twilight Masquerade",
+        "tcgplayer_id": "546116",
+        "gtin": None,
+        "spot_usd": 59.99,
+        "source": "demo",
+        "kind": "sealed",
+    },
+    {
+        "card_id": "sealed:542194",
+        "name": "Temporal Forces Elite Trainer Box (ETB)",
+        "set_name": "Temporal Forces",
+        "tcgplayer_id": "542194",
+        "gtin": None,
+        "spot_usd": 54.99,
         "source": "demo",
         "kind": "sealed",
     },
 ]
 
 
+def _with_tcp_images(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    from justtcg_sealed import tcgplayer_product_image
+
+    out: list[dict[str, Any]] = []
+    for row in rows:
+        item = dict(row)
+        if not item.get("image_url"):
+            item["image_url"] = tcgplayer_product_image(str(item.get("tcgplayer_id") or ""))
+        out.append(item)
+    return out
+
+
 def _filter_demo(q: str | None) -> list[dict[str, Any]]:
     text = (q or "").strip().lower()
     if not text:
-        return list(_DEMO_SEALED)
-    return [
-        row
-        for row in _DEMO_SEALED
-        if text in str(row["name"]).lower()
-        or text in str(row.get("set_name") or "").lower()
-        or text in str(row.get("tcgplayer_id") or "").lower()
-    ]
+        rows = list(_DEMO_SEALED)
+    else:
+        rows = [
+            row
+            for row in _DEMO_SEALED
+            if text in str(row["name"]).lower()
+            or text in str(row.get("set_name") or "").lower()
+            or text in str(row.get("tcgplayer_id") or "").lower()
+        ]
+    return _with_tcp_images(rows)
 
 
 def quote_sealed_products(
@@ -132,6 +194,11 @@ def ensure_sealed_card(hit: dict[str, Any]) -> dict[str, Any]:
         market = float(spot) if spot is not None else None
     except (TypeError, ValueError):
         market = None
+    image = hit.get("image_url")
+    if not image:
+        from justtcg_sealed import tcgplayer_product_image
+
+        image = tcgplayer_product_image(str(hit.get("tcgplayer_id") or ""))
     row = {
         "id": card_id,
         "name": name,
@@ -141,12 +208,12 @@ def ensure_sealed_card(hit: dict[str, Any]) -> dict[str, Any]:
         "market_price": market,
         "pokewallet_id": None,
         "tcgplayer_id": hit.get("tcgplayer_id"),
-        "image_url": hit.get("image_url"),
+        "image_url": image,
     }
     if demo_mode():
-        return {**hit, "ensured": True, "demo": True}
+        return {**hit, "image_url": image, "ensured": True, "demo": True}
 
     from database import upsert_cards
 
     upsert_cards([row])
-    return {**hit, "ensured": True, "demo": False}
+    return {**hit, "image_url": image, "ensured": True, "demo": False}
