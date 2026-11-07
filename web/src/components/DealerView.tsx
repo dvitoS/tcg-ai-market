@@ -183,7 +183,7 @@ export function DealerView() {
           <p className="explore-lede">{t("dealer_signin_lede")}</p>
         </div>
         <div className="detail-actions">
-          <Link href="/portfolio" className="btn-primary">
+          <Link href="/signin?next=/dealer" className="btn-primary">
             {t("auth_sign_in")}
           </Link>
           <Link href="/pro" className="btn-ghost">

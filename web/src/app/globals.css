@@ -2631,6 +2631,41 @@ a {
   font-weight: 600;
 }
 
+.portfolio-fold {
+  margin: 0 0 1.1rem;
+  border-top: 1px solid rgba(244, 241, 234, 0.08);
+  padding-top: 0.65rem;
+}
+
+.portfolio-fold-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  cursor: pointer;
+  list-style: none;
+  margin-bottom: 0.65rem;
+}
+
+.portfolio-fold-summary::-webkit-details-marker {
+  display: none;
+}
+
+.portfolio-fold-title {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.portfolio-fold-hint {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.portfolio-fold[open] .portfolio-fold-summary {
+  margin-bottom: 0.85rem;
+}
+
 .lot-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));

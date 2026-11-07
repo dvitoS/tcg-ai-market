@@ -163,7 +163,7 @@ export function SiteHeader() {
             {user.email || t("auth_sign_out")}
           </button>
         ) : (
-          <Link href="/portfolio" className="btn-ghost header-auth">
+          <Link href="/signin" className="btn-ghost header-auth">
             {t("auth_sign_in")}
           </Link>
         )}
@@ -221,19 +221,20 @@ export function SiteHeader() {
                 logout();
               }}
             >
-              {t("auth_sign_out")} · {user.email || "Account"}
+              {t("auth_sign_out")}
+              {user.email ? ` · ${user.email}` : ""}
             </button>
           ) : (
             <div className="nav-mobile-auth-row">
               <Link
-                href="/portfolio"
+                href="/signin"
                 className="btn-primary"
                 onClick={() => setOpen(false)}
               >
                 {t("auth_sign_in")}
               </Link>
               <Link
-                href="/portfolio?auth=signup"
+                href="/signin?auth=signup"
                 className="btn-ghost"
                 onClick={() => setOpen(false)}
               >

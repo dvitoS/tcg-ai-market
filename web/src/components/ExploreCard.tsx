@@ -76,9 +76,12 @@ function MoveRow({
 export function ExploreCard({
   card,
   showSignal = false,
+  priority = false,
 }: {
   card: CatalogCard;
   showSignal?: boolean;
+  /** First-viewport browse arts — helps LCP. */
+  priority?: boolean;
 }) {
   const { locale } = useLocale();
   const { formatSpot } = useCurrency();
@@ -117,6 +120,7 @@ export function ExploreCard({
           height={342}
           className="explore-card-img"
           sizes="(max-width: 640px) 45vw, (max-width: 1024px) 22vw, 180px"
+          priority={priority}
         />
         <div className="explore-card-readout" aria-hidden={false}>
           <span className="explore-card-price">{formatSpot(card.price)}</span>

@@ -62,20 +62,27 @@ export function DealOfTheDay({
   limit = 1,
   variant = "landing",
   className = "",
+  initialPreview = null,
 }: {
   limit?: number;
   variant?: "landing" | "pro";
   className?: string;
+  /** SSR / parent-provided preview — skips the cold client fetch when present. */
+  initialPreview?: RadarPreviewResponse | null;
 }) {
   const { t, locale } = useLocale();
   const { formatSpot } = useCurrency();
-  const [preview, setPreview] = useState<RadarPreviewResponse | null>(null);
+  const [preview, setPreview] = useState<RadarPreviewResponse | null>(
+    initialPreview,
+  );
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialPreview);
 
   const capped = Math.max(1, Math.min(8, Math.floor(limit) || 1));
 
   useEffect(() => {
+    // Trust SSR payload for the free teaser; only client-fetch when missing.
+    if (initialPreview) return;
     let alive = true;
     setLoading(true);
     void fetchRadarPreview(capped)
@@ -99,7 +106,7 @@ export function DealOfTheDay({
     return () => {
       alive = false;
     };
-  }, [capped, t, variant]);
+  }, [capped, t, variant, initialPreview]);
 
   const rows = preview?.underpriced || [];
   const featured = rows[0] || null;

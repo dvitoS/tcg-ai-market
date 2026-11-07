@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 
-import { DeskLoading } from "@/components/DeskLoading";
+import { LocalizedDeskLoading } from "@/components/LocalizedDeskLoading";
 import { PortfolioView } from "@/components/PortfolioView";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +10,11 @@ export default function PortfolioPage() {
     <Suspense
       fallback={
         <section className="portfolio-page">
-          <DeskLoading label="Loading portfolio…" variant="panel" skeletonCount={4} />
+          <LocalizedDeskLoading
+            labelKey="port_loading_desk"
+            variant="panel"
+            skeletonCount={4}
+          />
         </section>
       }
     >

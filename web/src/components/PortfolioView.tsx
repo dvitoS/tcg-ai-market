@@ -365,7 +365,7 @@ export function PortfolioView() {
   if (!user) {
     return (
       <SignInView
-        nextPath={nextPath}
+        nextPath={nextPath || "/portfolio"}
         initialMode={initialAuthMode}
         onAuthenticated={async () => {
           await load();
@@ -506,14 +506,26 @@ export function PortfolioView() {
         ) : null}
       </details>
 
-      <PortfolioPerfChart
-        points={perfPoints}
-        aiFairValue={perfAiFair}
-        callouts={perfCallouts}
-      />
-      <PortfolioBarsChart lots={openLots} />
+      <details className="portfolio-fold">
+        <summary className="portfolio-fold-summary">
+          <span className="portfolio-fold-title">{t("port_equity_section")}</span>
+          <span className="portfolio-fold-hint">{t("port_equity_hint")}</span>
+        </summary>
+        <PortfolioPerfChart
+          points={perfPoints}
+          aiFairValue={perfAiFair}
+          callouts={perfCallouts}
+        />
+        <PortfolioBarsChart lots={openLots} />
+      </details>
 
-      <SealedAddPanel onAdded={() => void load()} />
+      <details className="portfolio-fold">
+        <summary className="portfolio-fold-summary">
+          <span className="portfolio-fold-title">{t("port_sealed_section")}</span>
+          <span className="portfolio-fold-hint">{t("port_sealed_hint")}</span>
+        </summary>
+        <SealedAddPanel onAdded={() => void load()} />
+      </details>
 
       <div className="portfolio-section-head">
         <h2>{t("port_open_lots", { n: openLots.length })}</h2>

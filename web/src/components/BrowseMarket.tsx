@@ -1,6 +1,14 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import {
+  FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 
 import { CardSkeletonGrid } from "@/components/CardSkeletonGrid";
 import { ExploreCard } from "@/components/ExploreCard";
@@ -47,6 +55,8 @@ export function BrowseMarket({
   const [error, setError] = useState<string | null>(initialError);
   const [pending, startTransition] = useTransition();
   const [hydrated, setHydrated] = useState(false);
+  // Keep SSR catalog on first paint — only refetch when filters/mode change.
+  const skipNextLoad = useRef(true);
 
   const load = useCallback(
     (offset: number, append: boolean) => {
@@ -81,6 +91,10 @@ export function BrowseMarket({
 
   useEffect(() => {
     if (!hydrated) return;
+    if (skipNextLoad.current) {
+      skipNextLoad.current = false;
+      return;
+    }
     load(0, false);
   }, [hydrated, load]);
 
@@ -227,8 +241,13 @@ export function BrowseMarket({
         <p className="empty-state">{t("explore_empty")}</p>
       ) : (
         <div className={`explore-grid ${pending ? "is-pending" : ""}`}>
-          {items.map((card) => (
-            <ExploreCard key={card.id} card={card} showSignal={mode === "signals"} />
+          {items.map((card, index) => (
+            <ExploreCard
+              key={card.id}
+              card={card}
+              showSignal={mode === "signals"}
+              priority={index < 4}
+            />
           ))}
         </div>
       )}

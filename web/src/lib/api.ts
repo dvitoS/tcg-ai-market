@@ -784,10 +784,13 @@ export type RadarQuery = {
 
 export async function fetchRadarPreview(
   limit = 5,
+  init?: RequestInit,
 ): Promise<RadarPreviewResponse> {
   const res = await fetch(apiUrl(`/api/radar/preview?limit=${limit}`), {
     headers: { Accept: "application/json" },
-    cache: "no-store",
+    // Short revalidate so landing /pro teaser can SSR without a cold no-store wait.
+    next: { revalidate: 60 },
+    ...init,
   });
   if (!res.ok) {
     throw new Error(`Radar preview failed (${res.status})`);
