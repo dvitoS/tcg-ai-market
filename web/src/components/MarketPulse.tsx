@@ -40,12 +40,14 @@ function pulseStoryKey(pulse: MarketPulseResponse): {
   return { key: "landing_pulse_story_mixed", params: { under, over } };
 }
 
-function MoverRow({
+function MoverTile({
   mover,
   tone,
+  index,
 }: {
   mover: MarketMover;
   tone: "up" | "down";
+  index: number;
 }) {
   const { formatSpot } = useCurrency();
   const chg = mover.price_change_7d_pct;
@@ -53,13 +55,14 @@ function MoverRow({
     <Link
       href={`/cards/${encodeURIComponent(mover.id)}`}
       className={`landing-mover is-${tone}`}
+      style={{ animationDelay: `${0.08 + index * 0.06}s` }}
     >
       <span className="landing-mover-art">
         <Image
           src={mover.image_url || "/kestrel-logo.png"}
           alt=""
-          width={36}
-          height={50}
+          width={72}
+          height={100}
         />
       </span>
       <span className="landing-mover-copy">
@@ -68,8 +71,11 @@ function MoverRow({
           {[mover.set_name, formatSpot(mover.price)].filter(Boolean).join(" · ")}
         </span>
       </span>
-      <span className={`landing-mover-chg is-${tone}`}>
-        {formatChange(chg)}
+      <span className={`landing-mover-chg is-${tone}`} aria-label={formatChange(chg)}>
+        <span className="landing-mover-chg-arrow" aria-hidden="true">
+          {tone === "up" ? "▲" : "▼"}
+        </span>
+        <span className="landing-mover-chg-num">{formatChange(chg)}</span>
       </span>
     </Link>
   );
@@ -104,6 +110,8 @@ export function MarketPulse({
 
   const story = pulseStoryKey(pulse);
   const hasMovers = pulse.risers.length > 0 || pulse.fallers.length > 0;
+  const medianTone =
+    (pulse.median_change_7d_pct ?? 0) >= 0 ? "is-buy" : "is-sell";
 
   return (
     <section className="landing-pulse" aria-labelledby="landing-pulse-title">
@@ -118,30 +126,26 @@ export function MarketPulse({
       <dl className="landing-pulse-stats">
         <div>
           <dt>{t("landing_pulse_sure_under")}</dt>
-          <dd className="is-buy">{pulse.sure_under}</dd>
+          <dd className="is-buy landing-pulse-stat-num">{pulse.sure_under}</dd>
         </div>
         <div>
           <dt>{t("landing_pulse_sure_over")}</dt>
-          <dd className="is-sell">{pulse.sure_over}</dd>
+          <dd className="is-sell landing-pulse-stat-num">{pulse.sure_over}</dd>
         </div>
         <div>
           <dt>{t("landing_pulse_median_7d")}</dt>
-          <dd
-            className={
-              (pulse.median_change_7d_pct ?? 0) >= 0 ? "is-buy" : "is-sell"
-            }
-          >
+          <dd className={`${medianTone} landing-pulse-stat-num`}>
             {formatChange(pulse.median_change_7d_pct)}
           </dd>
         </div>
         <div>
           <dt>{t("landing_pulse_breadth")}</dt>
-          <dd>
-            {pulse.rising_n}
+          <dd className="landing-pulse-stat-num">
+            <span className="is-buy">{pulse.rising_n}</span>
             <span className="landing-pulse-sep">↑</span>
             <span className="landing-pulse-flat">{pulse.flat_n}</span>
             <span className="landing-pulse-sep">↓</span>
-            {pulse.falling_n}
+            <span className="is-sell">{pulse.falling_n}</span>
           </dd>
         </div>
       </dl>
@@ -153,8 +157,8 @@ export function MarketPulse({
               {t("landing_trends_rising")}
             </h3>
             <div className="landing-movers">
-              {pulse.risers.map((m) => (
-                <MoverRow key={`up-${m.id}`} mover={m} tone="up" />
+              {pulse.risers.map((m, i) => (
+                <MoverTile key={`up-${m.id}`} mover={m} tone="up" index={i} />
               ))}
             </div>
           </div>
@@ -163,8 +167,8 @@ export function MarketPulse({
               {t("landing_trends_falling")}
             </h3>
             <div className="landing-movers">
-              {pulse.fallers.map((m) => (
-                <MoverRow key={`dn-${m.id}`} mover={m} tone="down" />
+              {pulse.fallers.map((m, i) => (
+                <MoverTile key={`dn-${m.id}`} mover={m} tone="down" index={i} />
               ))}
             </div>
           </div>
