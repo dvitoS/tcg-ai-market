@@ -440,8 +440,8 @@ def run_nightly() -> int:
         def _tcp_backfill():
             from backfill_tcgplayer_ids import backfill_tcgplayer_ids
 
-            limit_raw = os.environ.get("NIGHTLY_BACKFILL_TCP_LIMIT", "40").strip()
-            limit = int(limit_raw) if limit_raw.isdigit() else 40
+            limit_raw = os.environ.get("NIGHTLY_BACKFILL_TCP_LIMIT", "300").strip()
+            limit = int(limit_raw) if limit_raw.isdigit() else 300
             stats = backfill_tcgplayer_ids(
                 limit=limit,
                 only_missing=True,
