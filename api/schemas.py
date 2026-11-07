@@ -50,6 +50,25 @@ class DataHealthResponse(BaseModel):
     quotes_written: int | None = None
 
 
+class SpotHealRequest(BaseModel):
+    mode: Literal["dry_run", "null_market", "clear_history", "refetch"] = "dry_run"
+    limit: int | None = Field(default=50, ge=1, le=500)
+
+
+class SpotHealResponse(BaseModel):
+    mode: str
+    count: int = 0
+    ids: list[str] = Field(default_factory=list)
+    poison_keys: list[float] = Field(default_factory=list)
+    nulled: int = 0
+    history_cleared: int = 0
+    updated: int = 0
+    skipped: int = 0
+    skip_poison: int = 0
+    skip_absurd: int = 0
+    saved: int = 0
+
+
 class LoginRequest(BaseModel):
     email: str
     password: str

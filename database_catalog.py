@@ -262,6 +262,18 @@ def update_card_market_price(card_id: str, market_price: float, *, tcgplayer_id:
     client.table("cards").update(payload).eq("id", card_id).execute()
 
 
+def clear_card_market_price(card_id: str) -> None:
+    """Null ``cards.market_price`` so a later JustTCG heal is not blocked by skip_absurd."""
+    client = get_supabase()
+    client.table("cards").update({"market_price": None}).eq("id", card_id).execute()
+
+
+def delete_card_history(card_id: str) -> None:
+    """Delete price_history for one card (not a mass wipe)."""
+    client = get_supabase()
+    client.table("price_history").delete().eq("card_id", card_id).execute()
+
+
 def update_card_tcgplayer_id(card_id: str, tcgplayer_id: str) -> None:
     """Spremi TCGplayer product id (za JustTCG live history)."""
     if not tcgplayer_id or not cards_have_tcgplayer_id_column():

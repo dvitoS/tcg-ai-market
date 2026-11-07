@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends
 from api.catalog_service import load_board
 from api.deps import require_ops_user
 from api.price_sources_service import clear_price_sources_cache
-from api.schemas import DataHealthResponse, HealthResponse
+from api.schemas import DataHealthResponse, HealthResponse, SpotHealRequest, SpotHealResponse
 from justtcg_client import justtcg_api_key
 from services.creem_webhooks import creem_webhook_secret
 from services.prices import (
@@ -113,3 +113,31 @@ def data_health_reset(
     clear_price_sources_cache()
     reset_justtcg_observability()
     return data_health(ops)
+
+
+@router.post("/data-health/heal-spots", response_model=SpotHealResponse)
+def data_health_heal_spots(
+    body: SpotHealRequest,
+    _ops: Annotated[dict[str, Any], Depends(require_ops_user)],
+) -> SpotHealResponse:
+    """Ops: detect / soft-clear / refetch poisoned identical JustTCG spots."""
+    from api.catalog_service import clear_board_cache
+    from services.spot_heal import heal_poisoned_spots
+
+    result = heal_poisoned_spots(mode=body.mode, limit=body.limit)
+    if body.mode != "dry_run":
+        clear_board_cache()
+        clear_price_sources_cache()
+    return SpotHealResponse(
+        mode=str(result.get("mode") or body.mode),
+        count=int(result.get("count") or 0),
+        ids=list(result.get("ids") or [])[:50],
+        poison_keys=[float(x) for x in list(result.get("poison_keys") or [])],
+        nulled=int(result.get("nulled") or 0),
+        history_cleared=int(result.get("history_cleared") or 0),
+        updated=int(result.get("updated") or 0),
+        skipped=int(result.get("skipped") or 0),
+        skip_poison=int(result.get("skip_poison") or 0),
+        skip_absurd=int(result.get("skip_absurd") or 0),
+        saved=int(result.get("saved") or 0),
+    )
