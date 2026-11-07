@@ -7,6 +7,12 @@ from typing import Any
 import pandas as pd
 
 from api.catalog_service import filter_board, load_board, row_to_card
+from services.spot_sanity import (
+    RADAR_MAX_ABS_7D_CHANGE_PCT,
+    RADAR_MAX_UNDER_EDGE_PCT,
+    RADAR_MIN_UNDER_SPOT,
+    under_deal_allowed,
+)
 from trading_signals import FORECAST_DAYS
 
 # Conservative edge floor (%): lower conformal bound must clear this for UNDER deals.
@@ -17,6 +23,9 @@ def radar_defaults() -> dict[str, Any]:
     return {
         "forecast_days": int(FORECAST_DAYS),
         "edge_floor": float(RADAR_EDGE_FLOOR),
+        "max_under_edge_pct": float(RADAR_MAX_UNDER_EDGE_PCT),
+        "min_under_spot": float(RADAR_MIN_UNDER_SPOT),
+        "max_abs_7d_change_pct": float(RADAR_MAX_ABS_7D_CHANGE_PCT),
     }
 
 
@@ -148,6 +157,32 @@ def build_radar(
     else:
         under_mask = edge_u.notna() & (edge_u >= floor)
         over_mask = edge_o.notna() & (edge_o <= -floor)
+
+    # Trust gate: drop absurd edges, bulk UNDER noise, rarity/spot poison, 7d jumps.
+    spot = pd.to_numeric(sure.get("price"), errors="coerce")
+    chg7 = pd.to_numeric(sure.get("price_change_7d_pct"), errors="coerce")
+    rarities = (
+        sure["rarity"] if "rarity" in sure.columns else pd.Series([None] * len(sure), index=sure.index)
+    )
+    trust_u = pd.Series(
+        [
+            under_deal_allowed(
+                spot=s,
+                edge_pct=e,
+                rarity=r,
+                price_change_7d_pct=c,
+            )
+            for s, e, r, c in zip(
+                spot.tolist(),
+                edge_u.tolist(),
+                rarities.tolist(),
+                chg7.tolist(),
+                strict=False,
+            )
+        ],
+        index=sure.index,
+    )
+    under_mask = under_mask & trust_u
 
     under_frame = (
         sure.loc[under_mask]
