@@ -23,28 +23,24 @@ function changeDirection(value?: number | null): "up" | "down" | null {
   return null;
 }
 
-/** Fine stroke trend mark — quieter than unicode arrows, more Soft Ink. */
+/** Solid vertical arrow — thicker, clearer than diagonal stroke marks. */
 function MoveTrend({ direction }: { direction: "up" | "down" }) {
   return (
     <svg
       className={`explore-card-move-arrow is-${direction}`}
-      viewBox="0 0 12 12"
-      width="11"
-      height="11"
+      viewBox="0 0 12 14"
+      width="10"
+      height="12"
       aria-hidden="true"
       focusable="false"
     >
       <path
         d={
           direction === "up"
-            ? "M2.2 8.6 L9.2 2.4 M5.4 2.4 H9.2 V6.2"
-            : "M2.2 3.4 L9.2 9.6 M5.4 9.6 H9.2 V5.8"
+            ? "M6 1.2 L10.8 6.6 H7.55 V12.8 H4.45 V6.6 H1.2 Z"
+            : "M6 12.8 L1.2 7.4 H4.45 V1.2 H7.55 V7.4 H10.8 Z"
         }
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.55"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+        fill="currentColor"
       />
     </svg>
   );
