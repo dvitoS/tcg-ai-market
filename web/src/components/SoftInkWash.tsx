@@ -32,12 +32,14 @@ export function SoftInkWash() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const el = canvasRef.current;
+    if (!el) return;
+    const canvas: HTMLCanvasElement = el;
 
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const ctx = canvas.getContext("2d", { alpha: true });
-    if (!ctx) return;
+    const surface = canvas.getContext("2d", { alpha: true });
+    if (!surface) return;
+    const ctx: CanvasRenderingContext2D = surface;
 
     let raf = 0;
     let running = true;
