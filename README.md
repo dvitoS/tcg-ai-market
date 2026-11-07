@@ -137,7 +137,7 @@ Actions secrets: `SUPABASE_URL`, `SUPABASE_KEY`, preferably `JUSTTCG_API_KEY`. O
 3. **JustTCG drip** — schedule default `NIGHTLY_CARD_LIMIT=400` (missing history first) so prices fill over nights and **retrain always runs**.
 4. Manual dispatch can still choose `catalog_mode=full` and `card_limit=all` for a bootstrap pass.
 
-Also backfills `tcgplayer_id` (default 60/night), refreshes `market_quotes`, emails/Discord digests when configured, purges expired `auth_sessions`. **Fails** if `market_quotes` persist is empty.
+Also backfills `tcgplayer_id` (default 300/night via Actions) so more cards become JustTCG-batchable without raising the JustTCG request budget, refreshes `market_quotes`, emails/Discord digests when configured, purges expired `auth_sessions`. **Fails** if `market_quotes` persist is empty.
 
 **Later (catalog source):** migrate off pokemontcg.io before 2027 — free [TCGdex](https://tcgdex.dev/) (IDs differ, e.g. `sv01-001` vs `sv1-1`) or paid successor [Scrydex](https://scrydex.com/).
 
