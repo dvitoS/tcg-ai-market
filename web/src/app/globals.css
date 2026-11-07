@@ -1130,6 +1130,68 @@ a {
   gap: 1rem;
 }
 
+.sealed-desk {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.25rem 1rem 3.5rem;
+}
+
+.sealed-desk-grid {
+  margin-top: 0.85rem;
+}
+
+.sealed-desk-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 0;
+}
+
+.sealed-desk-card:focus-visible {
+  outline: 2px solid rgba(184, 115, 51, 0.7);
+  outline-offset: 3px;
+}
+
+.sealed-desk-card.is-selected .sealed-desk-art {
+  box-shadow: inset 0 0 0 2px rgba(184, 115, 51, 0.85);
+}
+
+.sealed-desk-art {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background: rgba(20, 18, 16, 0.55);
+}
+
+.sealed-desk-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.sealed-desk-dock {
+  position: sticky;
+  bottom: 0.75rem;
+  margin-top: 1.25rem;
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: rgba(22, 20, 18, 0.94);
+  backdrop-filter: blur(8px);
+}
+
+.sealed-desk-add {
+  margin-top: 0;
+}
+
 .sealed-add-panel {
   margin: 1rem 0 1.25rem;
   border: 1px solid var(--border);

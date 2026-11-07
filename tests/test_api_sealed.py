@@ -21,10 +21,14 @@ def test_sealed_quote_demo_seed() -> None:
         assert body["items"][0]["kind"] == "sealed"
 
 
-def test_sealed_quote_requires_query() -> None:
+def test_sealed_quote_showcase_without_query() -> None:
     client = TestClient(app)
     res = client.get("/api/sealed/quote")
-    assert res.status_code == 400
+    assert res.status_code == 200
+    body = res.json()
+    assert body["source"] == "demo"
+    assert len(body["items"]) >= 1
+    assert body["items"][0]["card_id"].startswith("sealed:")
 
 
 def test_ensure_sealed_demo() -> None:

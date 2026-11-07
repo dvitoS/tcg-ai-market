@@ -66,11 +66,29 @@ def quote_sealed_products(
     tcgplayer_id: str | None = None,
     gtin: str | None = None,
     limit: int = 8,
+    allow_showcase: bool = False,
 ) -> dict[str, Any]:
     from justtcg_client import justtcg_api_key
 
     limit = max(1, min(int(limit or 8), 20))
     has_key = bool(justtcg_api_key())
+    has_query = bool(q or tcgplayer_id or gtin)
+    if not has_query:
+        if not allow_showcase:
+            return {
+                "items": [],
+                "source": "empty",
+                "justtcg_configured": has_key,
+                "error": "Provide q, tcgplayer_id, or gtin.",
+            }
+        # Soft Ink /sealed desk: curated demo showcase until we persist a sealed board.
+        hits = _filter_demo(None)
+        return {
+            "items": hits[:limit],
+            "source": "demo",
+            "justtcg_configured": has_key,
+        }
+
     if not has_key or demo_mode():
         hits = _filter_demo(q or tcgplayer_id or gtin)
         return {

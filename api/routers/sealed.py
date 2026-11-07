@@ -6,7 +6,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from api.deps import require_user
+from api.deps import optional_user, require_user
 from api.schemas import SealedEnsureRequest, SealedQuoteItem, SealedQuoteResponse
 from api.sealed_service import ensure_sealed_card, quote_sealed_products
 
@@ -15,23 +15,23 @@ router = APIRouter(prefix="/sealed", tags=["sealed"])
 
 @router.get("/quote", response_model=SealedQuoteResponse)
 def sealed_quote(
-    user: Annotated[dict, Depends(require_user)],
+    user: Annotated[dict | None, Depends(optional_user)] = None,
     q: str | None = Query(default=None, max_length=120),
     tcgplayer_id: str | None = Query(default=None, max_length=64),
     gtin: str | None = Query(default=None, max_length=32),
     limit: int = Query(default=8, ge=1, le=20),
 ) -> SealedQuoteResponse:
-    del user  # auth gate only
-    if not (q or tcgplayer_id or gtin):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Provide q, tcgplayer_id, or gtin.",
-        )
+    """Public Soft Ink sealed desk — search or empty showcase (demo seed).
+
+    Adding lots still requires auth via ``/ensure`` + portfolio.
+    """
+    del user
     payload = quote_sealed_products(
         q=q,
         tcgplayer_id=tcgplayer_id,
         gtin=gtin,
         limit=limit,
+        allow_showcase=not (q or tcgplayer_id or gtin),
     )
     return SealedQuoteResponse(
         items=[SealedQuoteItem(**item) for item in payload.get("items") or []],
