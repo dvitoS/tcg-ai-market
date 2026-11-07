@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import { AddLotForm } from "@/components/AddLotForm";
 import { useCurrency } from "@/components/CurrencyProvider";
+import { DeferredMount } from "@/components/DeferredMount";
 import { EbayComps } from "@/components/EbayComps";
 import { GradingEvPanel } from "@/components/GradingEvPanel";
 import { useLocale } from "@/components/LocaleProvider";
@@ -231,11 +232,13 @@ export function CardDetailView({
             points={points}
             predictedPrice={card.predicted_price}
           />
-          <GradingEvPanel
-            cardId={card.id}
-            rawPrice={history.last_price ?? card.price}
-          />
-          <EbayComps cardId={card.id} cardName={card.name} />
+          <DeferredMount>
+            <GradingEvPanel
+              cardId={card.id}
+              rawPrice={history.last_price ?? card.price}
+            />
+            <EbayComps cardId={card.id} cardName={card.name} />
+          </DeferredMount>
         </aside>
       </div>
     </article>

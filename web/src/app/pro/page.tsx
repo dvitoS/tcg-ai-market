@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 
 import { ProView } from "@/components/ProView";
-import { fetchBillingStatus } from "@/lib/api";
+import { fetchBillingStatus, fetchRadarPreview } from "@/lib/api";
 import { absoluteUrl } from "@/lib/seo";
+import type { RadarPreviewResponse } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -17,13 +18,25 @@ export default async function ProPage() {
   let checkoutUrl: string | null = null;
   let proOpen = true;
   let error: string | null = null;
+  let initialDotd: RadarPreviewResponse | null = null;
   try {
-    const status = await fetchBillingStatus();
+    const [status, preview] = await Promise.all([
+      fetchBillingStatus(),
+      fetchRadarPreview(5).catch(() => null),
+    ]);
     checkoutUrl = status.checkout_url;
     proOpen = status.pro_open;
+    initialDotd = preview;
   } catch (err) {
     error = err instanceof Error ? err.message : "Could not load billing status";
   }
 
-  return <ProView checkoutUrl={checkoutUrl} proOpen={proOpen} error={error} />;
+  return (
+    <ProView
+      checkoutUrl={checkoutUrl}
+      proOpen={proOpen}
+      error={error}
+      initialDotd={initialDotd}
+    />
+  );
 }

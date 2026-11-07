@@ -105,7 +105,10 @@ function SidePanel({
         <h2>{title}</h2>
         {side ? (
           <p className="lot-meta">
-            {formatMoney(side.spot_total)} spot · {formatMoney(side.fair_total)} AI
+            {t("trade_side_totals", {
+              spot: formatMoney(side.spot_total),
+              fair: formatMoney(side.fair_total),
+            })}
           </p>
         ) : (
           <p className="lot-meta">{t("trade_side_empty")}</p>

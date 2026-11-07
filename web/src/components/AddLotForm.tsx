@@ -67,7 +67,7 @@ export function AddLotForm({
         <h2>{t("add_lot_title")}</h2>
         <p className="add-lot-hint">
           {t("add_lot_guest", { name: cardName })}{" "}
-          <Link href="/portfolio" className="inline-link">
+          <Link href="/signin?next=/portfolio" className="inline-link">
             {t("add_lot_open")}
           </Link>
         </p>

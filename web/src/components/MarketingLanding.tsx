@@ -4,8 +4,13 @@ import Link from "next/link";
 
 import { DealOfTheDay } from "@/components/DealOfTheDay";
 import { useLocale } from "@/components/LocaleProvider";
+import type { RadarPreviewResponse } from "@/lib/types";
 
-export function MarketingLanding() {
+export function MarketingLanding({
+  initialDotd = null,
+}: {
+  initialDotd?: RadarPreviewResponse | null;
+}) {
   const { t } = useLocale();
 
   return (
@@ -39,7 +44,11 @@ export function MarketingLanding() {
         </div>
       </section>
 
-      <DealOfTheDay limit={5} variant="landing" />
+      <DealOfTheDay
+        limit={5}
+        variant="landing"
+        initialPreview={initialDotd}
+      />
 
       <section className="landing-path" aria-labelledby="landing-path-title">
         <h2 id="landing-path-title" className="landing-path-title">

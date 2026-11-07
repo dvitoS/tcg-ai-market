@@ -7,15 +7,18 @@ import { useAuth } from "@/components/AuthProvider";
 import { DealOfTheDay } from "@/components/DealOfTheDay";
 import { useLocale } from "@/components/LocaleProvider";
 import { fetchBillingMe, type BillingMe } from "@/lib/api";
+import type { RadarPreviewResponse } from "@/lib/types";
 
 export function ProView({
   checkoutUrl,
   proOpen,
   error,
+  initialDotd = null,
 }: {
   checkoutUrl: string | null;
   proOpen: boolean;
   error?: string | null;
+  initialDotd?: RadarPreviewResponse | null;
 }) {
   const { t } = useLocale();
   const { user, loading: authLoading } = useAuth();
@@ -106,7 +109,7 @@ export function ProView({
               {t("pro_open_dealer")}
             </Link>
             {!user ? (
-              <Link href="/portfolio" className="btn-ghost">
+              <Link href="/signin?next=/pro" className="btn-ghost">
                 {t("auth_sign_in")}
               </Link>
             ) : null}
@@ -114,7 +117,11 @@ export function ProView({
         )}
       </div>
 
-      <DealOfTheDay limit={5} variant="pro" />
+      <DealOfTheDay
+        limit={5}
+        variant="pro"
+        initialPreview={initialDotd}
+      />
 
       <ul className="pro-feature-list">
         <li>{t("pro_f1")}</li>

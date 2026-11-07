@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
+import { LocalizedDeskLoading } from "@/components/LocalizedDeskLoading";
 import { TradeView } from "@/components/TradeView";
 import { absoluteUrl } from "@/lib/seo";
 
@@ -18,7 +19,7 @@ export default function TradePage() {
     <Suspense
       fallback={
         <section className="scanner-page trade-page">
-          <p className="explore-lede">Loading Trade Analyzer…</p>
+          <LocalizedDeskLoading labelKey="trade_loading" variant="banner" />
         </section>
       }
     >

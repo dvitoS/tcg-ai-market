@@ -165,7 +165,7 @@ export function BinderView() {
           <h1 className="explore-title">{t("binder_title")}</h1>
           <p className="explore-lede">{t("binder_signin_lede")}</p>
         </div>
-        <Link href="/portfolio" className="btn-primary">
+        <Link href="/signin?next=/binder" className="btn-primary">
           {t("auth_sign_in")}
         </Link>
       </section>

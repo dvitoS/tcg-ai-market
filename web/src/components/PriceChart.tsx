@@ -51,9 +51,9 @@ function clipPoints(points: HistoryPoint[], range: RangeKey): HistoryPoint[] {
   );
 }
 
-function shortDate(value: string): string {
+function shortDate(value: string, locale: string): string {
   const d = new Date(`${value}T00:00:00Z`);
-  return d.toLocaleDateString("en-US", {
+  return d.toLocaleDateString(locale === "hr" ? "hr-HR" : "en-US", {
     month: "short",
     day: "numeric",
     timeZone: "UTC",
@@ -64,12 +64,13 @@ function mergeSeries(
   tcg: HistoryPoint[],
   just: HistoryPoint[],
   psa: HistoryPoint[],
+  locale: string,
 ): Array<Record<string, string | number | null>> {
   const byDate = new Map<string, Record<string, string | number | null>>();
   for (const p of tcg) {
     byDate.set(p.date, {
       date: p.date,
-      label: shortDate(p.date),
+      label: shortDate(p.date, locale),
       tcgplayer: Number(p.price),
       justtcg: null,
       psa10: null,
@@ -78,7 +79,7 @@ function mergeSeries(
   for (const p of just) {
     const row = byDate.get(p.date) || {
       date: p.date,
-      label: shortDate(p.date),
+      label: shortDate(p.date, locale),
       tcgplayer: null,
       justtcg: null,
       psa10: null,
@@ -89,7 +90,7 @@ function mergeSeries(
   for (const p of psa) {
     const row = byDate.get(p.date) || {
       date: p.date,
-      label: shortDate(p.date),
+      label: shortDate(p.date, locale),
       tcgplayer: null,
       justtcg: null,
       psa10: null,
@@ -111,7 +112,7 @@ export function PriceChart({
   points: HistoryPoint[];
   predictedPrice?: number | null;
 }) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const [range, setRange] = useState<RangeKey>("1m");
   const [sources, setSources] = useState<CardPriceSourcesResponse | null>(null);
   // SSR points paint immediately; JustTCG/PSA enhance in the background.
@@ -210,8 +211,8 @@ export function PriceChart({
   );
 
   const chartData = useMemo(
-    () => mergeSeries(tcgPoints, justPoints, psaPoints),
-    [tcgPoints, justPoints, psaPoints],
+    () => mergeSeries(tcgPoints, justPoints, psaPoints, locale),
+    [tcgPoints, justPoints, psaPoints, locale],
   );
 
   if (!points.length && !chartData.length) {

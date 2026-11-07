@@ -57,7 +57,7 @@ export function WatchToggle({ cardId }: { cardId: string }) {
 
   if (!user) {
     return (
-      <Link href="/portfolio" className="btn-ghost watch-toggle">
+      <Link href="/signin?next=/portfolio" className="btn-ghost watch-toggle">
         {t("watch_sign_in")}
       </Link>
     );

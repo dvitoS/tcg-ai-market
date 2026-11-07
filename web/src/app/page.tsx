@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 
 import { MarketingLanding } from "@/components/MarketingLanding";
+import { fetchRadarPreview } from "@/lib/api";
 import { SITE_URL, absoluteUrl } from "@/lib/seo";
+import type { RadarPreviewResponse } from "@/lib/types";
 
 const TITLE = "Kestrel — Pokémon TCG fair value: buy, pass, or trade";
 const DESCRIPTION =
@@ -81,14 +83,21 @@ const jsonLd = {
   ],
 };
 
-export default function HomePage() {
+export default async function HomePage() {
+  let initialDotd: RadarPreviewResponse | null = null;
+  try {
+    initialDotd = await fetchRadarPreview(5);
+  } catch {
+    initialDotd = null;
+  }
+
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <MarketingLanding />
+      <MarketingLanding initialDotd={initialDotd} />
     </>
   );
 }

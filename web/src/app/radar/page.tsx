@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
+import { LocalizedDeskLoading } from "@/components/LocalizedDeskLoading";
 import { RadarView } from "@/components/RadarView";
 import { absoluteUrl } from "@/lib/seo";
 
@@ -15,7 +16,11 @@ export const metadata: Metadata = {
 
 export default function RadarPage() {
   return (
-    <Suspense fallback={<p className="explore-lede">Loading Kestrel Radar…</p>}>
+    <Suspense
+      fallback={
+        <LocalizedDeskLoading labelKey="radar_loading" variant="panel" />
+      }
+    >
       <RadarView />
     </Suspense>
   );
