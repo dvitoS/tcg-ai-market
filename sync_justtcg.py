@@ -107,10 +107,11 @@ def _ingest_card_row(
     *,
     have_history: set[str],
     matched_ids: set[str],
+    forbid_spot_keys: set[float] | None = None,
 ) -> tuple[str, int]:
     """Apply one JustTCG card payload. Returns (status, history_rows_written).
 
-    status: ok | skip_weak | skip_empty | skip_dup | skip_absurd
+    status: ok | skip_weak | skip_empty | skip_dup | skip_absurd | skip_poison
     """
     if card.id in matched_ids:
         return "skip_dup", 0
@@ -128,6 +129,16 @@ def _ingest_card_row(
             tip = float(points[-1]["price"])
         except (TypeError, ValueError, KeyError, IndexError):
             tip = None
+    if forbid_spot_keys:
+        banned = {round(float(k), 2) for k in forbid_spot_keys}
+        for candidate in (price, tip):
+            if candidate is None:
+                continue
+            try:
+                if round(float(candidate), 2) in banned:
+                    return "skip_poison", 0
+            except (TypeError, ValueError):
+                pass
     if is_absurd_spot_jump(price, prior) or is_absurd_spot_jump(tip, prior):
         return "skip_absurd", 0
     if tip is not None and price is not None and is_absurd_spot_jump(price, tip):
@@ -149,6 +160,86 @@ def _ingest_card_row(
         update_card_market_price(card.id, price, tcgplayer_id=tcp)
     matched_ids.add(card.id)
     return "ok", written
+
+
+def sync_justtcg_for_card_ids(
+    card_ids: list[str],
+    *,
+    forbid_spot_keys: set[float] | None = None,
+) -> dict[str, int]:
+    """Targeted JustTCG batch ingest for an explicit card-id allowlist."""
+    if not justtcg_api_key():
+        raise RuntimeError("JUSTTCG_API_KEY nije postavljen.")
+    init_db()
+    wanted = [str(cid).strip() for cid in card_ids if str(cid).strip()]
+    if not wanted:
+        return {
+            "updated": 0,
+            "skipped": 0,
+            "saved": 0,
+            "skip_poison": 0,
+            "skip_absurd": 0,
+            "justtcg_requests": justtcg_request_count(),
+        }
+
+    by_id = {str(c.id): c for c in list_cards() if str(c.id) in set(wanted)}
+    with_tcp = [
+        c
+        for cid in wanted
+        if (c := by_id.get(cid)) is not None
+        and str(getattr(c, "tcgplayer_id", None) or "").strip()
+    ]
+    tcp_to_card = {
+        str(c.tcgplayer_id).strip(): c
+        for c in with_tcp
+        if str(getattr(c, "tcgplayer_id", None) or "").strip()
+    }
+    updated = skipped = saved = skip_poison = skip_absurd = 0
+    matched_ids: set[str] = set()
+    have_history = distinct_history_card_ids()
+    tcp_ids = list(tcp_to_card.keys())
+    for i in range(0, len(tcp_ids), JUSTTCG_BATCH_SIZE):
+        chunk = tcp_ids[i : i + JUSTTCG_BATCH_SIZE]
+        try:
+            rows = batch_by_tcgplayer_ids(chunk)
+        except JustTCGRateLimitError:
+            break
+        except Exception as exc:
+            print(f"  heal batch offset={i} greška: {exc}", file=sys.stderr)
+            continue
+        for row in rows:
+            tid = card_tcgplayer_id(row) or ""
+            card = tcp_to_card.get(tid)
+            if card is None:
+                continue
+            status, written = _ingest_card_row(
+                card,
+                row,
+                have_history=have_history,
+                matched_ids=matched_ids,
+                forbid_spot_keys=forbid_spot_keys,
+            )
+            if status == "ok":
+                updated += 1
+                saved += written
+            elif status == "skip_poison":
+                skip_poison += 1
+                skipped += 1
+            elif status == "skip_absurd":
+                skip_absurd += 1
+                skipped += 1
+            elif status in {"skip_weak", "skip_empty"}:
+                skipped += 1
+    return {
+        "updated": updated,
+        "skipped": skipped,
+        "saved": saved,
+        "skip_poison": skip_poison,
+        "skip_absurd": skip_absurd,
+        "targeted": len(wanted),
+        "with_tcgplayer_id": len(tcp_ids),
+        "justtcg_requests": justtcg_request_count(),
+    }
 
 
 def sync_justtcg_price_history(*, limit: int | None = None) -> dict[str, int]:
