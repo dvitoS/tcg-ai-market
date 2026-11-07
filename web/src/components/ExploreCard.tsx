@@ -16,11 +16,38 @@ function changeClass(value?: number | null): string {
   return "flat";
 }
 
-function changeArrow(value?: number | null): string {
-  if (value == null || Number.isNaN(value)) return "";
-  if (value > 0.05) return "↑";
-  if (value < -0.05) return "↓";
-  return "";
+function changeDirection(value?: number | null): "up" | "down" | null {
+  if (value == null || Number.isNaN(value)) return null;
+  if (value > 0.05) return "up";
+  if (value < -0.05) return "down";
+  return null;
+}
+
+/** Fine stroke trend mark — quieter than unicode arrows, more Soft Ink. */
+function MoveTrend({ direction }: { direction: "up" | "down" }) {
+  return (
+    <svg
+      className={`explore-card-move-arrow is-${direction}`}
+      viewBox="0 0 12 12"
+      width="11"
+      height="11"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        d={
+          direction === "up"
+            ? "M2.2 8.6 L9.2 2.4 M5.4 2.4 H9.2 V6.2"
+            : "M2.2 3.4 L9.2 9.6 M5.4 9.6 H9.2 V5.8"
+        }
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.55"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
 }
 
 function signalTone(signal?: string | null): string {
@@ -38,16 +65,12 @@ function MoveRow({
   label: string;
   value?: number | null;
 }) {
-  const arrow = changeArrow(value);
+  const direction = changeDirection(value);
   return (
     <span className={`explore-card-move ${changeClass(value)}`}>
       <span className="explore-card-move-label">{label}</span>
       <span className="explore-card-move-value">
-        {arrow ? (
-          <span className="explore-card-move-arrow" aria-hidden="true">
-            {arrow}
-          </span>
-        ) : null}
+        {direction ? <MoveTrend direction={direction} /> : null}
         {formatChange(value)}
       </span>
     </span>
