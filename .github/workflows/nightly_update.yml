@@ -1,3 +1,4 @@
+# Sole production nightly runner (do not schedule via cron / Task Scheduler / Render).
 # Nightly katalog (gap-fill) + JustTCG NM history drip + XGBoost retrain (UTC).
 # Secrets (Settings → Secrets and variables → Actions):
 #   SUPABASE_URL, SUPABASE_KEY, JUSTTCG_API_KEY (prefer), TCG_API_KEY (fallback)

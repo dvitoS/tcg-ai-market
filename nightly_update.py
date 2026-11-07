@@ -552,11 +552,39 @@ def run_nightly() -> int:
     return 0
 
 
+def nightly_runner_allowed() -> tuple[bool, str]:
+    """Nightly is GitHub Actions–only unless explicitly overridden.
+
+    Returns (allowed, reason). Local/cron hosts must set ``NIGHTLY_ALLOW_LOCAL=1``
+    for a one-off debug run — do not use that for production scheduling.
+    """
+    if str(os.environ.get("GITHUB_ACTIONS") or "").strip().lower() in {"1", "true", "yes"}:
+        return True, "github_actions"
+    if str(os.environ.get("NIGHTLY_ALLOW_LOCAL") or "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+    }:
+        return True, "local_override"
+    return False, "blocked"
+
+
 def main() -> int:
+    allowed, reason = nightly_runner_allowed()
+    if not allowed:
+        msg = (
+            "Nightly update runs only via GitHub Actions "
+            "(.github/workflows/nightly_update.yml). "
+            "For a one-off local debug, set NIGHTLY_ALLOW_LOCAL=1."
+        )
+        print(msg, file=sys.__stderr__)
+        print(f"::error title=Nightly blocked::{msg}", file=sys.__stderr__)
+        return 2
     try:
         from config import AUTOMATION_LOG
 
         setup_logging(AUTOMATION_LOG)
+        LOG.info("Nightly runner allowed (%s)", reason)
         return run_nightly()
     except Exception as e:
         print(f"Nightly bootstrap FAILED: {type(e).__name__}: {e}", file=sys.__stderr__)
