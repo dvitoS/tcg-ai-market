@@ -99,3 +99,57 @@ def test_attach_price_change_7d_from_history():
     assert pd.notna(out.loc[0, "price_change_7d_pct"])
     assert "price_change_3d_pct" in out.columns
     assert pd.notna(out.loc[0, "price_change_3d_pct"])
+
+
+def test_attach_expected_change_30d_without_model(monkeypatch):
+    import services.exchange as exchange
+
+    monkeypatch.setattr(
+        "services.portfolio_outlook.load_portfolio_model",
+        lambda: None,
+    )
+    quotes = pd.DataFrame(
+        [{"id": "c1", "name": "A", "price": 10.0, "expected_change_pct": 1.2}]
+    )
+    featured = pd.DataFrame(
+        [
+            {
+                "card_id": "c1",
+                "date": pd.Timestamp("2024-01-01"),
+                "price": 10.0,
+                "name": "A",
+            }
+        ]
+    )
+    out = exchange.attach_expected_change_30d(quotes, featured)
+    assert "expected_change_30d_pct" in out.columns
+    assert pd.isna(out.loc[0, "expected_change_30d_pct"])
+
+
+def test_attach_expected_change_30d_from_forecasts(monkeypatch):
+    import services.exchange as exchange
+
+    class _Model:
+        pass
+
+    monkeypatch.setattr(
+        "services.portfolio_outlook.load_portfolio_model",
+        lambda: (_Model(), {"metrics": {"conformal_q": 0.1, "horizon_days": 30}}),
+    )
+    monkeypatch.setattr(
+        exchange,
+        "card_forecasts",
+        lambda *_a, **_k: pd.DataFrame(
+            [{"id": "c1", "expected_change_pct": 12.5}]
+        ),
+    )
+    quotes = pd.DataFrame(
+        [{"id": "c1", "name": "A", "price": 10.0, "expected_change_pct": 1.2}]
+    )
+    featured = pd.DataFrame(
+        [{"card_id": "c1", "date": pd.Timestamp("2024-01-01"), "price": 10.0}]
+    )
+    out = exchange.attach_expected_change_30d(quotes, featured)
+    assert float(out.loc[0, "expected_change_30d_pct"]) == 12.5
+    # Board 7d signal field stays untouched.
+    assert float(out.loc[0, "expected_change_pct"]) == 1.2

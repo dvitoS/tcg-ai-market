@@ -982,15 +982,26 @@ a {
 
 .explore-card-move-value {
   margin-left: auto;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.18rem;
+}
+
+.explore-card-move-arrow {
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .explore-card-move.up,
-.explore-card-move.up .explore-card-move-value {
+.explore-card-move.up .explore-card-move-value,
+.explore-card-move.up .explore-card-move-arrow {
   color: var(--buy);
 }
 
 .explore-card-move.down,
-.explore-card-move.down .explore-card-move-value {
+.explore-card-move.down .explore-card-move-value,
+.explore-card-move.down .explore-card-move-arrow {
   color: var(--sell);
 }
 

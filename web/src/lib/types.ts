@@ -8,6 +8,7 @@ export type CatalogCard = {
   market_price?: number | null;
   predicted_price?: number | null;
   expected_change_pct?: number | null;
+  expected_change_30d_pct?: number | null;
   price_change_3d_pct?: number | null;
   price_change_7d_pct?: number | null;
   signal?: string | null;

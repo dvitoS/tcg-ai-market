@@ -49,6 +49,7 @@ def _frame_from_quotes(quotes: pd.DataFrame) -> pd.DataFrame:
         "market_price",
         "predicted_price",
         "expected_change_pct",
+        "expected_change_30d_pct",
         "price_change_3d_pct",
         "price_change_7d_pct",
         "pred_lo_pct",
@@ -101,9 +102,10 @@ def _load_demo_frame() -> pd.DataFrame | None:
     if cards.empty:
         return None
 
-    # Synthetic 3d/7d moves + signal from recent history points per card.
+    # Synthetic 3d/7d/30d moves + signal from recent history points per card.
     changes_7d: dict[str, float] = {}
     changes_3d: dict[str, float] = {}
+    changes_30d: dict[str, float] = {}
     if not hist.empty:
         hist["price"] = pd.to_numeric(hist["price"], errors="coerce")
         hist = hist.dropna(subset=["price"])
@@ -121,6 +123,12 @@ def _load_demo_frame() -> pd.DataFrame | None:
                 last3 = float(tail3.iloc[-1]["price"])
                 if first3 > 0:
                     changes_3d[str(card_id)] = ((last3 - first3) / first3) * 100.0
+            tail30 = ordered.tail(31)
+            if len(tail30) >= 2:
+                first30 = float(tail30.iloc[0]["price"])
+                last30 = float(tail30.iloc[-1]["price"])
+                if first30 > 0:
+                    changes_30d[str(card_id)] = ((last30 - first30) / first30) * 100.0
 
     rows: list[dict[str, Any]] = []
     for _, row in cards.iterrows():
@@ -128,6 +136,7 @@ def _load_demo_frame() -> pd.DataFrame | None:
         price = float(row["market_price"] or 0.0)
         change = changes_7d.get(card_id)
         change_3d = changes_3d.get(card_id)
+        change_30d = changes_30d.get(card_id)
         if change is None:
             signal = "HOLD"
         elif change >= 3.0:
@@ -148,6 +157,7 @@ def _load_demo_frame() -> pd.DataFrame | None:
                 "market_price": price,
                 "predicted_price": predicted,
                 "expected_change_pct": change,
+                "expected_change_30d_pct": change_30d,
                 "price_change_3d_pct": change_3d,
                 "price_change_7d_pct": change,
                 "signal": signal,
@@ -294,6 +304,7 @@ def row_to_card(row: pd.Series | dict[str, Any]) -> dict[str, Any]:
         "market_price": _f("market_price"),
         "predicted_price": _f("predicted_price"),
         "expected_change_pct": _f("expected_change_pct"),
+        "expected_change_30d_pct": _f("expected_change_30d_pct"),
         "price_change_3d_pct": _f("price_change_3d_pct"),
         "price_change_7d_pct": _f("price_change_7d_pct"),
         "signal": _s("signal"),
