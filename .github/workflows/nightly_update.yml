@@ -123,6 +123,8 @@ jobs:
           # Keep JustTCG search off by default (429 risk); TCP search is primary.
           NIGHTLY_BACKFILL_JUSTTCG: "0"
           # Paid tier 10k/month — nightly ≤100 keeps monthly total ≤~9k with Soft Ink.
+          # Hard-enforced in nightly_update (empty/off ignored unless NIGHTLY_ALLOW_UNLIMITED_JUSTTCG=1).
+          # Prevents card_limit=all from burning 1k+ req like the 2026-11-05 cancel storm.
           JUSTTCG_MAX_REQUESTS: "100"
           # Soft wall-clock SLO (default 150m) before GitHub's 180m hard kill.
           # Fail the job if retrain writes 0 quotes or elapsed exceeds this budget.

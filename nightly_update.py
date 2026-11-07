@@ -174,7 +174,7 @@ def refresh_card_catalog() -> int:
 
 
 def refresh_price_history() -> dict[str, int]:
-    from config import _secret, justtcg_max_requests
+    from config import _secret, justtcg_nightly_request_budget
     from generate_history import ensure_price_history, generate_price_history
     from justtcg_client import (
         configure_justtcg_request_budget,
@@ -195,9 +195,17 @@ def refresh_price_history() -> dict[str, int]:
 
     # Preferiraj JustTCG (NM + history); fallback PokéWallet; pa sintetički.
     if justtcg_api_key():
-        budget = justtcg_max_requests()
+        # Always cap nightly (unless NIGHTLY_ALLOW_UNLIMITED_JUSTTCG=1).
+        # Pre-budget card_limit=all runs burned 1k+ requests in a single night.
+        budget = justtcg_nightly_request_budget()
         reset_justtcg_request_count()
         configure_justtcg_request_budget(budget)
+        if limit is None and budget is not None:
+            LOG.warning(
+                "NIGHTLY_CARD_LIMIT=all with request_budget=%s — "
+                "sync stops at budget, not at full catalog.",
+                budget,
+            )
         LOG.info(
             "JustTCG sync (NM) — card_limit=%s request_budget=%s",
             "all" if limit is None else limit,

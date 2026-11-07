@@ -73,3 +73,39 @@ def test_justtcg_max_requests_env(monkeypatch):
     assert config.justtcg_max_requests() == 150
     monkeypatch.setenv("JUSTTCG_MAX_REQUESTS", "off")
     assert config.justtcg_max_requests() is None
+
+
+def test_nightly_budget_never_unlimited_by_default(monkeypatch):
+    import config
+
+    monkeypatch.delenv("JUSTTCG_MAX_REQUESTS", raising=False)
+    monkeypatch.delenv("NIGHTLY_ALLOW_UNLIMITED_JUSTTCG", raising=False)
+    assert config.justtcg_nightly_request_budget() == config.JUSTTCG_NIGHTLY_MAX_REQUESTS
+
+    monkeypatch.setenv("JUSTTCG_MAX_REQUESTS", "off")
+    assert config.justtcg_nightly_request_budget() == config.JUSTTCG_NIGHTLY_MAX_REQUESTS
+
+    monkeypatch.setenv("NIGHTLY_ALLOW_UNLIMITED_JUSTTCG", "1")
+    assert config.justtcg_nightly_request_budget() is None
+
+
+def test_failure_circuit_stops_after_threshold(monkeypatch):
+    class _Boom(Exception):
+        pass
+
+    def boom(*_a, **_k):
+        raise _Boom("upstream down")
+
+    monkeypatch.setattr(jt, "JUSTTCG_REQUEST_DELAY_SECONDS", 0)
+    monkeypatch.setattr(jt, "justtcg_api_key", lambda: "test-key")
+    monkeypatch.setattr(jt.requests, "get", boom)
+    jt.configure_justtcg_request_budget(100)
+    jt._FAILURE_CIRCUIT_THRESHOLD = 3
+
+    for _ in range(2):
+        with pytest.raises(_Boom):
+            jt._get("/sets", {"game": "pokemon"})
+    with pytest.raises(jt.JustTCGRateLimitError, match="circuit open"):
+        jt._get("/sets", {"game": "pokemon"})
+    # Budget counted the attempts that reached the wire before the circuit trip.
+    assert jt.justtcg_request_count() == 3
