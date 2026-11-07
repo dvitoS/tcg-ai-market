@@ -22,6 +22,9 @@ const EMPTY: DataHealthResponse = {
   fresh_history_pct: null,
   sure_rows: 0,
   quotes_total: 0,
+  spot_quarantine_rows: 0,
+  spot_poison_clusters: 0,
+  spot_poison_cluster_sample: [],
   unmatched_sets_count: null,
   unmatched_sets_sample: [],
   spot_qa_captured_at: null,
@@ -166,6 +169,15 @@ export function DataHealthPanel() {
               <div>
                 <span>{t("obs_qa_quotes")}</span>
                 <strong>{stats.quotes_total ?? 0}</strong>
+              </div>
+              <div>
+                <span>{t("obs_qa_quarantine")}</span>
+                <strong>
+                  {stats.spot_quarantine_rows ?? 0}
+                  {stats.spot_poison_clusters
+                    ? ` / ${stats.spot_poison_clusters}`
+                    : ""}
+                </strong>
               </div>
             </div>
             {sample ? (

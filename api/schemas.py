@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -38,6 +38,9 @@ class DataHealthResponse(BaseModel):
     fresh_history_pct: float | None = None
     sure_rows: int = 0
     quotes_total: int = 0
+    spot_quarantine_rows: int = 0
+    spot_poison_clusters: int = 0
+    spot_poison_cluster_sample: list[dict[str, Any]] = Field(default_factory=list)
     unmatched_sets_count: int | None = None
     unmatched_sets_sample: list[dict[str, str]] = Field(default_factory=list)
     spot_qa_captured_at: str | None = None
