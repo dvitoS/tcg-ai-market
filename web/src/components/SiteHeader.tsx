@@ -96,7 +96,12 @@ export function SiteHeader() {
 
   return (
     <header className={`site-header${open ? " is-nav-open" : ""}`}>
-      <Link href="/" className="brand" aria-label="Kestrel home">
+      <Link
+        href="/"
+        className="brand"
+        aria-label="Kestrel Soft Ink home"
+        title={t("brand_tagline")}
+      >
         <Image
           src="/kestrel-logo.png"
           alt=""
@@ -106,7 +111,10 @@ export function SiteHeader() {
           priority
           style={{ width: 36, height: 36, objectFit: "contain" }}
         />
-        <span className="brand-name">Kestrel</span>
+        <span className="brand-lockup">
+          <span className="brand-name">Kestrel</span>
+          <span className="brand-soft">Soft Ink</span>
+        </span>
       </Link>
 
       <nav className="site-nav site-nav-desktop" aria-label={t("nav_primary")}>

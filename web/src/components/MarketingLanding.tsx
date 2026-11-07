@@ -44,6 +44,7 @@ export function MarketingLanding({
 
         <div className="landing-hero-copy">
           <p className="landing-brand">Kestrel</p>
+          <p className="landing-product">{t("landing_product")}</p>
           <h1 className="landing-headline">{t("landing_headline")}</h1>
           <p className="landing-lede">{t("landing_lede")}</p>
           <div className="landing-ctas">
