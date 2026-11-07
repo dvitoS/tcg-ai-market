@@ -122,9 +122,11 @@ Paid checkouts write `pro_entitlements`. Success page: `/pro/success`. Full go-l
 
 Use `.env.example` only. Seed DB `data/seed_tcg_market.db` is intentional for empty boots.
 
-## Nightly (GitHub Actions)
+## Nightly (GitHub Actions only)
 
-Workflow: [`.github/workflows/nightly_update.yml`](.github/workflows/nightly_update.yml) (03:00 UTC).
+Workflow: [`.github/workflows/nightly_update.yml`](.github/workflows/nightly_update.yml) (03:00 UTC + manual **Run workflow**).
+
+This is the **only** supported production runner. `nightly_update.py` refuses to start outside GitHub Actions unless you set `NIGHTLY_ALLOW_LOCAL=1` for a one-off debug. Do not install OS cron / Task Scheduler (`schedule_setup.py` is retired and exits with instructions).
 
 Actions secrets: `SUPABASE_URL`, `SUPABASE_KEY`, preferably `JUSTTCG_API_KEY`. Optional SMTP + `CATALOG_SET_IDS`. Optional legacy `POKEMONTCG_API_KEY` if you already have one (pokemontcg.io is **deprecated** — no new registrations; existing keys work until **2027-03-01**).
 
