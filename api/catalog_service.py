@@ -69,6 +69,14 @@ def _frame_from_quotes(quotes: pd.DataFrame) -> pd.DataFrame:
         )
     else:
         frame["history_points"] = 0
+    # Runtime defense: quarantine identical absurd JustTCG spot clusters even
+    # before the next nightly rebuild rewrites market_quotes.
+    try:
+        from services.spot_sanity import apply_spot_quarantine
+
+        frame = apply_spot_quarantine(frame)
+    except Exception as exc:
+        LOG.warning("spot quarantine skipped: %s", exc)
     return frame
 
 

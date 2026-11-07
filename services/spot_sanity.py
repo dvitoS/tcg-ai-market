@@ -2,12 +2,16 @@
 
 JustTCG (and mirrored TCP) spots can land wildly wrong — e.g. bulk commons
 stuck at identical high board prices — which then explode conformal UNDER edges.
-These helpers gate ingest updates and Radar UNDER surfacing.
+These helpers gate ingest updates, quarantine board rows, and Radar UNDER.
 """
 
 from __future__ import annotations
 
 from typing import Any
+
+import pandas as pd
+
+from trading_signals import SIGNAL_HOLD
 
 # Reject ingest when new spot vs prior market_price jumps outside [1/r, r].
 SPOT_JUMP_MAX_RATIO = 8.0
@@ -23,6 +27,11 @@ UNDER_RARITY_SPOT_CAPS: dict[str, float] = {
     "common": 10.0,
     "uncommon": 30.0,
 }
+
+# Identical board-price clusters across unrelated cards (JustTCG poison).
+POISON_CLUSTER_MIN_SIZE = 10
+POISON_CLUSTER_MIN_SETS = 3
+POISON_CLUSTER_MIN_SPOT = 20.0
 
 
 def _as_positive_float(value: Any) -> float | None:
@@ -119,3 +128,133 @@ def under_deal_allowed(
         pass
 
     return True
+
+
+def _frame_spots(quotes: pd.DataFrame) -> pd.Series:
+    price = pd.to_numeric(quotes.get("price"), errors="coerce")
+    market = pd.to_numeric(quotes.get("market_price"), errors="coerce")
+    spot = price.where(price.notna() & (price > 0), market)
+    spot = spot.where(spot > 0)
+    return spot.round(2)
+
+
+def poison_spot_mask(quotes: pd.DataFrame) -> pd.Series:
+    """True for rows that share an absurd identical board spot with many peers.
+
+    Triggers when a rounded spot key has ≥ ``POISON_CLUSTER_MIN_SIZE`` cards and
+    either the row breaches a rarity spot cap, or the cluster spans
+    ≥ ``POISON_CLUSTER_MIN_SETS`` sets at spot ≥ ``POISON_CLUSTER_MIN_SPOT``.
+    Cheap bulk commons sharing $0.25 stay clean.
+    """
+    if quotes is None or quotes.empty:
+        return pd.Series(dtype=bool)
+
+    spot_s = _frame_spots(quotes)
+    counts = spot_s.value_counts(dropna=True)
+    big_keys = {
+        float(k)
+        for k, n in counts.items()
+        if int(n) >= int(POISON_CLUSTER_MIN_SIZE)
+    }
+    if not big_keys:
+        return pd.Series(False, index=quotes.index)
+
+    set_col = (
+        quotes["set_name"].fillna("").astype(str).str.strip()
+        if "set_name" in quotes.columns
+        else pd.Series([""] * len(quotes), index=quotes.index)
+    )
+    sets_by_key: dict[float, int] = {}
+    for key in big_keys:
+        member = spot_s == key
+        sets_by_key[key] = int(set_col.loc[member & (set_col != "")].nunique())
+
+    rarity_col = (
+        quotes["rarity"]
+        if "rarity" in quotes.columns
+        else pd.Series([None] * len(quotes), index=quotes.index)
+    )
+    over_cap_flags: list[bool] = []
+    multi_flags: list[bool] = []
+    for key, rarity in zip(spot_s.tolist(), rarity_col.tolist(), strict=False):
+        try:
+            key_f = float(key) if key is not None and key == key else None
+        except (TypeError, ValueError):
+            key_f = None
+        if key_f is None or key_f not in big_keys:
+            over_cap_flags.append(False)
+            multi_flags.append(False)
+            continue
+        over_cap_flags.append(not under_spot_allowed_for_rarity(key_f, rarity))
+        multi_flags.append(
+            key_f >= float(POISON_CLUSTER_MIN_SPOT)
+            and sets_by_key.get(key_f, 0) >= int(POISON_CLUSTER_MIN_SETS)
+        )
+    return pd.Series(over_cap_flags, index=quotes.index) | pd.Series(
+        multi_flags, index=quotes.index
+    )
+
+
+def summarize_poison_clusters(
+    quotes: pd.DataFrame, *, limit: int = 6
+) -> list[dict[str, Any]]:
+    """Top poisoned spot keys for ops / spot_qa snapshots."""
+    mask = poison_spot_mask(quotes)
+    if quotes is None or quotes.empty or not bool(mask.any()):
+        return []
+    poisoned = quotes.loc[mask].copy()
+    poisoned = poisoned.assign(_spot=_frame_spots(poisoned))
+    rows: list[dict[str, Any]] = []
+    for spot, group in poisoned.groupby("_spot", dropna=True):
+        rarities = sorted(
+            {
+                str(r).strip()
+                for r in group.get("rarity", pd.Series(dtype=str))
+                .dropna()
+                .astype(str)
+                .tolist()
+                if str(r).strip()
+            }
+        )
+        sets = sorted(
+            {
+                str(s).strip()
+                for s in group.get("set_name", pd.Series(dtype=str))
+                .dropna()
+                .astype(str)
+                .tolist()
+                if str(s).strip()
+            }
+        )
+        rows.append(
+            {
+                "price": float(spot),
+                "count": int(len(group)),
+                "sets": len(sets),
+                "rarities": rarities[:6],
+            }
+        )
+    rows.sort(key=lambda r: (-int(r["count"]), -float(r["price"])))
+    return rows[: max(0, int(limit))]
+
+
+def apply_spot_quarantine(quotes: pd.DataFrame) -> pd.DataFrame:
+    """Mark poison-cluster rows as not-sure HOLD without dropping them from browse."""
+    if quotes is None or quotes.empty:
+        return quotes
+    out = quotes.copy()
+    mask = poison_spot_mask(out)
+    out["spot_quarantine"] = mask.astype(bool)
+    if not bool(mask.any()):
+        return out
+    out.loc[mask, "confidence_ok"] = False
+    if "confidence_level" in out.columns:
+        out.loc[mask, "confidence_level"] = "low"
+    else:
+        out["confidence_level"] = "medium"
+        out.loc[mask, "confidence_level"] = "low"
+    if "signal" in out.columns:
+        out.loc[mask, "signal"] = SIGNAL_HOLD
+    else:
+        out["signal"] = SIGNAL_HOLD
+    return out

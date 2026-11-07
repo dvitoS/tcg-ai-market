@@ -93,6 +93,9 @@ def compute_live_spot_qa() -> dict[str, Any]:
         "history_coverage_pct": 0.0,
         "quotes_total": 0,
         "sure_rows": 0,
+        "spot_quarantine_rows": 0,
+        "spot_poison_clusters": 0,
+        "spot_poison_cluster_sample": [],
         "board_source": "empty",
     }
     try:
@@ -123,6 +126,20 @@ def compute_live_spot_qa() -> dict[str, Any]:
             if "conformal_ok" in board.columns:
                 mask &= board["conformal_ok"].fillna(False).astype(bool)
             out["sure_rows"] = int(mask.sum())
+            try:
+                from services.spot_sanity import summarize_poison_clusters
+
+                if "spot_quarantine" in board.columns:
+                    out["spot_quarantine_rows"] = int(
+                        board["spot_quarantine"].fillna(False).astype(bool).sum()
+                    )
+                sample = summarize_poison_clusters(board, limit=6)
+                out["spot_poison_cluster_sample"] = sample
+                out["spot_poison_clusters"] = int(len(sample))
+                if out["spot_quarantine_rows"] == 0 and sample:
+                    out["spot_quarantine_rows"] = int(sum(int(r["count"]) for r in sample))
+            except Exception as qexc:
+                LOG.warning("spot_qa quarantine metrics failed: %s", qexc)
     except Exception as exc:
         LOG.warning("spot_qa sure_rows failed: %s", exc)
 
@@ -200,6 +217,23 @@ def data_health_spot_fields() -> dict[str, Any]:
         ),
         "sure_rows": int(live.get("sure_rows") or 0),
         "quotes_total": int(live.get("quotes_total") or 0),
+        "spot_quarantine_rows": int(
+            live.get("spot_quarantine_rows")
+            if live.get("spot_quarantine_rows") is not None
+            else snap.get("spot_quarantine_rows")
+            or 0
+        ),
+        "spot_poison_clusters": int(
+            live.get("spot_poison_clusters")
+            if live.get("spot_poison_clusters") is not None
+            else snap.get("spot_poison_clusters")
+            or 0
+        ),
+        "spot_poison_cluster_sample": list(
+            live.get("spot_poison_cluster_sample")
+            or snap.get("spot_poison_cluster_sample")
+            or []
+        )[:6],
         "unmatched_sets_count": (
             int(snap["unmatched_sets_count"])
             if snap.get("unmatched_sets_count") is not None

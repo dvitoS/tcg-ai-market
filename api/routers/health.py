@@ -76,6 +76,9 @@ def data_health(
         ),
         sure_rows=int(spot.get("sure_rows") or 0),
         quotes_total=int(spot.get("quotes_total") or 0),
+        spot_quarantine_rows=int(spot.get("spot_quarantine_rows") or 0),
+        spot_poison_clusters=int(spot.get("spot_poison_clusters") or 0),
+        spot_poison_cluster_sample=list(spot.get("spot_poison_cluster_sample") or [])[:6],
         unmatched_sets_count=(
             int(spot["unmatched_sets_count"])
             if spot.get("unmatched_sets_count") is not None

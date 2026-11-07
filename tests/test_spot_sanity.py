@@ -76,6 +76,73 @@ def test_ingest_skips_absurd_jump_vs_prior() -> None:
     assert updates == []
 
 
+def test_poison_cluster_quarantines_identical_high_spots() -> None:
+    from services.spot_sanity import apply_spot_quarantine, poison_spot_mask
+
+    rows = []
+    sets = ["Cosmic Eclipse", "Unified Minds", "Vivid Voltage", "Paldean Fates"]
+    for i in range(12):
+        rows.append(
+            {
+                "id": f"poison-{i}",
+                "name": f"Card {i}",
+                "set_name": sets[i % len(sets)],
+                "rarity": "Common" if i % 3 else "Rare",
+                "price": 68.15,
+                "market_price": 68.15,
+                "confidence_ok": True,
+                "confidence_level": "high",
+                "signal": "BUY",
+            }
+        )
+    # Legit cheap bulk — large cluster, low spot, should stay sure.
+    for i in range(15):
+        rows.append(
+            {
+                "id": f"bulk-{i}",
+                "name": f"Bulk {i}",
+                "set_name": sets[i % len(sets)],
+                "rarity": "Common",
+                "price": 0.25,
+                "market_price": 0.25,
+                "confidence_ok": True,
+                "confidence_level": "high",
+                "signal": "BUY",
+            }
+        )
+    # Unique healthy chase card.
+    rows.append(
+        {
+            "id": "ok-1",
+            "name": "Charizard",
+            "set_name": "Base",
+            "rarity": "Rare Holo",
+            "price": 200.0,
+            "market_price": 200.0,
+            "confidence_ok": True,
+            "confidence_level": "high",
+            "signal": "BUY",
+        }
+    )
+    board = pd.DataFrame(rows)
+    mask = poison_spot_mask(board)
+    assert int(mask.sum()) == 12
+    assert not bool(mask.loc[board["id"] == "bulk-0"].iloc[0])
+    assert not bool(mask.loc[board["id"] == "ok-1"].iloc[0])
+
+    out = apply_spot_quarantine(board)
+    poisoned = out.loc[out["id"].astype(str).str.startswith("poison-")]
+    assert bool(poisoned["spot_quarantine"].all())
+    assert bool((~poisoned["confidence_ok"]).all())
+    assert set(poisoned["signal"].astype(str).unique()) == {"HOLD"}
+    bulk = out.loc[out["id"].astype(str).str.startswith("bulk-")]
+    assert bool(bulk["confidence_ok"].all())
+    assert bool((~bulk["spot_quarantine"]).all())
+    ok = out.loc[out["id"] == "ok-1"].iloc[0]
+    assert bool(ok["confidence_ok"]) is True
+    assert bool(ok["spot_quarantine"]) is False
+
+
 def test_build_radar_filters_poisoned_under(monkeypatch) -> None:
     board = pd.DataFrame(
         [

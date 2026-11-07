@@ -45,6 +45,9 @@ def test_data_health_spot_fields_merge(monkeypatch) -> None:
             "history_coverage_pct": 70.0,
             "quotes_total": 50,
             "sure_rows": 20,
+            "spot_quarantine_rows": 12,
+            "spot_poison_clusters": 1,
+            "spot_poison_cluster_sample": [{"price": 68.15, "count": 12, "sets": 4}],
             "board_source": "demo",
         },
     )
@@ -64,6 +67,8 @@ def test_data_health_spot_fields_merge(monkeypatch) -> None:
     assert fields["fresh_history_pct"] == 40.0
     assert fields["unmatched_sets_count"] == 3
     assert fields["spot_qa_captured_at"] == "2026-11-05T12:00:00+00:00"
+    assert fields["spot_quarantine_rows"] == 12
+    assert fields["spot_poison_clusters"] == 1
 
 
 def test_data_health_endpoint_includes_spot_fields(monkeypatch) -> None:
@@ -82,6 +87,9 @@ def test_data_health_endpoint_includes_spot_fields(monkeypatch) -> None:
             "fresh_history_pct": 50.0,
             "sure_rows": 4,
             "quotes_total": 9,
+            "spot_quarantine_rows": 12,
+            "spot_poison_clusters": 1,
+            "spot_poison_cluster_sample": [{"price": 68.15, "count": 12, "sets": 4}],
             "unmatched_sets_count": 1,
             "unmatched_sets_sample": [{"set_code": "sv9", "set_name": "Journey Together"}],
             "spot_qa_captured_at": "2026-11-05T12:00:00+00:00",
@@ -96,3 +104,5 @@ def test_data_health_endpoint_includes_spot_fields(monkeypatch) -> None:
     assert body["sure_rows"] == 4
     assert body["unmatched_sets_count"] == 1
     assert body["fresh_history_pct"] == 50.0
+    assert body["spot_quarantine_rows"] == 12
+    assert body["spot_poison_clusters"] == 1

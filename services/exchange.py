@@ -274,6 +274,12 @@ def build_market_board(
         card_forecasts(model, featured, conformal_q=_conformal_q_from_meta(meta))
     )
     quotes = _apply_confidence(quotes, history)
+    from services.spot_sanity import apply_spot_quarantine
+
+    quotes = apply_spot_quarantine(quotes)
+    quarantined = int(quotes["spot_quarantine"].sum()) if "spot_quarantine" in quotes.columns else 0
+    if quarantined:
+        LOG.warning("Spot quarantine marked %s poisoned board rows as HOLD", quarantined)
     quotes = _filter_catalog_floor(quotes)
     quotes = quotes.sort_values("name").reset_index(drop=True)
     keep_ids = set(quotes["id"].astype(str)) if "id" in quotes.columns else set()

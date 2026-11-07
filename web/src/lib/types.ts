@@ -570,6 +570,14 @@ export type DataHealthResponse = {
   fresh_history_pct?: number | null;
   sure_rows?: number;
   quotes_total?: number;
+  spot_quarantine_rows?: number;
+  spot_poison_clusters?: number;
+  spot_poison_cluster_sample?: Array<{
+    price?: number;
+    count?: number;
+    sets?: number;
+    rarities?: string[];
+  }>;
   unmatched_sets_count?: number | null;
   unmatched_sets_sample?: Array<{ set_code?: string; set_name?: string }>;
   spot_qa_captured_at?: string | null;
