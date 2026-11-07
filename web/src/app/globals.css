@@ -983,14 +983,15 @@ a {
 .explore-card-move-value {
   margin-left: auto;
   display: inline-flex;
-  align-items: baseline;
-  gap: 0.18rem;
+  align-items: center;
+  gap: 0.28rem;
 }
 
 .explore-card-move-arrow {
-  font-size: 0.78rem;
-  font-weight: 800;
-  line-height: 1;
+  flex: 0 0 auto;
+  display: block;
+  opacity: 0.92;
+  filter: drop-shadow(0 0.5px 0 rgba(0, 0, 0, 0.35));
 }
 
 .explore-card-move.up,
