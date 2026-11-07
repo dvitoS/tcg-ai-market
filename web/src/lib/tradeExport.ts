@@ -6,7 +6,7 @@ export async function downloadSoftInkPng(
   filename: string,
 ): Promise<void> {
   if (typeof window === "undefined") {
-    throw new Error("Soft Ink export needs a browser");
+    throw new Error("Kestrel export needs a browser");
   }
   const dataUrl = await toPng(node, {
     cacheBust: true,

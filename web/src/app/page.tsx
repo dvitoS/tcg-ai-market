@@ -13,9 +13,9 @@ import type {
   SealedQuoteResponse,
 } from "@/lib/types";
 
-const TITLE = "Kestrel Soft Ink — Pokémon TCG fair value: buy, pass, or trade";
+const TITLE = "Kestrel — Pokémon TCG fair value: buy, pass, or trade";
 const DESCRIPTION =
-  "Price trackers show the spot. Kestrel Soft Ink scores Pokémon TCG cards against a sure AI fair band — buy, sell, trade, or grade with a clear call.";
+  "Price trackers show the spot. Kestrel scores Pokémon TCG cards against a sure AI fair band — buy, sell, trade, or grade with a clear call.";
 
 export const metadata: Metadata = {
   title: {
@@ -31,7 +31,6 @@ export const metadata: Metadata = {
     "fair value",
     "TCG market",
     "Kestrel",
-    "Soft Ink",
     "trade analyzer",
     "deal of the day",
   ],
@@ -75,7 +74,7 @@ const jsonLd = {
     },
     {
       "@type": "SoftwareApplication",
-      name: "Kestrel Soft Ink",
+      name: "Kestrel",
       applicationCategory: "FinanceApplication",
       operatingSystem: "Web",
       url: SITE_URL,

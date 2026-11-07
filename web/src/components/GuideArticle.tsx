@@ -65,7 +65,7 @@ export function GuideArticle({ guide }: { guide: Guide }) {
         </div>
 
         <p className="guide-more">
-          More Soft Ink guides:{" "}
+          More guides:{" "}
           <Link href="/guides">all guides</Link>
           {" · "}
           <Link href={guidePath("pokemon-tcg-fair-value")}>fair value</Link>

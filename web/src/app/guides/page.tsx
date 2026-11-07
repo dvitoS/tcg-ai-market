@@ -7,7 +7,7 @@ import { absoluteUrl } from "@/lib/seo";
 export const metadata: Metadata = {
   title: "Pokémon TCG guides — fair value, grading, trades",
   description:
-    "Soft Ink guides: Pokémon TCG fair value, should you grade, and how to judge trade fairness with Kestrel.",
+    "Guides: Pokémon TCG fair value, should you grade, and how to judge trade fairness with Kestrel.",
   alternates: { canonical: absoluteUrl("/guides") },
 };
 
@@ -24,7 +24,7 @@ export default function GuidesIndexPage() {
         <p className="explore-command-eyebrow">Guides</p>
         <h1 className="guide-title">Pokémon TCG decision guides</h1>
         <p className="guide-lede">
-          Plain-language Soft Ink explainers for fair value, grading, and trade
+          Plain-language explainers for fair value, grading, and trade
           fairness — the same language Kestrel uses on Radar and Trade Analyzer.
         </p>
       </header>
