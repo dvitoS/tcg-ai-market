@@ -36,7 +36,7 @@ export const metadata: Metadata = {
     template: "%s · Kestrel",
   },
   description:
-    "Kestrel Soft Ink — Pokémon TCG market prices, AI fair-band signals, portfolio, Trade Analyzer, and dealer tools.",
+    "Kestrel — Pokémon TCG market prices, AI fair-band signals, portfolio, Trade Analyzer, and dealer tools.",
   applicationName: "Kestrel",
   manifest: "/manifest.webmanifest",
   appleWebApp: {

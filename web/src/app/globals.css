@@ -157,12 +157,6 @@ a {
   box-shadow: 0 0 0 1px rgba(192, 122, 58, 0.22);
 }
 
-.brand-lockup {
-  display: grid;
-  gap: 0.05rem;
-  line-height: 1.05;
-}
-
 .brand-name {
   font-family: var(--font-display);
   font-weight: 600;
@@ -173,15 +167,6 @@ a {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-}
-
-.brand-soft {
-  font-family: var(--font-ui);
-  font-size: 0.62rem;
-  font-weight: 560;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--accent-2);
 }
 
 .site-nav {

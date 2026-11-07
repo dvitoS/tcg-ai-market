@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 
 import { OG_SIZE, OgShell } from "@/lib/og";
 
-export const alt = "Kestrel Soft Ink — Pokémon TCG fair value";
+export const alt = "Kestrel — Pokémon TCG fair value";
 export const size = OG_SIZE;
 export const contentType = "image/png";
 

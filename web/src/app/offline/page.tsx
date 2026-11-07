@@ -11,7 +11,7 @@ export default function OfflinePage() {
       <p className="eyebrow">Kestrel</p>
       <h1>You’re offline</h1>
       <p>
-        Soft Ink needs a connection for live spots and signals. Reconnect, then
+        Kestrel needs a connection for live spots and signals. Reconnect, then
         open the desk again.
       </p>
       <Link href="/" className="btn-primary">

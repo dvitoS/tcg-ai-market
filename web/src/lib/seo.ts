@@ -41,7 +41,7 @@ export function cardSeoDescription(card: CatalogCard): string {
   ].filter(Boolean);
   const lead = bits.length
     ? bits.join(" · ")
-    : "Live Pokémon TCG pricing on Soft Ink";
+    : "Live Pokémon TCG pricing on Kestrel";
   return `${card.name}: ${lead}. Sure AI fair band, history, and buy/pass call on Kestrel.`;
 }
 

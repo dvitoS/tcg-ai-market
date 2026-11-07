@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Sealed Pokémon TCG products — ETB, boxes, tins",
   description:
-    "Quote sealed Pokémon TCG products (ETB, booster boxes, tins) via JustTCG and add them to your Soft Ink portfolio.",
+    "Quote sealed Pokémon TCG products (ETB, booster boxes, tins) via JustTCG and add them to your Kestrel portfolio.",
   alternates: { canonical: absoluteUrl("/sealed") },
 };
 

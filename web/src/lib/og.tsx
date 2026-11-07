@@ -50,16 +50,6 @@ export function OgShell({
         >
           Kestrel
         </div>
-        <div
-          style={{
-            marginLeft: 8,
-            fontSize: 20,
-            color: "#9a9288",
-            fontFamily: "ui-sans-serif, system-ui, sans-serif",
-          }}
-        >
-          Soft Ink
-        </div>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 18, flex: 1, justifyContent: "center" }}>

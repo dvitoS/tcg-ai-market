@@ -24,7 +24,7 @@ const en = {
   nav_close_menu: "Close menu",
   nav_primary: "Primary",
   nav_mobile: "Mobile",
-  landing_product: "Soft Ink · Pokémon TCG fair value",
+  landing_product: "Pokémon TCG fair value",
   landing_headline: "Should you buy this card — or pass?",
   landing_lede:
     "Price trackers show the spot. Kestrel scores it against a sure AI fair band — so you buy, sell, trade, or grade with a clear call.",
@@ -45,7 +45,7 @@ const en = {
   landing_follow_link: "Open Trade analyzer →",
   landing_path_title: "Buy, sell, trade, or grade — with a call",
   landing_path_lede:
-    "Kestrel Soft Ink scores Pokémon TCG spot against a sure AI fair band. One desk for Radar deals, Trade fairness, and live board prices.",
+    "Kestrel scores Pokémon TCG spot against a sure AI fair band. One desk for Radar deals, Trade fairness, and live board prices.",
   landing_path_radar: "Open Kestrel Radar →",
   landing_path_radar_meta: "Sure underpriced and overpriced singles",
   landing_path_trade: "Open Trade Analyzer →",
@@ -54,7 +54,7 @@ const en = {
   landing_path_browse_meta: "Live spot, fair band, and price history",
   landing_guides_title: "Learn the desk language",
   landing_guides_lede:
-    "Short Soft Ink guides on Pokémon TCG fair value, grading, and trade fairness.",
+    "Short guides on Pokémon TCG fair value, grading, and trade fairness.",
   landing_guides_fair: "Pokémon TCG fair value →",
   landing_guides_grade: "Should I grade this card? →",
   landing_guides_trade: "Is this trade fair? →",
@@ -153,13 +153,13 @@ const en = {
   // Portfolio / auth
   port_eyebrow: "Portfolio",
   port_title: "Your book",
-  port_lede: "Mark-to-market lots and watchlist alerts — Soft Ink.",
+  port_lede: "Mark-to-market lots and watchlist alerts.",
   port_demo_session: "demo session",
   port_loading: "Loading session…",
   auth_create_account: "Create account",
   auth_mode: "Auth mode",
-  auth_signup_lede: "One Soft Ink account for your book, watchlist, and trades.",
-  auth_signin_lede: "Open your Soft Ink book — lots, watchlist, and alerts.",
+  auth_signup_lede: "One Kestrel account for your book, watchlist, and trades.",
+  auth_signin_lede: "Open your Kestrel book — lots, watchlist, and alerts.",
   auth_email: "Email",
   auth_password: "Password",
   auth_password_min: "Password (min 6)",
@@ -172,7 +172,7 @@ const en = {
   auth_signup_confirm: "Account created. Check your email to confirm, then sign in.",
   auth_forgot: "Forgot password?",
   auth_forgot_title: "Reset password",
-  auth_forgot_lede: "We’ll email a Soft Ink reset link if that address has an account.",
+  auth_forgot_lede: "We’ll email a reset link if that address has an account.",
   auth_forgot_submit: "Send reset link",
   auth_forgot_sent: "If that email has an account, a reset link is on the way.",
   auth_forgot_failed: "Could not start password reset.",
@@ -216,7 +216,7 @@ const en = {
   sealed_desk_eyebrow: "Sealed desk",
   sealed_desk_title: "Sealed products",
   sealed_desk_lede:
-    "Quote ETBs, booster boxes, and tins via JustTCG — add lots to Soft Ink when signed in.",
+    "Quote ETBs, booster boxes, and tins via JustTCG — add lots to your portfolio when signed in.",
   sealed_desk_showcase: "Featured sealed seed — search a name, TCP id, or UPC for live quotes.",
   sealed_desk_demo_live:
     "Showing curated showcase — search to pull live JustTCG sealed quotes.",
@@ -308,7 +308,7 @@ const en = {
   radar_title: "Kestrel Radar",
   radar_lede:
     "Sure calls for the next {days}d — buying cheap vs the fair band (underpriced) or trimming rich spots (overpriced).",
-  radar_signin_lede: "Sign in to open Kestrel Radar against the Soft Ink market board.",
+  radar_signin_lede: "Sign in to open Kestrel Radar against the market board.",
   radar_locked: "Kestrel Radar is a Kestrel Pro surface.",
   radar_locked_lede:
     "Upgrade with the same email you use to sign in, then come back for underpriced / overpriced calls.",
@@ -365,7 +365,7 @@ const en = {
   trade_title: "Trade Analyzer",
   trade_lede:
     "Build both sides of a trade. We score spot value and AI fair value so you see who is ahead before you lock it in.",
-  trade_signin_lede: "Sign in to score trades against the Soft Ink market board.",
+  trade_signin_lede: "Sign in to score trades against the market board.",
   trade_locked: "Trade Analyzer is a Kestrel Pro surface.",
   trade_locked_lede:
     "Upgrade with the same email you use to sign in, then come back to compare both sides.",
@@ -402,7 +402,7 @@ const en = {
   trade_share_eyebrow: "Shared trade",
   trade_share_title: "Trade verdict",
   trade_share_lede:
-    "Live Soft Ink re-score of a shared trade — spot net, AI fair net, and who is ahead.",
+    "Live re-score of a shared trade — spot net, AI fair net, and who is ahead.",
   trade_share_loading: "Loading shared trade…",
   trade_share_missing: "Share not found",
   trade_share_open_analyzer: "Open Trade Analyzer",
@@ -415,15 +415,15 @@ const en = {
   trade_export_done: "Trade image saved",
   trade_export_error: "Could not save trade image",
   trade_export_tag: "Trade report",
-  trade_export_watermark: "Kestrel Pro · Soft Ink trade desk",
+  trade_export_watermark: "Kestrel Pro · trade desk",
   trade_export_more: "+{n} more",
 
   // Dealer
   dealer_eyebrow: "Dealer",
   dealer_title: "Desk",
-  dealer_signin_lede: "Sign in to score inventory against the Soft Ink market board.",
+  dealer_signin_lede: "Sign in to score inventory against the market board.",
   dealer_lede:
-    "Upload Soft Ink or TCGplayer inventory CSV — Soft Ink keeps the last sync and re-scores on return.",
+    "Upload Kestrel or TCGplayer inventory CSV — Kestrel keeps the last sync and re-scores on return.",
   dealer_locked: "Dealer desk is a Kestrel Pro surface.",
   dealer_locked_lede:
     "Upgrade with the same email you use to sign in, then come back to score inventory.",
@@ -643,14 +643,14 @@ const en = {
   binder_share_error: "Could not copy set link",
   binder_share_blurb: "Kestrel binder — {set} is {pct}% complete.",
   pwa_install_title: "Install Kestrel",
-  pwa_install_lede: "Add Soft Ink to your home screen for a faster desk.",
+  pwa_install_lede: "Add Kestrel to your home screen for a faster desk.",
   pwa_install_ios: "Tap Share, then Add to Home Screen.",
   pwa_install_cta: "Install",
   pwa_install_dismiss: "Not now",
   identify_eyebrow: "Camera",
   identify_title: "Scan a card",
   identify_lede:
-    "Point at a Pokémon card — Soft Ink reads the name and number, then opens the same fair / edge desk.",
+    "Point at a Pokémon card — Kestrel reads the name and number, then opens the same fair / edge desk.",
   identify_placeholder: "Use the camera or upload a photo of the card face.",
   identify_open_camera: "Open camera",
   identify_upload: "Upload photo",
@@ -658,7 +658,7 @@ const en = {
   identify_cancel: "Cancel",
   identify_again: "Scan another",
   identify_ocr_progress: "Reading card… {pct}%",
-  identify_matching: "Matching Soft Ink board…",
+  identify_matching: "Matching the market board…",
   identify_camera_error: "Camera permission denied or unavailable.",
   identify_ocr_error: "Could not read text from that photo.",
   identify_ocr_empty: "No readable card text — try a sharper photo.",
@@ -700,7 +700,7 @@ const hr: Dictionary = {
   nav_close_menu: "Zatvori izbornik",
   nav_primary: "Glavna navigacija",
   nav_mobile: "Mobilna navigacija",
-  landing_product: "Soft Ink · Pokémon TCG fair value",
+  landing_product: "Pokémon TCG fair value",
   landing_headline: "Kupiti ovu kartu — ili propustiti?",
   landing_lede:
     "Price tracker pokazuje spot. Kestrel je mjeri naspram sure AI fair pojasa — pa kupiš, prodaš, tradeaš ili gradeaš s jasnim pozivom.",
@@ -721,7 +721,7 @@ const hr: Dictionary = {
   landing_follow_link: "Otvori Trade analyzer →",
   landing_path_title: "Kupi, prodaj, tradeaj ili gradeaj — s pozivom",
   landing_path_lede:
-    "Kestrel Soft Ink mjeri Pokémon TCG spot naspram sure AI fair pojasa. Jedan desk za Radar dealove, Trade fairness i live cijene.",
+    "Kestrel mjeri Pokémon TCG spot naspram sure AI fair pojasa. Jedan desk za Radar dealove, Trade fairness i live cijene.",
   landing_path_radar: "Otvori Kestrel Radar →",
   landing_path_radar_meta: "Sure podcijenjene i precjenjene single karte",
   landing_path_trade: "Otvori Trade Analyzer →",
@@ -730,7 +730,7 @@ const hr: Dictionary = {
   landing_path_browse_meta: "Live spot, fair pojas i povijest cijena",
   landing_guides_title: "Nauči jezik deska",
   landing_guides_lede:
-    "Kratki Soft Ink guideovi o Pokémon TCG fair valueu, gradingu i trade fairnessu.",
+    "Kratki guideovi o Pokémon TCG fair valueu, gradingu i trade fairnessu.",
   landing_guides_fair: "Pokémon TCG fair value →",
   landing_guides_grade: "Trebam li gradeati ovu kartu? →",
   landing_guides_trade: "Je li ovaj trade fair? →",
@@ -828,13 +828,13 @@ const hr: Dictionary = {
 
   port_eyebrow: "Portfelj",
   port_title: "Tvoja knjiga",
-  port_lede: "Lotovi po tržištu i watchlist alerti — Soft Ink.",
+  port_lede: "Lotovi po tržištu i watchlist alerti.",
   port_demo_session: "demo sesija",
   port_loading: "Učitavam sesiju…",
   auth_create_account: "Kreiraj račun",
   auth_mode: "Način prijave",
-  auth_signup_lede: "Jedan Soft Ink račun za knjigu, watchlist i tradeove.",
-  auth_signin_lede: "Otvori Soft Ink knjigu — lotovi, watchlist i alerti.",
+  auth_signup_lede: "Jedan Kestrel račun za knjigu, watchlist i tradeove.",
+  auth_signin_lede: "Otvori Kestrel knjigu — lotovi, watchlist i alerti.",
   auth_email: "Email",
   auth_password: "Lozinka",
   auth_password_min: "Lozinka (min. 6)",
@@ -847,7 +847,7 @@ const hr: Dictionary = {
   auth_signup_confirm: "Račun kreiran. Potvrdi email pa se prijavi.",
   auth_forgot: "Zaboravljena lozinka?",
   auth_forgot_title: "Reset lozinke",
-  auth_forgot_lede: "Pošaljemo Soft Ink reset link ako taj email ima račun.",
+  auth_forgot_lede: "Pošaljemo reset link ako taj email ima račun.",
   auth_forgot_submit: "Pošalji reset link",
   auth_forgot_sent: "Ako taj email ima račun, reset link je na putu.",
   auth_forgot_failed: "Reset lozinke nije pokrenut.",
@@ -891,7 +891,7 @@ const hr: Dictionary = {
   sealed_desk_eyebrow: "Sealed desk",
   sealed_desk_title: "Sealed proizvodi",
   sealed_desk_lede:
-    "Quote ETB-ova, booster boxeva i tinova preko JustTCG — dodaj lotove u Soft Ink kad si prijavljen.",
+    "Quote ETB-ova, booster boxeva i tinova preko JustTCG — dodaj lotove u portfolio kad si prijavljen.",
   sealed_desk_showcase: "Featured sealed seed — traži ime, TCP id ili UPC za live quoteove.",
   sealed_desk_demo_live:
     "Prikaz curated showcasea — traži za live JustTCG sealed quoteove.",
@@ -981,7 +981,7 @@ const hr: Dictionary = {
   radar_title: "Kestrel Radar",
   radar_lede:
     "Sure pozivi za sljedećih {days}d — kupnja jeftino vs fair pojas (podcijenjeno) ili trim bogatih spotova (precijenjeno).",
-  radar_signin_lede: "Prijavi se da otvoriš Kestrel Radar prema Soft Ink boardu.",
+  radar_signin_lede: "Prijavi se da otvoriš Kestrel Radar prema market boardu.",
   radar_locked: "Kestrel Radar je Kestrel Pro površina.",
   radar_locked_lede:
     "Nadogradi s istim emailom koji koristiš za prijavu, pa se vrati za podcijenjene / precijenjene pozive.",
@@ -1036,7 +1036,7 @@ const hr: Dictionary = {
   trade_title: "Trade Analyzer",
   trade_lede:
     "Sastavi obje strane tradea. Bodujemo spot i AI fair vrijednost da vidiš tko je ispred prije dogovora.",
-  trade_signin_lede: "Prijavi se da ocijeniš tradeove prema Soft Ink boardu.",
+  trade_signin_lede: "Prijavi se da ocijeniš tradeove prema market boardu.",
   trade_locked: "Trade Analyzer je Kestrel Pro površina.",
   trade_locked_lede:
     "Nadogradi s istim emailom koji koristiš za prijavu, pa usporedi obje strane.",
@@ -1073,7 +1073,7 @@ const hr: Dictionary = {
   trade_share_eyebrow: "Podijeljeni trade",
   trade_share_title: "Trade presuda",
   trade_share_lede:
-    "Live Soft Ink re-score podijeljenog tradea — spot neto, AI fair neto i tko je ispred.",
+    "Live re-score podijeljenog tradea — spot neto, AI fair neto i tko je ispred.",
   trade_share_loading: "Učitavam podijeljeni trade…",
   trade_share_missing: "Share nije pronađen",
   trade_share_open_analyzer: "Otvori Trade Analyzer",
@@ -1086,14 +1086,14 @@ const hr: Dictionary = {
   trade_export_done: "Trade slika spremljena",
   trade_export_error: "Nisam uspio spremiti trade sliku",
   trade_export_tag: "Trade izvještaj",
-  trade_export_watermark: "Kestrel Pro · Soft Ink trade stol",
+  trade_export_watermark: "Kestrel Pro · trade stol",
   trade_export_more: "+još {n}",
 
   dealer_eyebrow: "Dealer",
   dealer_title: "Stol",
-  dealer_signin_lede: "Prijavi se da ocijeniš inventar prema Soft Ink boardu.",
+  dealer_signin_lede: "Prijavi se da ocijeniš inventar prema market boardu.",
   dealer_lede:
-    "Upload Soft Ink ili TCGplayer inventar CSV — Soft Ink pamti zadnji sync i ponovno ocijeni kad se vratiš.",
+    "Upload Kestrel ili TCGplayer inventar CSV — Kestrel pamti zadnji sync i ponovno ocijeni kad se vratiš.",
   dealer_locked: "Dealer stol je Kestrel Pro površina.",
   dealer_locked_lede:
     "Nadogradi s istim emailom koji koristiš za prijavu, pa se vrati ocijeniti inventar.",
@@ -1311,14 +1311,14 @@ const hr: Dictionary = {
   binder_share_error: "Nisam uspio kopirati set link",
   binder_share_blurb: "Kestrel binder — {set} je {pct}% kompletan.",
   pwa_install_title: "Instaliraj Kestrel",
-  pwa_install_lede: "Dodaj Soft Ink na početni zaslon za brži desk.",
+  pwa_install_lede: "Dodaj Kestrel na početni zaslon za brži desk.",
   pwa_install_ios: "Dodirni Share, zatim Dodaj na početni zaslon.",
   pwa_install_cta: "Instaliraj",
   pwa_install_dismiss: "Ne sada",
   identify_eyebrow: "Kamera",
   identify_title: "Skeniraj kartu",
   identify_lede:
-    "Usmjeri na Pokémon kartu — Soft Ink pročita ime i broj, pa otvori isti fair / edge desk.",
+    "Usmjeri na Pokémon kartu — Kestrel pročita ime i broj, pa otvori isti fair / edge desk.",
   identify_placeholder: "Uključi kameru ili uploadaj fotku lica karte.",
   identify_open_camera: "Otvori kameru",
   identify_upload: "Upload fotke",
@@ -1326,7 +1326,7 @@ const hr: Dictionary = {
   identify_cancel: "Odustani",
   identify_again: "Skeniraj drugu",
   identify_ocr_progress: "Čitam kartu… {pct}%",
-  identify_matching: "Sparujem Soft Ink board…",
+  identify_matching: "Sparujem market board…",
   identify_camera_error: "Kamera nije dostupna ili je odbijena.",
   identify_ocr_error: "Ne mogu pročitati tekst s te fotke.",
   identify_ocr_empty: "Nema čitljivog teksta — pokušaj oštriju fotku.",
