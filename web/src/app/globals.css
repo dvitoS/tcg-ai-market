@@ -954,6 +954,46 @@ a {
   font-variant-numeric: tabular-nums;
 }
 
+.explore-card-moves {
+  display: grid;
+  gap: 0.08rem;
+}
+
+.explore-card-move {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: rgba(244, 241, 234, 0.72);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25;
+}
+
+.explore-card-move-label {
+  flex: 0 0 auto;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.64rem;
+  font-weight: 700;
+  color: rgba(244, 241, 234, 0.55);
+}
+
+.explore-card-move-value {
+  margin-left: auto;
+}
+
+.explore-card-move.up,
+.explore-card-move.up .explore-card-move-value {
+  color: var(--buy);
+}
+
+.explore-card-move.down,
+.explore-card-move.down .explore-card-move-value {
+  color: var(--sell);
+}
+
 .explore-card-change {
   font-size: 0.78rem;
   font-weight: 600;

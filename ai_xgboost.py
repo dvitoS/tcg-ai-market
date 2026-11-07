@@ -552,6 +552,10 @@ def card_forecasts(
     latest["growth"] = latest["predicted_price"] - mkt
     latest["growth_pct"] = np.where(mkt > 0, latest["growth"] / mkt * 100.0, 0.0)
     latest["expected_change_pct"] = pred_ret * 100.0
+    if "ret_3" in latest.columns:
+        latest["price_change_3d_pct"] = (
+            pd.to_numeric(latest["ret_3"], errors="coerce") * 100.0
+        )
     if "ret_7" in latest.columns:
         latest["price_change_7d_pct"] = (
             pd.to_numeric(latest["ret_7"], errors="coerce") * 100.0

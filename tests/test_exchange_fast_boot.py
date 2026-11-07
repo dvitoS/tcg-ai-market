@@ -97,3 +97,5 @@ def test_attach_price_change_7d_from_history():
     out = exchange.attach_price_change_7d(quotes, history)
     assert "price_change_7d_pct" in out.columns
     assert pd.notna(out.loc[0, "price_change_7d_pct"])
+    assert "price_change_3d_pct" in out.columns
+    assert pd.notna(out.loc[0, "price_change_3d_pct"])

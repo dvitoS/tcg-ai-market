@@ -49,6 +49,7 @@ def _frame_from_quotes(quotes: pd.DataFrame) -> pd.DataFrame:
         "market_price",
         "predicted_price",
         "expected_change_pct",
+        "price_change_3d_pct",
         "price_change_7d_pct",
         "pred_lo_pct",
         "pred_hi_pct",
@@ -100,25 +101,33 @@ def _load_demo_frame() -> pd.DataFrame | None:
     if cards.empty:
         return None
 
-    # Synthetic 7d change + signal from last two history points per card.
-    changes: dict[str, float] = {}
+    # Synthetic 3d/7d moves + signal from recent history points per card.
+    changes_7d: dict[str, float] = {}
+    changes_3d: dict[str, float] = {}
     if not hist.empty:
         hist["price"] = pd.to_numeric(hist["price"], errors="coerce")
         hist = hist.dropna(subset=["price"])
         for card_id, group in hist.groupby("card_id"):
-            tail = group.tail(8)
-            if len(tail) < 2:
-                continue
-            first = float(tail.iloc[0]["price"])
-            last = float(tail.iloc[-1]["price"])
-            if first > 0:
-                changes[str(card_id)] = ((last - first) / first) * 100.0
+            ordered = group.sort_values("date")
+            tail7 = ordered.tail(8)
+            if len(tail7) >= 2:
+                first = float(tail7.iloc[0]["price"])
+                last = float(tail7.iloc[-1]["price"])
+                if first > 0:
+                    changes_7d[str(card_id)] = ((last - first) / first) * 100.0
+            tail3 = ordered.tail(4)
+            if len(tail3) >= 2:
+                first3 = float(tail3.iloc[0]["price"])
+                last3 = float(tail3.iloc[-1]["price"])
+                if first3 > 0:
+                    changes_3d[str(card_id)] = ((last3 - first3) / first3) * 100.0
 
     rows: list[dict[str, Any]] = []
     for _, row in cards.iterrows():
         card_id = str(row["id"])
         price = float(row["market_price"] or 0.0)
-        change = changes.get(card_id)
+        change = changes_7d.get(card_id)
+        change_3d = changes_3d.get(card_id)
         if change is None:
             signal = "HOLD"
         elif change >= 3.0:
@@ -139,6 +148,7 @@ def _load_demo_frame() -> pd.DataFrame | None:
                 "market_price": price,
                 "predicted_price": predicted,
                 "expected_change_pct": change,
+                "price_change_3d_pct": change_3d,
                 "price_change_7d_pct": change,
                 "signal": signal,
                 "confidence_ok": True,
@@ -284,6 +294,7 @@ def row_to_card(row: pd.Series | dict[str, Any]) -> dict[str, Any]:
         "market_price": _f("market_price"),
         "predicted_price": _f("predicted_price"),
         "expected_change_pct": _f("expected_change_pct"),
+        "price_change_3d_pct": _f("price_change_3d_pct"),
         "price_change_7d_pct": _f("price_change_7d_pct"),
         "signal": _s("signal"),
         "confidence_ok": bool(get("confidence_ok") if get("confidence_ok") is not None else True),

@@ -130,6 +130,7 @@ class CatalogCard(BaseModel):
     market_price: float | None = None
     predicted_price: float | None = None
     expected_change_pct: float | None = None
+    price_change_3d_pct: float | None = None
     price_change_7d_pct: float | None = None
     signal: str | None = None
     confidence_ok: bool = True

@@ -229,28 +229,49 @@ def _filter_catalog_floor(quotes: pd.DataFrame) -> pd.DataFrame:
 
 
 def attach_price_change_7d(quotes: pd.DataFrame, history: pd.DataFrame) -> pd.DataFrame:
-    """Fill price_change_7d_pct from history when missing on persisted quotes."""
+    """Fill 3d + 7d historical moves from history when missing on persisted quotes."""
     if quotes is None or quotes.empty:
         return quotes
     out = quotes.copy()
-    if "price_change_7d_pct" in out.columns and out["price_change_7d_pct"].notna().any():
+    need_3d = (
+        "price_change_3d_pct" not in out.columns
+        or not out["price_change_3d_pct"].notna().any()
+    )
+    need_7d = (
+        "price_change_7d_pct" not in out.columns
+        or not out["price_change_7d_pct"].notna().any()
+    )
+    if not need_3d and not need_7d:
         return out
     if history is None or history.empty or "card_id" not in history.columns:
+        if "price_change_3d_pct" not in out.columns:
+            out["price_change_3d_pct"] = pd.NA
         if "price_change_7d_pct" not in out.columns:
             out["price_change_7d_pct"] = pd.NA
         return out
     frame = history.sort_values(["card_id", "date"]).copy()
     frame["price"] = pd.to_numeric(frame["price"], errors="coerce")
-    frame["ret_7"] = frame.groupby("card_id", sort=False)["price"].pct_change(7)
-    latest = (
-        frame.groupby("card_id", as_index=False)
-        .tail(1)[["card_id", "ret_7"]]
-        .rename(columns={"card_id": "id", "ret_7": "price_change_7d_pct"})
-    )
-    latest["price_change_7d_pct"] = pd.to_numeric(latest["price_change_7d_pct"], errors="coerce") * 100.0
-    out = out.drop(columns=["price_change_7d_pct"], errors="ignore").merge(
-        latest, on="id", how="left"
-    )
+    cols = ["card_id"]
+    if need_3d:
+        frame["ret_3"] = frame.groupby("card_id", sort=False)["price"].pct_change(3)
+        cols.append("ret_3")
+    if need_7d:
+        frame["ret_7"] = frame.groupby("card_id", sort=False)["price"].pct_change(7)
+        cols.append("ret_7")
+    latest = frame.groupby("card_id", as_index=False).tail(1)[cols].copy()
+    latest = latest.rename(columns={"card_id": "id"})
+    drop_cols: list[str] = []
+    if need_3d:
+        latest["price_change_3d_pct"] = (
+            pd.to_numeric(latest.pop("ret_3"), errors="coerce") * 100.0
+        )
+        drop_cols.append("price_change_3d_pct")
+    if need_7d:
+        latest["price_change_7d_pct"] = (
+            pd.to_numeric(latest.pop("ret_7"), errors="coerce") * 100.0
+        )
+        drop_cols.append("price_change_7d_pct")
+    out = out.drop(columns=drop_cols, errors="ignore").merge(latest, on="id", how="left")
     return out
 
 
