@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 from api.catalog_service import clear_board_cache
 from api.main import app
 from api.radar_service import build_radar
+from services.spot_sanity import RADAR_MAX_UNDER_EDGE_PCT, RADAR_MIN_UNDER_SPOT
 
 
 def setup_function() -> None:
@@ -74,6 +75,9 @@ def test_radar_preview_public_under_only() -> None:
     for row in body["underpriced"]:
         assert row["side"] == "UNDER"
         assert float(row["edge_pct"]) > 0
+        assert float(row["edge_pct"]) <= RADAR_MAX_UNDER_EDGE_PCT
+        spot = row.get("spot") if row.get("spot") is not None else row.get("price")
+        assert float(spot) >= RADAR_MIN_UNDER_SPOT
 
 
 def test_radar_preview_deal_of_day_limit_one() -> None:
@@ -104,6 +108,9 @@ def test_radar_board_returns_sides() -> None:
             assert row["side"] == "UNDER"
             assert row["edge_pct"] is not None
             assert float(row["edge_pct"]) > 0
+            assert float(row["edge_pct"]) <= RADAR_MAX_UNDER_EDGE_PCT
+            spot = row.get("spot") if row.get("spot") is not None else row.get("price")
+            assert float(spot) >= RADAR_MIN_UNDER_SPOT
         for row in body["overpriced"]:
             assert row["side"] == "OVER"
             assert row["edge_pct"] is not None

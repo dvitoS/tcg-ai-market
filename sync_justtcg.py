@@ -33,6 +33,7 @@ from justtcg_client import (
     resolve_set_id,
     variant_price_usd,
 )
+from services.spot_sanity import is_absurd_spot_jump
 
 
 def _known_unmatched_set_codes() -> set[str]:
@@ -109,7 +110,7 @@ def _ingest_card_row(
 ) -> tuple[str, int]:
     """Apply one JustTCG card payload. Returns (status, history_rows_written).
 
-    status: ok | skip_weak | skip_empty | skip_dup
+    status: ok | skip_weak | skip_empty | skip_dup | skip_absurd
     """
     if card.id in matched_ids:
         return "skip_dup", 0
@@ -119,6 +120,19 @@ def _ingest_card_row(
     tcp = card_tcgplayer_id(row)
     if not points and price is None:
         return "skip_empty", 0
+
+    prior = getattr(card, "market_price", None)
+    tip = None
+    if points:
+        try:
+            tip = float(points[-1]["price"])
+        except (TypeError, ValueError, KeyError, IndexError):
+            tip = None
+    if is_absurd_spot_jump(price, prior) or is_absurd_spot_jump(tip, prior):
+        return "skip_absurd", 0
+    if tip is not None and price is not None and is_absurd_spot_jump(price, tip):
+        # Spot and history tip disagree wildly — refuse both writes.
+        return "skip_absurd", 0
 
     written = 0
     if points:
@@ -229,7 +243,7 @@ def sync_justtcg_price_history(*, limit: int | None = None) -> dict[str, int]:
                 batch_updated += 1
                 saved += written
                 print(f"  OK {card.id} · batch · {written} history pts")
-            elif status in {"skip_weak", "skip_empty"}:
+            elif status in {"skip_weak", "skip_empty", "skip_absurd"}:
                 skipped += 1
             if limit is not None and updated >= limit:
                 payload = _stats_payload()
@@ -360,7 +374,7 @@ def sync_justtcg_price_history(*, limit: int | None = None) -> dict[str, int]:
                     updated += 1
                     saved += written
                     print(f"  OK {card.id} · set · {written} history pts")
-                elif status in {"skip_weak", "skip_empty"}:
+                elif status in {"skip_weak", "skip_empty", "skip_absurd"}:
                     skipped += 1
                 if limit is not None and updated >= limit:
                     payload = _stats_payload()
