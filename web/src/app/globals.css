@@ -3956,7 +3956,7 @@ a {
   animation: landing-drift 28s ease-in-out infinite alternate;
 }
 
-/* Soft Ink wash — wet copper blooms + beads (above veil; not a particle field). */
+/* Soft Ink wash — canvas copper ribbons (above veil; ink-in-water, not particles). */
 .soft-ink-wash {
   position: absolute;
   inset: 0;
@@ -3965,121 +3965,25 @@ a {
   overflow: hidden;
 }
 
-.soft-ink-wash-haze {
-  position: absolute;
-  inset: -12% -20%;
-  background:
-    radial-gradient(ellipse at 72% 42%, rgba(192, 122, 58, 0.28), transparent 52%),
-    radial-gradient(ellipse at 18% 78%, rgba(212, 165, 116, 0.18), transparent 46%);
-  animation: soft-ink-haze 11s ease-in-out infinite alternate;
-}
-
-.soft-ink-wash-bloom {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(28px);
-  will-change: transform, opacity;
-}
-
-.soft-ink-wash-bloom-a {
-  width: min(52vw, 460px);
-  height: min(52vw, 460px);
-  left: -8%;
-  top: 12%;
-  background: radial-gradient(circle, rgba(212, 165, 116, 0.55), transparent 70%);
-  animation: soft-ink-bloom-a 9s ease-in-out infinite alternate;
-}
-
-.soft-ink-wash-bloom-b {
-  width: min(40vw, 360px);
-  height: min(40vw, 360px);
-  right: 2%;
-  bottom: 0%;
-  background: radial-gradient(circle, rgba(192, 122, 58, 0.48), transparent 72%);
-  animation: soft-ink-bloom-b 12s ease-in-out infinite alternate;
-}
-
-.soft-ink-wash-bloom-c {
-  width: min(32vw, 280px);
-  height: min(32vw, 280px);
-  left: 42%;
-  top: -4%;
-  background: radial-gradient(circle, rgba(154, 92, 48, 0.42), transparent 74%);
-  animation: soft-ink-bloom-c 10s ease-in-out infinite alternate;
-}
-
-.soft-ink-wash-fiber {
-  position: absolute;
-  inset: -50% 0;
-  opacity: 0.35;
-  background-image: repeating-linear-gradient(
-    180deg,
-    transparent 0,
-    transparent 4px,
-    rgba(247, 241, 232, 0.07) 4px,
-    rgba(247, 241, 232, 0.07) 5px
-  );
-  animation: soft-ink-fiber 18s linear infinite;
-  mask-image: linear-gradient(90deg, transparent 0%, #000 22%, #000 82%, transparent 100%);
-}
-
-.soft-ink-bead {
-  position: absolute;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, rgba(247, 241, 232, 0.85), rgba(192, 122, 58, 0.7) 55%, transparent 72%);
-  box-shadow: 0 0 18px rgba(192, 122, 58, 0.45);
-  opacity: 0.7;
-  will-change: transform, opacity;
-}
-
-.soft-ink-bead-1 {
-  left: 62%;
-  top: 28%;
-  animation: soft-ink-bead-a 14s ease-in-out infinite;
-}
-
-.soft-ink-bead-2 {
-  left: 78%;
-  top: 58%;
-  width: 5px;
-  height: 5px;
-  animation: soft-ink-bead-b 11s ease-in-out infinite;
-}
-
-.soft-ink-bead-3 {
-  left: 48%;
-  top: 72%;
-  width: 6px;
-  height: 6px;
-  animation: soft-ink-bead-c 16s ease-in-out infinite;
-}
-
-.soft-ink-bead-4 {
-  left: 88%;
-  top: 18%;
-  width: 4px;
-  height: 4px;
-  animation: soft-ink-bead-a 13s ease-in-out 1.4s infinite;
-}
-
-.soft-ink-wash-mark {
+.soft-ink-wash-canvas {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
+  display: block;
+  opacity: 1;
+  filter: blur(10px) saturate(1.25) contrast(1.05);
+  mix-blend-mode: screen;
+  transform: translateZ(0);
 }
 
-.soft-ink-wash-tide {
-  animation: soft-ink-tide 10s ease-in-out infinite alternate;
-  transform-origin: center;
-}
-
-.soft-ink-wash-stroke {
-  stroke-dasharray: 560;
-  stroke-dashoffset: 560;
-  animation: soft-ink-stroke 3.2s ease forwards 0.25s;
+.soft-ink-wash-vignette {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(10, 9, 8, 0.55) 0%, transparent 36%),
+    linear-gradient(180deg, transparent 55%, rgba(10, 9, 8, 0.45) 100%);
+  pointer-events: none;
 }
 
 .landing-hero-veil {
@@ -4087,8 +3991,8 @@ a {
   inset: 0;
   z-index: 2;
   background:
-    linear-gradient(105deg, rgba(10, 9, 8, 0.88) 0%, rgba(10, 9, 8, 0.52) 42%, rgba(10, 9, 8, 0.12) 100%),
-    linear-gradient(180deg, rgba(10, 9, 8, 0.2) 0%, rgba(10, 9, 8, 0.05) 42%, rgba(10, 9, 8, 0.78) 100%);
+    linear-gradient(105deg, rgba(10, 9, 8, 0.82) 0%, rgba(10, 9, 8, 0.4) 40%, rgba(10, 9, 8, 0.08) 100%),
+    linear-gradient(180deg, rgba(10, 9, 8, 0.15) 0%, rgba(10, 9, 8, 0.04) 42%, rgba(10, 9, 8, 0.72) 100%);
   pointer-events: none;
 }
 
@@ -4754,119 +4658,7 @@ a {
     transform: scale(1.04) translate3d(0, 0, 0);
   }
   to {
-    transform: scale(1.09) translate3d(-2%, 1.2%, 0);
-  }
-}
-
-@keyframes soft-ink-haze {
-  from {
-    transform: translate3d(-3%, 1%, 0) scale(1);
-    opacity: 0.55;
-  }
-  to {
-    transform: translate3d(4%, -2%, 0) scale(1.08);
-    opacity: 0.95;
-  }
-}
-
-@keyframes soft-ink-bloom-a {
-  from {
-    transform: translate3d(0, 0, 0) scale(0.92);
-    opacity: 0.45;
-  }
-  to {
-    transform: translate3d(14%, 10%, 0) scale(1.28);
-    opacity: 0.95;
-  }
-}
-
-@keyframes soft-ink-bloom-b {
-  from {
-    transform: translate3d(0, 0, 0) scale(1);
-    opacity: 0.4;
-  }
-  to {
-    transform: translate3d(-16%, -12%, 0) scale(1.32);
-    opacity: 0.9;
-  }
-}
-
-@keyframes soft-ink-bloom-c {
-  from {
-    transform: translate3d(0, 6%, 0) scale(0.88);
-    opacity: 0.35;
-  }
-  to {
-    transform: translate3d(10%, -8%, 0) scale(1.24);
-    opacity: 0.8;
-  }
-}
-
-@keyframes soft-ink-fiber {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-  to {
-    transform: translate3d(0, 18%, 0);
-  }
-}
-
-@keyframes soft-ink-tide {
-  from {
-    transform: translate3d(-4%, 2%, 0) scaleY(0.92);
-    opacity: 0.35;
-  }
-  to {
-    transform: translate3d(5%, -3%, 0) scaleY(1.08);
-    opacity: 0.75;
-  }
-}
-
-@keyframes soft-ink-bead-a {
-  0% {
-    transform: translate3d(0, 0, 0);
-    opacity: 0.15;
-  }
-  20% {
-    opacity: 0.85;
-  }
-  100% {
-    transform: translate3d(-18vw, 22vh, 0);
-    opacity: 0.1;
-  }
-}
-
-@keyframes soft-ink-bead-b {
-  0% {
-    transform: translate3d(0, 0, 0);
-    opacity: 0.1;
-  }
-  25% {
-    opacity: 0.8;
-  }
-  100% {
-    transform: translate3d(-12vw, -18vh, 0);
-    opacity: 0.05;
-  }
-}
-
-@keyframes soft-ink-bead-c {
-  0% {
-    transform: translate3d(0, 0, 0);
-    opacity: 0.12;
-  }
-  30% {
-    opacity: 0.75;
-  }
-  100% {
-    transform: translate3d(14vw, -16vh, 0);
-    opacity: 0.08;
-  }
-}
-
-@keyframes soft-ink-stroke {
-  to {
-    stroke-dashoffset: 0;
+    transform: scale(1.08) translate3d(-1.6%, 1%, 0);
   }
 }
 
@@ -4907,8 +4699,8 @@ a {
     padding: 3.25rem 0 2.5rem;
   }
 
-  .soft-ink-wash-fiber {
-    opacity: 0.14;
+  .soft-ink-wash-canvas {
+    opacity: 0.85;
   }
 }
 
