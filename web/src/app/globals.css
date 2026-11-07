@@ -3956,64 +3956,112 @@ a {
   animation: landing-drift 28s ease-in-out infinite alternate;
 }
 
-/* Soft Ink wash — paper fiber + copper bloom (distinct from particle / neon fields). */
+/* Soft Ink wash — wet copper blooms + beads (above veil; not a particle field). */
 .soft-ink-wash {
   position: absolute;
   inset: 0;
-  z-index: 1;
+  z-index: 3;
   pointer-events: none;
   overflow: hidden;
-  mix-blend-mode: soft-light;
+}
+
+.soft-ink-wash-haze {
+  position: absolute;
+  inset: -12% -20%;
+  background:
+    radial-gradient(ellipse at 72% 42%, rgba(192, 122, 58, 0.28), transparent 52%),
+    radial-gradient(ellipse at 18% 78%, rgba(212, 165, 116, 0.18), transparent 46%);
+  animation: soft-ink-haze 11s ease-in-out infinite alternate;
 }
 
 .soft-ink-wash-bloom {
   position: absolute;
   border-radius: 50%;
-  filter: blur(42px);
-  opacity: 0.55;
+  filter: blur(28px);
   will-change: transform, opacity;
 }
 
 .soft-ink-wash-bloom-a {
-  width: min(48vw, 420px);
-  height: min(48vw, 420px);
-  left: -6%;
-  top: 18%;
-  background: radial-gradient(circle, rgba(192, 122, 58, 0.45), transparent 68%);
-  animation: soft-ink-bloom-a 16s ease-in-out infinite alternate;
+  width: min(52vw, 460px);
+  height: min(52vw, 460px);
+  left: -8%;
+  top: 12%;
+  background: radial-gradient(circle, rgba(212, 165, 116, 0.55), transparent 70%);
+  animation: soft-ink-bloom-a 9s ease-in-out infinite alternate;
 }
 
 .soft-ink-wash-bloom-b {
-  width: min(36vw, 320px);
-  height: min(36vw, 320px);
-  right: 8%;
-  bottom: 6%;
-  background: radial-gradient(circle, rgba(154, 92, 48, 0.38), transparent 70%);
-  animation: soft-ink-bloom-b 21s ease-in-out infinite alternate;
+  width: min(40vw, 360px);
+  height: min(40vw, 360px);
+  right: 2%;
+  bottom: 0%;
+  background: radial-gradient(circle, rgba(192, 122, 58, 0.48), transparent 72%);
+  animation: soft-ink-bloom-b 12s ease-in-out infinite alternate;
 }
 
 .soft-ink-wash-bloom-c {
-  width: min(28vw, 240px);
-  height: min(28vw, 240px);
-  left: 38%;
-  top: -8%;
-  background: radial-gradient(circle, rgba(90, 64, 42, 0.4), transparent 72%);
-  animation: soft-ink-bloom-c 19s ease-in-out infinite alternate;
+  width: min(32vw, 280px);
+  height: min(32vw, 280px);
+  left: 42%;
+  top: -4%;
+  background: radial-gradient(circle, rgba(154, 92, 48, 0.42), transparent 74%);
+  animation: soft-ink-bloom-c 10s ease-in-out infinite alternate;
 }
 
 .soft-ink-wash-fiber {
   position: absolute;
-  inset: -40% 0;
-  opacity: 0.22;
+  inset: -50% 0;
+  opacity: 0.35;
   background-image: repeating-linear-gradient(
     180deg,
     transparent 0,
-    transparent 3px,
-    rgba(247, 241, 232, 0.045) 3px,
-    rgba(247, 241, 232, 0.045) 4px
+    transparent 4px,
+    rgba(247, 241, 232, 0.07) 4px,
+    rgba(247, 241, 232, 0.07) 5px
   );
-  animation: soft-ink-fiber 36s linear infinite;
-  mask-image: linear-gradient(90deg, transparent 0%, #000 18%, #000 78%, transparent 100%);
+  animation: soft-ink-fiber 18s linear infinite;
+  mask-image: linear-gradient(90deg, transparent 0%, #000 22%, #000 82%, transparent 100%);
+}
+
+.soft-ink-bead {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, rgba(247, 241, 232, 0.85), rgba(192, 122, 58, 0.7) 55%, transparent 72%);
+  box-shadow: 0 0 18px rgba(192, 122, 58, 0.45);
+  opacity: 0.7;
+  will-change: transform, opacity;
+}
+
+.soft-ink-bead-1 {
+  left: 62%;
+  top: 28%;
+  animation: soft-ink-bead-a 14s ease-in-out infinite;
+}
+
+.soft-ink-bead-2 {
+  left: 78%;
+  top: 58%;
+  width: 5px;
+  height: 5px;
+  animation: soft-ink-bead-b 11s ease-in-out infinite;
+}
+
+.soft-ink-bead-3 {
+  left: 48%;
+  top: 72%;
+  width: 6px;
+  height: 6px;
+  animation: soft-ink-bead-c 16s ease-in-out infinite;
+}
+
+.soft-ink-bead-4 {
+  left: 88%;
+  top: 18%;
+  width: 4px;
+  height: 4px;
+  animation: soft-ink-bead-a 13s ease-in-out 1.4s infinite;
 }
 
 .soft-ink-wash-mark {
@@ -4021,18 +4069,17 @@ a {
   inset: 0;
   width: 100%;
   height: 100%;
-  opacity: 0.9;
 }
 
-.soft-ink-wash-blot {
-  transform-origin: 420px 170px;
-  animation: soft-ink-blot 24s ease-in-out infinite alternate;
+.soft-ink-wash-tide {
+  animation: soft-ink-tide 10s ease-in-out infinite alternate;
+  transform-origin: center;
 }
 
 .soft-ink-wash-stroke {
-  stroke-dasharray: 520;
-  stroke-dashoffset: 520;
-  animation: soft-ink-stroke 4.8s ease forwards 0.4s;
+  stroke-dasharray: 560;
+  stroke-dashoffset: 560;
+  animation: soft-ink-stroke 3.2s ease forwards 0.25s;
 }
 
 .landing-hero-veil {
@@ -4040,15 +4087,14 @@ a {
   inset: 0;
   z-index: 2;
   background:
-    linear-gradient(105deg, rgba(10, 9, 8, 0.86) 0%, rgba(10, 9, 8, 0.48) 44%, rgba(10, 9, 8, 0.1) 100%),
-    linear-gradient(180deg, rgba(10, 9, 8, 0.22) 0%, rgba(10, 9, 8, 0.06) 42%, rgba(10, 9, 8, 0.82) 100%),
-    radial-gradient(ellipse at 18% 78%, rgba(192, 122, 58, 0.14), transparent 42%);
+    linear-gradient(105deg, rgba(10, 9, 8, 0.88) 0%, rgba(10, 9, 8, 0.52) 42%, rgba(10, 9, 8, 0.12) 100%),
+    linear-gradient(180deg, rgba(10, 9, 8, 0.2) 0%, rgba(10, 9, 8, 0.05) 42%, rgba(10, 9, 8, 0.78) 100%);
   pointer-events: none;
 }
 
 .landing-hero-copy {
   position: relative;
-  z-index: 3;
+  z-index: 4;
   width: min(1180px, calc(100% - 2rem));
   margin: 0 auto;
   padding: 3.25rem 0 2.35rem;
@@ -4705,43 +4751,54 @@ a {
 
 @keyframes landing-drift {
   from {
-    transform: scale(1.03) translate3d(0, 0, 0);
+    transform: scale(1.04) translate3d(0, 0, 0);
   }
   to {
-    transform: scale(1.06) translate3d(-1.1%, 0.6%, 0);
+    transform: scale(1.09) translate3d(-2%, 1.2%, 0);
+  }
+}
+
+@keyframes soft-ink-haze {
+  from {
+    transform: translate3d(-3%, 1%, 0) scale(1);
+    opacity: 0.55;
+  }
+  to {
+    transform: translate3d(4%, -2%, 0) scale(1.08);
+    opacity: 0.95;
   }
 }
 
 @keyframes soft-ink-bloom-a {
   from {
-    transform: translate3d(0, 0, 0) scale(1);
-    opacity: 0.4;
+    transform: translate3d(0, 0, 0) scale(0.92);
+    opacity: 0.45;
   }
   to {
-    transform: translate3d(8%, 6%, 0) scale(1.18);
-    opacity: 0.7;
+    transform: translate3d(14%, 10%, 0) scale(1.28);
+    opacity: 0.95;
   }
 }
 
 @keyframes soft-ink-bloom-b {
   from {
-    transform: translate3d(0, 0, 0) scale(1.05);
-    opacity: 0.35;
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.4;
   }
   to {
-    transform: translate3d(-10%, -8%, 0) scale(1.22);
-    opacity: 0.62;
+    transform: translate3d(-16%, -12%, 0) scale(1.32);
+    opacity: 0.9;
   }
 }
 
 @keyframes soft-ink-bloom-c {
   from {
-    transform: translate3d(0, 4%, 0) scale(0.92);
-    opacity: 0.28;
+    transform: translate3d(0, 6%, 0) scale(0.88);
+    opacity: 0.35;
   }
   to {
-    transform: translate3d(6%, -4%, 0) scale(1.14);
-    opacity: 0.5;
+    transform: translate3d(10%, -8%, 0) scale(1.24);
+    opacity: 0.8;
   }
 }
 
@@ -4750,18 +4807,60 @@ a {
     transform: translate3d(0, 0, 0);
   }
   to {
-    transform: translate3d(0, 12%, 0);
+    transform: translate3d(0, 18%, 0);
   }
 }
 
-@keyframes soft-ink-blot {
+@keyframes soft-ink-tide {
   from {
-    transform: scale(0.92);
-    opacity: 0.7;
+    transform: translate3d(-4%, 2%, 0) scaleY(0.92);
+    opacity: 0.35;
   }
   to {
-    transform: scale(1.12);
-    opacity: 1;
+    transform: translate3d(5%, -3%, 0) scaleY(1.08);
+    opacity: 0.75;
+  }
+}
+
+@keyframes soft-ink-bead-a {
+  0% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0.15;
+  }
+  20% {
+    opacity: 0.85;
+  }
+  100% {
+    transform: translate3d(-18vw, 22vh, 0);
+    opacity: 0.1;
+  }
+}
+
+@keyframes soft-ink-bead-b {
+  0% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0.1;
+  }
+  25% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate3d(-12vw, -18vh, 0);
+    opacity: 0.05;
+  }
+}
+
+@keyframes soft-ink-bead-c {
+  0% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0.12;
+  }
+  30% {
+    opacity: 0.75;
+  }
+  100% {
+    transform: translate3d(14vw, -16vh, 0);
+    opacity: 0.08;
   }
 }
 

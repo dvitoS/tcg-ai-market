@@ -37,8 +37,9 @@ export function MarketingLanding({
             decoding="async"
             fetchPriority="high"
           />
-          <SoftInkWash />
           <div className="landing-hero-veil" />
+          {/* Above the veil so copper motion stays visible. */}
+          <SoftInkWash />
         </div>
 
         <div className="landing-hero-copy">
