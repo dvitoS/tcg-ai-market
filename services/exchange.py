@@ -228,6 +228,59 @@ def _filter_catalog_floor(quotes: pd.DataFrame) -> pd.DataFrame:
     return quotes.loc[spot >= float(floor)].copy()
 
 
+def attach_expected_change_30d(
+    quotes: pd.DataFrame,
+    featured: pd.DataFrame,
+) -> pd.DataFrame:
+    """Attach portfolio 30d model move for card tiles (keeps 7d board signals)."""
+    if quotes is None or quotes.empty:
+        return quotes
+    out = quotes.copy()
+    if "expected_change_30d_pct" not in out.columns:
+        out["expected_change_30d_pct"] = pd.NA
+    if featured is None or featured.empty:
+        return out
+    try:
+        from services.portfolio_outlook import load_portfolio_model
+        from trading_signals import (
+            PORTFOLIO_CONFORMAL_WIDTH_CAP,
+            PORTFOLIO_SIGNAL_BAND,
+        )
+    except Exception as exc:
+        LOG.warning("30d outlook import failed: %s", exc)
+        return out
+    loaded = load_portfolio_model()
+    if loaded is None:
+        LOG.info("No 30d artifact — expected_change_30d_pct left empty")
+        return out
+    model, meta = loaded
+    try:
+        forecasts = card_forecasts(
+            model,
+            featured,
+            conformal_q=_conformal_q_from_meta(meta),
+            hold_band=float(PORTFOLIO_SIGNAL_BAND),
+            width_cap=float(PORTFOLIO_CONFORMAL_WIDTH_CAP),
+        )
+    except Exception as exc:
+        LOG.warning("30d card_forecasts failed: %s", exc)
+        return out
+    if forecasts is None or forecasts.empty or "id" not in forecasts.columns:
+        return out
+    side = forecasts[["id", "expected_change_pct"]].rename(
+        columns={"expected_change_pct": "expected_change_30d_pct"}
+    )
+    out = out.drop(columns=["expected_change_30d_pct"], errors="ignore").merge(
+        side, on="id", how="left"
+    )
+    LOG.info(
+        "Attached 30d expected change for %s/%s cards",
+        int(pd.to_numeric(out["expected_change_30d_pct"], errors="coerce").notna().sum()),
+        len(out),
+    )
+    return out
+
+
 def attach_price_change_7d(quotes: pd.DataFrame, history: pd.DataFrame) -> pd.DataFrame:
     """Fill 3d + 7d historical moves from history when missing on persisted quotes."""
     if quotes is None or quotes.empty:
@@ -294,6 +347,7 @@ def build_market_board(
     quotes = assign_signals(
         card_forecasts(model, featured, conformal_q=_conformal_q_from_meta(meta))
     )
+    quotes = attach_expected_change_30d(quotes, featured)
     quotes = _apply_confidence(quotes, history)
     from services.spot_sanity import apply_spot_quarantine
 

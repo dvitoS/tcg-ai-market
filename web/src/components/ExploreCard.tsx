@@ -16,6 +16,13 @@ function changeClass(value?: number | null): string {
   return "flat";
 }
 
+function changeArrow(value?: number | null): string {
+  if (value == null || Number.isNaN(value)) return "";
+  if (value > 0.05) return "↑";
+  if (value < -0.05) return "↓";
+  return "";
+}
+
 function signalTone(signal?: string | null): string {
   const key = (signal || "").toUpperCase();
   if (key === "BUY") return "is-buy";
@@ -31,10 +38,18 @@ function MoveRow({
   label: string;
   value?: number | null;
 }) {
+  const arrow = changeArrow(value);
   return (
     <span className={`explore-card-move ${changeClass(value)}`}>
       <span className="explore-card-move-label">{label}</span>
-      <span className="explore-card-move-value">{formatChange(value)}</span>
+      <span className="explore-card-move-value">
+        {arrow ? (
+          <span className="explore-card-move-arrow" aria-hidden="true">
+            {arrow}
+          </span>
+        ) : null}
+        {formatChange(value)}
+      </span>
     </span>
   );
 }
@@ -60,6 +75,15 @@ export function ExploreCard({
     card.price_change_3d_pct != null
       ? translate(locale, "card_move_3d")
       : translate(locale, "card_move_7d");
+  // Prefer stronger 30d portfolio model; fall back to board 7d AI when 30d is missing.
+  const aiMove =
+    card.expected_change_30d_pct != null
+      ? card.expected_change_30d_pct
+      : card.expected_change_pct;
+  const aiLabel =
+    card.expected_change_30d_pct != null
+      ? translate(locale, "card_move_ai_30d")
+      : translate(locale, "card_move_ai_7d");
 
   return (
     <Link
@@ -79,10 +103,7 @@ export function ExploreCard({
           <span className="explore-card-price">{formatSpot(card.price)}</span>
           <div className="explore-card-moves">
             <MoveRow label={histLabel} value={histMove} />
-            <MoveRow
-              label={translate(locale, "card_move_ai_7d")}
-              value={card.expected_change_pct}
-            />
+            <MoveRow label={aiLabel} value={aiMove} />
           </div>
           {showSignal && card.signal ? (
             <span className="explore-card-change flat">
