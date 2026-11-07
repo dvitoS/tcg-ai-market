@@ -3,13 +3,24 @@
 import Link from "next/link";
 
 import { DealOfTheDay } from "@/components/DealOfTheDay";
+import { LandingSealedStrip } from "@/components/LandingSealedStrip";
+import { MarketPulse } from "@/components/MarketPulse";
+import { SoftInkWash } from "@/components/SoftInkWash";
 import { useLocale } from "@/components/LocaleProvider";
-import type { RadarPreviewResponse } from "@/lib/types";
+import type {
+  MarketPulseResponse,
+  RadarPreviewResponse,
+  SealedQuoteResponse,
+} from "@/lib/types";
 
 export function MarketingLanding({
   initialDotd = null,
+  initialPulse = null,
+  initialSealed = null,
 }: {
   initialDotd?: RadarPreviewResponse | null;
+  initialPulse?: MarketPulseResponse | null;
+  initialSealed?: SealedQuoteResponse | null;
 }) {
   const { t } = useLocale();
 
@@ -26,6 +37,7 @@ export function MarketingLanding({
             decoding="async"
             fetchPriority="high"
           />
+          <SoftInkWash />
           <div className="landing-hero-veil" />
         </div>
 
@@ -44,11 +56,15 @@ export function MarketingLanding({
         </div>
       </section>
 
+      <MarketPulse initialPulse={initialPulse} />
+
       <DealOfTheDay
         limit={5}
         variant="landing"
         initialPreview={initialDotd}
       />
+
+      <LandingSealedStrip initialSealed={initialSealed} />
 
       <section className="landing-path" aria-labelledby="landing-path-title">
         <h2 id="landing-path-title" className="landing-path-title">

@@ -368,6 +368,32 @@ export type RadarPreviewResponse = {
   source: "supabase" | "demo" | "empty";
 };
 
+export type MarketMover = {
+  id: string;
+  name: string;
+  set_name?: string | null;
+  image_url?: string | null;
+  price?: number | null;
+  price_change_7d_pct?: number | null;
+  signal?: string | null;
+};
+
+export type MarketPulseResponse = {
+  source: "supabase" | "demo" | "empty";
+  board_total: number;
+  sure_under: number;
+  sure_over: number;
+  signals: Record<string, number>;
+  median_change_7d_pct?: number | null;
+  rising_n: number;
+  falling_n: number;
+  flat_n: number;
+  observed_n: number;
+  rising_share_pct?: number | null;
+  risers: MarketMover[];
+  fallers: MarketMover[];
+};
+
 export type TrustCalibration = {
   rmse?: number | null;
   r2?: number | null;

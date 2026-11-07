@@ -57,6 +57,29 @@ const en = {
   landing_guides_fair: "Pokémon TCG fair value →",
   landing_guides_grade: "Should I grade this card? →",
   landing_guides_trade: "Is this trade fair? →",
+  landing_pulse_eyebrow: "Market pulse",
+  landing_pulse_title: "How the sure board sits today",
+  landing_pulse_story_under:
+    "{n} sure underpriced singles on the board — more buy-side edges than sell.",
+  landing_pulse_story_over:
+    "{n} sure overpriced singles — more trim/pass edges than buy.",
+  landing_pulse_story_rising:
+    "Past 7d breadth leans up (median {pct}). Still score spot vs the sure band.",
+  landing_pulse_story_falling:
+    "Past 7d breadth leans down (median {pct}). Fair band still decides buy vs pass.",
+  landing_pulse_story_mixed:
+    "Mixed desk — {under} sure under · {over} sure over. Edge still beats vibes.",
+  landing_pulse_sure_under: "Sure under",
+  landing_pulse_sure_over: "Sure over",
+  landing_pulse_median_7d: "Median 7d",
+  landing_pulse_breadth: "7d breadth",
+  landing_trends_rising: "Rising · past 7d",
+  landing_trends_falling: "Falling · past 7d",
+  landing_pulse_browse: "Browse the board →",
+  landing_pulse_radar: "Open Radar →",
+  landing_sealed_title: "Sealed desk",
+  landing_sealed_lede: "Spot quotes for ETBs, UPCs, and booster boxes — dock into portfolio when ready.",
+  landing_sealed_cta: "Open sealed →",
   pro_guides_title: "Guides",
   guides_all: "All guides →",
   // Plain-language desk glossary (Phase A)
@@ -709,6 +732,30 @@ const hr: Dictionary = {
   landing_guides_fair: "Pokémon TCG fair value →",
   landing_guides_grade: "Trebam li gradeati ovu kartu? →",
   landing_guides_trade: "Je li ovaj trade fair? →",
+  landing_pulse_eyebrow: "Market pulse",
+  landing_pulse_title: "Kako sure board sjedi danas",
+  landing_pulse_story_under:
+    "{n} sure podcijenjenih singlea na boardu — više buy edgeova nego sell.",
+  landing_pulse_story_over:
+    "{n} sure precjenjenih singlea — više trim/pass edgeova nego buy.",
+  landing_pulse_story_rising:
+    "7d breadth naginje gore (medijan {pct}). I dalje ocjenjuj spot vs sure pojas.",
+  landing_pulse_story_falling:
+    "7d breadth naginje dolje (medijan {pct}). Fair pojas i dalje odlučuje buy vs pass.",
+  landing_pulse_story_mixed:
+    "Miješani desk — {under} sure under · {over} sure over. Edge bije vibeove.",
+  landing_pulse_sure_under: "Sure under",
+  landing_pulse_sure_over: "Sure over",
+  landing_pulse_median_7d: "Medijan 7d",
+  landing_pulse_breadth: "7d breadth",
+  landing_trends_rising: "Raste · zadnjih 7d",
+  landing_trends_falling: "Pada · zadnjih 7d",
+  landing_pulse_browse: "Pregledaj board →",
+  landing_pulse_radar: "Otvori Radar →",
+  landing_sealed_title: "Sealed desk",
+  landing_sealed_lede:
+    "Spot za ETB, UPC i booster boxeve — dodaj u portfolio kad si spreman.",
+  landing_sealed_cta: "Otvori sealed →",
   pro_guides_title: "Guideovi",
   guides_all: "Svi guideovi →",
   glossary_under: "Podcijenjeno",
