@@ -64,8 +64,8 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 | M1.1 | Plain-language everywhere | Radar, DOTD, detail, Trade — one vocabulary (= A1) |
 | M1.2 | Landing desk core | Hero slider → pulse → DOTD; no news / sealed clutter on first scroll |
 | M1.3 | Free teaser quality | DOTD 5 UNDER = Pro vocabulary; fast SSR (= A2/A3) |
-| M1.4 | Source labels on detail | Never blend US/EU; show source + as-of |
-| M1.5 | Disclaimer tone | “Desk call, not financial advice” near AI band |
+| M1.4 | Source labels on detail | **Shipping** — US spot + as-of; Cardmarket EUR never blended; chart US-only note |
+| M1.5 | Disclaimer tone | **Shipping** — “Desk call, not financial advice” under AI band |
 
 #### M2 — Viral verdicts
 
@@ -99,9 +99,9 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 
 ### Suggested next 3
 
-1. **Run G0 sniff pack** against production board after next nightly *(ops)*  
-2. **M2.5** — Reddit-ready deep links / OG polish  
-3. **M1.4 / M1.5** — source labels + desk-call disclaimer polish
+1. **Run G0 sniff pack** against production board after tonight’s nightly *(ops)*  
+2. **M2.5** — Reddit-ready deep links / OG polish *(PR open)*  
+3. **M3.1** — sealed desk correctness sniff
 
 ### Explicit non-goals until spend unlock
 
