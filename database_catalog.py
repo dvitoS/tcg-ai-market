@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import sqlite3
 from pathlib import Path
 from typing import Any
@@ -20,6 +21,8 @@ from database_clients import (
     get_supabase,
     table_count,
 )
+
+LOG = logging.getLogger("tcg.database_catalog")
 
 SCHEMA_SQL = (Path(__file__).resolve().parent / "supabase_schema.sql").read_text(encoding="utf-8")
 
@@ -362,20 +365,28 @@ def distinct_history_card_ids_since(since_date: str) -> set[str]:
     return ids
 
 
+def _history_id_chunks(card_ids: list[str] | None) -> list[list[str]]:
+    """Chunk card ids for PostgREST ``in_`` filters (empty → one unscoped pass)."""
+    id_list = [str(x) for x in (card_ids or []) if str(x).strip()]
+    if id_list:
+        return [id_list[i : i + 150] for i in range(0, len(id_list), 150)]
+    return [[]]
+
+
 def _fetch_price_history_rows(
     *,
     card_ids: list[str] | None = None,
     since_date: str | None = None,
+    embed_cards: bool = True,
 ) -> list[dict[str, Any]]:
     """Paginated price_history rows, optionally scoped to cards + date floor."""
     client = get_supabase()
-    columns = "card_id,price,date,cards(name,supertype,rarity,set_name,market_price)"
-    id_list = [str(x) for x in (card_ids or []) if str(x).strip()]
-    chunks: list[list[str]]
-    if id_list:
-        chunks = [id_list[i : i + 150] for i in range(0, len(id_list), 150)]
-    else:
-        chunks = [[]]  # one unscoped pass
+    columns = (
+        "card_id,price,date,cards(name,supertype,rarity,set_name,market_price)"
+        if embed_cards
+        else "card_id,price,date"
+    )
+    chunks = _history_id_chunks(card_ids)
 
     rows: list[dict[str, Any]] = []
     for chunk in chunks:
@@ -386,13 +397,30 @@ def _fetch_price_history_rows(
                 query = query.in_("card_id", chunk)
             if since_date:
                 query = query.gte("date", since_date)
-            response = query.order("card_id").order("date").range(start, start + PAGE - 1).execute()
+            response = (
+                query.order("card_id").order("date").range(start, start + PAGE - 1).execute()
+            )
             batch = list(response.data or [])
             rows.extend(batch)
             if len(batch) < PAGE:
                 break
             start += PAGE
     return rows
+
+
+def _history_empty_frame() -> pd.DataFrame:
+    return pd.DataFrame(
+        columns=[
+            "card_id",
+            "price",
+            "date",
+            "name",
+            "supertype",
+            "rarity",
+            "set_name",
+            "market_price",
+        ]
+    )
 
 
 def load_history_frame(
@@ -402,11 +430,14 @@ def load_history_frame(
 ) -> pd.DataFrame:
     """price_history ⨝ cards → DataFrame (isti oblik kao stari SQL join).
 
-    Optional filters keep Streamlit boots light when market_quotes already exist.
+    Prefer a ``since_date`` (and/or card ids). Unscoped full-table pulls of
+    multi-million ``price_history`` rows time out on Supabase (57014).
     """
     id_list = [str(x) for x in (card_ids or []) if str(x).strip()] or None
     try:
-        raw_rows = _fetch_price_history_rows(card_ids=id_list, since_date=since_date)
+        raw_rows = _fetch_price_history_rows(
+            card_ids=id_list, since_date=since_date, embed_cards=True
+        )
         flat: list[dict[str, Any]] = []
         for row in raw_rows:
             card = row.get("cards") or {}
@@ -426,35 +457,31 @@ def load_history_frame(
             )
         if flat:
             return pd.DataFrame(flat)
-    except Exception:
-        pass
+    except Exception as exc:
+        LOG.warning(
+            "price_history embed load failed (falling back without embed): %s",
+            exc,
+        )
 
-    # Fallback bez PostgREST embeda: dva upita + merge u Pandasu.
-    history = pd.DataFrame(fetch_all("price_history", "card_id,price,date"))
+    # Fallback without PostgREST embed — still scoped by card_ids / since_date.
+    # Never fetch_all() the whole price_history table (2M+ rows → statement timeout).
+    try:
+        history = pd.DataFrame(
+            _fetch_price_history_rows(
+                card_ids=id_list, since_date=since_date, embed_cards=False
+            )
+        )
+    except Exception as exc:
+        LOG.error("price_history scoped load failed: %s", exc)
+        return _history_empty_frame()
     cards = pd.DataFrame(
         fetch_all("cards", "id,name,supertype,rarity,set_name,market_price")
     )
-    empty = pd.DataFrame(
-        columns=[
-            "card_id",
-            "price",
-            "date",
-            "name",
-            "supertype",
-            "rarity",
-            "set_name",
-            "market_price",
-        ]
-    )
     if history.empty or cards.empty:
-        return empty
+        return _history_empty_frame()
     merged = history.merge(cards, left_on="card_id", right_on="id", how="inner").drop(
         columns=["id"]
     )
-    if id_list:
-        merged = merged.loc[merged["card_id"].astype(str).isin(set(id_list))]
-    if since_date and not merged.empty:
-        merged = merged.loc[merged["date"].astype(str) >= str(since_date)]
     return merged.reset_index(drop=True)
 
 
