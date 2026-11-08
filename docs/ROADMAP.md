@@ -71,7 +71,7 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 
 | ID | Item | Ship |
 | --- | --- | --- |
-| M2.1 | Trade report PNG | One-tap share + watermark + Pro CTA (= B1) |
+| M2.1 | Trade report PNG | **Shipping** — save PNG (+ clipboard), optional share-link embed, plain-language blurb, watermark + Pro CTA |
 | M2.2 | Radar share blurb | **Shipping** — dynamic filters + UNDER/OVER counts + top UNDER; locked-share filter preview; clipboard fallback |
 | M2.3 | Binder share lite | % / owned / missing / buy-cost — no private P&L (= B2) |
 | M2.4 | Deal-of-day share card | Daily UNDER pick image for Discord / IG |
