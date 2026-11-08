@@ -3150,6 +3150,20 @@ a {
   justify-items: start;
 }
 
+.trade-report-export-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.trade-share-card-blurb {
+  margin: 0.35rem 0 0.15rem !important;
+  color: var(--text) !important;
+  font-size: 0.92rem !important;
+  font-weight: 560;
+  line-height: 1.35;
+}
+
 .trade-share-card-host {
   position: fixed;
   left: -12000px;

@@ -218,6 +218,7 @@ export function TradeView() {
   const [searching, setSearching] = useState(false);
   const [shareBusy, setShareBusy] = useState(false);
   const [shareNote, setShareNote] = useState<string | null>(null);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [seedNote, setSeedNote] = useState<string | null>(null);
 
   useEffect(() => {
@@ -432,6 +433,21 @@ export function TradeView() {
     }
   }
 
+  async function ensureShareUrl(): Promise<string | null> {
+    if (!user || !status?.allowed || (you.length === 0 && them.length === 0)) {
+      return null;
+    }
+    const created = await createTradeShare({
+      you: toTradePayload(you),
+      them: toTradePayload(them),
+    });
+    const href =
+      created.url ||
+      `${typeof window !== "undefined" ? window.location.origin : ""}${created.path}`;
+    setShareUrl(href);
+    return href;
+  }
+
   async function onShare() {
     if (!user || !status?.allowed || (you.length === 0 && them.length === 0)) {
       return;
@@ -440,13 +456,8 @@ export function TradeView() {
     setShareNote(null);
     setError(null);
     try {
-      const created = await createTradeShare({
-        you: toTradePayload(you),
-        them: toTradePayload(them),
-      });
-      const href =
-        created.url ||
-        `${typeof window !== "undefined" ? window.location.origin : ""}${created.path}`;
+      const href = await ensureShareUrl();
+      if (!href) return;
       try {
         await navigator.clipboard.writeText(href);
         setShareNote(t("trade_share_copied"));
@@ -658,6 +669,7 @@ export function TradeView() {
             setHits([]);
             setSearchedFor(null);
             setShareNote(null);
+            setShareUrl(null);
           }}
         >
           {t("trade_clear")}
@@ -689,7 +701,26 @@ export function TradeView() {
               {result.source === "demo" ? ` · ${t("explore_demo")}` : ""}
             </p>
           </div>
-          <TradeReportExport trade={result} />
+          <TradeReportExport
+            trade={result}
+            shareUrl={shareUrl}
+            onEnsureShare={
+              status?.allowed
+                ? async () => {
+                    try {
+                      return await ensureShareUrl();
+                    } catch (err) {
+                      setError(
+                        err instanceof Error
+                          ? err.message
+                          : t("trade_share_error"),
+                      );
+                      return null;
+                    }
+                  }
+                : undefined
+            }
+          />
         </>
       ) : null}
     </section>
