@@ -84,6 +84,8 @@ const en = {
   landing_sealed_title: "Sealed desk",
   landing_sealed_lede: "Spot quotes for ETBs, UPCs, and booster boxes — dock into portfolio when ready.",
   landing_sealed_cta: "Open sealed →",
+  landing_sealed_slider_aria: "Featured sealed products",
+  landing_sealed_slide_label: "Sealed spot",
   pro_guides_title: "Guides",
   guides_all: "All guides →",
   // Plain-language desk glossary (Phase A)
@@ -764,6 +766,8 @@ const hr: Dictionary = {
   landing_sealed_lede:
     "Spot za ETB, UPC i booster boxeve — dodaj u portfolio kad si spreman.",
   landing_sealed_cta: "Otvori sealed →",
+  landing_sealed_slider_aria: "Featured sealed proizvodi",
+  landing_sealed_slide_label: "Sealed spot",
   pro_guides_title: "Guideovi",
   guides_all: "Svi guideovi →",
   glossary_under: "Podcijenjeno",
