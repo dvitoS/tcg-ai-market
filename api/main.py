@@ -30,6 +30,7 @@ from api.routers import (
     radar,
     scanner,
     sealed,
+    spots,
     trade,
     trust,
     webhooks,
@@ -105,6 +106,7 @@ app.include_router(sealed.router, prefix="/api")
 app.include_router(trade.router, prefix="/api")
 app.include_router(dealer.router, prefix="/api")
 app.include_router(funnel.router, prefix="/api")
+app.include_router(spots.router, prefix="/api")
 app.include_router(webhooks.router, prefix="/api")
 
 

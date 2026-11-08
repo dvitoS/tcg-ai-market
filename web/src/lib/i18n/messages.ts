@@ -93,6 +93,13 @@ const en = {
   obs_trial_meta: "{entitled} entitled · {source} · {webhooks} webhook outcomes this process",
   obs_trial_empty: "Could not load trial conversion (ops only).",
   obs_na: "—",
+  obs_reports_title: "Wrong-spot reports",
+  obs_reports_caption:
+    "User flags from card detail. SLA: ack ≤24h, heal attempt ≤48h. Heal-open runs the poison heal pipeline on reported ids.",
+  obs_reports_open: "Open",
+  obs_reports_overdue: "Overdue heal",
+  obs_reports_empty: "No open spot reports on this API process.",
+  obs_reports_meta: "Oldest open {age}h · ack SLA {ack}h · heal SLA {heal}h",
   obs_sniff_title: "Spot sniff pack (G0)",
   obs_sniff_caption:
     "Sample sure UNDER/OVER rows. Check TCGplayer + eBay sold before any marketing spend.",
@@ -595,6 +602,10 @@ const en = {
   detail_fx_not_eu:
     "EUR is FX display only — not a Cardmarket quote.",
   detail_desk_disclaimer: "Desk call, not financial advice.",
+  detail_report_wrong_spot: "Report wrong spot",
+  detail_report_busy: "Sending…",
+  detail_report_thanks: "Thanks — ops will check this spot (ack ≤24h, heal try ≤48h).",
+  detail_report_error: "Could not send spot report",
   detail_ai_title: "AI prediction",
   detail_ai_under_title: "AI · 7d outlook",
   detail_expected: "Expected move",
@@ -912,6 +923,13 @@ const hr: Dictionary = {
   obs_trial_meta: "{entitled} entitled · {source} · {webhooks} webhook outcomea na procesu",
   obs_trial_empty: "Nisam uspio učitati trial conversion (samo ops).",
   obs_na: "—",
+  obs_reports_title: "Wrong-spot reporti",
+  obs_reports_caption:
+    "User flage s card detaila. SLA: ack ≤24h, heal pokušaj ≤48h. Heal-open pokreće poison heal na prijavljenim id-evima.",
+  obs_reports_open: "Open",
+  obs_reports_overdue: "Overdue heal",
+  obs_reports_empty: "Nema open spot reporta na ovom API procesu.",
+  obs_reports_meta: "Najstariji open {age}h · ack SLA {ack}h · heal SLA {heal}h",
   obs_sniff_title: "Spot sniff pack (G0)",
   obs_sniff_caption:
     "Uzorak sure UNDER/OVER redova. Provjeri TCGplayer + eBay sold prije marketing spend-a.",
@@ -1405,6 +1423,10 @@ const hr: Dictionary = {
   detail_fx_not_eu:
     "EUR je samo FX prikaz — nije Cardmarket quote.",
   detail_desk_disclaimer: "Desk call, ne financijski savjet.",
+  detail_report_wrong_spot: "Prijavi krivi spot",
+  detail_report_busy: "Šaljem…",
+  detail_report_thanks: "Hvala — ops će provjeriti (ack ≤24h, heal pokušaj ≤48h).",
+  detail_report_error: "Nisam uspio poslati spot report",
   detail_ai_title: "AI predikcija",
   detail_ai_under_title: "AI · 7d outlook",
   detail_expected: "Očekivani pomak",

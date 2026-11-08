@@ -94,14 +94,14 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 | M4.1 | Funnel events | **Shipping** — landing → DOTD → Pro → Radar/Trade; `/api/funnel` + ops panel |
 | M4.2 | Organic first | **Shipping** — Trade Discord paste pack; share funnel; `docs/ORGANIC_SOFT_LAUNCH.md` |
 | M4.3 | Trial hygiene | **Shipping** — `trialing` status; ops `/api/billing/conversion`; Data Health strip |
-| M4.4 | Support playbook | Wrong-spot report → ops heal SLA |
+| M4.4 | Support playbook | **Shipping** — detail report + ops queue/SLA; `docs/WRONG_SPOT_SLA.md` |
 | M4.5 | **Spend unlock** | G0–G3 green → tiny paid search / creator tests |
 
 ### Suggested next 3
 
 1. **Re-run nightly** after retrain history-timeout fix, then **G0 sniff pack** *(ops)*  
-2. **M4.4** — wrong-spot report → ops heal SLA  
-3. **M4.5** — spend unlock only after G0–G3 green
+2. **M4.5** — spend unlock only after G0–G3 green  
+3. Keep organic share loop live (G2 ≥1 Discord share/week)
 
 ### Explicit non-goals until spend unlock
 
