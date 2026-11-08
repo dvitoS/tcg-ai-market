@@ -162,10 +162,11 @@ def test_data_health_spot_fields_expose_slo(monkeypatch) -> None:
     monkeypatch.setattr(
         spot_qa,
         "compute_live_spot_qa",
-        lambda: {
+        lambda **_k: {
             "cards_total": 1,
             "cards_with_history": 1,
             "history_coverage_pct": 100.0,
+            "history_scan": True,
             "quotes_total": 1,
             "sure_rows": 1,
             "board_source": "demo",
