@@ -1289,6 +1289,14 @@ a {
   line-height: 1.45;
 }
 
+.grade-ev-honesty {
+  margin: -0.35rem 0 0.85rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  font-style: italic;
+}
+
 .grade-ev-inputs {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1445,6 +1453,40 @@ a {
   margin: 0.65rem 0 0.45rem;
   color: var(--muted);
   font-size: 0.82rem;
+}
+
+.ebay-cluster {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin: 0.75rem 0 0.35rem;
+}
+
+.ebay-cluster-metric {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.ebay-cluster-metric span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ebay-cluster-metric strong {
+  font-size: 1.02rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.ebay-row.is-sold .ebay-price {
+  color: #7dcea0;
+}
+
+@media (max-width: 640px) {
+  .ebay-cluster {
+    grid-template-columns: 1fr;
+  }
 }
 
 .ebay-list {
