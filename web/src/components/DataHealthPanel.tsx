@@ -3,8 +3,18 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { useLocale } from "@/components/LocaleProvider";
-import { fetchDataHealth, fetchSpotSniffPack, resetDataHealth } from "@/lib/api";
-import type { DataHealthResponse, SpotSniffPackResponse } from "@/lib/types";
+import {
+  fetchDataHealth,
+  fetchSpotSniffPack,
+  healPoisonedSpots,
+  resetDataHealth,
+} from "@/lib/api";
+import type {
+  DataHealthResponse,
+  SpotHealMode,
+  SpotHealResponse,
+  SpotSniffPackResponse,
+} from "@/lib/types";
 
 const EMPTY: DataHealthResponse = {
   live: 0,
@@ -45,6 +55,8 @@ export function DataHealthPanel() {
   const [notice, setNotice] = useState<string | null>(null);
   const [sniff, setSniff] = useState<SpotSniffPackResponse | null>(null);
   const [sniffBusy, setSniffBusy] = useState(false);
+  const [healBusy, setHealBusy] = useState(false);
+  const [healResult, setHealResult] = useState<SpotHealResponse | null>(null);
 
   const load = useCallback(async () => {
     setBusy(true);
@@ -86,6 +98,33 @@ export function DataHealthPanel() {
       setError(t("obs_load_error"));
     } finally {
       setSniffBusy(false);
+    }
+  }
+
+  async function onHeal(mode: SpotHealMode) {
+    if (mode !== "dry_run") {
+      const ok = window.confirm(t("obs_heal_confirm", { mode }));
+      if (!ok) return;
+    }
+    setHealBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const result = await healPoisonedSpots({ mode, limit: 50 });
+      setHealResult(result);
+      setNotice(
+        t("obs_heal_done", {
+          mode: result.mode,
+          count: result.count,
+          updated: result.updated,
+          nulled: result.nulled,
+        }),
+      );
+      setStats(await fetchDataHealth());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("obs_load_error"));
+    } finally {
+      setHealBusy(false);
     }
   }
 
@@ -231,6 +270,76 @@ export function DataHealthPanel() {
                 </strong>
               </div>
             </div>
+
+            <p className="data-health-qa-title">{t("obs_heal_title")}</p>
+            <p className="data-health-caption">{t("obs_heal_caption")}</p>
+            {(stats.spot_poison_cluster_sample || []).length > 0 ? (
+              <ul className="data-health-sniff-list">
+                {(stats.spot_poison_cluster_sample || []).slice(0, 6).map((row) => (
+                  <li key={`poison-${row.price}-${row.count}`}>
+                    <strong>
+                      {t("obs_heal_cluster", {
+                        price:
+                          row.price != null
+                            ? `$${Number(row.price).toFixed(2)}`
+                            : "—",
+                        count: row.count ?? 0,
+                        sets: row.sets ?? 0,
+                      })}
+                    </strong>
+                    {row.rarities?.length ? (
+                      <span className="lot-meta">{row.rarities.join(" · ")}</span>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="data-health-caption">{t("obs_heal_clean")}</p>
+            )}
+            <div className="data-health-actions">
+              <button
+                type="button"
+                className="btn-ghost"
+                disabled={healBusy || busy}
+                onClick={() => void onHeal("dry_run")}
+              >
+                {t("obs_heal_dry")}
+              </button>
+              <button
+                type="button"
+                className="btn-ghost"
+                disabled={healBusy || busy}
+                onClick={() => void onHeal("null_market")}
+              >
+                {t("obs_heal_null")}
+              </button>
+              <button
+                type="button"
+                className="btn-ghost"
+                disabled={healBusy || busy}
+                onClick={() => void onHeal("clear_history")}
+              >
+                {t("obs_heal_clear")}
+              </button>
+              <button
+                type="button"
+                className="btn-ghost"
+                disabled={healBusy || busy}
+                onClick={() => void onHeal("refetch")}
+              >
+                {t("obs_heal_refetch")}
+              </button>
+            </div>
+            {healResult ? (
+              <p className="data-health-cache">
+                {t("obs_heal_summary", {
+                  count: healResult.count,
+                  keys: healResult.poison_keys.slice(0, 4).join(", ") || "—",
+                  skip_poison: healResult.skip_poison,
+                  skip_absurd: healResult.skip_absurd,
+                })}
+              </p>
+            ) : null}
           </div>
 
           <div className="data-health-qa">

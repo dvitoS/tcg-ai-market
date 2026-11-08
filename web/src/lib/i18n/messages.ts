@@ -616,6 +616,20 @@ const en = {
   obs_qa_cards: "Cards",
   obs_qa_na: "n/a",
   obs_qa_snapshot: "Snapshot {when}",
+  obs_heal_title: "Poison / heal (M0.6)",
+  obs_heal_caption:
+    "Identical JustTCG poison clusters stay quarantined until healed. Dry-run first; never ship known-poison as sure.",
+  obs_heal_clean: "No poison clusters on the current board sample.",
+  obs_heal_cluster: "{price} · {count} cards · {sets} sets",
+  obs_heal_dry: "Dry-run detect",
+  obs_heal_null: "Null market",
+  obs_heal_clear: "Clear history",
+  obs_heal_refetch: "Refetch live",
+  obs_heal_confirm: "Run spot heal mode “{mode}”? This changes board data.",
+  obs_heal_done:
+    "Heal {mode}: {count} ids · nulled {nulled} · updated {updated}",
+  obs_heal_summary:
+    "{count} poisoned ids · keys {keys} · skip poison {skip_poison} / absurd {skip_absurd}",
   obs_slo_title: "Nightly SLO",
   obs_slo_status: "Status",
   obs_slo_ok: "OK",
@@ -1295,6 +1309,20 @@ const hr: Dictionary = {
   obs_qa_cards: "Karte",
   obs_qa_na: "n/a",
   obs_qa_snapshot: "Snapshot {when}",
+  obs_heal_title: "Poison / heal (M0.6)",
+  obs_heal_caption:
+    "Identčni JustTCG poison clusteri ostaju u karanteni dok se ne healaju. Prvo dry-run; nikad ne shipaj known-poison kao sure.",
+  obs_heal_clean: "Nema poison clustera na trenutnom board sampleu.",
+  obs_heal_cluster: "{price} · {count} karata · {sets} setova",
+  obs_heal_dry: "Dry-run detect",
+  obs_heal_null: "Null market",
+  obs_heal_clear: "Očisti history",
+  obs_heal_refetch: "Refetch live",
+  obs_heal_confirm: "Pokrenuti spot heal mode “{mode}”? Mijenja board podatke.",
+  obs_heal_done:
+    "Heal {mode}: {count} id-eva · nulled {nulled} · updated {updated}",
+  obs_heal_summary:
+    "{count} poisoned id-eva · keys {keys} · skip poison {skip_poison} / absurd {skip_absurd}",
   obs_slo_title: "Nightly SLO",
   obs_slo_status: "Status",
   obs_slo_ok: "OK",

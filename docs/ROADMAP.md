@@ -55,7 +55,7 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 | M0.3 | **JustTCG set matching** | **Shipping** — score≥75, no `rows[0]`; extended golden tests + sealed TCP/GTIN prefer exact |
 | M0.4 | **Variant IDs** | **Shipping** — live JustTCG when TCP resolves; NM×multiplier **labeled** in Portfolio + Trade |
 | M0.5 | **Nightly SLO + board TTL** | **Shipping** — quotes + sure_rows gate; clear board cache after retrain |
-| M0.6 | **Poison / heal visibility** | Ops data-health; never ship known-poison as sure |
+| M0.6 | **Poison / heal visibility** | **Shipping** — cluster sample + dry-run/null/clear/refetch in System status |
 
 #### M1 — Decision clarity
 
@@ -99,9 +99,9 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 
 ### Suggested next 3
 
-1. **M0.6** — poison/heal visibility on data-health *(next)*  
-2. **Run G0 sniff pack** against production board after next nightly  
-3. **M2.1** — Trade PNG (own “is this a good trade?”)
+1. **Run G0 sniff pack** against production board after next nightly *(ops)*  
+2. **M2.1** — Trade PNG (own “is this a good trade?”)  
+3. **M1.4 / M1.5** — source labels + desk-call disclaimer polish
 
 ### Explicit non-goals until spend unlock
 
