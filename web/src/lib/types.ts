@@ -615,6 +615,35 @@ export type DataHealthResponse = {
   quotes_written?: number | null;
 };
 
+export type SpotSniffItem = {
+  card_id: string;
+  name: string;
+  set_name?: string | null;
+  rarity?: string | null;
+  side: "UNDER" | "OVER";
+  spot?: number | null;
+  fair_price?: number | null;
+  edge_pct?: number | null;
+  tcgplayer_id?: string | null;
+  tcgplayer_url?: string | null;
+  kestrel_path: string;
+  check_tcp?: boolean | null;
+  check_ebay?: boolean | null;
+  notes?: string;
+};
+
+export type SpotSniffPackResponse = {
+  generated_at: string;
+  limit: number;
+  count: number;
+  under_n: number;
+  over_n: number;
+  board_source: string;
+  pass_required: boolean;
+  instructions: string;
+  items: SpotSniffItem[];
+};
+
 export type BinderSetSummary = {
   set_name: string;
   set_id?: string | null;

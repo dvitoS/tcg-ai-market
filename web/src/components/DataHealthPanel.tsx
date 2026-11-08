@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { useLocale } from "@/components/LocaleProvider";
-import { fetchDataHealth, resetDataHealth } from "@/lib/api";
-import type { DataHealthResponse } from "@/lib/types";
+import { fetchDataHealth, fetchSpotSniffPack, resetDataHealth } from "@/lib/api";
+import type { DataHealthResponse, SpotSniffPackResponse } from "@/lib/types";
 
 const EMPTY: DataHealthResponse = {
   live: 0,
@@ -43,6 +43,8 @@ export function DataHealthPanel() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [sniff, setSniff] = useState<SpotSniffPackResponse | null>(null);
+  const [sniffBusy, setSniffBusy] = useState(false);
 
   const load = useCallback(async () => {
     setBusy(true);
@@ -72,6 +74,18 @@ export function DataHealthPanel() {
       setError(t("obs_load_error"));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function onLoadSniff() {
+    setSniffBusy(true);
+    setError(null);
+    try {
+      setSniff(await fetchSpotSniffPack(20));
+    } catch {
+      setError(t("obs_load_error"));
+    } finally {
+      setSniffBusy(false);
     }
   }
 
@@ -217,6 +231,72 @@ export function DataHealthPanel() {
                 </strong>
               </div>
             </div>
+          </div>
+
+          <div className="data-health-qa">
+            <p className="data-health-qa-title">{t("obs_sniff_title")}</p>
+            <p className="data-health-caption">{t("obs_sniff_caption")}</p>
+            <div className="data-health-actions">
+              <button
+                type="button"
+                className="btn-ghost"
+                disabled={sniffBusy || busy}
+                onClick={() => void onLoadSniff()}
+              >
+                {t("obs_sniff_load")}
+              </button>
+            </div>
+            {sniff ? (
+              sniff.count === 0 ? (
+                <p className="data-health-caption">{t("obs_sniff_empty")}</p>
+              ) : (
+                <>
+                  <p className="data-health-cache">
+                    {t("obs_sniff_meta", {
+                      under: sniff.under_n,
+                      over: sniff.over_n,
+                      source: sniff.board_source,
+                    })}
+                  </p>
+                  <p className="data-health-caption">{sniff.instructions}</p>
+                  <ul className="data-health-sniff-list">
+                    {sniff.items.map((item) => (
+                      <li key={`${item.side}-${item.card_id}`}>
+                        <span
+                          className={
+                            item.side === "UNDER" ? "is-buy" : "is-sell"
+                          }
+                        >
+                          {item.side === "UNDER"
+                            ? t("obs_sniff_under")
+                            : t("obs_sniff_over")}
+                        </span>
+                        <strong>{item.name}</strong>
+                        <span className="lot-meta">
+                          {[item.set_name, item.spot != null ? `$${Number(item.spot).toFixed(2)}` : null]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </span>
+                        <span className="data-health-sniff-links">
+                          {item.tcgplayer_url ? (
+                            <a
+                              href={item.tcgplayer_url}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              {t("obs_sniff_open_tcp")}
+                            </a>
+                          ) : null}
+                          <a href={item.kestrel_path}>
+                            {t("obs_sniff_open_kestrel")}
+                          </a>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )
+            ) : null}
           </div>
 
           {error ? <p className="data-health-error">{error}</p> : null}

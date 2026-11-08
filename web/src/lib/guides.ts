@@ -22,6 +22,71 @@ export type Guide = {
 
 export const GUIDES: Guide[] = [
   {
+    slug: "kestrel-methodology",
+    title: "Kestrel methodology: where every number comes from",
+    description:
+      "How Kestrel builds Pokémon TCG spot, sure AI fair band, Radar UNDER/OVER calls, and why we refuse to blend opaque prices.",
+    eyebrow: "Methodology",
+    lede:
+      "Collectors trust TCGplayer and eBay sold comps — not mysterious app prices. This page says exactly where Kestrel’s numbers come from, how often they refresh, and what “sure” means before you buy, pass, trade, or grade.",
+    sections: [
+      {
+        heading: "Spot (market print)",
+        body: [
+          "Spot is the Near Mint market quote we attach to a catalog card — primarily via JustTCG (TCGplayer-linked) on the Soft Ink board. When a live pull is unavailable, we fall back to the last persisted board quote rather than inventing a number.",
+          "US and EU views stay labeled. We do not blend Cardmarket EUR into a fake USD “average.” If sources disagree beyond FX noise, treat that as a warning — not a single blended truth.",
+        ],
+      },
+      {
+        heading: "AI fair estimate + sure conformal band",
+        body: [
+          "Nightly Soft Ink training fits an XGBoost price model on history and writes market_quotes. Each quote carries a predicted fair price plus a conformal band — the range where the model is allowed to speak.",
+          "“Sure” means confidence and conformal gates are green. Outside the band with gates green, Radar can label UNDER (spot cheap vs fair) or OVER (spot rich vs fair). When gates fail, Kestrel stays quiet instead of forcing a call.",
+        ],
+      },
+      {
+        heading: "Radar, Deal of the Day, and Trade",
+        body: [
+          "Deal of the Day and the public Radar preview show capped sure underpriced picks. Full Radar adds filters and the full UNDER/OVER desk for Pro.",
+          "Trade Analyzer scores both sides on spot and fair so you see fair / you-ahead / them-ahead — the same vocabulary as the buy/pass desk, not a Collectr-style sticker sum alone.",
+        ],
+      },
+      {
+        heading: "Comps, grading, and sealed",
+        body: [
+          "Card detail can surface eBay sold comps next to the board. Sold clusters are the industry check against ask-price noise — use them before you trust a thin spot.",
+          "Grading EV frames fees and slab paths; it never guarantees a PSA 10. Sealed quotes use JustTCG product ids — showcase art must match the named SKU.",
+        ],
+      },
+      {
+        heading: "Refresh cadence and trust gate",
+        body: [
+          "Catalog gap-fill, JustTCG history drip, model retrain, and quote persist run on the GitHub nightly (03:00 UTC). Live detail pulls may refresh spots within JustTCG quota limits.",
+          "Before paid marketing, Soft Ink ops runs a sniff pack: random sure UNDER/OVER rows checked by hand against TCGplayer and eBay sold. A hard fail blocks spend — price trust is the product.",
+        ],
+      },
+    ],
+    faqs: [
+      {
+        question: "Is Kestrel a replacement for TCGplayer?",
+        answer:
+          "No. TCGplayer remains the market standard for asks. Kestrel answers whether that spot looks cheap or rich versus a sure AI band — then deep-links you back to marketplaces.",
+      },
+      {
+        question: "Why do some cards have no Radar call?",
+        answer:
+          "Weak history, failed confidence/conformal gates, or quarantined spots. Silence is intentional — better than a loud wrong UNDER.",
+      },
+      {
+        question: "Do you blend US and EU prices?",
+        answer:
+          "No. Soft Ink keeps sources labeled. EUR views use FX conversion for display where configured; they are not averaged into a secret “true” price.",
+      },
+    ],
+    primaryCta: { href: "/browse", label: "Browse the board →" },
+    secondaryCta: { href: "/radar", label: "Open Kestrel Radar →" },
+  },
+  {
     slug: "pokemon-tcg-fair-value",
     title: "Pokémon TCG fair value: spot vs a sure AI band",
     description:

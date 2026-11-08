@@ -5133,6 +5133,37 @@ a {
   font-weight: 650;
 }
 
+.data-health-sniff-list {
+  list-style: none;
+  margin: 0.65rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.data-health-sniff-list li {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.45rem 0;
+  border-top: 1px solid rgba(42, 42, 42, 0.85);
+}
+
+.data-health-sniff-list li:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.data-health-sniff-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  font-size: 0.78rem;
+}
+
+.data-health-sniff-links a {
+  color: var(--accent-2);
+}
+
 .data-health-actions {
   display: flex;
   flex-wrap: wrap;
