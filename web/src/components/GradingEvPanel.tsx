@@ -58,6 +58,8 @@ export function GradingEvPanel({
   const [sellFee, setSellFee] = useState(DEFAULT_SELL_FEE_PCT);
   const [condition, setCondition] = useState("NM");
   const [preset, setPreset] = useState<GradeFeePresetId>("psa_regular");
+  /** Assumed PSA 10 hit rate — never default to 100%. */
+  const [gemRatePct, setGemRatePct] = useState(25);
 
   useEffect(() => {
     let alive = true;
@@ -140,6 +142,20 @@ export function GradingEvPanel({
           ? "pnl-down"
           : "";
 
+  const gemRate = Math.max(0, Math.min(100, gemRatePct)) / 100;
+  const expectedNet =
+    ev.ready && ev.psa10.net_usd != null && ev.psa9.net_usd != null
+      ? gemRate * ev.psa10.net_usd + (1 - gemRate) * ev.psa9.net_usd
+      : null;
+  const expectedClass =
+    expectedNet == null
+      ? ""
+      : expectedNet > 0
+        ? "pnl-up"
+        : expectedNet < 0
+          ? "pnl-down"
+          : "";
+
   const onPreset = (id: GradeFeePresetId) => {
     setPreset(id);
     if (id === "custom") return;
@@ -165,6 +181,7 @@ export function GradingEvPanel({
         <h2>{t("grade_ev_title")}</h2>
       </div>
       <p className="grade-ev-lede">{t("grade_ev_lede")}</p>
+      <p className="grade-ev-honesty">{t("grade_ev_honesty")}</p>
 
       <div className="grade-ev-inputs">
         <label>
@@ -223,6 +240,17 @@ export function GradingEvPanel({
             step={0.5}
             value={sellFee}
             onChange={(e) => setSellFee(Number(e.target.value) || 0)}
+          />
+        </label>
+        <label>
+          <span>{t("grade_ev_gem_rate")}</span>
+          <input
+            type="number"
+            min={0}
+            max={100}
+            step={1}
+            value={gemRatePct}
+            onChange={(e) => setGemRatePct(Number(e.target.value) || 0)}
           />
         </label>
       </div>
@@ -292,6 +320,16 @@ export function GradingEvPanel({
               <span>{t("grade_ev_net9")}</span>
               <strong>{formatMoney(ev.psa9.net_usd, "USD", 2)}</strong>
             </div>
+            <div className={`grade-ev-metric grade-ev-net ${expectedClass}`}>
+              <span>
+                {t("grade_ev_expected", { pct: Math.round(gemRate * 100) })}
+              </span>
+              <strong>
+                {expectedNet != null
+                  ? formatMoney(expectedNet, "USD", 2)
+                  : "—"}
+              </strong>
+            </div>
             <div className="grade-ev-metric">
               <span>{t("grade_ev_depth")}</span>
               <strong>
@@ -303,6 +341,7 @@ export function GradingEvPanel({
               </strong>
             </div>
           </div>
+          <p className="grade-ev-honesty">{t("grade_ev_expected_note")}</p>
 
           <div className="grade-ev-chart-block">
             <h3>{t("grade_ev_sensitivity_title")}</h3>
