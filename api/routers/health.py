@@ -115,7 +115,10 @@ def data_health(
 def data_health_reset(
     ops: Annotated[dict[str, Any], Depends(require_ops_user)],
 ) -> DataHealthResponse:
-    """Clear Soft Ink price-source TTL cache + zero process JustTCG counters."""
+    """Clear board + Soft Ink TTL caches and zero process JustTCG counters."""
+    from api.catalog_service import clear_board_cache
+
+    clear_board_cache()
     clear_price_sources_cache()
     reset_justtcg_observability()
     return data_health(ops)
@@ -127,8 +130,12 @@ def data_health_sniff_pack(
     limit: int = 20,
 ) -> SpotSniffPackResponse:
     """Ops M0.2: sample sure UNDER/OVER rows for manual TCP + eBay sniff."""
+    from api.catalog_service import clear_board_cache, load_board
     from services.spot_sniff import build_spot_sniff_pack
 
+    # Always read a fresh board after heal/quarantine — do not trust warm TTL.
+    clear_board_cache()
+    load_board(force_refresh=True)
     payload = build_spot_sniff_pack(limit=limit)
     return SpotSniffPackResponse(**payload)
 

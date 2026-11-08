@@ -20,8 +20,9 @@ Source = Literal["supabase", "demo", "empty"]
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SEED_DB = PROJECT_ROOT / "data" / "seed_tcg_market.db"
 
-# (monotonic_ts, board, source) — TTL cache so cold Radar refreshes without restart.
-_BOARD_CACHE: tuple[float, pd.DataFrame, Source] | None = None
+# (monotonic_ts, revision, board, source) — TTL + market_quotes watermark so
+# heal/quarantine on one worker invalidates warm caches on others.
+_BOARD_CACHE: tuple[float, str | None, pd.DataFrame, Source] | None = None
 
 
 def _image_for(card_id: str, existing: str | None = None) -> str | None:
@@ -173,11 +174,12 @@ def _load_demo_frame() -> pd.DataFrame | None:
     return _frame_from_quotes(pd.DataFrame(rows))
 
 
-def load_board() -> tuple[pd.DataFrame, Source]:
+def load_board(*, force_refresh: bool = False) -> tuple[pd.DataFrame, Source]:
     """Return (board, source). Prefers live market_quotes; falls back to seed demo.
 
     Cached for BOARD_CACHE_TTL_SECONDS so Radar stays warm, then refreshes
-    from Supabase without requiring a process restart after nightly.
+    from Supabase without requiring a process restart after nightly. Also
+    busts when ``market_quotes.updated_at`` moves (heal / quarantine / nightly).
     """
     global _BOARD_CACHE
     try:
@@ -188,13 +190,23 @@ def load_board() -> tuple[pd.DataFrame, Source]:
         ttl = 600.0
 
     now = time.monotonic()
-    if _BOARD_CACHE is not None and ttl > 0:
-        cached_at, board, source = _BOARD_CACHE
-        if now - cached_at < ttl:
+    revision: str | None = None
+    try:
+        from services.quotes_store import market_quotes_revision
+
+        revision = market_quotes_revision()
+    except Exception:
+        revision = None
+
+    if not force_refresh and _BOARD_CACHE is not None and ttl > 0:
+        cached_at, cached_rev, board, source = _BOARD_CACHE
+        if now - cached_at < ttl and (
+            revision is None or cached_rev is None or cached_rev == revision
+        ):
             return board, source
 
     board, source = _load_board_uncached()
-    _BOARD_CACHE = (now, board, source)
+    _BOARD_CACHE = (now, revision, board, source)
     return board, source
 
 

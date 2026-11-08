@@ -748,7 +748,7 @@ const en = {
   obs_heal_refetch: "Refetch live",
   obs_heal_confirm: "Run spot heal mode “{mode}”? This changes board data.",
   obs_heal_done:
-    "Heal {mode}: {count} ids · nulled {nulled} · quotes {quotes} · updated {updated}",
+    "Heal {mode}: {count} ids · nulled {nulled} · quotes {quotes} · updated {updated}. Reload sniff to confirm.",
   obs_heal_summary:
     "{count} poisoned ids · keys {keys} · skip poison {skip_poison} / absurd {skip_absurd}",
   obs_slo_title: "Nightly SLO",
@@ -1573,7 +1573,7 @@ const hr: Dictionary = {
   obs_heal_refetch: "Refetch live",
   obs_heal_confirm: "Pokrenuti spot heal mode “{mode}”? Mijenja board podatke.",
   obs_heal_done:
-    "Heal {mode}: {count} id-eva · nulled {nulled} · quotes {quotes} · updated {updated}",
+    "Heal {mode}: {count} id-eva · nulled {nulled} · quotes {quotes} · updated {updated}. Reload sniff za potvrdu.",
   obs_heal_summary:
     "{count} poisoned id-eva · keys {keys} · skip poison {skip_poison} / absurd {skip_absurd}",
   obs_slo_title: "Nightly SLO",

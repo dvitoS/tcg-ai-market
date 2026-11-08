@@ -110,6 +110,10 @@ def test_board_cache_ttl(monkeypatch) -> None:
         "config.board_cache_ttl_seconds",
         lambda: 0.05,
     )
+    monkeypatch.setattr(
+        "services.quotes_store.market_quotes_revision",
+        lambda: "rev-1",
+    )
 
     b1, s1 = load_board()
     b2, s2 = load_board()
@@ -121,6 +125,46 @@ def test_board_cache_ttl(monkeypatch) -> None:
     b3, s3 = load_board()
     assert s3 == "demo"
     assert len(b3) == 1
+    assert calls["n"] == 2
+
+
+def test_board_cache_busts_on_quotes_revision(monkeypatch) -> None:
+    clear_board_cache()
+    calls = {"n": 0}
+    rev = {"v": "a"}
+    frame = pd.DataFrame(
+        [
+            {
+                "card_id": "sv3-1",
+                "name": "Charmander",
+                "set_name": "Obsidian Flames",
+                "rarity": "Common",
+                "price": 1.0,
+                "pred_change_pct": 0.0,
+                "pred_lo_pct": -2.0,
+                "pred_hi_pct": 2.0,
+                "confidence": 0.5,
+                "image_url": None,
+            }
+        ]
+    )
+
+    def _fake_uncached():
+        calls["n"] += 1
+        return frame.copy(), "demo"
+
+    monkeypatch.setattr("api.catalog_service._load_board_uncached", _fake_uncached)
+    monkeypatch.setattr("config.board_cache_ttl_seconds", lambda: 60.0)
+    monkeypatch.setattr(
+        "services.quotes_store.market_quotes_revision",
+        lambda: rev["v"],
+    )
+
+    load_board()
+    load_board()
+    assert calls["n"] == 1
+    rev["v"] = "b"  # heal/quarantine bumped updated_at
+    load_board()
     assert calls["n"] == 2
     clear_board_cache()
 
