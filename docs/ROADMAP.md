@@ -99,8 +99,8 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 
 ### Suggested next 3
 
-1. **Re-run nightly** after retrain history card-id chunking (date-only 57014), then **G0 sniff pack** *(ops)*  
-2. **Watch Render API memory** after deploy (kestrel-api 512MB OOM risk on unscoped history)  
+1. **G0 sniff pack** *(ops)* — nightly `42505043442` SLO green (#158): quotes=20457, sure_rows=2612; run System status → Spot sniff pack vs TCP + eBay sold  
+2. **Watch Render API memory** — kestrel-api free/512MB still OOM’d ~13:40 CET (redeploy spike); slim API image or bump plan  
 3. **M4.5** — spend unlock only after G0–G3 green
 
 ### Explicit non-goals until spend unlock
