@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 
 import { useCurrency } from "@/components/CurrencyProvider";
 import { DeskLoading } from "@/components/DeskLoading";
+import { DotdShareExport } from "@/components/DotdShareExport";
 import { useLocale } from "@/components/LocaleProvider";
 import { fetchRadarPreview, formatChange } from "@/lib/api";
 import {
@@ -221,6 +222,16 @@ export function DealOfTheDay({
           {ctaLabel}
         </Link>
       )}
+
+      {featured ? (
+        <DotdShareExport
+          card={featured}
+          spotLabel={formatSpot(featured.spot ?? featured.price)}
+          fairLabel={featuredFair}
+          edgeLabel={featuredEdge}
+          verdict={featuredVerdict}
+        />
+      ) : null}
     </section>
   );
 }
