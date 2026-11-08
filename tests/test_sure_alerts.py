@@ -48,6 +48,45 @@ def test_is_sure_alert_requires_conformal_and_action():
     )
 
 
+def test_collect_skips_spot_quarantine_poison():
+    market = pd.DataFrame(
+        [
+            {
+                "id": "clean",
+                "name": "Clean",
+                "expected_change_pct": 12.0,
+                "price_change_7d_pct": 1.0,
+                "signal": SIGNAL_BUY,
+                "price": 5.0,
+                "confidence_ok": True,
+                "conformal_ok": True,
+                "spot_quarantine": False,
+            },
+            {
+                "id": "poison",
+                "name": "Poison",
+                "expected_change_pct": 40.0,
+                "price_change_7d_pct": 40.0,
+                "signal": SIGNAL_BUY,
+                "price": 66.66,
+                "confidence_ok": True,
+                "conformal_ok": True,
+                "spot_quarantine": True,
+            },
+        ]
+    )
+    watch = pd.DataFrame(
+        [
+            {"card_id": "clean", "name": "Clean"},
+            {"card_id": "poison", "name": "Poison"},
+        ]
+    )
+    alerts = collect_watchlist_alerts(
+        market, watch, threshold_pct=5.0, dismissed=set(), sure_only=False
+    )
+    assert {a.card_id for a in alerts} == {"clean"}
+
+
 def test_collect_sure_only_drops_price_and_uncertain():
     market = pd.DataFrame(
         [

@@ -227,6 +227,8 @@ const en = {
   alert_threshold: "Threshold %",
   alert_sure_only: "Sure-only (conformal)",
   alert_sure_pro: " · Pro",
+  alert_poison_note:
+    "Poisoned / quarantined spots are never alerted — sure-only stays the default for Pro.",
   alert_empty_sure: "No sure conformal BUY/SELL alerts above {n}% right now.",
   alert_empty: "No watchlist cards currently above {n}%.",
   alert_dismiss: "Dismiss",
@@ -1025,6 +1027,8 @@ const hr: Dictionary = {
   alert_threshold: "Prag %",
   alert_sure_only: "Samo sure (conformal)",
   alert_sure_pro: " · Pro",
+  alert_poison_note:
+    "Poisoned / quarantined spotovi se nikad ne alertaju — sure-only ostaje default za Pro.",
   alert_empty_sure: "Nema sure conformal KUPI/PRODAJ alerta iznad {n}% trenutno.",
   alert_empty: "Nema watchlist karti iznad {n}% trenutno.",
   alert_dismiss: "Odbaci",

@@ -85,7 +85,7 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 | M3.2 | Grading EV trust | **Shipping** — gem-rate input (default 25%); expected net blend; never imply 100% PSA 10 |
 | M3.3 | eBay sold comps UX | **Shipping** — sold cluster first (median / range / n); active asks second; i18n |
 | M3.4 | Dealer CSV sync | **Shipping** — unmatched section + CSV export; match %; TCP/US spot note; action i18n |
-| M3.5 | Watchlist alerts quality | **Open #150** — sure-only default; skip poison quarantine |
+| M3.5 | Watchlist alerts quality | **Shipping** — sure-only default; skip `spot_quarantine` poison rows |
 
 #### M4 — Soft launch → spend unlock
 
@@ -100,8 +100,8 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 ### Suggested next 3
 
 1. **Run G0 sniff pack** against production board after tonight’s nightly *(ops)*  
-2. **M3.5** — watchlist alerts quality (**#150**)  
-3. **M4.2** — organic Discord / LGS share loop
+2. **M4.2** — organic Discord / LGS share loop  
+3. **M4.3** — Creem trial → paid conversion dashboard
 
 ### Explicit non-goals until spend unlock
 
