@@ -18,7 +18,11 @@ from typing import Any, Literal
 
 import pandas as pd
 
-from services.spot_sanity import _frame_spots, poison_spot_mask
+from services.spot_sanity import (
+    _frame_spots,
+    auto_quarantine_mask,
+    poison_spot_mask,
+)
 
 LOG = logging.getLogger("tcg.spot_heal")
 
@@ -45,11 +49,48 @@ def poisoned_card_ids_from_board(quotes: pd.DataFrame) -> tuple[list[str], set[f
     return ids, keys
 
 
+def auto_unsafe_card_ids_from_board(quotes: pd.DataFrame) -> tuple[list[str], set[float]]:
+    """Ids + spot keys for auto-quarantine patterns (clusters, energy, rarity caps)."""
+    if quotes is None or quotes.empty:
+        return [], set()
+    mask = auto_quarantine_mask(quotes)
+    if not bool(mask.any()):
+        return [], set()
+    frame = quotes.loc[mask]
+    ids = sorted(
+        {
+            str(cid)
+            for cid in frame.get("id", pd.Series(dtype=str)).astype(str).tolist()
+            if str(cid)
+        }
+    )
+    spots = _frame_spots(frame)
+    keys = {float(v) for v in spots.dropna().tolist()}
+    return ids, keys
+
+
 def detect_poisoned_card_ids() -> tuple[list[str], set[float]]:
     from api.catalog_service import load_board
 
     board, _source = load_board()
     return poisoned_card_ids_from_board(board)
+
+
+def detect_auto_unsafe_card_ids() -> tuple[list[str], set[float]]:
+    from api.catalog_service import load_board
+
+    board, _source = load_board()
+    return auto_unsafe_card_ids_from_board(board)
+
+
+def heal_auto_unsafe_spots(
+    *,
+    mode: HealMode = "null_market",
+    limit: int | None = None,
+) -> dict[str, Any]:
+    """Persist auto-quarantine patterns (Energy / rarity caps / clusters) off sure desk."""
+    ids, _keys = detect_auto_unsafe_card_ids()
+    return heal_poisoned_spots(mode=mode, limit=limit, card_ids=ids)
 
 
 def _spot_keys_for_card_ids(card_ids: list[str]) -> set[float]:

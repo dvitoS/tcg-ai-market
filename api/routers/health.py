@@ -139,6 +139,23 @@ def data_health_sniff_pack(
     return SpotSniffPackResponse(**payload)
 
 
+def _spot_heal_response(result: dict, *, mode: str) -> SpotHealResponse:
+    return SpotHealResponse(
+        mode=str(result.get("mode") or mode),
+        count=int(result.get("count") or 0),
+        ids=list(result.get("ids") or [])[:50],
+        poison_keys=[float(x) for x in list(result.get("poison_keys") or [])],
+        nulled=int(result.get("nulled") or 0),
+        history_cleared=int(result.get("history_cleared") or 0),
+        quotes_quarantined=int(result.get("quotes_quarantined") or 0),
+        updated=int(result.get("updated") or 0),
+        skipped=int(result.get("skipped") or 0),
+        skip_poison=int(result.get("skip_poison") or 0),
+        skip_absurd=int(result.get("skip_absurd") or 0),
+        saved=int(result.get("saved") or 0),
+    )
+
+
 @router.post("/data-health/heal-spots", response_model=SpotHealResponse)
 def data_health_heal_spots(
     body: SpotHealRequest,
@@ -155,17 +172,23 @@ def data_health_heal_spots(
     if body.mode != "dry_run":
         clear_board_cache()
         clear_price_sources_cache()
-    return SpotHealResponse(
-        mode=str(result.get("mode") or body.mode),
-        count=int(result.get("count") or 0),
-        ids=list(result.get("ids") or [])[:50],
-        poison_keys=[float(x) for x in list(result.get("poison_keys") or [])],
-        nulled=int(result.get("nulled") or 0),
-        history_cleared=int(result.get("history_cleared") or 0),
-        quotes_quarantined=int(result.get("quotes_quarantined") or 0),
-        updated=int(result.get("updated") or 0),
-        skipped=int(result.get("skipped") or 0),
-        skip_poison=int(result.get("skip_poison") or 0),
-        skip_absurd=int(result.get("skip_absurd") or 0),
-        saved=int(result.get("saved") or 0),
-    )
+    return _spot_heal_response(result, mode=body.mode)
+
+
+@router.post("/data-health/heal-auto-unsafe", response_model=SpotHealResponse)
+def data_health_heal_auto_unsafe(
+    body: SpotHealRequest,
+    _ops: Annotated[dict[str, Any], Depends(require_ops_user)],
+) -> SpotHealResponse:
+    """Ops: one-shot quarantine Energy / rarity-cap / cluster tips (no sniff clicks)."""
+    from api.catalog_service import clear_board_cache
+    from services.spot_heal import heal_auto_unsafe_spots
+
+    mode = body.mode if body.mode != "dry_run" else "null_market"
+    if body.mode == "dry_run":
+        mode = "dry_run"
+    result = heal_auto_unsafe_spots(mode=mode, limit=body.limit or 200)
+    if mode != "dry_run":
+        clear_board_cache()
+        clear_price_sources_cache()
+    return _spot_heal_response(result, mode=mode)
