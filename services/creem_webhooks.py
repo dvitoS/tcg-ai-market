@@ -114,13 +114,20 @@ def handle_creem_event(event: dict[str, Any]) -> dict[str, Any]:
     checkout_id = _id(obj) if obj.get("object") == "checkout" else _id(obj.get("id"))
 
     if event_type in GRANT_EVENTS:
+        from services.trial_hygiene import record_webhook_outcome
+
         if not email:
             LOG.warning("Creem %s missing customer email", event_type)
+            record_webhook_outcome(
+                action="grant_failed", status=None, event_type=event_type
+            )
             return {"ok": False, "reason": "missing_email", "event_type": event_type}
+        # Trial stays entitled (Pro surfaces) but distinct from paid/active.
+        grant_status = "trialing" if event_type == "subscription.trialing" else "active"
         row = entitlements.grant_pro_entitlement(
             email=email,
             user_id=user_id,
-            status="active",
+            status=grant_status,
             source="creem",
             creem_customer_id=customer_id,
             creem_subscription_id=subscription_id,
@@ -129,14 +136,20 @@ def handle_creem_event(event: dict[str, Any]) -> dict[str, Any]:
             creem_checkout_id=checkout_id,
             metadata={"event_type": event_type, **metadata},
         )
+        record_webhook_outcome(
+            action="grant", status=grant_status, event_type=event_type
+        )
         return {
             "ok": bool(row),
             "action": "grant",
+            "status": grant_status,
             "event_type": event_type,
             "email": email,
         }
 
     if event_type in REVOKE_EVENTS:
+        from services.trial_hygiene import record_webhook_outcome
+
         status_map = {
             "subscription.canceled": "canceled",
             "subscription.expired": "expired",
@@ -148,6 +161,9 @@ def handle_creem_event(event: dict[str, Any]) -> dict[str, Any]:
             n = entitlements.set_entitlement_status_by_subscription(
                 subscription_id=subscription_id,
                 status=status,
+            )
+            record_webhook_outcome(
+                action="revoke", status=status, event_type=event_type
             )
             return {
                 "ok": True,
@@ -167,12 +183,18 @@ def handle_creem_event(event: dict[str, Any]) -> dict[str, Any]:
                 creem_product_id=product_id,
                 metadata={"event_type": event_type, **metadata},
             )
+            record_webhook_outcome(
+                action="revoke", status=status, event_type=event_type
+            )
             return {
                 "ok": bool(row),
                 "action": "revoke",
                 "event_type": event_type,
                 "email": email,
             }
+        record_webhook_outcome(
+            action="revoke_failed", status=status, event_type=event_type
+        )
         return {"ok": False, "reason": "missing_subscription_or_email", "event_type": event_type}
 
     return {"ok": True, "action": "ignored", "event_type": event_type or "unknown"}

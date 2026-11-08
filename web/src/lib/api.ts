@@ -1097,6 +1097,33 @@ export async function fetchFunnelSummary(): Promise<FunnelSummaryResponse> {
   return res.json();
 }
 
+export type TrialConversionResponse = {
+  by_status: Record<string, number>;
+  active: number;
+  trialing: number;
+  canceled: number;
+  expired: number;
+  past_due: number;
+  entitled: number;
+  paid_share_pct: number | null;
+  webhook_outcomes: {
+    counts?: Record<string, number>;
+    uptime_s?: number;
+  };
+  source: "supabase" | "empty";
+};
+
+export async function fetchTrialConversion(): Promise<TrialConversionResponse> {
+  const res = await fetch(apiUrl("/api/billing/conversion"), {
+    headers: { Accept: "application/json", ...authHeaders() },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`Trial conversion failed (${res.status})`);
+  }
+  return res.json();
+}
+
 export async function fetchSpotSniffPack(limit = 20): Promise<SpotSniffPackResponse> {
   const res = await fetch(
     apiUrl(`/api/data-health/sniff-pack?limit=${Math.max(4, Math.min(40, limit))}`),

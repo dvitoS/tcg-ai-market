@@ -81,12 +81,16 @@ After Creem accepts your custom domain:
    (or `https://kestreltcg.app/pro/success` if that is the live host).
 3. **Payment link** — Product → Share → copy link → Render API env:
    `PRO_CHECKOUT_URL=https://www.creem.io/payment/prod_...`
-4. **SQL** — Supabase SQL Editor → run [`supabase_pro_entitlements.sql`](../supabase_pro_entitlements.sql).
+4. **SQL** — Supabase SQL Editor → run [`supabase_pro_entitlements.sql`](../supabase_pro_entitlements.sql),
+   then [`supabase_pro_entitlements_trial.sql`](../supabase_pro_entitlements_trial.sql)
+   (adds `trialing` status for Creem trials).
 5. **Webhook** — Creem → Developers → Webhooks → URL:
    `https://api.kestreltcg.app/api/webhooks/creem`  
    Events: `checkout.completed`, `subscription.active`, `subscription.paid`,
-   `subscription.canceled`, `subscription.expired`, `subscription.past_due`.  
-   Copy signing secret → Render: `CREEM_WEBHOOK_SECRET=whsec_...`
+   `subscription.trialing`, `subscription.canceled`, `subscription.expired`,
+   `subscription.past_due`.  
+   Copy signing secret → Render: `CREEM_WEBHOOK_SECRET=whsec_...`  
+   Ops: `GET /api/billing/conversion` (ops user) shows trial vs paid counts.
 6. **Lock open beta** (when ready to charge): Render `PRO_OPEN=0`.
    With `PRO_CHECKOUT_URL` and/or `CREEM_WEBHOOK_SECRET` set, unpaid users
    are locked (no empty-allowlist fail-open). Paid emails land in

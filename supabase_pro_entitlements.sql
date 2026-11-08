@@ -7,7 +7,7 @@ create table if not exists public.pro_entitlements (
     email text not null,
     user_id uuid references auth.users (id) on delete set null,
     status text not null default 'active'
-        check (status in ('active', 'canceled', 'past_due', 'expired')),
+        check (status in ('active', 'trialing', 'canceled', 'past_due', 'expired')),
     source text not null default 'creem',
     creem_customer_id text,
     creem_subscription_id text,

@@ -83,6 +83,16 @@ const en = {
     "Process-local counts: landing → DOTD → Pro → Radar/Trade (resets on API restart).",
   obs_funnel_total: "{n} events this process",
   obs_funnel_empty: "No funnel events recorded yet on this API process.",
+  obs_trial_title: "Trial → paid (Creem)",
+  obs_trial_caption:
+    "Entitlement counts from pro_entitlements. Trialing still unlocks Pro; paid_share = active / (active + trialing).",
+  obs_trial_trialing: "Trialing",
+  obs_trial_active: "Paid / active",
+  obs_trial_canceled: "Canceled",
+  obs_trial_paid_share: "Paid share",
+  obs_trial_meta: "{entitled} entitled · {source} · {webhooks} webhook outcomes this process",
+  obs_trial_empty: "Could not load trial conversion (ops only).",
+  obs_na: "—",
   obs_sniff_title: "Spot sniff pack (G0)",
   obs_sniff_caption:
     "Sample sure UNDER/OVER rows. Check TCGplayer + eBay sold before any marketing spend.",
@@ -892,6 +902,16 @@ const hr: Dictionary = {
     "Process-local brojači: landing → DOTD → Pro → Radar/Trade (reset na API restart).",
   obs_funnel_total: "{n} eventa na ovom procesu",
   obs_funnel_empty: "Još nema funnel eventa na ovom API procesu.",
+  obs_trial_title: "Trial → paid (Creem)",
+  obs_trial_caption:
+    "Brojevi iz pro_entitlements. Trialing i dalje otključava Pro; paid_share = active / (active + trialing).",
+  obs_trial_trialing: "Trialing",
+  obs_trial_active: "Paid / active",
+  obs_trial_canceled: "Canceled",
+  obs_trial_paid_share: "Paid share",
+  obs_trial_meta: "{entitled} entitled · {source} · {webhooks} webhook outcomea na procesu",
+  obs_trial_empty: "Nisam uspio učitati trial conversion (samo ops).",
+  obs_na: "—",
   obs_sniff_title: "Spot sniff pack (G0)",
   obs_sniff_caption:
     "Uzorak sure UNDER/OVER redova. Provjeri TCGplayer + eBay sold prije marketing spend-a.",

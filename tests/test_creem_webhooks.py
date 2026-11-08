@@ -23,6 +23,36 @@ def test_verify_creem_signature_accepts_valid() -> None:
     assert verify_creem_signature(body, _sign(body, secret), "") is False
 
 
+def test_handle_subscription_trialing_grants_trialing(monkeypatch) -> None:
+    import services.creem_webhooks as creem
+    from services.trial_hygiene import reset_webhook_outcomes_for_tests
+
+    reset_webhook_outcomes_for_tests()
+    captured: dict = {}
+
+    def fake_grant(**kwargs):
+        captured.update(kwargs)
+        return {"email": kwargs["email"], "status": kwargs["status"]}
+
+    monkeypatch.setattr(
+        "services.pro_entitlements.grant_pro_entitlement",
+        fake_grant,
+    )
+    event = {
+        "eventType": "subscription.trialing",
+        "object": {
+            "customer": {"id": "cust_t", "email": "Trial@Shop.com"},
+            "subscription": {"id": "sub_t"},
+            "product": {"id": "prod_1"},
+        },
+    }
+    result = creem.handle_creem_event(event)
+    assert result["ok"] is True
+    assert result["status"] == "trialing"
+    assert captured["status"] == "trialing"
+    assert captured["email"] == "trial@shop.com"
+
+
 def test_handle_checkout_completed_grants(monkeypatch) -> None:
     import services.creem_webhooks as creem
 
@@ -50,6 +80,8 @@ def test_handle_checkout_completed_grants(monkeypatch) -> None:
     result = creem.handle_creem_event(event)
     assert result["ok"] is True
     assert result["action"] == "grant"
+    assert result["status"] == "active"
+    assert captured["status"] == "active"
     assert captured["email"] == "buyer@shop.com"
     assert captured["user_id"] == "uuid-buyer"
     assert captured["creem_product_id"] == "prod_1"
