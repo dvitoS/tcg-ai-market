@@ -102,8 +102,11 @@ def init_db() -> None:
 
 def ensure_seed_database() -> bool:
     """Ako je price_history prazna, uvezi lokalni SQLite seed u Supabase."""
+    from database_clients import table_has_rows
+
     init_db()
-    if table_count("price_history") > 0:
+    # Never exact-COUNT price_history here — 2M+ rows → PostgREST 57014.
+    if table_has_rows("price_history"):
         return False
     if not SEED_DATABASE_PATH.is_file():
         return False
@@ -147,7 +150,9 @@ def ensure_seed_database() -> bool:
     for batch in _chunked(history_rows):
         client.table("price_history").insert(batch).execute()
 
-    return table_count("price_history") > 0
+    from database_clients import table_has_rows
+
+    return table_has_rows("price_history")
 
 
 def list_cards(*, limit: int | None = None, order_price_desc: bool = False) -> list[Card]:
@@ -493,5 +498,8 @@ def cards_summary() -> tuple[int, int, int]:
     cards = fetch_all("cards", "id,market_price")
     total = len(cards)
     with_price = sum(1 for row in cards if row.get("market_price") is not None)
-    history_rows = table_count("price_history")
+    try:
+        history_rows = table_count("price_history")
+    except Exception:
+        history_rows = -1
     return total, with_price, history_rows
