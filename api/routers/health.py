@@ -130,12 +130,11 @@ def data_health_sniff_pack(
     limit: int = 20,
 ) -> SpotSniffPackResponse:
     """Ops M0.2: sample sure UNDER/OVER rows for manual TCP + eBay sniff."""
-    from api.catalog_service import clear_board_cache, load_board
+    from api.catalog_service import clear_board_cache
     from services.spot_sniff import build_spot_sniff_pack
 
-    # Always read a fresh board after heal/quarantine — do not trust warm TTL.
+    # Bust process cache; load_board revision check + radar load the board once.
     clear_board_cache()
-    load_board(force_refresh=True)
     payload = build_spot_sniff_pack(limit=limit)
     return SpotSniffPackResponse(**payload)
 

@@ -273,8 +273,20 @@ def update_card_market_price(card_id: str, market_price: float, *, tcgplayer_id:
 
 def clear_card_market_price(card_id: str) -> None:
     """Null ``cards.market_price`` so a later JustTCG heal is not blocked by skip_absurd."""
+    clear_card_market_prices([card_id])
+
+
+def clear_card_market_prices(card_ids: list[str] | set[str]) -> int:
+    """Batch-null ``cards.market_price`` for many ids (one PostgREST call per chunk)."""
+    ids = sorted({str(cid).strip() for cid in (card_ids or []) if str(cid).strip()})
+    if not ids:
+        return 0
     client = get_supabase()
-    client.table("cards").update({"market_price": None}).eq("id", card_id).execute()
+    updated = 0
+    for chunk in _chunked(ids, size=80):
+        client.table("cards").update({"market_price": None}).in_("id", chunk).execute()
+        updated += len(chunk)
+    return updated
 
 
 def delete_card_history(card_id: str) -> None:

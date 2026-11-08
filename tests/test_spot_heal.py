@@ -72,8 +72,8 @@ def test_dry_run_writes_nothing(monkeypatch) -> None:
     )
     calls: list[str] = []
     monkeypatch.setattr(
-        "database.clear_card_market_price",
-        lambda cid: calls.append(f"null:{cid}"),
+        "database.clear_card_market_prices",
+        lambda ids: (calls.extend(f"null:{cid}" for cid in ids), len(list(ids)))[1],
     )
     monkeypatch.setattr(
         "database.delete_card_history",
@@ -94,12 +94,13 @@ def test_null_market_only_poisoned(monkeypatch) -> None:
     nulled: list[str] = []
     quarantined: list[str] = []
 
-    def fake_clear(cid: str) -> None:
-        nulled.append(cid)
+    def fake_clear(ids):
+        nulled.extend(ids)
+        return len(list(ids))
 
     import database as db
 
-    monkeypatch.setattr(db, "clear_card_market_price", fake_clear)
+    monkeypatch.setattr(db, "clear_card_market_prices", fake_clear)
     monkeypatch.setattr(
         "services.quotes_store.quarantine_market_quote_ids",
         lambda ids: (quarantined.extend(ids), len(list(ids)))[1],
@@ -125,7 +126,7 @@ def test_targeted_null_market_skips_board_scan(monkeypatch) -> None:
         "services.spot_heal._spot_keys_for_card_ids",
         lambda ids: (_ for _ in ()).throw(AssertionError("spot keys unused for null_market")),
     )
-    monkeypatch.setattr("database.clear_card_market_price", lambda cid: None)
+    monkeypatch.setattr("database.clear_card_market_prices", lambda ids: len(list(ids)))
     monkeypatch.setattr(
         "services.quotes_store.quarantine_market_quote_ids",
         lambda ids: len(list(ids)),
@@ -149,7 +150,7 @@ def test_targeted_card_ids_ban_own_spots(monkeypatch) -> None:
         "services.spot_heal._spot_keys_for_card_ids",
         lambda ids: {125.0, 79.5, 9.73},
     )
-    monkeypatch.setattr("database.clear_card_market_price", lambda cid: None)
+    monkeypatch.setattr("database.clear_card_market_prices", lambda ids: len(list(ids)))
     monkeypatch.setattr("database.delete_card_history", lambda cid: None)
     monkeypatch.setattr(
         "services.quotes_store.quarantine_market_quote_ids",
@@ -255,7 +256,7 @@ def test_refetch_never_calls_mass_wipe(monkeypatch) -> None:
     import database as db
 
     wiped = {"n": 0}
-    monkeypatch.setattr(db, "clear_card_market_price", lambda cid: None)
+    monkeypatch.setattr(db, "clear_card_market_prices", lambda ids: len(list(ids)))
     monkeypatch.setattr(db, "delete_card_history", lambda cid: None)
 
     def boom() -> None:

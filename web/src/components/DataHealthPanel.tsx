@@ -180,6 +180,26 @@ export function DataHealthPanel() {
     }
   }
 
+  function dropHealedFromSniff(cardIds: string[]) {
+    if (!sniff) return;
+    const drop = new Set(cardIds);
+    const items = sniff.items.filter((item) => !drop.has(String(item.card_id)));
+    setSniff({
+      ...sniff,
+      items,
+      count: items.length,
+      under_n: items.filter((item) => item.side === "UNDER").length,
+      over_n: items.filter((item) => item.side === "OVER").length,
+    });
+  }
+
+  function reloadSniffInBackground() {
+    void fetchSpotSniffPack(20)
+      .then(setSniff)
+      .catch(() => {});
+    refreshHealStats();
+  }
+
   async function onHealSniffCard(cardId: string, name: string) {
     const ok = window.confirm(t("obs_sniff_heal_confirm", { name }));
     if (!ok) return;
@@ -196,9 +216,11 @@ export function DataHealthPanel() {
       showHealNotice(result);
       if ((result.quotes_quarantined ?? 0) < 1) {
         setError(t("obs_sniff_heal_no_quote"));
+      } else {
+        dropHealedFromSniff([cardId]);
       }
-      setSniff(await fetchSpotSniffPack(20));
-      refreshHealStats();
+      // Don't block the next Heal click on a full board sniff reload.
+      reloadSniffInBackground();
     } catch (err) {
       setError(err instanceof Error ? err.message : t("obs_load_error"));
     } finally {
@@ -242,9 +264,10 @@ export function DataHealthPanel() {
       showHealNotice(result);
       if ((result.quotes_quarantined ?? 0) < 1) {
         setError(t("obs_sniff_heal_no_quote"));
+      } else {
+        dropHealedFromSniff(cardIds);
       }
-      setSniff(await fetchSpotSniffPack(20));
-      refreshHealStats();
+      reloadSniffInBackground();
     } catch (err) {
       setError(err instanceof Error ? err.message : t("obs_load_error"));
     } finally {
