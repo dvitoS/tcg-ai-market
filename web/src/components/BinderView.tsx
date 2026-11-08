@@ -66,10 +66,14 @@ export function BinderView() {
   const [hydrated, setHydrated] = useState(false);
   const [booted, setBooted] = useState(false);
 
+  const [sharedSet, setSharedSet] = useState<string | null>(null);
+
   useEffect(() => {
     if (setBoot.current !== undefined) return;
     const raw = searchParams.get("set");
-    setBoot.current = raw && raw.trim() ? raw.trim() : null;
+    const boot = raw && raw.trim() ? raw.trim() : null;
+    setBoot.current = boot;
+    setSharedSet(boot);
   }, [searchParams]);
 
   const loadSets = useCallback(() => {
@@ -158,6 +162,9 @@ export function BinderView() {
   }
 
   if (!user) {
+    const next = sharedSet
+      ? `/signin?next=${encodeURIComponent(`/binder?set=${encodeURIComponent(sharedSet)}`)}`
+      : "/signin?next=/binder";
     return (
       <section className="scanner-page binder-page">
         <div className="explore-command">
@@ -165,7 +172,16 @@ export function BinderView() {
           <h1 className="explore-title">{t("binder_title")}</h1>
           <p className="explore-lede">{t("binder_signin_lede")}</p>
         </div>
-        <Link href="/signin?next=/binder" className="btn-primary">
+        {sharedSet ? (
+          <div className="binder-share-preview">
+            <p className="explore-command-eyebrow">
+              {t("binder_share_preview_title")}
+            </p>
+            <p className="binder-share-preview-set">{sharedSet}</p>
+            <p className="explore-lede">{t("binder_share_preview_lede")}</p>
+          </div>
+        ) : null}
+        <Link href={next} className="btn-primary">
           {t("auth_sign_in")}
         </Link>
       </section>

@@ -7,8 +7,10 @@ import {
   type BinderShareSnapshot,
 } from "@/components/BinderShareCard";
 import { useLocale } from "@/components/LocaleProvider";
+import { formatMoney } from "@/lib/api";
 import {
   binderReportFilename,
+  buildBinderShareClipboardText,
   buildBinderShareUrl,
   downloadBinderReportPng,
 } from "@/lib/binderExport";
@@ -30,17 +32,39 @@ export function BinderReportExport({
       ? buildBinderShareUrl(window.location.origin, snapshot.set_name)
       : null;
 
+  function clipboardBody(url: string): string {
+    const pct = Math.max(0, Math.min(100, snapshot.pct)).toFixed(0);
+    return buildBinderShareClipboardText({
+      blurb: t("binder_share_blurb", {
+        set: snapshot.set_name,
+        pct,
+      }),
+      ownedLine: t("binder_share_owned", {
+        owned: snapshot.owned,
+        total: snapshot.total,
+      }),
+      missingLine: t("binder_share_missing", { n: snapshot.missing }),
+      costLine: t("binder_share_cost", {
+        value: formatMoney(snapshot.missing_cost),
+      }),
+      note: t("binder_export_note"),
+      url,
+    });
+  }
+
   async function onExport() {
     if (!cardRef.current || busy) return;
     setBusy(true);
     setNote(null);
     setError(null);
     try {
-      await downloadBinderReportPng(
+      const { copied } = await downloadBinderReportPng(
         cardRef.current,
         binderReportFilename(snapshot.set_name),
       );
-      setNote(t("binder_export_done"));
+      setNote(
+        copied ? t("binder_export_done_clipboard") : t("binder_export_done"),
+      );
     } catch {
       setError(t("binder_export_error"));
     } finally {
@@ -53,13 +77,12 @@ export function BinderReportExport({
     setLinkBusy(true);
     setNote(null);
     setError(null);
+    const text = clipboardBody(shareUrl);
     try {
-      await navigator.clipboard.writeText(
-        `${t("binder_share_blurb", { set: snapshot.set_name, pct: snapshot.pct.toFixed(0) })}\n${shareUrl}`,
-      );
+      await navigator.clipboard.writeText(text);
       setNote(t("binder_share_copied"));
     } catch {
-      setError(t("binder_share_error"));
+      setNote(`${t("binder_share_copied_fallback")}\n${shareUrl}`);
     } finally {
       setLinkBusy(false);
     }
@@ -85,6 +108,7 @@ export function BinderReportExport({
           {linkBusy ? t("binder_share_busy") : t("binder_share_copy")}
         </button>
       </div>
+      <p className="lot-meta">{t("binder_share_hint")}</p>
       {note ? <p className="pro-open-note">{note}</p> : null}
       {error ? <p className="form-error">{error}</p> : null}
       <div className="trade-share-card-host" aria-hidden="true">

@@ -73,7 +73,7 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 | --- | --- | --- |
 | M2.1 | Trade report PNG | **Shipping** — save PNG (+ clipboard), optional share-link embed, plain-language blurb, watermark + Pro CTA |
 | M2.2 | Radar share blurb | **Shipping** — dynamic filters + UNDER/OVER counts + top UNDER; locked-share filter preview; clipboard fallback |
-| M2.3 | Binder share lite | % / owned / missing / buy-cost — no private P&L (= B2) |
+| M2.3 | Binder share lite | **Shipping** — clipboard with % / owned / missing / buy-cost; PNG+clipboard; signed-out set preview; no private P&L |
 | M2.4 | Deal-of-day share card | Daily UNDER pick image for Discord / IG |
 | M2.5 | Reddit-ready deep links | `/trade/s/{id}` + card OG tags correct |
 
@@ -100,7 +100,7 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 ### Suggested next 3
 
 1. **Run G0 sniff pack** against production board after next nightly *(ops)*  
-2. **M2.3** — Binder share lite (% / owned / missing / buy-cost)  
+2. **M2.4** — Deal-of-day share card  
 3. **M1.4 / M1.5** — source labels + desk-call disclaimer polish
 
 ### Explicit non-goals until spend unlock
