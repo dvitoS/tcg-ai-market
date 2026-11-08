@@ -52,9 +52,9 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 | --- | --- | --- |
 | M0.1 | **Methodology page** | **Shipping** — `/guides/kestrel-methodology` + landing link |
 | M0.2 | **Spot sniff pack** | **Shipping** — ops `GET /api/data-health/sniff-pack` + System status UI; fail → **block marketing** |
-| M0.3 | **JustTCG set matching** | No silent wrong-set joins; golden tests (= C1) |
-| M0.4 | **Variant IDs** | Condition×printing when TCP resolves; else NM×multiplier **labeled** (= C4) |
-| M0.5 | **Nightly SLO + board TTL** | Quotes-written gate; cold Radar usable (= C3) |
+| M0.3 | **JustTCG set matching** | **Shipping** — score≥75, no `rows[0]`; extended golden tests + sealed TCP/GTIN prefer exact |
+| M0.4 | **Variant IDs** | **Shipping** — live JustTCG when TCP resolves; NM×multiplier **labeled** in Portfolio + Trade |
+| M0.5 | **Nightly SLO + board TTL** | **Shipping** — quotes + sure_rows gate; clear board cache after retrain |
 | M0.6 | **Poison / heal visibility** | Ops data-health; never ship known-poison as sure |
 
 #### M1 — Decision clarity
@@ -99,8 +99,8 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 
 ### Suggested next 3
 
-1. **M0.3–M0.5** — finish set matching, variant IDs, nightly SLO *(next)*  
-2. **M0.6** — poison/heal visibility on data-health  
+1. **M0.6** — poison/heal visibility on data-health *(next)*  
+2. **Run G0 sniff pack** against production board after next nightly  
 3. **M2.1** — Trade PNG (own “is this a good trade?”)
 
 ### Explicit non-goals until spend unlock

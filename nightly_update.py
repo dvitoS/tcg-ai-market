@@ -503,19 +503,39 @@ def run_nightly() -> int:
     except Exception as exc:
         _report_error("print_summary", exc)
 
+    # Bust API board TTL so cold Radar does not keep pre-retrain quotes (M0.5).
+    try:
+        from api.catalog_service import clear_board_cache
+
+        clear_board_cache()
+        LOG.info("Board cache cleared after nightly retrain/quotes")
+    except Exception as cache_exc:
+        LOG.warning("Board cache clear failed: %s", cache_exc)
+
+    sure_rows_live: int | None = None
+    try:
+        from services.spot_qa import compute_live_spot_qa
+
+        qa_live = compute_live_spot_qa()
+        sure_rows_live = int(qa_live.get("sure_rows") or 0)
+    except Exception as sure_exc:
+        LOG.warning("Post-nightly sure_rows sample failed: %s", sure_exc)
+
     elapsed = (datetime.now() - started).total_seconds()
     slo = evaluate_nightly_slo(
         elapsed_s=elapsed,
         max_seconds=slo_max,
         quotes_written=quotes_written,
         failures=failures,
+        sure_rows=sure_rows_live,
     )
     LOG.info(
-        "Nightly SLO: ok=%s elapsed=%.1fs max=%ss quotes_written=%s reasons=%s phases=%s",
+        "Nightly SLO: ok=%s elapsed=%.1fs max=%ss quotes_written=%s sure_rows=%s reasons=%s phases=%s",
         slo["slo_ok"],
         slo["elapsed_s"],
         slo["max_seconds"],
         slo["quotes_written"],
+        slo.get("sure_rows"),
         slo["slo_reasons"],
         phase_times,
     )
@@ -525,7 +545,11 @@ def run_nightly() -> int:
         snap = load_spot_qa_snapshot() or {}
         snap.update(
             {
-                "sure_rows": snap.get("sure_rows"),
+                "sure_rows": (
+                    sure_rows_live
+                    if sure_rows_live is not None
+                    else snap.get("sure_rows")
+                ),
                 "quotes_total": max(int(snap.get("quotes_total") or 0), quotes_written),
                 "nightly_slo_ok": bool(slo["slo_ok"]),
                 "nightly_elapsed_s": float(slo["elapsed_s"]),

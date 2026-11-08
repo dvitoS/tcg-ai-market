@@ -662,9 +662,15 @@ export function PortfolioView() {
                       {lot.printing || "Normal"}
                       {lot.spot_source === "justtcg_variant"
                         ? ` · ${t("port_spot_live")}`
+                        : lot.spot_source === "multiplier"
+                          ? ` · ${t("port_spot_estimated")}${
+                              lot.price_factor != null && Number(lot.price_factor) !== 1
+                                ? ` ×${Number(lot.price_factor).toFixed(2)}`
+                                : ""
+                            }`
                         : lot.price_factor != null && Number(lot.price_factor) !== 1
-                        ? ` · ×${Number(lot.price_factor).toFixed(2)}`
-                        : ""}
+                          ? ` · ×${Number(lot.price_factor).toFixed(2)}`
+                          : ""}
                       {lot.grade ? ` · ${lot.grade}` : ""}
                       {lot.rarity ? ` · ${lot.rarity}` : ""}
                     </p>
