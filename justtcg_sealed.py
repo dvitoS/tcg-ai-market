@@ -103,26 +103,28 @@ def _image_from_card(card: dict[str, Any]) -> str | None:
 
 
 def normalize_sealed_hit(card: dict[str, Any]) -> dict[str, Any] | None:
-    tcp = _external_tcp(card)
-    if not tcp:
-        # Fall back to JustTCG id as opaque handle when TCP is missing.
-        tcp = str(card.get("id") or "").strip() or None
-    if not tcp:
+    tcp_external = _external_tcp(card)
+    # Opaque JustTCG ids are fine as handles, but must NOT drive TCGPlayer CDN
+    # art — wrong numeric ids previously resolved to MTG/FAB singles.
+    handle = tcp_external or str(card.get("id") or "").strip() or None
+    if not handle:
         return None
     spot = _spot_from_card(card)
-    name = str(card.get("name") or "").strip() or f"Sealed {tcp}"
+    name = str(card.get("name") or "").strip() or f"Sealed {handle}"
     set_name = ""
     set_obj = card.get("set")
     if isinstance(set_obj, dict):
         set_name = str(set_obj.get("name") or "")
     if not set_name:
         set_name = str(card.get("set_name") or card.get("setName") or "")
-    image = _image_from_card(card) or tcgplayer_product_image(tcp)
+    image = _image_from_card(card)
+    if not image and tcp_external:
+        image = tcgplayer_product_image(tcp_external)
     return {
-        "card_id": sealed_card_id(tcp),
+        "card_id": sealed_card_id(handle),
         "name": name,
         "set_name": set_name or None,
-        "tcgplayer_id": str(tcp),
+        "tcgplayer_id": str(handle),
         "gtin": str(card.get("gtin") or card.get("upc") or "") or None,
         "spot_usd": spot,
         "image_url": image,

@@ -9,7 +9,8 @@ from api.demo_mode import demo_mode
 
 LOG = logging.getLogger("kestrel.api.sealed")
 
-# Demo / no-key Soft Ink showcase — real TCGPlayer ids so CDN art works.
+# Demo / no-key Soft Ink showcase — verified Pokémon TCGPlayer product ids
+# (CDN art must match the named sealed SKU; wrong ids previously pointed at MTG/FAB cards).
 # Spots are illustrative until JustTCG is queried live.
 _DEMO_SEALED: list[dict[str, Any]] = [
     {
@@ -43,50 +44,50 @@ _DEMO_SEALED: list[dict[str, Any]] = [
         "kind": "sealed",
     },
     {
-        "card_id": "sealed:544199",
+        "card_id": "sealed:502005",
         "name": "Scarlet & Violet—151 Ultra-Premium Collection (UPC)",
         "set_name": "151",
-        "tcgplayer_id": "544199",
+        "tcgplayer_id": "502005",
         "gtin": None,
         "spot_usd": 129.99,
         "source": "demo",
         "kind": "sealed",
     },
     {
-        "card_id": "sealed:539927",
+        "card_id": "sealed:528040",
         "name": "Paldean Fates Elite Trainer Box (ETB)",
         "set_name": "Paldean Fates",
-        "tcgplayer_id": "539927",
+        "tcgplayer_id": "528040",
         "gtin": None,
         "spot_usd": 79.99,
         "source": "demo",
         "kind": "sealed",
     },
     {
-        "card_id": "sealed:561447",
+        "card_id": "sealed:557350",
         "name": "Stellar Crown Elite Trainer Box (ETB)",
         "set_name": "Stellar Crown",
-        "tcgplayer_id": "561447",
+        "tcgplayer_id": "557350",
         "gtin": None,
         "spot_usd": 54.99,
         "source": "demo",
         "kind": "sealed",
     },
     {
-        "card_id": "sealed:546116",
+        "card_id": "sealed:543845",
         "name": "Twilight Masquerade Elite Trainer Box (ETB)",
         "set_name": "Twilight Masquerade",
-        "tcgplayer_id": "546116",
+        "tcgplayer_id": "543845",
         "gtin": None,
         "spot_usd": 59.99,
         "source": "demo",
         "kind": "sealed",
     },
     {
-        "card_id": "sealed:542194",
-        "name": "Temporal Forces Elite Trainer Box (ETB)",
+        "card_id": "sealed:532848",
+        "name": "Temporal Forces Elite Trainer Box (Iron Leaves ex)",
         "set_name": "Temporal Forces",
-        "tcgplayer_id": "542194",
+        "tcgplayer_id": "532848",
         "gtin": None,
         "spot_usd": 54.99,
         "source": "demo",

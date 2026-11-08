@@ -1,16 +1,11 @@
 import type { Metadata } from "next";
 
 import { MarketingLanding } from "@/components/MarketingLanding";
-import {
-  fetchMarketPulse,
-  fetchRadarPreview,
-  fetchSealedQuote,
-} from "@/lib/api";
+import { fetchMarketPulse, fetchRadarPreview } from "@/lib/api";
 import { SITE_URL, absoluteUrl } from "@/lib/seo";
 import type {
   MarketPulseResponse,
   RadarPreviewResponse,
-  SealedQuoteResponse,
 } from "@/lib/types";
 
 const TITLE = "Kestrel — Pokémon TCG fair value: buy, pass, or trade";
@@ -93,15 +88,12 @@ const jsonLd = {
 export default async function HomePage() {
   let initialDotd: RadarPreviewResponse | null = null;
   let initialPulse: MarketPulseResponse | null = null;
-  let initialSealed: SealedQuoteResponse | null = null;
-  const [dotd, pulse, sealed] = await Promise.allSettled([
+  const [dotd, pulse] = await Promise.allSettled([
     fetchRadarPreview(5),
     fetchMarketPulse(5),
-    fetchSealedQuote({ limit: 4 }),
   ]);
   if (dotd.status === "fulfilled") initialDotd = dotd.value;
   if (pulse.status === "fulfilled") initialPulse = pulse.value;
-  if (sealed.status === "fulfilled") initialSealed = sealed.value;
 
   return (
     <>
@@ -112,7 +104,6 @@ export default async function HomePage() {
       <MarketingLanding
         initialDotd={initialDotd}
         initialPulse={initialPulse}
-        initialSealed={initialSealed}
       />
     </>
   );
