@@ -41,7 +41,7 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 | --- | --- | --- |
 | **G0 Trust** | Critical path | 20-card Radar sniff pack vs TCP + eBay sold passes; unmatched-set rate trending down; public `/guides` or methodology page live |
 | **G1 10s wedge** | Mostly shipped | ≥4/5 cold users explain “spot vs sure fair band / buy or pass” after one screen |
-| **G2 Share loop** | In progress | Trade / Radar / binder share viewable without Pro; ≥1 organic Discord share/week in soft launch |
+| **G2 Share loop** | In progress | Trade / Radar / binder / DOTD share live; organic kit in `docs/ORGANIC_SOFT_LAUNCH.md`; still need ≥1 real Discord share/week |
 | **G3 Metrics** | Required before CAC | Funnel instrumented; trial→paid path clear; &lt;2% refunds citing “wrong prices” |
 
 ### Phases
@@ -92,7 +92,7 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 | ID | Item | Ship |
 | --- | --- | --- |
 | M4.1 | Funnel events | **Shipping** — landing → DOTD → Pro → Radar/Trade; `/api/funnel` + ops panel |
-| M4.2 | Organic first | Discord / LGS / soft Reddit with share cards — **not** ads |
+| M4.2 | Organic first | **Shipping** — Trade Discord paste pack; share funnel; `docs/ORGANIC_SOFT_LAUNCH.md` |
 | M4.3 | Trial hygiene | Creem trial → paid conversion dashboard |
 | M4.4 | Support playbook | Wrong-spot report → ops heal SLA |
 | M4.5 | **Spend unlock** | G0–G3 green → tiny paid search / creator tests |
@@ -100,8 +100,8 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 ### Suggested next 3
 
 1. **Run G0 sniff pack** against production board after tonight’s nightly *(ops)*  
-2. **M4.2** — organic Discord / LGS share loop  
-3. **M4.3** — Creem trial → paid conversion dashboard
+2. **M4.3** — Creem trial → paid conversion dashboard  
+3. **M4.4** — wrong-spot report → ops heal SLA
 
 ### Explicit non-goals until spend unlock
 

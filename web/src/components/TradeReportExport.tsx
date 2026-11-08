@@ -5,6 +5,7 @@ import { flushSync } from "react-dom";
 
 import { useLocale } from "@/components/LocaleProvider";
 import { TradeShareCard } from "@/components/TradeShareCard";
+import { trackFunnel } from "@/lib/funnel";
 import { exportSoftInkPng, tradeReportFilename } from "@/lib/tradeExport";
 import type { TradeResponse } from "@/lib/types";
 
@@ -48,6 +49,11 @@ export function TradeReportExport({
         node,
         tradeReportFilename(trade.verdict),
       );
+      trackFunnel("share_png", {
+        surface: "trade",
+        with_link: withLink,
+        clipboard: copied,
+      });
       setNote(
         copied ? t("trade_export_done_clipboard") : t("trade_export_done"),
       );

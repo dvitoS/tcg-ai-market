@@ -129,6 +129,7 @@ export function TradeShareView({ shareId }: { shareId: string }) {
         <p className="explore-command-eyebrow">{t("trade_share_eyebrow")}</p>
         <h1 className="explore-title">{t("trade_share_title")}</h1>
         <p className="explore-lede">{t("trade_share_lede")}</p>
+        <p className="lot-meta">{t("trade_share_organic_note")}</p>
       </div>
 
       <div className="trade-board">

@@ -442,14 +442,21 @@ const en = {
   trade_band_note: "Fair when the gap stays within ±{n}% of your give total",
   trade_seed_you: "Added {n} card(s) to You give from the link.",
   trade_seed_them: "Added {n} card(s) to They give from the link.",
-  trade_share_copy: "Copy share link",
+  trade_share_copy: "Copy Discord paste",
   trade_share_busy: "Minting link…",
-  trade_share_copied: "Share link copied — anyone can open the live verdict.",
+  trade_share_copied:
+    "Paste pack copied — blurb + live share link for Discord / LGS.",
+  trade_share_copied_fallback:
+    "Clipboard blocked — paste this share link manually:",
+  trade_share_paste_note:
+    "Desk call — spot vs sure fair band. Not financial advice.",
   trade_share_error: "Could not create share link",
   trade_share_eyebrow: "Shared trade",
   trade_share_title: "Trade verdict",
   trade_share_lede:
     "Live re-score of a shared trade — spot net, AI fair net, and who is ahead.",
+  trade_share_organic_note:
+    "Desk call — spot vs sure fair band. Share freely; Pro unlocks the full Radar/Trade desk.",
   trade_share_loading: "Loading shared trade…",
   trade_share_missing: "Share not found",
   trade_share_open_analyzer: "Open Trade Analyzer",
@@ -1238,14 +1245,21 @@ const hr: Dictionary = {
   trade_band_note: "Pošteno dok je razlika unutar ±{n}% tvog give totala",
   trade_seed_you: "Dodano {n} kart(a/e) u Ti daješ iz linka.",
   trade_seed_them: "Dodano {n} kart(a/e) u Oni daju iz linka.",
-  trade_share_copy: "Kopiraj share link",
+  trade_share_copy: "Kopiraj Discord paste",
   trade_share_busy: "Radim link…",
-  trade_share_copied: "Share link kopiran — netko može otvoriti live presudu.",
+  trade_share_copied:
+    "Paste pack kopiran — blurb + live share link za Discord / LGS.",
+  trade_share_copied_fallback:
+    "Clipboard blokiran — zalijepi ovaj share link ručno:",
+  trade_share_paste_note:
+    "Desk call — spot vs sure fair pojas. Nije financijski savjet.",
   trade_share_error: "Nisam uspio napraviti share link",
   trade_share_eyebrow: "Podijeljeni trade",
   trade_share_title: "Trade presuda",
   trade_share_lede:
     "Live re-score podijeljenog tradea — spot neto, AI fair neto i tko je ispred.",
+  trade_share_organic_note:
+    "Desk call — spot vs sure fair pojas. Dijeli slobodno; Pro otključava cijeli Radar/Trade desk.",
   trade_share_loading: "Učitavam podijeljeni trade…",
   trade_share_missing: "Share nije pronađen",
   trade_share_open_analyzer: "Otvori Trade Analyzer",

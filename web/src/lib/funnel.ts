@@ -13,7 +13,9 @@ export type FunnelEventName =
   | "pro_open_radar"
   | "pro_open_trade"
   | "radar_activate"
-  | "trade_activate";
+  | "trade_activate"
+  | "share_copy"
+  | "share_png";
 
 const SESSION_KEY = "kestrel_funnel_session";
 const ONCE_KEY = "kestrel_funnel_once";
