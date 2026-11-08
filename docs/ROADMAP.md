@@ -99,9 +99,9 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 
 ### Suggested next 3
 
-1. **Re-run nightly** after retrain history-timeout fix, then **G0 sniff pack** *(ops)*  
-2. **M4.5** — spend unlock only after G0–G3 green  
-3. Keep organic share loop live (G2 ≥1 Discord share/week)
+1. **Re-run nightly** after history OOM/timeout guards, then **G0 sniff pack** *(ops)*  
+2. **Watch Render API memory** after deploy (kestrel-api 512MB OOM risk on unscoped history)  
+3. **M4.5** — spend unlock only after G0–G3 green
 
 ### Explicit non-goals until spend unlock
 
