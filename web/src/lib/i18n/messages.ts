@@ -30,6 +30,9 @@ const en = {
     "Price trackers show the spot. Kestrel scores it against a sure AI fair band — so you buy, sell, trade, or grade with a clear call.",
   landing_cta_market: "See today’s underpriced cards",
   landing_cta_pro: "Kestrel Pro",
+  landing_hero_slider_aria: "Today’s underpriced cards",
+  landing_hero_slide_under: "Sure under",
+  landing_hero_slide_edge: "Edge {pct}",
   landing_dotd_eyebrow: "Deal of the Day",
   landing_dotd_title: "Today’s underpriced picks",
   landing_dotd_lede:
@@ -706,6 +709,9 @@ const hr: Dictionary = {
     "Price tracker pokazuje spot. Kestrel je mjeri naspram sure AI fair pojasa — pa kupiš, prodaš, tradeaš ili gradeaš s jasnim pozivom.",
   landing_cta_market: "Pogledaj današnje podcijenjene",
   landing_cta_pro: "Kestrel Pro",
+  landing_hero_slider_aria: "Današnje podcijenjene karte",
+  landing_hero_slide_under: "Sure under",
+  landing_hero_slide_edge: "Edge {pct}",
   landing_dotd_eyebrow: "Deal of the Day",
   landing_dotd_title: "Današnji podcijenjeni pickovi",
   landing_dotd_lede:

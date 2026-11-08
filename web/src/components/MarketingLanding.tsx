@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import { DealOfTheDay } from "@/components/DealOfTheDay";
+import { HeroCardSlider } from "@/components/HeroCardSlider";
 import { LandingSealedStrip } from "@/components/LandingSealedStrip";
 import { MarketPulse } from "@/components/MarketPulse";
 import { SoftInkWash } from "@/components/SoftInkWash";
@@ -42,19 +43,22 @@ export function MarketingLanding({
           <SoftInkWash />
         </div>
 
-        <div className="landing-hero-copy">
-          <p className="landing-brand">Kestrel</p>
-          <p className="landing-product">{t("landing_product")}</p>
-          <h1 className="landing-headline">{t("landing_headline")}</h1>
-          <p className="landing-lede">{t("landing_lede")}</p>
-          <div className="landing-ctas">
-            <a href="#deal-of-day" className="btn-primary landing-cta">
-              {t("landing_cta_market")}
-            </a>
-            <Link href="/pro" className="btn-ghost landing-cta">
-              {t("landing_cta_pro")}
-            </Link>
+        <div className="landing-hero-stage">
+          <div className="landing-hero-copy">
+            <p className="landing-brand">Kestrel</p>
+            <p className="landing-product">{t("landing_product")}</p>
+            <h1 className="landing-headline">{t("landing_headline")}</h1>
+            <p className="landing-lede">{t("landing_lede")}</p>
+            <div className="landing-ctas">
+              <a href="#deal-of-day" className="btn-primary landing-cta">
+                {t("landing_cta_market")}
+              </a>
+              <Link href="/pro" className="btn-ghost landing-cta">
+                {t("landing_cta_pro")}
+              </Link>
+            </div>
           </div>
+          <HeroCardSlider cards={initialDotd?.underpriced || []} />
         </div>
       </section>
 
