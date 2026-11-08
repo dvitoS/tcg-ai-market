@@ -25,6 +25,16 @@ def test_is_ops_user_dev_and_email(monkeypatch) -> None:
     )
 
 
+def test_default_ops_email_includes_dotted_owner(monkeypatch) -> None:
+    monkeypatch.delenv("OPS_EMAILS", raising=False)
+    monkeypatch.setattr(ops_mod, "_clean", lambda _name: "")
+    emails = ops_mod.ops_allowlist_emails()
+    assert "vito.skender@gmail.com" in emails
+    assert ops_mod.is_ops_user(
+        {"id": "x", "email": "vito.skender@gmail.com", "dev": False}
+    )
+
+
 def test_data_health_forbidden_for_non_ops() -> None:
     prices_mod.reset_justtcg_observability()
 
@@ -51,7 +61,7 @@ def test_data_health_ok_for_ops() -> None:
     def _ops(_authorization=None):
         return {
             "id": "ops-1",
-            "email": "vitoskender@gmail.com",
+            "email": "vito.skender@gmail.com",
             "dev": False,
             "ops": True,
         }

@@ -72,7 +72,7 @@ def test_sniff_pack_endpoint_ok_for_ops(monkeypatch) -> None:
     def _ops(_authorization=None):
         return {
             "id": "ops-1",
-            "email": "vitoskender@gmail.com",
+            "email": "vito.skender@gmail.com",
             "dev": False,
             "ops": True,
         }
