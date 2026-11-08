@@ -8,7 +8,8 @@ from typing import Any
 from config import _secret
 
 # Solo Soft Ink fallback when OPS_EMAILS is unset (override via env).
-_DEFAULT_OPS_EMAILS = {"vitoskender@gmail.com"}
+# Real login is vito.skender@… — keep the no-dot typo as a legacy alias.
+_DEFAULT_OPS_EMAILS = {"vito.skender@gmail.com", "vitoskender@gmail.com"}
 
 
 def _clean(name: str) -> str:
