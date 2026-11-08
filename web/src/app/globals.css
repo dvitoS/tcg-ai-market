@@ -4272,16 +4272,15 @@ a {
 .landing-mover-card-spot,
 .landing-mover-card-chg {
   font-family: var(--font-display);
-  /* Prior on-card chip ~0.95rem; 60% smaller → ~0.38rem, floor for readability. */
-  font-size: 0.5rem;
+  font-size: 0.82rem;
   font-weight: 650;
   letter-spacing: 0.01em;
   white-space: nowrap;
-  line-height: 1.2;
+  line-height: 1.25;
 }
 
 .landing-mover-card-spot {
-  color: var(--muted);
+  color: var(--text);
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -4289,7 +4288,7 @@ a {
 .landing-mover-card-chg {
   display: inline-flex;
   align-items: center;
-  gap: 0.12rem;
+  gap: 0.18rem;
   flex-shrink: 0;
 }
 
