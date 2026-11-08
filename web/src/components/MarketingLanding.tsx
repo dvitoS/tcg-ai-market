@@ -62,6 +62,8 @@ export function MarketingLanding({
         </div>
       </section>
 
+      <LandingSealedStrip initialSealed={initialSealed} />
+
       <MarketPulse initialPulse={initialPulse} />
 
       <DealOfTheDay
@@ -69,8 +71,6 @@ export function MarketingLanding({
         variant="landing"
         initialPreview={initialDotd}
       />
-
-      <LandingSealedStrip initialSealed={initialSealed} />
 
       <section className="landing-path" aria-labelledby="landing-path-title">
         <h2 id="landing-path-title" className="landing-path-title">
