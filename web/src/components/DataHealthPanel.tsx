@@ -7,9 +7,11 @@ import {
   fetchDataHealth,
   fetchFunnelSummary,
   fetchSpotSniffPack,
+  fetchTrialConversion,
   healPoisonedSpots,
   resetDataHealth,
   type FunnelSummaryResponse,
+  type TrialConversionResponse,
 } from "@/lib/api";
 import type {
   DataHealthResponse,
@@ -60,17 +62,20 @@ export function DataHealthPanel() {
   const [healBusy, setHealBusy] = useState(false);
   const [healResult, setHealResult] = useState<SpotHealResponse | null>(null);
   const [funnel, setFunnel] = useState<FunnelSummaryResponse | null>(null);
+  const [trial, setTrial] = useState<TrialConversionResponse | null>(null);
 
   const load = useCallback(async () => {
     setBusy(true);
     setError(null);
     try {
-      const [health, funnelSummary] = await Promise.all([
+      const [health, funnelSummary, trialSummary] = await Promise.all([
         fetchDataHealth(),
         fetchFunnelSummary().catch(() => null),
+        fetchTrialConversion().catch(() => null),
       ]);
       setStats(health);
       setFunnel(funnelSummary);
+      setTrial(trialSummary);
     } catch {
       setError(t("obs_load_error"));
     } finally {
@@ -348,6 +353,46 @@ export function DataHealthPanel() {
                 })}
               </p>
             ) : null}
+          </div>
+
+          <div className="data-health-qa">
+            <p className="data-health-qa-title">{t("obs_trial_title")}</p>
+            <p className="data-health-caption">{t("obs_trial_caption")}</p>
+            {trial ? (
+              <>
+                <div className="data-health-metrics">
+                  <div>
+                    <span>{t("obs_trial_trialing")}</span>
+                    <strong>{trial.trialing}</strong>
+                  </div>
+                  <div>
+                    <span>{t("obs_trial_active")}</span>
+                    <strong>{trial.active}</strong>
+                  </div>
+                  <div>
+                    <span>{t("obs_trial_canceled")}</span>
+                    <strong>{trial.canceled}</strong>
+                  </div>
+                  <div>
+                    <span>{t("obs_trial_paid_share")}</span>
+                    <strong>
+                      {trial.paid_share_pct == null
+                        ? t("obs_na")
+                        : `${Math.round(trial.paid_share_pct)}%`}
+                    </strong>
+                  </div>
+                </div>
+                <p className="data-health-cache lot-meta">
+                  {t("obs_trial_meta", {
+                    entitled: trial.entitled,
+                    source: trial.source,
+                    webhooks: trial.webhook_outcomes.counts?.total ?? 0,
+                  })}
+                </p>
+              </>
+            ) : (
+              <p className="data-health-caption">{t("obs_trial_empty")}</p>
+            )}
           </div>
 
           <div className="data-health-qa">

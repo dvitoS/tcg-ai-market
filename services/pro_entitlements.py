@@ -19,8 +19,11 @@ def _client():
     return get_supabase()
 
 
+_PRO_LIVE_STATUSES = ("active", "trialing")
+
+
 def email_has_active_pro(email: str | None) -> bool:
-    """True when ``pro_entitlements`` has an active row for this email."""
+    """True when ``pro_entitlements`` has an active or trialing row for this email."""
     key = str(email or "").strip().lower()
     if not key:
         return False
@@ -30,7 +33,7 @@ def email_has_active_pro(email: str | None) -> bool:
             .table("pro_entitlements")
             .select("id,status")
             .eq("email", key)
-            .eq("status", "active")
+            .in_("status", list(_PRO_LIVE_STATUSES))
             .limit(1)
             .execute()
         )
@@ -51,7 +54,7 @@ def user_id_has_active_pro(user_id: str | None) -> bool:
             .table("pro_entitlements")
             .select("id,status")
             .eq("user_id", uid)
-            .eq("status", "active")
+            .in_("status", list(_PRO_LIVE_STATUSES))
             .limit(1)
             .execute()
         )
@@ -60,6 +63,54 @@ def user_id_has_active_pro(user_id: str | None) -> bool:
     except Exception as exc:
         LOG.info("pro_entitlements user lookup skipped: %s", exc)
         return False
+
+
+def entitlement_status_counts() -> dict[str, int]:
+    """Count rows by status for the trial→paid ops dashboard."""
+    try:
+        res = (
+            _client()
+            .table("pro_entitlements")
+            .select("status")
+            .execute()
+        )
+        rows = getattr(res, "data", None) or []
+    except Exception as exc:
+        LOG.info("pro_entitlements status counts skipped: %s", exc)
+        return {}
+    counts: dict[str, int] = {}
+    for row in rows:
+        key = str((row or {}).get("status") or "unknown").strip() or "unknown"
+        counts[key] = counts.get(key, 0) + 1
+    return counts
+
+
+def conversion_summary() -> dict[str, Any]:
+    """Trial hygiene snapshot from ``pro_entitlements`` (+ process webhook counters)."""
+    from services.trial_hygiene import webhook_outcome_counts
+
+    by_status = entitlement_status_counts()
+    active = int(by_status.get("active") or 0)
+    trialing = int(by_status.get("trialing") or 0)
+    canceled = int(by_status.get("canceled") or 0)
+    expired = int(by_status.get("expired") or 0)
+    past_due = int(by_status.get("past_due") or 0)
+    entitled = active + trialing
+    paid_share_pct = (
+        round(100.0 * active / entitled, 1) if entitled > 0 else None
+    )
+    return {
+        "by_status": by_status,
+        "active": active,
+        "trialing": trialing,
+        "canceled": canceled,
+        "expired": expired,
+        "past_due": past_due,
+        "entitled": entitled,
+        "paid_share_pct": paid_share_pct,
+        "webhook_outcomes": webhook_outcome_counts(),
+        "source": "supabase" if by_status else "empty",
+    }
 
 
 def grant_pro_entitlement(

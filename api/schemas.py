@@ -864,3 +864,18 @@ class FunnelSummaryResponse(BaseModel):
     recent: list[dict[str, Any]] = Field(default_factory=list)
     uptime_s: float = 0.0
     allowed_events: list[str] = Field(default_factory=list)
+
+
+class TrialConversionResponse(BaseModel):
+    """Ops: Creem trial → paid hygiene (M4.3)."""
+
+    by_status: dict[str, int] = Field(default_factory=dict)
+    active: int = 0
+    trialing: int = 0
+    canceled: int = 0
+    expired: int = 0
+    past_due: int = 0
+    entitled: int = 0
+    paid_share_pct: float | None = None
+    webhook_outcomes: dict[str, Any] = Field(default_factory=dict)
+    source: Literal["supabase", "empty"] = "empty"

@@ -93,15 +93,15 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 | --- | --- | --- |
 | M4.1 | Funnel events | **Shipping** — landing → DOTD → Pro → Radar/Trade; `/api/funnel` + ops panel |
 | M4.2 | Organic first | **Shipping** — Trade Discord paste pack; share funnel; `docs/ORGANIC_SOFT_LAUNCH.md` |
-| M4.3 | Trial hygiene | Creem trial → paid conversion dashboard |
+| M4.3 | Trial hygiene | **Shipping** — `trialing` status; ops `/api/billing/conversion`; Data Health strip |
 | M4.4 | Support playbook | Wrong-spot report → ops heal SLA |
 | M4.5 | **Spend unlock** | G0–G3 green → tiny paid search / creator tests |
 
 ### Suggested next 3
 
 1. **Run G0 sniff pack** against production board after tonight’s nightly *(ops)*  
-2. **M4.3** — Creem trial → paid conversion dashboard  
-3. **M4.4** — wrong-spot report → ops heal SLA
+2. **M4.4** — wrong-spot report → ops heal SLA  
+3. **M4.5** — spend unlock only after G0–G3 green
 
 ### Explicit non-goals until spend unlock
 
