@@ -99,7 +99,7 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 
 ### Suggested next 3
 
-1. **Run G0 sniff pack** against production board after tonight’s nightly *(ops)*  
+1. **Re-run nightly** after retrain history-timeout fix, then **G0 sniff pack** *(ops)*  
 2. **M4.4** — wrong-spot report → ops heal SLA  
 3. **M4.5** — spend unlock only after G0–G3 green
 

@@ -292,13 +292,25 @@ def refresh_price_history() -> dict[str, int]:
 
 
 def retrain_ai() -> dict[str, float | int]:
+    from datetime import date, timedelta
+
     from ai_xgboost import ARTIFACT_ID_30D, load_history, retrain_model
+    from config import PRICE_HISTORY_DAYS
     from services.exchange import build_market_board
     from trading_signals import PORTFOLIO_HORIZON_DAYS
 
     LOG.info("Korak 3/3: re-trening XGBoost (7d board + %sd portfolio)...", PORTFOLIO_HORIZON_DAYS)
-    # One Supabase history pull for 7d + 30d + board rebuild (was 3× ~20–30m each).
-    history = load_history()
+    # One scoped Supabase history pull for 7d + 30d + board rebuild.
+    # Full-table price_history (~2M rows) times out on PostgREST (57014).
+    window_days = int(PRICE_HISTORY_DAYS) + int(PORTFOLIO_HORIZON_DAYS) + 21
+    since = (date.today() - timedelta(days=window_days)).isoformat()
+    LOG.info(
+        "Retrain history window: since=%s (%sd = PRICE_HISTORY_DAYS+%sd+21)",
+        since,
+        window_days,
+        PORTFOLIO_HORIZON_DAYS,
+    )
+    history = load_history(since_date=since)
     metrics = retrain_model(history=history)
     LOG.info(
         "Model 7d: cards=%s rows=%s RMSE=%.4f R2=%.4f "
