@@ -112,7 +112,9 @@ const en = {
   obs_sniff_open_kestrel: "Kestrel",
   obs_sniff_heal: "Heal",
   obs_sniff_heal_confirm:
-    "Heal “{name}”? Nulls tip, quarantines board quote, refetches JustTCG.",
+    "Heal “{name}”? Nulls tip and quarantines the board quote (drops from sure desk).",
+  obs_sniff_heal_no_quote:
+    "Heal ran but no market_quotes row was quarantined — check card id / API logs.",
   obs_sniff_meta: "{under} under · {over} over · {source}",
   landing_pulse_eyebrow: "Market pulse",
   landing_pulse_title: "How the sure board sits today",
@@ -946,7 +948,9 @@ const hr: Dictionary = {
   obs_sniff_open_kestrel: "Kestrel",
   obs_sniff_heal: "Heal",
   obs_sniff_heal_confirm:
-    "Heal “{name}”? Null tip, karantena board quotea, JustTCG refetch.",
+    "Heal “{name}”? Null tip i karantena board quotea (skida sa sure deska).",
+  obs_sniff_heal_no_quote:
+    "Heal je prošao, ali nijedan market_quotes red nije stavljen u karantenu — provjeri card id / API logove.",
   obs_sniff_meta: "{under} under · {over} over · {source}",
   landing_pulse_eyebrow: "Market pulse",
   landing_pulse_title: "Kako sure board sjedi danas",
