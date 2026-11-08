@@ -9,6 +9,8 @@ import type {
   CatalogResponse,
   IdentifyResponse,
   DataHealthResponse,
+  SpotHealMode,
+  SpotHealResponse,
   SpotSniffPackResponse,
   DealerResponse,
   DealerStatus,
@@ -1062,7 +1064,7 @@ export async function fetchBinder(input: {
 
 export async function fetchDataHealth(): Promise<DataHealthResponse> {
   const res = await fetch(apiUrl("/api/data-health"), {
-    headers: { Accept: "application/json" },
+    headers: { Accept: "application/json", ...authHeaders() },
     cache: "no-store",
   });
   if (!res.ok) {
@@ -1075,7 +1077,7 @@ export async function fetchSpotSniffPack(limit = 20): Promise<SpotSniffPackRespo
   const res = await fetch(
     apiUrl(`/api/data-health/sniff-pack?limit=${Math.max(4, Math.min(40, limit))}`),
     {
-      headers: { Accept: "application/json" },
+      headers: { Accept: "application/json", ...authHeaders() },
       cache: "no-store",
     },
   );
@@ -1088,11 +1090,35 @@ export async function fetchSpotSniffPack(limit = 20): Promise<SpotSniffPackRespo
 export async function resetDataHealth(): Promise<DataHealthResponse> {
   const res = await fetch(apiUrl("/api/data-health/reset"), {
     method: "POST",
-    headers: { Accept: "application/json" },
+    headers: { Accept: "application/json", ...authHeaders() },
     cache: "no-store",
   });
   if (!res.ok) {
     throw new Error(`Data health reset failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function healPoisonedSpots(input: {
+  mode: SpotHealMode;
+  limit?: number;
+}): Promise<SpotHealResponse> {
+  const res = await fetch(apiUrl("/api/data-health/heal-spots"), {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify({
+      mode: input.mode,
+      limit: input.limit ?? 50,
+    }),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const detail = await readApiError(res, `Spot heal failed (${res.status})`);
+    throw new Error(detail);
   }
   return res.json();
 }

@@ -644,6 +644,26 @@ export type SpotSniffPackResponse = {
   items: SpotSniffItem[];
 };
 
+export type SpotHealMode =
+  | "dry_run"
+  | "null_market"
+  | "clear_history"
+  | "refetch";
+
+export type SpotHealResponse = {
+  mode: string;
+  count: number;
+  ids: string[];
+  poison_keys: number[];
+  nulled: number;
+  history_cleared: number;
+  updated: number;
+  skipped: number;
+  skip_poison: number;
+  skip_absurd: number;
+  saved: number;
+};
+
 export type BinderSetSummary = {
   set_name: string;
   set_id?: string | null;
