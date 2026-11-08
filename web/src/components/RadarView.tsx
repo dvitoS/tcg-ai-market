@@ -29,8 +29,10 @@ import {
   sideTipKey,
 } from "@/lib/i18n/messages";
 import {
+  buildRadarShareClipboardText,
   buildRadarShareUrl,
   decodeRadarShare,
+  formatRadarShareFilters,
   type RadarShareFilters,
 } from "@/lib/radarShare";
 import { pushRecentSearch } from "@/lib/searchRecent";
@@ -41,6 +43,22 @@ function parsePrice(raw: string): number | undefined {
   if (!text) return undefined;
   const n = Number(text);
   return Number.isFinite(n) && n >= 0 ? n : undefined;
+}
+
+function RadarSharePreview({ filters }: { filters: RadarShareFilters }) {
+  const { t } = useLocale();
+  const chips = formatRadarShareFilters(filters);
+  return (
+    <div className="radar-share-preview">
+      <p className="explore-command-eyebrow">{t("radar_share_preview_title")}</p>
+      <p className="explore-lede">{t("radar_share_preview_lede")}</p>
+      {chips.length ? (
+        <p className="radar-share-preview-chips">{chips.join(" · ")}</p>
+      ) : (
+        <p className="lot-meta">{t("radar_share_preview_empty")}</p>
+      )}
+    </div>
+  );
 }
 
 const EMPTY: RadarResponse = {
@@ -128,6 +146,9 @@ export function RadarView() {
   const [error, setError] = useState<string | null>(null);
   const [shareNote, setShareNote] = useState<string | null>(null);
   const [shareBusy, setShareBusy] = useState(false);
+  const [sharedFilters, setSharedFilters] = useState<RadarShareFilters | null>(
+    null,
+  );
   const [pending, startTransition] = useTransition();
   const [hydrated, setHydrated] = useState(false);
 
@@ -139,6 +160,7 @@ export function RadarView() {
     if (shareBoot.current !== undefined) return;
     shareBoot.current = decodeRadarShare(searchParams.get("share"));
     const boot = shareBoot.current;
+    setSharedFilters(boot);
     if (!boot) return;
     if (boot.q) {
       setQuery(boot.q);
@@ -247,17 +269,40 @@ export function RadarView() {
     if (!status?.allowed || shareBusy) return;
     setShareBusy(true);
     setShareNote(null);
+    setError(null);
     try {
-      const url = buildRadarShareUrl(window.location.origin, {
+      const filters: RadarShareFilters = {
         q: submitted || query || undefined,
         set: setName || undefined,
         rarity: rarity || undefined,
         min_edge: minEdge,
         min_price: parsePrice(minPrice),
         max_price: parsePrice(maxPrice),
+      };
+      const url = buildRadarShareUrl(window.location.origin, filters);
+      const top = data.underpriced[0];
+      const text = buildRadarShareClipboardText({
+        blurb: t("radar_share_blurb"),
+        filters,
+        board: {
+          underTotal: data.under_total,
+          overTotal: data.over_total,
+          topUnderName: top?.name,
+          topUnderEdgePct: top?.edge_pct,
+        },
+        url,
+        filtersLabel: t("radar_share_filters"),
+        boardLine: (under, over) =>
+          t("radar_share_board", { under, over }),
+        topUnderLine: (name, edge) =>
+          t("radar_share_top_under", { name, edge }),
       });
-      await navigator.clipboard.writeText(`${t("radar_share_blurb")}\n${url}`);
-      setShareNote(t("radar_share_copied"));
+      try {
+        await navigator.clipboard.writeText(text);
+        setShareNote(t("radar_share_copied"));
+      } catch {
+        setShareNote(`${t("radar_share_copied_fallback")}\n${url}`);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : t("radar_share_error"));
     } finally {
@@ -285,6 +330,7 @@ export function RadarView() {
           <h1 className="explore-title">{t("radar_title")}</h1>
           <p className="explore-lede">{t("radar_signin_lede")}</p>
         </div>
+        {sharedFilters ? <RadarSharePreview filters={sharedFilters} /> : null}
         <Link href="/portfolio?next=/radar" className="btn-primary">
           {t("auth_sign_in")}
         </Link>
@@ -300,6 +346,7 @@ export function RadarView() {
           <h1 className="explore-title">{t("radar_locked")}</h1>
           <p className="explore-lede">{t("radar_locked_lede")}</p>
         </div>
+        {sharedFilters ? <RadarSharePreview filters={sharedFilters} /> : null}
         <div className="detail-actions">
           {status.checkout_url ? (
             <a href={status.checkout_url} className="btn-primary">
