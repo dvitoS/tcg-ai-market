@@ -3788,6 +3788,90 @@ a {
   margin-top: 0.35rem;
 }
 
+.dotd-share-export {
+  margin-top: 0.85rem;
+  display: grid;
+  gap: 0.4rem;
+  justify-items: start;
+}
+
+.dotd-share-card {
+  width: 720px;
+  box-sizing: border-box;
+  padding: 1.25rem 1.35rem 1.1rem;
+  border: 1px solid rgba(90, 175, 120, 0.35);
+  border-radius: 14px;
+  background:
+    radial-gradient(ellipse at 12% 0%, rgba(90, 175, 120, 0.16), transparent 42%),
+    linear-gradient(165deg, #1a1a1a 0%, #121212 55%, #0e0e0e 100%);
+  color: var(--text);
+}
+
+.dotd-share-body {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 1rem;
+  align-items: center;
+  margin: 0.85rem 0 0.65rem;
+}
+
+.dotd-share-art {
+  line-height: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.dotd-share-art img {
+  display: block;
+  width: 140px;
+  height: 196px;
+  object-fit: cover;
+}
+
+.dotd-share-side {
+  margin: 0 0 0.25rem;
+  color: #7dcea0;
+  font-size: 0.78rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.dotd-share-name {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.dotd-share-verdict {
+  margin: 0.45rem 0 0;
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 560;
+  line-height: 1.35;
+}
+
+.dotd-share-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem 0.85rem;
+  margin-top: 0.65rem;
+  align-items: baseline;
+}
+
+.dotd-share-metrics strong {
+  font-size: 1.15rem;
+}
+
+.dotd-share-note {
+  margin: 0.55rem 0 0.35rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
 .deal-of-day-feature {
   display: grid;
   grid-template-columns: 96px 1fr;
