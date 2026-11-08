@@ -40,7 +40,7 @@ function pulseStoryKey(pulse: MarketPulseResponse): {
   return { key: "landing_pulse_story_mixed", params: { under, over } };
 }
 
-function MoverTile({
+function MoverCard({
   mover,
   tone,
   index,
@@ -54,28 +54,27 @@ function MoverTile({
   return (
     <Link
       href={`/cards/${encodeURIComponent(mover.id)}`}
-      className={`landing-mover is-${tone}`}
-      style={{ animationDelay: `${0.08 + index * 0.06}s` }}
+      className={`landing-mover-card is-${tone}`}
+      style={{ animationDelay: `${0.05 + index * 0.09}s` }}
     >
-      <span className="landing-mover-art">
+      <span className="landing-mover-card-frame">
         <Image
           src={mover.image_url || "/kestrel-logo.png"}
           alt=""
-          width={72}
-          height={100}
+          width={160}
+          height={224}
+          className="landing-mover-card-img"
         />
+        <span className={`landing-mover-card-chg is-${tone}`}>
+          <span aria-hidden="true">{tone === "up" ? "▲" : "▼"}</span>
+          {formatChange(chg)}
+        </span>
       </span>
-      <span className="landing-mover-copy">
-        <span className="landing-mover-name">{mover.name}</span>
-        <span className="landing-mover-meta">
+      <span className="landing-mover-card-copy">
+        <span className="landing-mover-card-name">{mover.name}</span>
+        <span className="landing-mover-card-meta">
           {[mover.set_name, formatSpot(mover.price)].filter(Boolean).join(" · ")}
         </span>
-      </span>
-      <span className={`landing-mover-chg is-${tone}`} aria-label={formatChange(chg)}>
-        <span className="landing-mover-chg-arrow" aria-hidden="true">
-          {tone === "up" ? "▲" : "▼"}
-        </span>
-        <span className="landing-mover-chg-num">{formatChange(chg)}</span>
       </span>
     </Link>
   );
@@ -123,6 +122,31 @@ export function MarketPulse({
         <p className="landing-pulse-story">{t(story.key, story.params)}</p>
       </div>
 
+      {hasMovers ? (
+        <div className="landing-trends">
+          <div className="landing-trends-col">
+            <h3 className="landing-trends-title is-up">
+              {t("landing_trends_rising")}
+            </h3>
+            <div className="landing-mover-rail">
+              {pulse.risers.slice(0, 4).map((m, i) => (
+                <MoverCard key={`up-${m.id}`} mover={m} tone="up" index={i} />
+              ))}
+            </div>
+          </div>
+          <div className="landing-trends-col">
+            <h3 className="landing-trends-title is-down">
+              {t("landing_trends_falling")}
+            </h3>
+            <div className="landing-mover-rail">
+              {pulse.fallers.slice(0, 4).map((m, i) => (
+                <MoverCard key={`dn-${m.id}`} mover={m} tone="down" index={i} />
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <dl className="landing-pulse-stats">
         <div>
           <dt>{t("landing_pulse_sure_under")}</dt>
@@ -149,31 +173,6 @@ export function MarketPulse({
           </dd>
         </div>
       </dl>
-
-      {hasMovers ? (
-        <div className="landing-trends">
-          <div className="landing-trends-col">
-            <h3 className="landing-trends-title is-up">
-              {t("landing_trends_rising")}
-            </h3>
-            <div className="landing-movers">
-              {pulse.risers.map((m, i) => (
-                <MoverTile key={`up-${m.id}`} mover={m} tone="up" index={i} />
-              ))}
-            </div>
-          </div>
-          <div className="landing-trends-col">
-            <h3 className="landing-trends-title is-down">
-              {t("landing_trends_falling")}
-            </h3>
-            <div className="landing-movers">
-              {pulse.fallers.map((m, i) => (
-                <MoverTile key={`dn-${m.id}`} mover={m} tone="down" index={i} />
-              ))}
-            </div>
-          </div>
-        </div>
-      ) : null}
 
       <p className="landing-pulse-foot">
         <Link href="/browse">{t("landing_pulse_browse")}</Link>
