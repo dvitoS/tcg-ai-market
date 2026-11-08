@@ -67,6 +67,80 @@ def test_load_history_frame_fallback_never_calls_fetch_all_history(monkeypatch):
     assert calls == [("plain", "2026-10-01", None)]
 
 
+def test_history_id_chunks_empty_means_no_queries():
+    assert catalog._history_id_chunks(None) == []
+    assert catalog._history_id_chunks([]) == []
+    assert catalog._history_id_chunks(["a", "b"]) == [["a", "b"]]
+
+
+def test_fetch_price_history_rows_auto_chunks_catalog_ids(monkeypatch):
+    """Unscoped loads must not date-scan the whole table (nightly 57014)."""
+    seen_in_filters: list[list[str]] = []
+
+    class _FakeQuery:
+        def __init__(self):
+            self._in: list[str] | None = None
+
+        def select(self, *_a, **_k):
+            return self
+
+        def in_(self, _col, values):
+            self._in = list(values)
+            seen_in_filters.append(list(values))
+            return self
+
+        def gte(self, *_a, **_k):
+            return self
+
+        def order(self, *_a, **_k):
+            return self
+
+        def range(self, *_a, **_k):
+            return self
+
+        def execute(self):
+            ids = self._in or []
+            return type(
+                "R",
+                (),
+                {
+                    "data": [
+                        {"card_id": cid, "price": 1.0, "date": "2026-11-01"}
+                        for cid in ids
+                    ]
+                },
+            )()
+
+    class _FakeTable:
+        def select(self, *_a, **_k):
+            return _FakeQuery().select()
+
+    class _FakeClient:
+        def table(self, _name):
+            return _FakeTable()
+
+    catalog_ids = [f"c{i}" for i in range(320)]  # → 3 chunks of 150/150/20
+
+    monkeypatch.setattr(catalog, "get_supabase", lambda: _FakeClient())
+    monkeypatch.setattr(
+        catalog,
+        "fetch_all",
+        lambda table, columns="*", **_k: (
+            [{"id": cid} for cid in catalog_ids] if table == "cards" else []
+        ),
+    )
+
+    rows = catalog._fetch_price_history_rows(
+        card_ids=None, since_date="2026-07-20", embed_cards=False
+    )
+    assert len(seen_in_filters) == 3
+    assert seen_in_filters[0] == catalog_ids[:150]
+    assert seen_in_filters[1] == catalog_ids[150:300]
+    assert seen_in_filters[2] == catalog_ids[300:]
+    assert len(rows) == 320
+    assert {r["card_id"] for r in rows} == set(catalog_ids)
+
+
 def test_load_history_defaults_since_when_unscoped(monkeypatch):
     import ai_xgboost as ax
 

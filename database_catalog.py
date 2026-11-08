@@ -370,12 +370,40 @@ def distinct_history_card_ids_since(since_date: str) -> set[str]:
     return ids
 
 
-def _history_id_chunks(card_ids: list[str] | None) -> list[list[str]]:
-    """Chunk card ids for PostgREST ``in_`` filters (empty → one unscoped pass)."""
+# Keep each PostgREST ``in_(card_id)`` query small enough that OFFSET pagination
+# finishes inside statement_timeout (date-only scans of ~2M rows → 57014).
+HISTORY_CARD_CHUNK = 150
+
+
+def _resolve_history_card_ids(card_ids: list[str] | None) -> list[str]:
+    """Explicit ids, or every catalog card id when the caller left the filter open.
+
+    Date-only ``price_history`` scans still hit PostgREST 57014 under deep
+    OFFSET even with a ``since_date`` floor — chunking by ``card_id`` keeps each
+    query bounded (~150 cards × window days).
+    """
     id_list = [str(x) for x in (card_ids or []) if str(x).strip()]
     if id_list:
-        return [id_list[i : i + 150] for i in range(0, len(id_list), 150)]
-    return [[]]
+        return id_list
+    rows = fetch_all("cards", "id")
+    resolved = [str(row["id"]) for row in rows if row.get("id") is not None]
+    if resolved:
+        LOG.info(
+            "price_history load: auto-chunking by %s catalog card_ids (no card_ids filter)",
+            len(resolved),
+        )
+    return resolved
+
+
+def _history_id_chunks(card_ids: list[str] | None) -> list[list[str]]:
+    """Chunk card ids for PostgREST ``in_`` filters (empty → no queries)."""
+    id_list = [str(x) for x in (card_ids or []) if str(x).strip()]
+    if not id_list:
+        return []
+    return [
+        id_list[i : i + HISTORY_CARD_CHUNK]
+        for i in range(0, len(id_list), HISTORY_CARD_CHUNK)
+    ]
 
 
 def _fetch_price_history_rows(
@@ -384,22 +412,33 @@ def _fetch_price_history_rows(
     since_date: str | None = None,
     embed_cards: bool = True,
 ) -> list[dict[str, Any]]:
-    """Paginated price_history rows, optionally scoped to cards + date floor."""
+    """Paginated price_history rows, scoped to cards (+ optional date floor).
+
+    Never runs an unscoped full-table / date-only scan — those time out (57014)
+    once ``price_history`` is multi-million rows. Missing ``card_ids`` resolves
+    to the catalog and loads in ``HISTORY_CARD_CHUNK`` batches.
+    """
     client = get_supabase()
     columns = (
         "card_id,price,date,cards(name,supertype,rarity,set_name,market_price)"
         if embed_cards
         else "card_id,price,date"
     )
-    chunks = _history_id_chunks(card_ids)
+    resolved = _resolve_history_card_ids(card_ids)
+    chunks = _history_id_chunks(resolved)
+    if not chunks:
+        return []
 
     rows: list[dict[str, Any]] = []
-    for chunk in chunks:
+    total_chunks = len(chunks)
+    for idx, chunk in enumerate(chunks):
         start = 0
         while True:
-            query = client.table("price_history").select(columns)
-            if chunk:
-                query = query.in_("card_id", chunk)
+            query = (
+                client.table("price_history")
+                .select(columns)
+                .in_("card_id", chunk)
+            )
             if since_date:
                 query = query.gte("date", since_date)
             response = (
@@ -410,6 +449,15 @@ def _fetch_price_history_rows(
             if len(batch) < PAGE:
                 break
             start += PAGE
+        if idx == 0 or (idx + 1) % 25 == 0 or idx + 1 == total_chunks:
+            LOG.info(
+                "price_history fetch %s/%s chunks rows=%s embed=%s since=%s",
+                idx + 1,
+                total_chunks,
+                len(rows),
+                embed_cards,
+                since_date,
+            )
     return rows
 
 
@@ -435,8 +483,9 @@ def load_history_frame(
 ) -> pd.DataFrame:
     """price_history ⨝ cards → DataFrame (isti oblik kao stari SQL join).
 
-    Prefer a ``since_date`` (and/or card ids). Unscoped full-table pulls of
-    multi-million ``price_history`` rows time out on Supabase (57014).
+    Prefer a ``since_date`` (and/or card ids). Unscoped / date-only pulls of
+    multi-million ``price_history`` rows time out on Supabase (57014); missing
+    card ids are expanded to the catalog and fetched in card_id chunks.
     """
     id_list = [str(x) for x in (card_ids or []) if str(x).strip()] or None
     try:
