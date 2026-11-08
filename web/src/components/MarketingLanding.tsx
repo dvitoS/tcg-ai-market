@@ -95,6 +95,14 @@ export function MarketingLanding({
         <p className="landing-path-lede">{t("landing_guides_lede")}</p>
         <nav className="landing-path-nav" aria-label="Kestrel guides">
           <Link
+            href="/guides/kestrel-methodology"
+            className="landing-path-link"
+          >
+            <span className="landing-path-link-title">
+              {t("landing_guides_method")}
+            </span>
+          </Link>
+          <Link
             href="/guides/pokemon-tcg-fair-value"
             className="landing-path-link"
           >

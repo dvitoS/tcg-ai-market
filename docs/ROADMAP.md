@@ -50,8 +50,8 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 
 | ID | Item | Ship |
 | --- | --- | --- |
-| M0.1 | **Methodology page** | Public: JustTCG/TCP spot, eBay comps, conformal “sure” band, refresh cadence — TCGinvest transparency bar |
-| M0.2 | **Spot sniff pack** | Ops: 20 random sure UNDER/OVER vs TCP + eBay sold; fail → **block marketing** |
+| M0.1 | **Methodology page** | **Shipping** — `/guides/kestrel-methodology` + landing link |
+| M0.2 | **Spot sniff pack** | **Shipping** — ops `GET /api/data-health/sniff-pack` + System status UI; fail → **block marketing** |
 | M0.3 | **JustTCG set matching** | No silent wrong-set joins; golden tests (= C1) |
 | M0.4 | **Variant IDs** | Condition×printing when TCP resolves; else NM×multiplier **labeled** (= C4) |
 | M0.5 | **Nightly SLO + board TTL** | Quotes-written gate; cold Radar usable (= C3) |
@@ -99,8 +99,8 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 
 ### Suggested next 3
 
-1. **M0.1 + M0.2** — methodology page + 20-card sniff pack  
-2. **M0.3–M0.5** — finish set matching, variant IDs, nightly SLO  
+1. **M0.3–M0.5** — finish set matching, variant IDs, nightly SLO *(next)*  
+2. **M0.6** — poison/heal visibility on data-health  
 3. **M2.1** — Trade PNG (own “is this a good trade?”)
 
 ### Explicit non-goals until spend unlock

@@ -10,7 +10,13 @@ from fastapi import APIRouter, Depends
 from api.catalog_service import load_board
 from api.deps import require_ops_user
 from api.price_sources_service import clear_price_sources_cache
-from api.schemas import DataHealthResponse, HealthResponse, SpotHealRequest, SpotHealResponse
+from api.schemas import (
+    DataHealthResponse,
+    HealthResponse,
+    SpotHealRequest,
+    SpotHealResponse,
+    SpotSniffPackResponse,
+)
 from justtcg_client import justtcg_api_key
 from services.creem_webhooks import creem_webhook_secret
 from services.prices import (
@@ -113,6 +119,18 @@ def data_health_reset(
     clear_price_sources_cache()
     reset_justtcg_observability()
     return data_health(ops)
+
+
+@router.get("/data-health/sniff-pack", response_model=SpotSniffPackResponse)
+def data_health_sniff_pack(
+    _ops: Annotated[dict[str, Any], Depends(require_ops_user)],
+    limit: int = 20,
+) -> SpotSniffPackResponse:
+    """Ops M0.2: sample sure UNDER/OVER rows for manual TCP + eBay sniff."""
+    from services.spot_sniff import build_spot_sniff_pack
+
+    payload = build_spot_sniff_pack(limit=limit)
+    return SpotSniffPackResponse(**payload)
 
 
 @router.post("/data-health/heal-spots", response_model=SpotHealResponse)

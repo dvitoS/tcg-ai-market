@@ -9,6 +9,7 @@ import type {
   CatalogResponse,
   IdentifyResponse,
   DataHealthResponse,
+  SpotSniffPackResponse,
   DealerResponse,
   DealerStatus,
   EbayCompsResponse,
@@ -1066,6 +1067,20 @@ export async function fetchDataHealth(): Promise<DataHealthResponse> {
   });
   if (!res.ok) {
     throw new Error(`Data health failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function fetchSpotSniffPack(limit = 20): Promise<SpotSniffPackResponse> {
+  const res = await fetch(
+    apiUrl(`/api/data-health/sniff-pack?limit=${Math.max(4, Math.min(40, limit))}`),
+    {
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+    },
+  );
+  if (!res.ok) {
+    throw new Error(`Sniff pack failed (${res.status})`);
   }
   return res.json();
 }

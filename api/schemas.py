@@ -50,6 +50,35 @@ class DataHealthResponse(BaseModel):
     quotes_written: int | None = None
 
 
+class SpotSniffItem(BaseModel):
+    card_id: str
+    name: str
+    set_name: str | None = None
+    rarity: str | None = None
+    side: Literal["UNDER", "OVER"]
+    spot: float | None = None
+    fair_price: float | None = None
+    edge_pct: float | None = None
+    tcgplayer_id: str | None = None
+    tcgplayer_url: str | None = None
+    kestrel_path: str
+    check_tcp: bool | None = None
+    check_ebay: bool | None = None
+    notes: str = ""
+
+
+class SpotSniffPackResponse(BaseModel):
+    generated_at: str
+    limit: int
+    count: int
+    under_n: int = 0
+    over_n: int = 0
+    board_source: str = "empty"
+    pass_required: bool = True
+    instructions: str
+    items: list[SpotSniffItem] = Field(default_factory=list)
+
+
 class SpotHealRequest(BaseModel):
     mode: Literal["dry_run", "null_market", "clear_history", "refetch"] = "dry_run"
     limit: int | None = Field(default=50, ge=1, le=500)
