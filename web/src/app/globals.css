@@ -366,6 +366,29 @@ a {
   font-size: 0.78rem;
 }
 
+.detail-spot-source {
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.detail-desk-disclaimer {
+  margin: 0.55rem 0 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.35;
+  font-style: italic;
+}
+
+.chart-source-note {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.35;
+  max-width: 36rem;
+}
+
 .nav-toggle {
   display: none;
   width: 2.5rem;

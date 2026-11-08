@@ -134,6 +134,7 @@ export function CardDetailView({
                     {t("detail_low_conf")}
                   </div>
                 )}
+                <p className="detail-desk-disclaimer">{t("detail_desk_disclaimer")}</p>
               </aside>
             </div>
             <div className="detail-hero-copy">
@@ -142,11 +143,20 @@ export function CardDetailView({
               <div className="detail-price">
                 {formatSpot(history.last_price ?? card.price, 2)}
               </div>
+              <p className="detail-spot-source">
+                {history.last_date
+                  ? t("detail_spot_source_asof", { date: history.last_date })
+                  : t("detail_spot_source")}
+              </p>
               {currency === "EUR" && usdEur != null ? (
                 <p className="detail-fx-note" title={fxFallback ? t("fx_fallback") : undefined}>
                   {t("fx_rate_tip", { rate: usdEur.toFixed(4) })}
+                  {" · "}
+                  {t("detail_fx_not_eu")}
                 </p>
-              ) : null}
+              ) : (
+                <p className="detail-fx-note">{t("detail_eu_separate")}</p>
+              )}
               <div className={`detail-hero-delta ${deltaClass(dayChange)}`}>
                 {formatChange(dayChange, 2)}
               </div>

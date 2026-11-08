@@ -542,6 +542,14 @@ const en = {
   detail_range_min: "Range min",
   detail_range_max: "Range max",
   detail_points: "Points",
+  detail_spot_source: "Spot · US market board (not Cardmarket EUR)",
+  detail_spot_source_asof:
+    "Spot · US market board · as of {date} (not Cardmarket EUR)",
+  detail_eu_separate:
+    "Cardmarket link below is EU search only — never blended into this USD spot.",
+  detail_fx_not_eu:
+    "EUR is FX display only — not a Cardmarket quote.",
+  detail_desk_disclaimer: "Desk call, not financial advice.",
   detail_ai_title: "AI prediction",
   detail_ai_under_title: "AI · 7d outlook",
   detail_expected: "Expected move",
@@ -602,7 +610,9 @@ const en = {
   add_lot_view: "View portfolio",
   chart_title: "Price history",
   chart_empty: "No history points for this card yet.",
-  chart_subtitle: "Market NM · JustTCG live · PSA 10",
+  chart_subtitle: "US Market NM · JustTCG NM · PSA 10",
+  chart_us_only_note:
+    "US sources only — Cardmarket EUR is never averaged into these series.",
   chart_loading: "Loading PSA 10 / live JustTCG…",
   chart_fallback: "Multi-source unavailable ({error}). Showing saved market history.",
   chart_no_key: "Showing saved market history.",
@@ -612,7 +622,7 @@ const en = {
     "PSA 10 paused — JustTCG rate limit. Try again later.",
   chart_psa_unavailable: "PSA 10 comps unavailable right now.",
   chart_psa_empty: "No PSA 10 print on JustTCG for this card.",
-  chart_series_tcg: "Market (DB)",
+  chart_series_tcg: "US market (DB)",
   chart_series_just: "JustTCG NM",
   chart_series_psa: "PSA 10",
   ebay_title: "eBay comps",
@@ -1277,6 +1287,14 @@ const hr: Dictionary = {
   detail_range_min: "Raspon min",
   detail_range_max: "Raspon max",
   detail_points: "Točke",
+  detail_spot_source: "Spot · US market board (ne Cardmarket EUR)",
+  detail_spot_source_asof:
+    "Spot · US market board · as of {date} (ne Cardmarket EUR)",
+  detail_eu_separate:
+    "Cardmarket link ispod je samo EU search — nikad nije u ovom USD spotu.",
+  detail_fx_not_eu:
+    "EUR je samo FX prikaz — nije Cardmarket quote.",
+  detail_desk_disclaimer: "Desk call, ne financijski savjet.",
   detail_ai_title: "AI predikcija",
   detail_ai_under_title: "AI · 7d outlook",
   detail_expected: "Očekivani pomak",
@@ -1337,7 +1355,9 @@ const hr: Dictionary = {
   add_lot_view: "Pogledaj portfelj",
   chart_title: "Povijest cijene",
   chart_empty: "Nema dovoljno price history za chart.",
-  chart_subtitle: "Market NM · JustTCG live · PSA 10",
+  chart_subtitle: "US Market NM · JustTCG NM · PSA 10",
+  chart_us_only_note:
+    "Samo US izvori — Cardmarket EUR se nikad ne prosječuje u ove serije.",
   chart_loading: "Učitavam PSA 10 / live JustTCG…",
   chart_fallback: "Multi-source nije dostupan ({error}). Prikazujem spremljenu market povijest.",
   chart_no_key: "Prikazujem spremljenu market povijest.",
@@ -1347,7 +1367,7 @@ const hr: Dictionary = {
     "PSA 10 pauziran — JustTCG rate limit. Pokušaj kasnije.",
   chart_psa_unavailable: "PSA 10 comps trenutno nisu dostupni.",
   chart_psa_empty: "Nema PSA 10 printa na JustTCG za ovu kartu.",
-  chart_series_tcg: "Market (DB)",
+  chart_series_tcg: "US market (DB)",
   chart_series_just: "JustTCG NM",
   chart_series_psa: "PSA 10",
   ebay_title: "eBay comps",

@@ -236,6 +236,7 @@ export function PriceChart({
         <div>
           <h2>{t("chart_title")}</h2>
           <p>{t("chart_subtitle")}</p>
+          <p className="chart-source-note">{t("chart_us_only_note")}</p>
         </div>
         <div className="range-toggle" role="tablist" aria-label="Chart range">
           {RANGES.map((item) => (
