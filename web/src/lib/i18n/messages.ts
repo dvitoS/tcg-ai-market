@@ -115,6 +115,11 @@ const en = {
     "Heal “{name}”? Nulls tip and quarantines the board quote (drops from sure desk).",
   obs_sniff_heal_no_quote:
     "Heal ran but no market_quotes row was quarantined — check card id / API logs.",
+  obs_sniff_heal_under: "Heal all UNDER",
+  obs_sniff_heal_all: "Heal whole pack",
+  obs_sniff_all_sides: "UNDER+OVER",
+  obs_sniff_heal_all_confirm:
+    "Heal {n} sniff rows ({side})? Nulls tips + quarantines board quotes in one shot.",
   obs_sniff_meta: "{under} under · {over} over · {source}",
   landing_pulse_eyebrow: "Market pulse",
   landing_pulse_title: "How the sure board sits today",
@@ -951,6 +956,11 @@ const hr: Dictionary = {
     "Heal “{name}”? Null tip i karantena board quotea (skida sa sure deska).",
   obs_sniff_heal_no_quote:
     "Heal je prošao, ali nijedan market_quotes red nije stavljen u karantenu — provjeri card id / API logove.",
+  obs_sniff_heal_under: "Heal sve UNDER",
+  obs_sniff_heal_all: "Heal cijeli pack",
+  obs_sniff_all_sides: "UNDER+OVER",
+  obs_sniff_heal_all_confirm:
+    "Heal {n} sniff redova ({side})? Null tipova + karantena board quoteova odjednom.",
   obs_sniff_meta: "{under} under · {over} over · {source}",
   landing_pulse_eyebrow: "Market pulse",
   landing_pulse_title: "Kako sure board sjedi danas",

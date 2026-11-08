@@ -206,6 +206,52 @@ export function DataHealthPanel() {
     }
   }
 
+  async function onHealSniffAll(side?: "UNDER" | "OVER") {
+    if (!sniff?.items.length) return;
+    const targets = sniff.items.filter((item) =>
+      side ? item.side === side : true,
+    );
+    const cardIds = [
+      ...new Set(
+        targets
+          .map((item) => String(item.card_id || "").trim())
+          .filter(Boolean),
+      ),
+    ];
+    if (!cardIds.length) return;
+    const ok = window.confirm(
+      t("obs_sniff_heal_all_confirm", {
+        n: cardIds.length,
+        side: side
+          ? side === "UNDER"
+            ? t("obs_sniff_under")
+            : t("obs_sniff_over")
+          : t("obs_sniff_all_sides"),
+      }),
+    );
+    if (!ok) return;
+    setHealBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const result = await healPoisonedSpots({
+        mode: "null_market",
+        limit: cardIds.length,
+        cardIds,
+      });
+      showHealNotice(result);
+      if ((result.quotes_quarantined ?? 0) < 1) {
+        setError(t("obs_sniff_heal_no_quote"));
+      }
+      setSniff(await fetchSpotSniffPack(20));
+      refreshHealStats();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("obs_load_error"));
+    } finally {
+      setHealBusy(false);
+    }
+  }
+
   const sample = (stats.unmatched_sets_sample || [])
     .slice(0, 6)
     .map((row) => row.set_name || row.set_code)
@@ -553,6 +599,26 @@ export function DataHealthPanel() {
                 onClick={() => void onLoadSniff()}
               >
                 {t("obs_sniff_load")}
+              </button>
+              <button
+                type="button"
+                className="btn-ghost"
+                disabled={
+                  healBusy ||
+                  busy ||
+                  !sniff?.items.some((item) => item.side === "UNDER")
+                }
+                onClick={() => void onHealSniffAll("UNDER")}
+              >
+                {t("obs_sniff_heal_under")}
+              </button>
+              <button
+                type="button"
+                className="btn-ghost"
+                disabled={healBusy || busy || !sniff?.items.length}
+                onClick={() => void onHealSniffAll()}
+              >
+                {t("obs_sniff_heal_all")}
               </button>
             </div>
             {sniff ? (
