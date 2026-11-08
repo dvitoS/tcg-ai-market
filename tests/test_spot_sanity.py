@@ -40,6 +40,17 @@ def test_under_deal_rejects_poisoned_common_spot() -> None:
     assert under_deal_allowed(spot=40.0, edge_pct=40.0, rarity="Uncommon") is False
 
 
+def test_share_safe_rejects_blank_rarity_high_spot() -> None:
+    assert share_safe_under_deal(spot=79.5, edge_pct=25.0, rarity=None) is False
+    assert share_safe_under_deal(spot=9.0, edge_pct=25.0, rarity="") is True
+    assert (
+        share_safe_under_deal(
+            spot=79.5, edge_pct=25.0, rarity="Illustration Rare"
+        )
+        is True
+    )
+
+
 def test_share_safe_rejects_promo_and_quarantine() -> None:
     assert (
         share_safe_under_deal(

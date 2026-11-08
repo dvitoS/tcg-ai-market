@@ -104,6 +104,50 @@ def _strip_optional_fields(
     return [{k: v for k, v in row.items() if k not in drop} for row in rows]
 
 
+def quarantine_market_quote_ids(card_ids: list[str] | set[str]) -> int:
+    """Soft-drop sure tips for healed / reported cards on the persisted board.
+
+    Radar / sniff read ``market_quotes``, not ``cards.market_price``. Nulling the
+    catalog tip alone leaves stale sure UNDER/OVER rows until nightly rebuild —
+    mark those quote rows HOLD + not-confidence so they leave the sure desk now.
+    """
+    ids = sorted({str(cid).strip() for cid in (card_ids or []) if str(cid).strip()})
+    if not ids:
+        return 0
+    try:
+        from database import _chunked, get_supabase
+        from trading_signals import SIGNAL_HOLD
+
+        client = get_supabase()
+        now = datetime.now(timezone.utc).isoformat()
+        payload = {
+            "confidence_ok": False,
+            "confidence_level": "low",
+            "conformal_ok": False,
+            "signal": SIGNAL_HOLD,
+            "updated_at": now,
+        }
+        updated = 0
+        for chunk in _chunked(ids, size=80):
+            try:
+                client.table(TABLE).update(payload).in_("card_id", chunk).execute()
+                updated += len(chunk)
+            except Exception as exc:
+                msg = str(exc).lower()
+                if "conformal_ok" in msg or "column" in msg:
+                    slim = {
+                        k: v for k, v in payload.items() if k != "conformal_ok"
+                    }
+                    client.table(TABLE).update(slim).in_("card_id", chunk).execute()
+                    updated += len(chunk)
+                else:
+                    raise
+        return updated
+    except Exception as exc:
+        LOG.warning("quarantine_market_quote_ids failed: %s", exc)
+        return 0
+
+
 def save_market_quotes(quotes: pd.DataFrame) -> int:
     """Replace-style upsert of the catalog board."""
     rows = _rows_from_quotes(quotes)

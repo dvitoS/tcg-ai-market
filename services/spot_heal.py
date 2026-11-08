@@ -1,10 +1,12 @@
 """Heal already-poisoned JustTCG spots that quarantine only masks.
 
 Flow:
-1. Detect poison-cluster card IDs from the live board (`poison_spot_mask`).
-2. Soft-clear ``market_price`` (and optionally history) so ``skip_absurd`` cannot
-   block recovery from a prior bad tip.
-3. Targeted JustTCG refetch that refuses to rewrite the same poison key.
+1. Detect poison-cluster card IDs from the live board (`poison_spot_mask`),
+   or accept explicit reported / sniff card ids.
+2. Soft-clear ``cards.market_price`` (and optionally history) so ``skip_absurd``
+   cannot block recovery from a prior bad tip.
+3. Quarantine matching ``market_quotes`` rows (Radar/sniff read this table).
+4. Targeted JustTCG refetch that refuses to rewrite the same poison key.
 """
 
 from __future__ import annotations
@@ -31,7 +33,13 @@ def poisoned_card_ids_from_board(quotes: pd.DataFrame) -> tuple[list[str], set[f
     if not bool(mask.any()):
         return [], set()
     frame = quotes.loc[mask]
-    ids = sorted({str(cid) for cid in frame.get("id", pd.Series(dtype=str)).astype(str).tolist() if str(cid)})
+    ids = sorted(
+        {
+            str(cid)
+            for cid in frame.get("id", pd.Series(dtype=str)).astype(str).tolist()
+            if str(cid)
+        }
+    )
     spots = _frame_spots(frame)
     keys = {float(v) for v in spots.dropna().tolist()}
     return ids, keys
@@ -44,6 +52,36 @@ def detect_poisoned_card_ids() -> tuple[list[str], set[float]]:
     return poisoned_card_ids_from_board(board)
 
 
+def _spot_keys_for_card_ids(card_ids: list[str]) -> set[float]:
+    """Board + catalog spots for targeted ids (isolated wrong tips, not clusters)."""
+    keys: set[float] = set()
+    if not card_ids:
+        return keys
+    idset = set(card_ids)
+    try:
+        from api.catalog_service import load_board
+
+        board, _source = load_board()
+        if board is not None and not board.empty and "id" in board.columns:
+            frame = board.loc[board["id"].astype(str).isin(idset)]
+            if not frame.empty:
+                spots = _frame_spots(frame)
+                keys.update(float(v) for v in spots.dropna().tolist())
+    except Exception as exc:
+        LOG.warning("board spot keys failed: %s", exc)
+    try:
+        from database import get_card
+
+        for cid in card_ids:
+            card = get_card(cid)
+            mp = getattr(card, "market_price", None) if card else None
+            if mp is not None:
+                keys.add(round(float(mp), 2))
+    except Exception as exc:
+        LOG.warning("catalog spot keys failed: %s", exc)
+    return keys
+
+
 def heal_poisoned_spots(
     *,
     mode: HealMode = "dry_run",
@@ -54,9 +92,9 @@ def heal_poisoned_spots(
 
     Modes:
     - dry_run: list only
-    - null_market: null ``cards.market_price`` for poisoned IDs
-    - clear_history: null market + delete per-card history
-    - refetch: null market + clear history + targeted JustTCG sync
+    - null_market: null ``cards.market_price`` for poisoned IDs + quarantine quotes
+    - clear_history: null market + delete per-card history + quarantine quotes
+    - refetch: null market + clear history + quarantine quotes + targeted JustTCG sync
     """
     if card_ids is None:
         ids, poison_keys = detect_poisoned_card_ids()
@@ -64,22 +102,12 @@ def heal_poisoned_spots(
         ids = sorted({str(cid).strip() for cid in card_ids if str(cid).strip()})
         poison_keys = set()
         if ids:
-            # Still derive poison keys from the live board when available.
             try:
-                live_ids, poison_keys = detect_poisoned_card_ids()
-                if not poison_keys:
-                    # Fall back: use current market_price of targeted cards as banned keys.
-                    from database import get_card
-
-                    for cid in ids:
-                        card = get_card(cid)
-                        mp = getattr(card, "market_price", None) if card else None
-                        if mp is not None:
-                            poison_keys.add(round(float(mp), 2))
-                # Keep allowlist intersection informative.
-                _ = live_ids
+                _live_ids, cluster_keys = detect_poisoned_card_ids()
+                poison_keys.update(cluster_keys)
             except Exception as exc:
                 LOG.warning("poison key detect failed: %s", exc)
+            poison_keys.update(_spot_keys_for_card_ids(ids))
 
     if limit is not None:
         ids = ids[: max(0, int(limit))]
@@ -91,6 +119,7 @@ def heal_poisoned_spots(
         "poison_keys": sorted(poison_keys),
         "nulled": 0,
         "history_cleared": 0,
+        "quotes_quarantined": 0,
         "updated": 0,
         "skipped": 0,
         "skip_poison": 0,
@@ -110,6 +139,13 @@ def heal_poisoned_spots(
         if mode in {"clear_history", "refetch"}:
             delete_card_history(cid)
             out["history_cleared"] += 1
+
+    try:
+        from services.quotes_store import quarantine_market_quote_ids
+
+        out["quotes_quarantined"] = int(quarantine_market_quote_ids(ids))
+    except Exception as exc:
+        LOG.warning("market_quotes quarantine failed: %s", exc)
 
     if mode != "refetch":
         return out
@@ -153,7 +189,8 @@ def main(argv: list[str] | None = None) -> int:
     print(
         f"spot_heal mode={result['mode']} count={result['count']} "
         f"keys={result['poison_keys']} updated={result.get('updated')} "
-        f"skip_poison={result.get('skip_poison')} nulled={result.get('nulled')}"
+        f"skip_poison={result.get('skip_poison')} nulled={result.get('nulled')} "
+        f"quotes_quarantined={result.get('quotes_quarantined')}"
     )
     if result["ids"][:20]:
         print("ids:", ", ".join(result["ids"][:20]) + ("…" if result["count"] > 20 else ""))

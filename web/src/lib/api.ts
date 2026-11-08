@@ -1204,6 +1204,7 @@ export async function resetDataHealth(): Promise<DataHealthResponse> {
 export async function healPoisonedSpots(input: {
   mode: SpotHealMode;
   limit?: number;
+  cardIds?: string[];
 }): Promise<SpotHealResponse> {
   const res = await fetch(apiUrl("/api/data-health/heal-spots"), {
     method: "POST",
@@ -1215,11 +1216,33 @@ export async function healPoisonedSpots(input: {
     body: JSON.stringify({
       mode: input.mode,
       limit: input.limit ?? 50,
+      ...(input.cardIds?.length ? { card_ids: input.cardIds } : {}),
     }),
     cache: "no-store",
   });
   if (!res.ok) {
     const detail = await readApiError(res, `Spot heal failed (${res.status})`);
+    throw new Error(detail);
+  }
+  return res.json();
+}
+
+export async function healOpenSpotReports(input: {
+  mode: SpotHealMode;
+  limit?: number;
+}): Promise<SpotHealResponse> {
+  const mode = encodeURIComponent(input.mode);
+  const limit = Math.max(1, Math.min(100, input.limit ?? 30));
+  const res = await fetch(
+    apiUrl(`/api/spots/reports/heal-open?mode=${mode}&limit=${limit}`),
+    {
+      method: "POST",
+      headers: { Accept: "application/json", ...authHeaders() },
+      cache: "no-store",
+    },
+  );
+  if (!res.ok) {
+    const detail = await readApiError(res, `Heal-open failed (${res.status})`);
     throw new Error(detail);
   }
   return res.json();

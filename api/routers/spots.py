@@ -148,6 +148,7 @@ def heal_open_spot_reports(
         poison_keys=[float(x) for x in list(result.get("poison_keys") or [])],
         nulled=int(result.get("nulled") or 0),
         history_cleared=int(result.get("history_cleared") or 0),
+        quotes_quarantined=int(result.get("quotes_quarantined") or 0),
         updated=int(result.get("updated") or 0),
         skipped=int(result.get("skipped") or 0),
         skip_poison=int(result.get("skip_poison") or 0),

@@ -166,6 +166,11 @@ def share_safe_under_deal(
         return False
     if _looks_like_thin_promo(rarity, set_name):
         return False
+    # Missing rarity on public UNDER often means poisoned bulk — keep G0 sniff safe.
+    if not str(rarity or "").strip():
+        price = _as_positive_float(spot)
+        if price is None or price > 15.0:
+            return False
     return under_deal_allowed(
         spot=spot,
         edge_pct=edge_pct,

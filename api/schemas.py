@@ -82,6 +82,11 @@ class SpotSniffPackResponse(BaseModel):
 class SpotHealRequest(BaseModel):
     mode: Literal["dry_run", "null_market", "clear_history", "refetch"] = "dry_run"
     limit: int | None = Field(default=50, ge=1, le=500)
+    card_ids: list[str] | None = Field(
+        default=None,
+        description="Optional explicit card ids (reports / sniff). Skips cluster detect.",
+        max_length=100,
+    )
 
 
 class SpotHealResponse(BaseModel):
@@ -91,6 +96,7 @@ class SpotHealResponse(BaseModel):
     poison_keys: list[float] = Field(default_factory=list)
     nulled: int = 0
     history_cleared: int = 0
+    quotes_quarantined: int = 0
     updated: int = 0
     skipped: int = 0
     skip_poison: int = 0
