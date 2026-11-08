@@ -113,6 +113,9 @@ def collect_watchlist_alerts(
         c_ok = _truthy(_cell(q, "conformal_ok", True), True)
         if not conf_ok:
             continue
+        # M3.5 — never spam from poison-cluster / quarantined spots.
+        if _truthy(_cell(q, "spot_quarantine", False), False):
+            continue
 
         exp_raw = _cell(q, "expected_change_pct")
         price_raw = _cell(q, "price_change_7d_pct")

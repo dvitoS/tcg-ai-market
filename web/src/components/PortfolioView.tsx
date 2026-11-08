@@ -468,6 +468,7 @@ export function PortfolioView() {
                 {sureOnlyAllowed ? "" : t("alert_sure_pro")}
               </span>
             </label>
+            <p className="lot-meta alert-poison-note">{t("alert_poison_note")}</p>
           </div>
         </summary>
         {alerts.length === 0 ? (
