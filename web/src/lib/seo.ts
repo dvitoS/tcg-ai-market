@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import type { Guide } from "@/lib/guides";
 import { guidePath } from "@/lib/guides";
-import type { CatalogCard } from "@/lib/types";
+import type { CatalogCard, TradeShareView } from "@/lib/types";
 
 export const SITE_URL = "https://www.kestreltcg.app";
 
@@ -49,7 +49,9 @@ export function cardMetadata(card: CatalogCard): Metadata {
   const title = cardSeoTitle(card);
   const description = cardSeoDescription(card);
   const url = absoluteUrl(cardPagePath(card.id));
-  // Share preview image comes from app/cards/[id]/opengraph-image.tsx (1200×630).
+  // Explicit absolute OG URL — Reddit / Discord unfurl reliably.
+  // Image itself is rendered by app/cards/[id]/opengraph-image.tsx (1200×630).
+  const ogImage = absoluteUrl(`${cardPagePath(card.id)}/opengraph-image`);
   return {
     title,
     description,
@@ -60,11 +62,13 @@ export function cardMetadata(card: CatalogCard): Metadata {
       siteName: "Kestrel",
       title,
       description,
+      images: [{ url: ogImage, width: 1200, height: 630, alt: title }],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
+      images: [ogImage],
     },
   };
 }
@@ -108,6 +112,68 @@ export function cardJsonLd(card: CatalogCard): Record<string, unknown> {
         }
       : {}),
     ...(offer ? { offers: offer } : {}),
+  };
+}
+
+export function tradeSharePath(shareId: string): string {
+  return `/trade/s/${encodeURIComponent(shareId)}`;
+}
+
+function tradeVerdictLabel(verdict: string): string {
+  const key = (verdict || "").toUpperCase();
+  if (key === "YOU_AHEAD") return "You ahead";
+  if (key === "THEM_AHEAD") return "Them ahead";
+  return "Fair trade";
+}
+
+export function tradeShareSeoTitle(share: Pick<TradeShareView, "verdict">): string {
+  return `${tradeVerdictLabel(share.verdict)} — Kestrel Trade`;
+}
+
+export function tradeShareSeoDescription(
+  share: Pick<
+    TradeShareView,
+    "verdict" | "net_spot_pct" | "net_fair_pct" | "fair_band_pct"
+  >,
+): string {
+  const verdict = tradeVerdictLabel(share.verdict);
+  const spot =
+    share.net_spot_pct != null && Number.isFinite(Number(share.net_spot_pct))
+      ? `${Number(share.net_spot_pct) >= 0 ? "+" : ""}${Number(share.net_spot_pct).toFixed(1)}% spot`
+      : null;
+  const fair =
+    share.net_fair_pct != null && Number.isFinite(Number(share.net_fair_pct))
+      ? `${Number(share.net_fair_pct) >= 0 ? "+" : ""}${Number(share.net_fair_pct).toFixed(1)}% sure fair`
+      : null;
+  const bits = [verdict, spot, fair].filter(Boolean).join(" · ");
+  return `${bits}. Desk call vs ±${share.fair_band_pct}% fair band — not financial advice.`;
+}
+
+export function tradeShareMetadata(share: TradeShareView): Metadata {
+  const title = tradeShareSeoTitle(share);
+  const description = tradeShareSeoDescription(share);
+  const url = absoluteUrl(tradeSharePath(share.share_id));
+  const ogImage = absoluteUrl(`${tradeSharePath(share.share_id)}/opengraph-image`);
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    // Share links are public previews — indexable enough for unfurl, no sitemap push.
+    robots: { index: false, follow: true },
+    openGraph: {
+      type: "website",
+      url,
+      siteName: "Kestrel",
+      title,
+      description,
+      images: [{ url: ogImage, width: 1200, height: 630, alt: title }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImage],
+    },
   };
 }
 
