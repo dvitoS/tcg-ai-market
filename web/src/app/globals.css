@@ -4163,42 +4163,25 @@ a {
     inset 0 1px 0 rgba(224, 180, 131, 0.12);
   transform-origin: 50% 80%;
   transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease,
-    transform 0.25s ease;
+    border-color 0.22s ease,
+    box-shadow 0.22s ease,
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.landing-mover-card.is-up .landing-mover-card-frame {
-  animation: landing-card-float-up 3.4s ease-in-out infinite;
-}
-
-.landing-mover-card.is-down .landing-mover-card-frame {
-  animation: landing-card-float-down 3.4s ease-in-out infinite;
-}
-
-.landing-mover-card:nth-child(2) .landing-mover-card-frame {
-  animation-delay: 0.35s;
-}
-
-.landing-mover-card:nth-child(3) .landing-mover-card-frame {
-  animation-delay: 0.7s;
-}
-
-.landing-mover-card:nth-child(4) .landing-mover-card-frame {
-  animation-delay: 1.05s;
-}
-
-.landing-mover-card:nth-child(5) .landing-mover-card-frame {
-  animation-delay: 1.4s;
-}
-
-.landing-mover-card:hover .landing-mover-card-frame {
-  border-color: rgba(224, 180, 131, 0.78);
+.landing-mover-card.is-up:hover .landing-mover-card-frame {
+  border-color: rgba(90, 175, 120, 0.55);
   box-shadow:
-    0 16px 34px rgba(0, 0, 0, 0.5),
-    0 0 0 1px rgba(192, 122, 58, 0.25);
-  transform: translateY(-6px) scale(1.03);
-  animation-play-state: paused;
+    0 18px 36px rgba(0, 0, 0, 0.48),
+    0 0 22px rgba(90, 175, 120, 0.18);
+  transform: translateY(-10px) scale(1.045) rotate(-1.2deg);
+}
+
+.landing-mover-card.is-down:hover .landing-mover-card-frame {
+  border-color: rgba(208, 114, 114, 0.55);
+  box-shadow:
+    0 18px 36px rgba(0, 0, 0, 0.48),
+    0 0 22px rgba(208, 114, 114, 0.16);
+  transform: translateY(-10px) scale(1.045) rotate(1.2deg);
 }
 
 .landing-mover-card-img {
@@ -4206,6 +4189,11 @@ a {
   height: 100%;
   object-fit: cover;
   display: block;
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.landing-mover-card:hover .landing-mover-card-img {
+  transform: scale(1.06);
 }
 
 .landing-mover-card-chg {
@@ -4225,20 +4213,31 @@ a {
   letter-spacing: 0.01em;
   border: 1px solid transparent;
   backdrop-filter: blur(6px);
+  transition:
+    transform 0.28s ease,
+    box-shadow 0.28s ease;
 }
 
 .landing-mover-card-chg.is-up {
   color: #b8f0c8;
   border-color: rgba(90, 175, 120, 0.45);
   background: rgba(18, 42, 28, 0.82);
-  animation: landing-chg-up 1.8s ease-in-out infinite;
 }
 
 .landing-mover-card-chg.is-down {
   color: #ffd0d0;
   border-color: rgba(208, 114, 114, 0.45);
   background: rgba(48, 22, 22, 0.82);
-  animation: landing-chg-down 1.8s ease-in-out infinite;
+}
+
+.landing-mover-card.is-up:hover .landing-mover-card-chg {
+  transform: translateY(-3px);
+  box-shadow: 0 0 16px rgba(90, 175, 120, 0.28);
+}
+
+.landing-mover-card.is-down:hover .landing-mover-card-chg {
+  transform: translateY(2px);
+  box-shadow: 0 0 16px rgba(208, 114, 114, 0.24);
 }
 
 .landing-mover-card-copy {
@@ -4292,50 +4291,6 @@ a {
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes landing-card-float-up {
-  0%,
-  100% {
-    transform: translateY(0) rotate(-0.4deg);
-  }
-  50% {
-    transform: translateY(-7px) rotate(0.6deg);
-  }
-}
-
-@keyframes landing-card-float-down {
-  0%,
-  100% {
-    transform: translateY(0) rotate(0.4deg);
-  }
-  50% {
-    transform: translateY(5px) rotate(-0.55deg);
-  }
-}
-
-@keyframes landing-chg-up {
-  0%,
-  100% {
-    transform: translateY(0);
-    box-shadow: 0 0 0 rgba(90, 175, 120, 0);
-  }
-  50% {
-    transform: translateY(-2px);
-    box-shadow: 0 0 16px rgba(90, 175, 120, 0.28);
-  }
-}
-
-@keyframes landing-chg-down {
-  0%,
-  100% {
-    transform: translateY(0);
-    box-shadow: 0 0 0 rgba(208, 114, 114, 0);
-  }
-  50% {
-    transform: translateY(2px);
-    box-shadow: 0 0 16px rgba(208, 114, 114, 0.24);
   }
 }
 
