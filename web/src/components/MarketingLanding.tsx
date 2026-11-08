@@ -58,13 +58,14 @@ export function MarketingLanding({
         </div>
       </section>
 
-      <MarketPulse initialPulse={initialPulse} />
-
-      <DealOfTheDay
-        limit={5}
-        variant="landing"
-        initialPreview={initialDotd}
-      />
+      <div className="landing-desk">
+        <MarketPulse initialPulse={initialPulse} />
+        <DealOfTheDay
+          limit={5}
+          variant="landing"
+          initialPreview={initialDotd}
+        />
+      </div>
 
       <section className="landing-path" aria-labelledby="landing-path-title">
         <h2 id="landing-path-title" className="landing-path-title">

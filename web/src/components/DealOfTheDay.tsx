@@ -167,8 +167,8 @@ export function DealOfTheDay({
             <Image
               src={featured.image_url || "/kestrel-logo.png"}
               alt={featured.name}
-              width={96}
-              height={134}
+              width={variant === "landing" ? 160 : 96}
+              height={variant === "landing" ? 224 : 134}
             />
           </div>
           <div className="deal-of-day-copy">
