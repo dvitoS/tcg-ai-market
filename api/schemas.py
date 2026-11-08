@@ -841,3 +841,26 @@ class BinderResponse(BaseModel):
     missing_cards: list[BinderMissingCard] = Field(default_factory=list)
     source: Literal["supabase", "demo", "empty"] = "empty"
     demo: bool = False
+
+
+class FunnelEventIn(BaseModel):
+    event: str
+    session: str | None = None
+    props: dict[str, Any] | None = None
+
+
+class FunnelBatchIn(BaseModel):
+    events: list[FunnelEventIn] = Field(default_factory=list, max_length=20)
+
+
+class FunnelBatchOut(BaseModel):
+    accepted: int = 0
+    rejected: int = 0
+
+
+class FunnelSummaryResponse(BaseModel):
+    counts: dict[str, int] = Field(default_factory=dict)
+    total: int = 0
+    recent: list[dict[str, Any]] = Field(default_factory=list)
+    uptime_s: float = 0.0
+    allowed_events: list[str] = Field(default_factory=list)
