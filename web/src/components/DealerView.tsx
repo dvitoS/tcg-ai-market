@@ -25,7 +25,16 @@ function actionClass(action: string): string {
   return "action-hold";
 }
 
+function actionLabelKey(
+  action: string,
+): "dealer_action_list" | "dealer_action_buy" | "dealer_action_hold" {
+  if (action === "LIST") return "dealer_action_list";
+  if (action === "BUY_MORE") return "dealer_action_buy";
+  return "dealer_action_hold";
+}
+
 function ActionRow({ row }: { row: DealerRow }) {
+  const { t } = useLocale();
   const band =
     row.pred_lo_pct != null && row.pred_hi_pct != null
       ? ` · PI ${formatChange(row.pred_lo_pct)}…${formatChange(row.pred_hi_pct)}`
@@ -33,24 +42,27 @@ function ActionRow({ row }: { row: DealerRow }) {
   return (
     <div className={`dealer-row ${actionClass(row.action)}`}>
       <div>
-        <div className="dealer-action">{row.action.replace("_", " ")}</div>
+        <div className="dealer-action">{t(actionLabelKey(row.action))}</div>
         <Link
           href={row.card_id ? `/cards/${encodeURIComponent(row.card_id)}` : "/dealer"}
           className="lot-name"
         >
-          {row.name || row.card_id || "Unknown"}
+          {row.name || row.card_id || t("dealer_unknown")}
         </Link>
         <p className="lot-meta">
-          qty {row.quantity}
+          {t("dealer_qty", { n: row.quantity })}
           {row.card_id ? ` · ${row.card_id}` : ""}
           {row.set_name ? ` · ${row.set_name}` : ""}
+          {!row.matched ? ` · ${t("dealer_row_unmatched")}` : ""}
         </p>
       </div>
       <div className="dealer-metrics">
         <strong>{formatMoney(row.spot)}</strong>
-        <span>AI {formatChange(row.expected_change_pct)}</span>
         <span>
-          net edge {formatChange(row.net_edge_pct)}
+          {t("dealer_ai_move", { pct: formatChange(row.expected_change_pct) })}
+        </span>
+        <span>
+          {t("dealer_net_edge", { pct: formatChange(row.net_edge_pct) })}
           {band}
         </span>
       </div>
@@ -173,6 +185,11 @@ export function DealerView() {
   const actionable =
     result?.items.filter((row) => row.action === "LIST" || row.action === "BUY_MORE") ||
     [];
+  const unmatchedRows = result?.items.filter((row) => !row.matched) || [];
+  const matchPct =
+    result && result.rows > 0
+      ? Math.round((result.matched / result.rows) * 100)
+      : null;
 
   if (!authLoading && !user) {
     return (
@@ -200,6 +217,7 @@ export function DealerView() {
         <p className="explore-command-eyebrow">{t("dealer_eyebrow")}</p>
         <h1 className="explore-title">{t("dealer_title")}</h1>
         <p className="explore-lede">{t("dealer_lede")}</p>
+        <p className="lot-meta">{t("dealer_disclaimer")}</p>
       </div>
 
       {status && !status.allowed ? (
@@ -282,9 +300,17 @@ export function DealerView() {
               <span className="dealer-sync-meta">{t("dealer_not_synced")}</span>
             )}
             {result?.inventory_format === "tcgplayer" ? (
-              <span className="dealer-format-pill">{t("dealer_format_tcgplayer")}</span>
+              <span className="dealer-format-pill">
+                {t("dealer_format_tcgplayer")}
+              </span>
+            ) : null}
+            {result?.inventory_format === "soft_ink" ? (
+              <span className="dealer-format-pill">
+                {t("dealer_format_soft_ink")}
+              </span>
             ) : null}
           </div>
+          <p className="lot-meta">{t("dealer_tcp_note")}</p>
           <div className="auth-actions">
             <button
               type="submit"
@@ -337,7 +363,10 @@ export function DealerView() {
             </div>
             <div className="kpi-chip">
               <span>{t("dealer_matched")}</span>
-              <strong>{result.matched}</strong>
+              <strong>
+                {result.matched}
+                {matchPct != null ? ` · ${matchPct}%` : ""}
+              </strong>
             </div>
             <div className="kpi-chip">
               <span>{t("dealer_actions")}</span>
@@ -375,6 +404,16 @@ export function DealerView() {
             >
               {t("dealer_download_actionable")}
             </button>
+            <button
+              type="button"
+              className="btn-ghost"
+              disabled={unmatchedRows.length === 0}
+              onClick={() =>
+                downloadDealerCsv(unmatchedRows, "dealer_desk_unmatched.csv")
+              }
+            >
+              {t("dealer_download_unmatched")}
+            </button>
           </div>
 
           <div className="portfolio-section-head">
@@ -389,6 +428,20 @@ export function DealerView() {
               ))}
             </div>
           )}
+
+          {unmatchedRows.length > 0 ? (
+            <>
+              <div className="portfolio-section-head">
+                <h2>{t("dealer_unmatched_title")}</h2>
+              </div>
+              <p className="lot-meta">{t("dealer_unmatched_lede")}</p>
+              <div className="dealer-list">
+                {unmatchedRows.slice(0, 40).map((row, idx) => (
+                  <ActionRow key={`u-${row.name}-${idx}`} row={row} />
+                ))}
+              </div>
+            </>
+          ) : null}
 
           <div className="portfolio-section-head">
             <h2>{t("dealer_full")}</h2>
