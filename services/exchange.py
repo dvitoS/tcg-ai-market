@@ -341,7 +341,11 @@ def build_market_board(
     from services.quotes_store import save_market_quotes
 
     if history is None:
-        history = load_history()
+        # Always date-scoped — bare load_history() used to pull ~2M rows and OOM
+        # the Render API (512MB) when fast-boot fell through to a full rebuild.
+        from ai_xgboost import default_history_since_date
+
+        history = load_history(since_date=default_history_since_date())
     featured, encoders = add_time_features(history)
     model, _trained_now, meta = _resolve_model(featured, encoders=encoders)
     quotes = assign_signals(

@@ -67,6 +67,68 @@ def test_load_history_frame_fallback_never_calls_fetch_all_history(monkeypatch):
     assert calls == [("plain", "2026-10-01", None)]
 
 
+def test_load_history_defaults_since_when_unscoped(monkeypatch):
+    import ai_xgboost as ax
+
+    captured: dict = {}
+
+    monkeypatch.setattr(
+        ax,
+        "load_history_frame",
+        lambda **kwargs: (
+            captured.update(kwargs)
+            or pd.DataFrame(
+                {
+                    "card_id": ["a"],
+                    "price": [1.0],
+                    "date": ["2026-11-01"],
+                    "name": ["A"],
+                    "supertype": ["Pokémon"],
+                    "rarity": ["Common"],
+                    "set_name": ["S"],
+                    "market_price": [1.0],
+                }
+            )
+        ),
+    )
+    monkeypatch.setattr(ax, "resample_daily_history", lambda df: df)
+
+    ax.load_history()
+    assert captured.get("since_date")
+    assert captured.get("card_ids") is None
+
+
+def test_load_history_skips_default_since_when_card_ids(monkeypatch):
+    import ai_xgboost as ax
+
+    captured: dict = {}
+
+    monkeypatch.setattr(
+        ax,
+        "load_history_frame",
+        lambda **kwargs: (
+            captured.update(kwargs)
+            or pd.DataFrame(
+                {
+                    "card_id": ["a"],
+                    "price": [1.0],
+                    "date": ["2026-11-01"],
+                    "name": ["A"],
+                    "supertype": ["Pokémon"],
+                    "rarity": ["Common"],
+                    "set_name": ["S"],
+                    "market_price": [1.0],
+                }
+            )
+        ),
+    )
+    monkeypatch.setattr(ax, "resample_daily_history", lambda df: df)
+
+    ax.load_history(card_ids=["a"])
+    assert captured.get("card_ids") == ["a"]
+    assert captured.get("since_date") is None
+
+
 def test_retrain_ai_passes_since_date(monkeypatch):
     import ai_xgboost
     import nightly_update as nu

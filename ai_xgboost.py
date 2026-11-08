@@ -81,13 +81,31 @@ FEATURE_LABELS = {
 LAG_FEATURES = RETURN_FEATURES
 
 
+def default_history_since_date() -> str:
+    """Date floor for full-catalog history pulls (avoids multi-million-row OOM)."""
+    from datetime import date, timedelta
+
+    from config import PRICE_HISTORY_DAYS
+    from trading_signals import PORTFOLIO_HORIZON_DAYS
+
+    window = int(PRICE_HISTORY_DAYS) + int(PORTFOLIO_HORIZON_DAYS) + 21
+    return (date.today() - timedelta(days=window)).isoformat()
+
+
 def load_history(
     *,
     card_ids: list[str] | set[str] | None = None,
     since_date: str | None = None,
 ) -> pd.DataFrame:
-    print("Učitavam price_history spojenu s cards (Supabase)...")
-    df = load_history_frame(card_ids=card_ids, since_date=since_date)
+    id_list = [str(x) for x in (card_ids or []) if str(x).strip()] or None
+    # Unscoped full-table pulls (~2M rows) OOM Render API / timeout PostgREST.
+    # Always floor by date unless the caller already scoped by card ids.
+    if since_date is None and not id_list:
+        since_date = default_history_since_date()
+        print(f"Učitavam price_history (scoped since={since_date})...")
+    else:
+        print("Učitavam price_history spojenu s cards (Supabase)...")
+    df = load_history_frame(card_ids=id_list, since_date=since_date)
     if df.empty:
         raise RuntimeError("price_history je prazna. Pokreni generate_history.py ili seed import.")
     df["date"] = pd.to_datetime(df["date"])
