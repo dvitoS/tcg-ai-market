@@ -90,6 +90,13 @@ export const TradeShareCard = forwardRef<
       <div className={`trade-verdict ${verdictClass(trade.verdict)}`}>
         <p className="trade-verdict-label">{t("trade_verdict")}</p>
         <h2>{t(verdictLabelKey(trade.verdict))}</h2>
+        <p className="trade-share-card-blurb">
+          {trade.verdict === "YOU_AHEAD"
+            ? t("trade_export_blurb_you")
+            : trade.verdict === "THEM_AHEAD"
+              ? t("trade_export_blurb_them")
+              : t("trade_export_blurb_fair")}
+        </p>
         <p>
           {t("trade_net_spot", {
             value: formatMoney(trade.net_spot_usd),
