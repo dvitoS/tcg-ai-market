@@ -1,4 +1,6 @@
 # Kestrel FastAPI — production image for Railway / Render / Fly.
+# Slim runtime: no Streamlit. Full-catalog history rebuilds are blocked via
+# KESTREL_SERVICE=api (see services/exchange.py) so free/512MB plans don't OOM.
 FROM python:3.12-slim
 
 WORKDIR /app
@@ -7,14 +9,15 @@ RUN apt-get update \
   && apt-get install -y --no-install-recommends libgomp1 \
   && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt requirements-api.txt ./
-RUN pip install --no-cache-dir -r requirements.txt -r requirements-api.txt
+COPY requirements-api.txt requirements-api-runtime.txt ./
+RUN pip install --no-cache-dir -r requirements-api-runtime.txt
 
 # Full repo (filtered by .dockerignore) so services/database imports resolve.
 COPY . .
 
 ENV PYTHONPATH=/app
 ENV PORT=8000
+ENV KESTREL_SERVICE=api
 EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \

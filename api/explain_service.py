@@ -8,8 +8,7 @@ from typing import Any
 import pandas as pd
 
 from ai_insights import explain_features, series_confidence
-from ai_xgboost import HORIZON_DAYS
-from trading_signals import FORECAST_SIGNAL_BAND
+from trading_signals import FORECAST_DAYS, FORECAST_SIGNAL_BAND
 
 LOG = logging.getLogger("kestrel.api.explain")
 
@@ -73,7 +72,7 @@ def build_card_explain(
                 last_price=float(spot),
                 predicted=float(predicted),
                 hold_band=float(FORECAST_SIGNAL_BAND),
-                horizon_days=int(HORIZON_DAYS),
+                horizon_days=int(FORECAST_DAYS),
                 pred_lo_pct=pred_lo_pct,
                 pred_hi_pct=pred_hi_pct,
             )
@@ -86,6 +85,6 @@ def build_card_explain(
         "confidence_ok": bool(confidence.get("ok")),
         "confidence_reason": str(confidence.get("reason") or ""),
         "hold_band_pct": float(FORECAST_SIGNAL_BAND) * 100.0,
-        "horizon_days": int(HORIZON_DAYS),
+        "horizon_days": int(FORECAST_DAYS),
         "rows": rows,
     }

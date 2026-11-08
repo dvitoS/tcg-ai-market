@@ -39,6 +39,8 @@ You already have `railway.toml` for the **eBay webhook**. Deploy Soft Ink API as
 
 Alternative: Render Blueprint via root `render.yaml`.
 
+**Memory (Render free / 512MB):** `Dockerfile.api` installs `requirements-api-runtime.txt` (no Streamlit) and sets `KESTREL_SERVICE=api` so a cold path cannot pull multi-million `price_history` rows into RSS. Prefer **Starter** (or bump plan) if the instance still restarts under traffic; nightly owns full retrain/board rebuilds.
+
 Local Docker shape:
 
 ```bash

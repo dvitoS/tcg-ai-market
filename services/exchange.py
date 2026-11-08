@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import logging
+import os
 from datetime import date, timedelta
+from typing import Callable, TypeVar
 
 import pandas as pd
-import streamlit as st
 
 from ai_insights import confidence_by_card
 from ai_xgboost import (
@@ -25,6 +26,26 @@ from generate_history import ensure_price_history
 from trading_signals import SIGNAL_HOLD, assign_signals
 
 LOG = logging.getLogger("tcg.exchange")
+
+F = TypeVar("F", bound=Callable[..., object])
+
+
+def _running_as_api() -> bool:
+    """True inside Soft Ink FastAPI containers (Render/Railway Dockerfile.api)."""
+    return os.getenv("KESTREL_SERVICE", "").strip().lower() in {"api", "kestrel-api"}
+
+
+def _streamlit_cache_resource(fn: F) -> F:
+    """Apply ``st.cache_resource`` when Streamlit is installed; else no-op.
+
+    Soft Ink API images omit Streamlit to stay under ~512MB RSS.
+    """
+    try:
+        import streamlit as st
+
+        return st.cache_resource(show_spinner=False)(fn)  # type: ignore[return-value]
+    except Exception:
+        return fn
 
 
 def _label_maps_from_meta(meta: dict | None) -> dict[str, dict[str, int]] | None:
@@ -341,8 +362,13 @@ def build_market_board(
     from services.quotes_store import save_market_quotes
 
     if history is None:
-        # Always date-scoped — bare load_history() used to pull ~2M rows and OOM
-        # the Render API (512MB) when fast-boot fell through to a full rebuild.
+        # Full-catalog history (even date-scoped ~2M rows) OOMs free/512MB API
+        # instances. Nightly owns rebuilds; Soft Ink serves market_quotes only.
+        if _running_as_api():
+            raise RuntimeError(
+                "Full market board rebuild is disabled in the API process "
+                "(KESTREL_SERVICE=api). Wait for nightly market_quotes or raise the plan."
+            )
         from ai_xgboost import default_history_since_date
 
         history = load_history(since_date=default_history_since_date())
@@ -427,12 +453,12 @@ def _try_fast_boot() -> tuple[pd.DataFrame, pd.DataFrame, object] | None:
     return history, quotes.sort_values("name").reset_index(drop=True), model
 
 
-@st.cache_resource(show_spinner=False)
-def load_exchange() -> tuple[pd.DataFrame, pd.DataFrame, object]:
+def _load_exchange_uncached() -> tuple[pd.DataFrame, pd.DataFrame, object]:
     """Load history + model + signals.
 
     Prefers nightly `market_quotes` + persisted model (fast). Falls back to a full
-    rebuild and persists quotes for the next boot.
+    rebuild and persists quotes for the next boot (Streamlit / CLI only — blocked
+    when ``KESTREL_SERVICE=api``).
     """
     init_db()
     if ensure_seed_database():
@@ -446,5 +472,10 @@ def load_exchange() -> tuple[pd.DataFrame, pd.DataFrame, object]:
     return build_market_board(persist=True)
 
 
+load_exchange = _streamlit_cache_resource(_load_exchange_uncached)
+
+
 def clear_exchange_cache() -> None:
-    load_exchange.clear()
+    clear = getattr(load_exchange, "clear", None)
+    if callable(clear):
+        clear()

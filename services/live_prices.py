@@ -3,12 +3,24 @@
 from __future__ import annotations
 
 import importlib
-from pathlib import Path
+from typing import Any
 
 import pandas as pd
-import streamlit as st
 
 from services.prices import record_justtcg_event
+
+# Process-local fallback when Streamlit is not installed (Soft Ink API image).
+_PROCESS_CACHE: dict[str, Any] = {}
+
+
+def _session() -> dict[str, Any]:
+    """Streamlit session_state when available; else a process dict (API/CLI)."""
+    try:
+        import streamlit as st
+
+        return st.session_state  # type: ignore[return-value]
+    except Exception:
+        return _PROCESS_CACHE
 
 def resolve_tcgplayer_id(card_id: str) -> str | None:
     """DB → pokemontcg.io → JustTCG search; spremi u cards ako kolona postoji."""
@@ -70,17 +82,18 @@ def _justtcg_module():
         mtime = path.stat().st_mtime
     except OSError:
         mtime = 0.0
-    prev = st.session_state.get("_justtcg_client_mtime")
+    session = _session()
+    prev = session.get("_justtcg_client_mtime")
     missing_api = not hasattr(jtcg, "nm_history_for_card") or not hasattr(
         jtcg, "search_pokemon_card"
     )
     if missing_api or prev != mtime:
         jtcg = importlib.reload(jtcg)
-        st.session_state["_justtcg_client_mtime"] = mtime
+        session["_justtcg_client_mtime"] = mtime
         # Drop stale JustTCG chart caches so ranked search can refill.
-        for key in list(st.session_state.keys()):
+        for key in list(session.keys()):
             if str(key).startswith(("justtcg_series::", "psa10_series::")):
-                del st.session_state[key]
+                del session[key]
     return jtcg
 
 
@@ -108,7 +121,8 @@ def load_ebay_listings(
         number = str(card_id).rsplit("-", 1)[-1].lstrip("0") or str(card_id).rsplit("-", 1)[-1]
 
     cache_key = f"ebay_listings::{card_id}"
-    cached = st.session_state.get(cache_key)
+    session = _session()
+    cached = session.get(cache_key)
     # Samo non-empty cache — prazan rezultat ne smije zauvijek sakriti oglase.
     if isinstance(cached, list) and cached:
         return cached, None
@@ -124,7 +138,7 @@ def load_ebay_listings(
         return [], str(exc)
 
     if rows:
-        st.session_state[cache_key] = rows
+        session[cache_key] = rows
     return rows, None
 
 
@@ -146,7 +160,8 @@ def load_justtcg_series(
         number = jtcg.normalize_card_number(str(card_id).rsplit("-", 1)[-1])
 
     cache_key = f"justtcg_series::{card_id}::{tcgplayer_id or ''}::{number}"
-    cached = st.session_state.get(cache_key)
+    session = _session()
+    cached = session.get(cache_key)
     if isinstance(cached, pd.DataFrame) and not cached.empty:
         record_justtcg_event("cache_hit")
         return cached.copy(), tcgplayer_id
@@ -178,7 +193,7 @@ def load_justtcg_series(
     frame["date"] = pd.to_datetime(frame["date"])
     frame["price"] = frame["price"].astype(float)
     frame = frame.sort_values("date").reset_index(drop=True)
-    st.session_state[cache_key] = frame.copy()
+    session[cache_key] = frame.copy()
     record_justtcg_event("live")
     if resolved and resolved != tcgplayer_id:
         try:
@@ -211,7 +226,8 @@ def load_psa10_series(
         number = jtcg.normalize_card_number(str(card_id).rsplit("-", 1)[-1])
 
     cache_key = f"psa10_series::{card_id}::{tcgplayer_id or ''}::{number}"
-    cached = st.session_state.get(cache_key)
+    session = _session()
+    cached = session.get(cache_key)
     if isinstance(cached, dict) and isinstance(cached.get("frame"), pd.DataFrame):
         frame = cached["frame"]
         if not frame.empty:
@@ -237,7 +253,7 @@ def load_psa10_series(
     frame["date"] = pd.to_datetime(frame["date"])
     frame["price"] = frame["price"].astype(float)
     frame = frame.sort_values("date").reset_index(drop=True)
-    st.session_state[cache_key] = {
+    session[cache_key] = {
         "frame": frame.copy(),
         "resolved": resolved or tcgplayer_id,
         "stats": dict(stats or {}),
