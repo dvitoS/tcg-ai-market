@@ -9,6 +9,13 @@ export type RadarShareFilters = {
   max_price?: number;
 };
 
+export type RadarShareBoardSummary = {
+  underTotal: number;
+  overTotal: number;
+  topUnderName?: string | null;
+  topUnderEdgePct?: number | null;
+};
+
 type RadarSharePayload = RadarShareFilters & { v: 1 };
 
 function toBase64Url(raw: string): string {
@@ -88,4 +95,61 @@ export function buildRadarShareUrl(
   const token = encodeRadarShare(filters);
   const base = origin.replace(/\/$/, "");
   return `${base}/radar?share=${encodeURIComponent(token)}`;
+}
+
+function moneyLabel(n: number): string {
+  if (n >= 100) return `$${Math.round(n)}`;
+  if (Number.isInteger(n)) return `$${n}`;
+  return `$${n.toFixed(2)}`;
+}
+
+/** Human filter chips for Discord / locked-share preview (locale-agnostic labels). */
+export function formatRadarShareFilters(filters: RadarShareFilters): string[] {
+  const parts: string[] = [];
+  if (filters.q) parts.push(`“${filters.q}”`);
+  if (filters.set) parts.push(filters.set);
+  if (filters.rarity) parts.push(filters.rarity);
+  if (filters.min_edge != null && filters.min_edge > 0) {
+    const e = filters.min_edge;
+    parts.push(`edge ≥ ${e >= 10 ? Math.round(e) : e}%`);
+  }
+  if (filters.min_price != null || filters.max_price != null) {
+    const lo = filters.min_price != null ? moneyLabel(filters.min_price) : "any";
+    const hi = filters.max_price != null ? moneyLabel(filters.max_price) : "any";
+    parts.push(`${lo}–${hi}`);
+  }
+  return parts;
+}
+
+function formatEdgeAbs(edgePct: number | null | undefined): string | null {
+  if (edgePct == null || !Number.isFinite(Number(edgePct))) return null;
+  const abs = Math.abs(Number(edgePct));
+  return abs >= 10 ? abs.toFixed(0) : abs.toFixed(1);
+}
+
+/** Multi-line clipboard payload: blurb + filters + board + optional top UNDER + URL. */
+export function buildRadarShareClipboardText(args: {
+  blurb: string;
+  filters: RadarShareFilters;
+  board?: RadarShareBoardSummary | null;
+  url: string;
+  filtersLabel: string;
+  boardLine: (under: number, over: number) => string;
+  topUnderLine: (name: string, edge: string) => string;
+}): string {
+  const lines = [args.blurb.trim()];
+  const chips = formatRadarShareFilters(args.filters);
+  if (chips.length) {
+    lines.push(`${args.filtersLabel}: ${chips.join(" · ")}`);
+  }
+  if (args.board) {
+    lines.push(args.boardLine(args.board.underTotal, args.board.overTotal));
+    const edge = formatEdgeAbs(args.board.topUnderEdgePct);
+    const name = (args.board.topUnderName || "").trim();
+    if (name && edge) {
+      lines.push(args.topUnderLine(name, edge));
+    }
+  }
+  lines.push(args.url);
+  return lines.join("\n");
 }

@@ -356,9 +356,17 @@ const en = {
   radar_share_copy: "Copy share link",
   radar_share_busy: "Copying…",
   radar_share_copied: "Share text copied — plain verdict + filter link.",
+  radar_share_copied_fallback: "Clipboard blocked — copy the link below.",
   radar_share_error: "Could not copy share link",
   radar_share_blurb:
-    "Kestrel Radar — sure underpriced / overpriced calls vs the fair band.",
+    "Kestrel Radar — sure underpriced / overpriced calls vs the fair band. Desk call, not financial advice.",
+  radar_share_filters: "Filters",
+  radar_share_board: "Board: {under} UNDER · {over} OVER (sure)",
+  radar_share_top_under: "Top UNDER: {name} (~{edge}% under fair)",
+  radar_share_preview_title: "Shared Radar filters",
+  radar_share_preview_lede:
+    "Someone shared this Radar lens. Sign in with Pro to open the live UNDER/OVER board.",
+  radar_share_preview_empty: "Open filters — no extras pinned on this link.",
 
   // Model trust (Kestrel Pro — on Radar)
   trust_eyebrow: "Model trust",
@@ -439,11 +447,18 @@ const en = {
   trade_share_empty_side: "No cards on this side.",
   trade_share_unmatched: "unmatched",
   trade_export_image: "Save trade image",
+  trade_export_with_link: "Save with share link",
   trade_export_busy: "Saving image…",
   trade_export_done: "Trade image saved",
+  trade_export_done_clipboard: "Trade image saved — also copied for Discord paste",
   trade_export_error: "Could not save trade image",
+  trade_export_hint:
+    "PNG for Discord / shops — Kestrel watermark + Pro CTA. Desk call, not financial advice.",
   trade_export_tag: "Trade report",
-  trade_export_watermark: "Kestrel Pro · trade desk",
+  trade_export_watermark: "Kestrel · fair band desk",
+  trade_export_blurb_fair: "Spot and sure fair totals sit inside the band — even trade.",
+  trade_export_blurb_you: "Your side is ahead on Kestrel’s sure fair ledger.",
+  trade_export_blurb_them: "Their side is ahead on Kestrel’s sure fair ledger.",
   trade_export_more: "+{n} more",
 
   // Dealer
@@ -1081,9 +1096,17 @@ const hr: Dictionary = {
   radar_share_copy: "Kopiraj share link",
   radar_share_busy: "Kopiram…",
   radar_share_copied: "Share tekst kopiran — plain verdict + filter link.",
+  radar_share_copied_fallback: "Clipboard blokiran — kopiraj link ispod.",
   radar_share_error: "Nisam uspio kopirati share link",
   radar_share_blurb:
-    "Kestrel Radar — sure podcijenjeni / precijenjeni pozivi vs fair pojas.",
+    "Kestrel Radar — sure podcijenjeni / precijenjeni pozivi vs fair pojas. Desk call, ne financijski savjet.",
+  radar_share_filters: "Filteri",
+  radar_share_board: "Board: {under} UNDER · {over} OVER (sure)",
+  radar_share_top_under: "Top UNDER: {name} (~{edge}% ispod fair)",
+  radar_share_preview_title: "Podijeljeni Radar filteri",
+  radar_share_preview_lede:
+    "Netko je podijelio ovaj Radar lens. Prijavi se s Pro da otvoriš live UNDER/OVER board.",
+  radar_share_preview_empty: "Otvoreni filteri — bez dodatnih pinova na ovom linku.",
 
   trust_eyebrow: "Model trust",
   trust_title: "Kako forecast zarađuje povjerenje",
@@ -1162,11 +1185,18 @@ const hr: Dictionary = {
   trade_share_empty_side: "Nema karata na ovoj strani.",
   trade_share_unmatched: "nije matchano",
   trade_export_image: "Spremi trade sliku",
+  trade_export_with_link: "Spremi s share linkom",
   trade_export_busy: "Spremam sliku…",
   trade_export_done: "Trade slika spremljena",
+  trade_export_done_clipboard: "Trade slika spremljena — i kopirana za Discord paste",
   trade_export_error: "Nisam uspio spremiti trade sliku",
+  trade_export_hint:
+    "PNG za Discord / shopove — Kestrel watermark + Pro CTA. Desk call, ne financijski savjet.",
   trade_export_tag: "Trade izvještaj",
-  trade_export_watermark: "Kestrel Pro · trade stol",
+  trade_export_watermark: "Kestrel · fair band desk",
+  trade_export_blurb_fair: "Spot i sure fair totali unutar pojasa — even trade.",
+  trade_export_blurb_you: "Tvoja strana je ispred na Kestrel sure fair ledgeru.",
+  trade_export_blurb_them: "Njihova strana je ispred na Kestrel sure fair ledgeru.",
   trade_export_more: "+još {n}",
 
   dealer_eyebrow: "Dealer",
