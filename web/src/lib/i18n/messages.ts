@@ -78,6 +78,11 @@ const en = {
   landing_guides_fair: "Pokémon TCG fair value →",
   landing_guides_grade: "Should I grade this card? →",
   landing_guides_trade: "Is this trade fair? →",
+  obs_funnel_title: "Soft-launch funnel",
+  obs_funnel_caption:
+    "Process-local counts: landing → DOTD → Pro → Radar/Trade (resets on API restart).",
+  obs_funnel_total: "{n} events this process",
+  obs_funnel_empty: "No funnel events recorded yet on this API process.",
   obs_sniff_title: "Spot sniff pack (G0)",
   obs_sniff_caption:
     "Sample sure UNDER/OVER rows. Check TCGplayer + eBay sold before any marketing spend.",
@@ -473,6 +478,10 @@ const en = {
   dealer_signin_lede: "Sign in to score inventory against the market board.",
   dealer_lede:
     "Upload Kestrel or TCGplayer inventory CSV — Kestrel keeps the last sync and re-scores on return.",
+  dealer_disclaimer:
+    "Fee-aware desk actions vs US board spots — desk call, not financial advice.",
+  dealer_tcp_note:
+    "Spots are US market board / JustTCG — not Cardmarket EUR. Fix unmatched rows before trusting LIST/BUY.",
   dealer_locked: "Dealer desk is a Kestrel Pro surface.",
   dealer_locked_lede:
     "Upgrade with the same email you use to sign in, then come back to score inventory.",
@@ -490,16 +499,29 @@ const en = {
   dealer_not_synced: "Not synced yet — score or upload to save",
   dealer_clear_sync: "Clear sync",
   dealer_format_tcgplayer: "TCGplayer CSV",
+  dealer_format_soft_ink: "Kestrel CSV",
   dealer_rows: "Rows",
   dealer_matched: "Matched",
   dealer_actions: "Actions",
   dealer_inv_value: "Inventory value",
   dealer_unmatched: "{n} unmatched rows",
+  dealer_unmatched_title: "Unmatched — fix these first",
+  dealer_unmatched_lede:
+    "Shops pricing off TCP need clean matches. Download unmatched CSV, fix product ids / names, re-upload.",
   dealer_actionable: "Actionable",
   dealer_no_actions: "No LIST / BUY MORE rows under this fee model.",
   dealer_full: "Full board",
   dealer_download: "Download scored CSV",
   dealer_download_actionable: "Download actionable CSV",
+  dealer_download_unmatched: "Download unmatched CSV",
+  dealer_action_list: "LIST",
+  dealer_action_buy: "BUY MORE",
+  dealer_action_hold: "HOLD",
+  dealer_unknown: "Unknown",
+  dealer_qty: "qty {n}",
+  dealer_row_unmatched: "unmatched",
+  dealer_ai_move: "AI {pct}",
+  dealer_net_edge: "net edge {pct}",
 
   // Pro
   pro_eyebrow: "Kestrel Pro",
@@ -858,6 +880,11 @@ const hr: Dictionary = {
   landing_guides_fair: "Pokémon TCG fair value →",
   landing_guides_grade: "Trebam li gradeati ovu kartu? →",
   landing_guides_trade: "Je li ovaj trade fair? →",
+  obs_funnel_title: "Soft-launch funnel",
+  obs_funnel_caption:
+    "Process-local brojači: landing → DOTD → Pro → Radar/Trade (reset na API restart).",
+  obs_funnel_total: "{n} eventa na ovom procesu",
+  obs_funnel_empty: "Još nema funnel eventa na ovom API procesu.",
   obs_sniff_title: "Spot sniff pack (G0)",
   obs_sniff_caption:
     "Uzorak sure UNDER/OVER redova. Provjeri TCGplayer + eBay sold prije marketing spend-a.",
@@ -1246,6 +1273,10 @@ const hr: Dictionary = {
   dealer_signin_lede: "Prijavi se da ocijeniš inventar prema market boardu.",
   dealer_lede:
     "Upload Kestrel ili TCGplayer inventar CSV — Kestrel pamti zadnji sync i ponovno ocijeni kad se vratiš.",
+  dealer_disclaimer:
+    "Fee-aware desk akcije vs US board spotovi — desk call, ne financijski savjet.",
+  dealer_tcp_note:
+    "Spotovi su US market board / JustTCG — ne Cardmarket EUR. Popravi unmatched prije LIST/BUY.",
   dealer_locked: "Dealer stol je Kestrel Pro površina.",
   dealer_locked_lede:
     "Nadogradi s istim emailom koji koristiš za prijavu, pa se vrati ocijeniti inventar.",
@@ -1263,15 +1294,28 @@ const hr: Dictionary = {
   dealer_not_synced: "Još nije sinkronizirano — ocijeni ili uploadaj za spremanje",
   dealer_clear_sync: "Obriši sync",
   dealer_format_tcgplayer: "TCGplayer CSV",
+  dealer_format_soft_ink: "Kestrel CSV",
   dealer_rows: "Redovi",
   dealer_matched: "Matchano",
   dealer_actions: "Akcije",
   dealer_inv_value: "Vrijednost inventara",
   dealer_unmatched: "{n} neusklađenih redova",
+  dealer_unmatched_title: "Unmatched — prvo ovo popravi",
+  dealer_unmatched_lede:
+    "Shopovi koji cijene prema TCP trebaju čiste matchove. Preuzmi unmatched CSV, popravi id/ime, re-upload.",
   dealer_actionable: "Actionable",
   dealer_no_actions: "Nema LIST / BUY MORE redova za ovaj fee model.",
   dealer_full: "Cijeli board",
   dealer_download: "Preuzmi scored CSV",
+  dealer_download_unmatched: "Preuzmi unmatched CSV",
+  dealer_action_list: "LIST",
+  dealer_action_buy: "BUY MORE",
+  dealer_action_hold: "HOLD",
+  dealer_unknown: "Nepoznato",
+  dealer_qty: "qty {n}",
+  dealer_row_unmatched: "unmatched",
+  dealer_ai_move: "AI {pct}",
+  dealer_net_edge: "net edge {pct}",
   dealer_download_actionable: "Preuzmi actionable CSV",
 
   pro_eyebrow: "Kestrel Pro",

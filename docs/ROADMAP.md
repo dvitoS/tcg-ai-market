@@ -84,14 +84,14 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 | M3.1 | Sealed desk correctness | **Shipping** — live JustTCG sniff of curated TCP seeds; name-mismatch drop; CDN art fallback; desk disclaimer |
 | M3.2 | Grading EV trust | **Shipping** — gem-rate input (default 25%); expected net blend; never imply 100% PSA 10 |
 | M3.3 | eBay sold comps UX | **Shipping** — sold cluster first (median / range / n); active asks second; i18n |
-| M3.4 | Dealer CSV sync | **Open #149** — unmatched export + match % |
+| M3.4 | Dealer CSV sync | **Shipping** — unmatched section + CSV export; match %; TCP/US spot note; action i18n |
 | M3.5 | Watchlist alerts quality | **Shipping** — sure-only default; skip `spot_quarantine` poison rows |
 
 #### M4 — Soft launch → spend unlock
 
 | ID | Item | Ship |
 | --- | --- | --- |
-| M4.1 | Funnel events | landing → DOTD → Pro → Radar/Trade activation |
+| M4.1 | Funnel events | **Shipping** — landing → DOTD → Pro → Radar/Trade; `/api/funnel` + ops panel |
 | M4.2 | Organic first | Discord / LGS / soft Reddit with share cards — **not** ads |
 | M4.3 | Trial hygiene | Creem trial → paid conversion dashboard |
 | M4.4 | Support playbook | Wrong-spot report → ops heal SLA |
@@ -100,8 +100,8 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 ### Suggested next 3
 
 1. **Run G0 sniff pack** against production board after tonight’s nightly *(ops)*  
-2. **M4.1** — funnel events for soft launch  
-3. **M4.2** — organic Discord / LGS share loop
+2. **M4.2** — organic Discord / LGS share loop  
+3. **M4.3** — Creem trial → paid conversion dashboard
 
 ### Explicit non-goals until spend unlock
 

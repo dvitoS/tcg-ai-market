@@ -5,9 +5,11 @@ import { useCallback, useEffect, useState } from "react";
 import { useLocale } from "@/components/LocaleProvider";
 import {
   fetchDataHealth,
+  fetchFunnelSummary,
   fetchSpotSniffPack,
   healPoisonedSpots,
   resetDataHealth,
+  type FunnelSummaryResponse,
 } from "@/lib/api";
 import type {
   DataHealthResponse,
@@ -57,12 +59,18 @@ export function DataHealthPanel() {
   const [sniffBusy, setSniffBusy] = useState(false);
   const [healBusy, setHealBusy] = useState(false);
   const [healResult, setHealResult] = useState<SpotHealResponse | null>(null);
+  const [funnel, setFunnel] = useState<FunnelSummaryResponse | null>(null);
 
   const load = useCallback(async () => {
     setBusy(true);
     setError(null);
     try {
-      setStats(await fetchDataHealth());
+      const [health, funnelSummary] = await Promise.all([
+        fetchDataHealth(),
+        fetchFunnelSummary().catch(() => null),
+      ]);
+      setStats(health);
+      setFunnel(funnelSummary);
     } catch {
       setError(t("obs_load_error"));
     } finally {
@@ -340,6 +348,37 @@ export function DataHealthPanel() {
                 })}
               </p>
             ) : null}
+          </div>
+
+          <div className="data-health-qa">
+            <p className="data-health-qa-title">{t("obs_funnel_title")}</p>
+            <p className="data-health-caption">{t("obs_funnel_caption")}</p>
+            {funnel ? (
+              <>
+                <p className="data-health-cache">
+                  {t("obs_funnel_total", { n: funnel.total })}
+                </p>
+                <div className="data-health-metrics">
+                  {(
+                    [
+                      "landing_view",
+                      "dotd_cta",
+                      "pro_view",
+                      "pro_checkout_click",
+                      "radar_activate",
+                      "trade_activate",
+                    ] as const
+                  ).map((key) => (
+                    <div key={key}>
+                      <span>{key}</span>
+                      <strong>{funnel.counts[key] ?? 0}</strong>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <p className="data-health-caption">{t("obs_funnel_empty")}</p>
+            )}
           </div>
 
           <div className="data-health-qa">

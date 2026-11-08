@@ -9,6 +9,7 @@ import { DeskLoading } from "@/components/DeskLoading";
 import { DotdShareExport } from "@/components/DotdShareExport";
 import { useLocale } from "@/components/LocaleProvider";
 import { fetchRadarPreview, formatChange } from "@/lib/api";
+import { trackFunnel } from "@/lib/funnel";
 import {
   decisionOneLiner,
   sideLabel,
@@ -163,6 +164,12 @@ export function DealOfTheDay({
         <Link
           href={`/cards/${encodeURIComponent(featured.id)}`}
           className="deal-of-day-feature radar-under"
+          onClick={() =>
+            trackFunnel("dotd_card_open", {
+              variant,
+              card_id: featured.id,
+            })
+          }
         >
           <div className="deal-of-day-art">
             <Image
@@ -214,11 +221,23 @@ export function DealOfTheDay({
       ) : null}
 
       {!loading && !error && rows.length > 0 ? (
-        <Link href={ctaHref} className="btn-primary deal-of-day-cta">
+        <Link
+          href={ctaHref}
+          className="btn-primary deal-of-day-cta"
+          onClick={() =>
+            trackFunnel("dotd_cta", { variant, target: ctaHref })
+          }
+        >
           {ctaLabel}
         </Link>
       ) : (
-        <Link href={ctaHref} className="btn-ghost deal-of-day-cta">
+        <Link
+          href={ctaHref}
+          className="btn-ghost deal-of-day-cta"
+          onClick={() =>
+            trackFunnel("dotd_cta", { variant, target: ctaHref })
+          }
+        >
           {ctaLabel}
         </Link>
       )}
