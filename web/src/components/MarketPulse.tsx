@@ -2,13 +2,21 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 
 import { useCurrency } from "@/components/CurrencyProvider";
 import { useLocale } from "@/components/LocaleProvider";
 import { fetchMarketPulse, formatChange } from "@/lib/api";
 import type { MessageKey } from "@/lib/i18n/messages";
 import type { MarketMover, MarketPulseResponse } from "@/lib/types";
+
+const TILT_MAX = 14;
 
 function pulseStoryKey(pulse: MarketPulseResponse): {
   key: MessageKey;
@@ -51,29 +59,77 @@ function MoverCard({
 }) {
   const { formatSpot } = useCurrency();
   const chg = mover.price_change_7d_pct;
+  const frameRef = useRef<HTMLSpanElement | null>(null);
+  const reduceRef = useRef(false);
+
+  useEffect(() => {
+    reduceRef.current = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+  }, []);
+
+  const resetTilt = useCallback(() => {
+    const frame = frameRef.current;
+    if (!frame) return;
+    frame.style.removeProperty("--rx");
+    frame.style.removeProperty("--ry");
+    frame.style.removeProperty("--gx");
+    frame.style.removeProperty("--gy");
+    frame.style.removeProperty("--go");
+    frame.classList.remove("is-tilting");
+  }, []);
+
+  const onPointerMove = useCallback((event: ReactPointerEvent<HTMLAnchorElement>) => {
+    if (reduceRef.current) return;
+    const frame = frameRef.current;
+    if (!frame) return;
+    const rect = frame.getBoundingClientRect();
+    if (rect.width < 1 || rect.height < 1) return;
+    const x = (event.clientX - rect.left) / rect.width;
+    const y = (event.clientY - rect.top) / rect.height;
+    const ry = (x - 0.5) * 2 * TILT_MAX;
+    const rx = (0.5 - y) * 2 * TILT_MAX;
+    frame.classList.add("is-tilting");
+    frame.style.setProperty("--ry", `${ry.toFixed(2)}deg`);
+    frame.style.setProperty("--rx", `${rx.toFixed(2)}deg`);
+    frame.style.setProperty("--gx", `${(x * 100).toFixed(1)}%`);
+    frame.style.setProperty("--gy", `${(y * 100).toFixed(1)}%`);
+    frame.style.setProperty("--go", "1");
+  }, []);
+
   return (
     <Link
       href={`/cards/${encodeURIComponent(mover.id)}`}
       className={`landing-mover-card is-${tone}`}
       style={{ animationDelay: `${0.05 + index * 0.09}s` }}
+      onPointerMove={onPointerMove}
+      onPointerLeave={resetTilt}
+      onPointerCancel={resetTilt}
     >
-      <span className="landing-mover-card-frame">
-        <Image
-          src={mover.image_url || "/kestrel-logo.png"}
-          alt=""
-          width={160}
-          height={224}
-          className="landing-mover-card-img"
-        />
-        <span className={`landing-mover-card-chg is-${tone}`}>
-          <span aria-hidden="true">{tone === "up" ? "▲" : "▼"}</span>
-          {formatChange(chg)}
+      <span className="landing-mover-card-stage">
+        <span ref={frameRef} className="landing-mover-card-frame">
+          <Image
+            src={mover.image_url || "/kestrel-logo.png"}
+            alt=""
+            width={160}
+            height={224}
+            className="landing-mover-card-img"
+          />
+          <span className="landing-mover-card-glare" aria-hidden="true" />
+          <span className="landing-mover-card-sheen" aria-hidden="true" />
         </span>
       </span>
       <span className="landing-mover-card-copy">
         <span className="landing-mover-card-name">{mover.name}</span>
-        <span className="landing-mover-card-meta">
-          {[mover.set_name, formatSpot(mover.price)].filter(Boolean).join(" · ")}
+        {mover.set_name ? (
+          <span className="landing-mover-card-set">{mover.set_name}</span>
+        ) : null}
+        <span className="landing-mover-card-prices">
+          <span className="landing-mover-card-spot">{formatSpot(mover.price)}</span>
+          <span className={`landing-mover-card-chg is-${tone}`}>
+            <span aria-hidden="true">{tone === "up" ? "▲" : "▼"}</span>
+            {formatChange(chg)}
+          </span>
         </span>
       </span>
     </Link>
