@@ -10,6 +10,8 @@ services:
     envVars:
       - key: PYTHONPATH
         value: /app
+      - key: KESTREL_SERVICE
+        value: api
       - key: KESTREL_CORS_ORIGINS
         sync: false
       - key: SUPABASE_URL
