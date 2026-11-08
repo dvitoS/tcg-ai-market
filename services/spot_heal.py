@@ -117,12 +117,12 @@ def heal_poisoned_spots(
     if mode == "dry_run":
         return out
 
-    from database import clear_card_market_price, delete_card_history
+    from database import clear_card_market_prices, delete_card_history
 
-    for cid in ids:
-        clear_card_market_price(cid)
-        out["nulled"] += 1
-        if mode in {"clear_history", "refetch"}:
+    # Batch null first — one PostgREST call per chunk instead of N round-trips.
+    out["nulled"] = int(clear_card_market_prices(ids))
+    if mode in {"clear_history", "refetch"}:
+        for cid in ids:
             delete_card_history(cid)
             out["history_cleared"] += 1
 

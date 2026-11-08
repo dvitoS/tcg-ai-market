@@ -92,10 +92,6 @@ def test_sniff_pack_endpoint_ok_for_ops(monkeypatch) -> None:
         },
     )
     monkeypatch.setattr("api.catalog_service.clear_board_cache", lambda: None)
-    monkeypatch.setattr(
-        "api.catalog_service.load_board",
-        lambda force_refresh=False: (None, "empty"),
-    )
     app.dependency_overrides[optional_user] = _ops
     try:
         client = TestClient(app)

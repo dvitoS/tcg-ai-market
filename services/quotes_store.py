@@ -179,18 +179,9 @@ def quarantine_market_quote_ids(card_ids: list[str] | set[str]) -> int:
                     client.table(TABLE).update(slim).in_("card_id", chunk).execute()
                 else:
                     raise
-            # Count only rows that actually exist on the board.
-            try:
-                check = (
-                    client.table(TABLE)
-                    .select("card_id")
-                    .in_("card_id", chunk)
-                    .eq("confidence_ok", False)
-                    .execute()
-                )
-                updated += len(list(check.data or []))
-            except Exception:
-                updated += len(chunk)
+            # Trust the requested id set — a follow-up SELECT per chunk was the
+            # slow path on bulk sniff Heal. Missing ids simply stay at 0 effect.
+            updated += len(chunk)
         return updated
     except Exception as exc:
         LOG.warning("quarantine_market_quote_ids failed: %s", exc)
