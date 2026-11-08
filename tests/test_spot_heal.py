@@ -92,6 +92,7 @@ def test_null_market_only_poisoned(monkeypatch) -> None:
         lambda: poisoned_card_ids_from_board(board),
     )
     nulled: list[str] = []
+    quarantined: list[str] = []
 
     def fake_clear(cid: str) -> None:
         nulled.append(cid)
@@ -99,10 +100,58 @@ def test_null_market_only_poisoned(monkeypatch) -> None:
     import database as db
 
     monkeypatch.setattr(db, "clear_card_market_price", fake_clear)
+    monkeypatch.setattr(
+        "services.quotes_store.quarantine_market_quote_ids",
+        lambda ids: (quarantined.extend(ids), len(list(ids)))[1],
+    )
     out = heal_poisoned_spots(mode="null_market", limit=4)
     assert out["nulled"] == 4
     assert set(nulled).issubset({f"poison-{i}" for i in range(12)})
     assert out["history_cleared"] == 0
+    assert out["quotes_quarantined"] == 4
+    assert set(quarantined) == set(nulled)
+
+
+def test_targeted_card_ids_ban_own_spots(monkeypatch) -> None:
+    """Isolated wrong tips (Espeon $125) must ban their own key, not only clusters."""
+    board = _poison_board(n=10)
+    monkeypatch.setattr(
+        "services.spot_heal.detect_poisoned_card_ids",
+        lambda: poisoned_card_ids_from_board(board),
+    )
+    monkeypatch.setattr(
+        "services.spot_heal._spot_keys_for_card_ids",
+        lambda ids: {125.0, 79.5, 9.73},
+    )
+    monkeypatch.setattr("database.clear_card_market_price", lambda cid: None)
+    monkeypatch.setattr("database.delete_card_history", lambda cid: None)
+    monkeypatch.setattr(
+        "services.quotes_store.quarantine_market_quote_ids",
+        lambda ids: len(list(ids)),
+    )
+    forbid: dict[str, object] = {}
+
+    def fake_sync(ids, forbid_spot_keys=None):
+        forbid["keys"] = set(forbid_spot_keys or [])
+        return {
+            "updated": 0,
+            "skipped": 0,
+            "saved": 0,
+            "skip_poison": len(ids),
+            "skip_absurd": 0,
+            "justtcg_requests": 0,
+            "with_tcgplayer_id": len(ids),
+        }
+
+    monkeypatch.setattr("sync_justtcg.sync_justtcg_for_card_ids", fake_sync)
+    out = heal_poisoned_spots(
+        mode="refetch",
+        card_ids=["dp7-espeon", "sv8-oshawott", "sv8-patrat"],
+    )
+    assert out["count"] == 3
+    assert out["quotes_quarantined"] == 3
+    assert {125.0, 79.5, 9.73}.issubset(set(out["poison_keys"]))
+    assert {125.0, 79.5, 9.73}.issubset(forbid["keys"])
 
 
 def test_ingest_blocks_same_poison_key() -> None:
@@ -189,6 +238,10 @@ def test_refetch_never_calls_mass_wipe(monkeypatch) -> None:
 
     monkeypatch.setattr(db, "clear_price_history", boom)
     monkeypatch.setattr(
+        "services.quotes_store.quarantine_market_quote_ids",
+        lambda ids: len(list(ids)),
+    )
+    monkeypatch.setattr(
         "sync_justtcg.sync_justtcg_for_card_ids",
         lambda ids, forbid_spot_keys=None: {
             "updated": 0,
@@ -204,3 +257,4 @@ def test_refetch_never_calls_mass_wipe(monkeypatch) -> None:
     assert out["count"] == 10
     assert wiped["n"] == 0
     assert out["skip_poison"] == 10
+    assert out["quotes_quarantined"] == 10

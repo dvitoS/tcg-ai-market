@@ -657,6 +657,7 @@ export type SpotHealResponse = {
   poison_keys: number[];
   nulled: number;
   history_cleared: number;
+  quotes_quarantined?: number;
   updated: number;
   skipped: number;
   skip_poison: number;

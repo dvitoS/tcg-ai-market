@@ -9,6 +9,7 @@ import {
   fetchSpotReportSummary,
   fetchSpotSniffPack,
   fetchTrialConversion,
+  healOpenSpotReports,
   healPoisonedSpots,
   resetDataHealth,
   type FunnelSummaryResponse,
@@ -120,6 +121,21 @@ export function DataHealthPanel() {
     }
   }
 
+  async function applyHealResult(result: SpotHealResponse) {
+    setHealResult(result);
+    setNotice(
+      t("obs_heal_done", {
+        mode: result.mode,
+        count: result.count,
+        updated: result.updated,
+        nulled: result.nulled,
+        quotes: result.quotes_quarantined ?? 0,
+      }),
+    );
+    setStats(await fetchDataHealth());
+    setReports(await fetchSpotReportSummary().catch(() => null));
+  }
+
   async function onHeal(mode: SpotHealMode) {
     if (mode !== "dry_run") {
       const ok = window.confirm(t("obs_heal_confirm", { mode }));
@@ -129,17 +145,46 @@ export function DataHealthPanel() {
     setError(null);
     setNotice(null);
     try {
-      const result = await healPoisonedSpots({ mode, limit: 50 });
-      setHealResult(result);
-      setNotice(
-        t("obs_heal_done", {
-          mode: result.mode,
-          count: result.count,
-          updated: result.updated,
-          nulled: result.nulled,
+      await applyHealResult(await healPoisonedSpots({ mode, limit: 50 }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("obs_load_error"));
+    } finally {
+      setHealBusy(false);
+    }
+  }
+
+  async function onHealOpenReports() {
+    const ok = window.confirm(t("obs_heal_confirm", { mode: "refetch" }));
+    if (!ok) return;
+    setHealBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      await applyHealResult(
+        await healOpenSpotReports({ mode: "refetch", limit: 30 }),
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("obs_load_error"));
+    } finally {
+      setHealBusy(false);
+    }
+  }
+
+  async function onHealSniffCard(cardId: string, name: string) {
+    const ok = window.confirm(t("obs_sniff_heal_confirm", { name }));
+    if (!ok) return;
+    setHealBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      await applyHealResult(
+        await healPoisonedSpots({
+          mode: "refetch",
+          limit: 1,
+          cardIds: [cardId],
         }),
       );
-      setStats(await fetchDataHealth());
+      setSniff(await fetchSpotSniffPack(20));
     } catch (err) {
       setError(err instanceof Error ? err.message : t("obs_load_error"));
     } finally {
@@ -392,6 +437,18 @@ export function DataHealthPanel() {
                     {row.spot != null ? ` · $${Number(row.spot).toFixed(2)}` : ""}
                   </p>
                 ))}
+                <div className="data-health-actions">
+                  <button
+                    type="button"
+                    className="btn-ghost"
+                    disabled={
+                      healBusy || busy || (reports.open_total ?? 0) < 1
+                    }
+                    onClick={() => void onHealOpenReports()}
+                  >
+                    {t("obs_reports_heal_open")}
+                  </button>
+                </div>
               </>
             ) : (
               <p className="data-health-caption">{t("obs_reports_empty")}</p>
@@ -528,6 +585,16 @@ export function DataHealthPanel() {
                           <a href={item.kestrel_path}>
                             {t("obs_sniff_open_kestrel")}
                           </a>
+                          <button
+                            type="button"
+                            className="btn-ghost"
+                            disabled={healBusy || busy}
+                            onClick={() =>
+                              void onHealSniffCard(item.card_id, item.name)
+                            }
+                          >
+                            {t("obs_sniff_heal")}
+                          </button>
                         </span>
                       </li>
                     ))}

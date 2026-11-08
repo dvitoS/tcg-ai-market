@@ -95,20 +95,24 @@ const en = {
   obs_na: "—",
   obs_reports_title: "Wrong-spot reports",
   obs_reports_caption:
-    "User flags from card detail. SLA: ack ≤24h, heal attempt ≤48h. Heal-open runs the poison heal pipeline on reported ids.",
+    "User flags from card detail. SLA: ack ≤24h, heal attempt ≤48h. Heal-open nulls + quarantines market_quotes for reported ids.",
   obs_reports_open: "Open",
   obs_reports_overdue: "Overdue heal",
   obs_reports_empty: "No open spot reports on this API process.",
   obs_reports_meta: "Oldest open {age}h · ack SLA {ack}h · heal SLA {heal}h",
+  obs_reports_heal_open: "Heal open (refetch)",
   obs_sniff_title: "Spot sniff pack (G0)",
   obs_sniff_caption:
-    "Sample sure UNDER/OVER rows. Check TCGplayer + eBay sold before any marketing spend.",
+    "Sample sure UNDER/OVER rows. Check TCGplayer + eBay sold before any marketing spend. Heal row drops it from sure desk immediately.",
   obs_sniff_load: "Load sniff pack",
   obs_sniff_empty: "No sure Radar rows available for a sniff pack yet.",
   obs_sniff_under: "Under",
   obs_sniff_over: "Over",
   obs_sniff_open_tcp: "TCGplayer",
   obs_sniff_open_kestrel: "Kestrel",
+  obs_sniff_heal: "Heal",
+  obs_sniff_heal_confirm:
+    "Heal “{name}”? Nulls tip, quarantines board quote, refetches JustTCG.",
   obs_sniff_meta: "{under} under · {over} over · {source}",
   landing_pulse_eyebrow: "Market pulse",
   landing_pulse_title: "How the sure board sits today",
@@ -735,7 +739,7 @@ const en = {
   obs_qa_snapshot: "Snapshot {when}",
   obs_heal_title: "Poison / heal (M0.6)",
   obs_heal_caption:
-    "Identical JustTCG poison clusters stay quarantined until healed. Dry-run first; never ship known-poison as sure.",
+    "Identical JustTCG poison clusters stay quarantined until healed. Heal also soft-drops market_quotes so Radar/sniff update now. Dry-run first.",
   obs_heal_clean: "No poison clusters on the current board sample.",
   obs_heal_cluster: "{price} · {count} cards · {sets} sets",
   obs_heal_dry: "Dry-run detect",
@@ -744,7 +748,7 @@ const en = {
   obs_heal_refetch: "Refetch live",
   obs_heal_confirm: "Run spot heal mode “{mode}”? This changes board data.",
   obs_heal_done:
-    "Heal {mode}: {count} ids · nulled {nulled} · updated {updated}",
+    "Heal {mode}: {count} ids · nulled {nulled} · quotes {quotes} · updated {updated}",
   obs_heal_summary:
     "{count} poisoned ids · keys {keys} · skip poison {skip_poison} / absurd {skip_absurd}",
   obs_slo_title: "Nightly SLO",
@@ -925,20 +929,24 @@ const hr: Dictionary = {
   obs_na: "—",
   obs_reports_title: "Wrong-spot reporti",
   obs_reports_caption:
-    "User flage s card detaila. SLA: ack ≤24h, heal pokušaj ≤48h. Heal-open pokreće poison heal na prijavljenim id-evima.",
+    "User flage s card detaila. SLA: ack ≤24h, heal pokušaj ≤48h. Heal-open null-a tip i stavlja market_quotes u karantenu.",
   obs_reports_open: "Open",
   obs_reports_overdue: "Overdue heal",
   obs_reports_empty: "Nema open spot reporta na ovom API procesu.",
   obs_reports_meta: "Najstariji open {age}h · ack SLA {ack}h · heal SLA {heal}h",
+  obs_reports_heal_open: "Heal open (refetch)",
   obs_sniff_title: "Spot sniff pack (G0)",
   obs_sniff_caption:
-    "Uzorak sure UNDER/OVER redova. Provjeri TCGplayer + eBay sold prije marketing spend-a.",
+    "Uzorak sure UNDER/OVER redova. Provjeri TCGplayer + eBay sold. Heal red odmah skida kartu sa sure deska.",
   obs_sniff_load: "Učitaj sniff pack",
   obs_sniff_empty: "Nema sure Radar redova za sniff pack.",
   obs_sniff_under: "Under",
   obs_sniff_over: "Over",
   obs_sniff_open_tcp: "TCGplayer",
   obs_sniff_open_kestrel: "Kestrel",
+  obs_sniff_heal: "Heal",
+  obs_sniff_heal_confirm:
+    "Heal “{name}”? Null tip, karantena board quotea, JustTCG refetch.",
   obs_sniff_meta: "{under} under · {over} over · {source}",
   landing_pulse_eyebrow: "Market pulse",
   landing_pulse_title: "Kako sure board sjedi danas",
@@ -1556,7 +1564,7 @@ const hr: Dictionary = {
   obs_qa_snapshot: "Snapshot {when}",
   obs_heal_title: "Poison / heal (M0.6)",
   obs_heal_caption:
-    "Identčni JustTCG poison clusteri ostaju u karanteni dok se ne healaju. Prvo dry-run; nikad ne shipaj known-poison kao sure.",
+    "Identčni JustTCG poison clusteri ostaju u karanteni dok se ne healaju. Heal soft-dropa i market_quotes da Radar/sniff odmah osvježe. Prvo dry-run.",
   obs_heal_clean: "Nema poison clustera na trenutnom board sampleu.",
   obs_heal_cluster: "{price} · {count} karata · {sets} setova",
   obs_heal_dry: "Dry-run detect",
@@ -1565,7 +1573,7 @@ const hr: Dictionary = {
   obs_heal_refetch: "Refetch live",
   obs_heal_confirm: "Pokrenuti spot heal mode “{mode}”? Mijenja board podatke.",
   obs_heal_done:
-    "Heal {mode}: {count} id-eva · nulled {nulled} · updated {updated}",
+    "Heal {mode}: {count} id-eva · nulled {nulled} · quotes {quotes} · updated {updated}",
   obs_heal_summary:
     "{count} poisoned id-eva · keys {keys} · skip poison {skip_poison} / absurd {skip_absurd}",
   obs_slo_title: "Nightly SLO",
