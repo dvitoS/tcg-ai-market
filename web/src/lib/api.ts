@@ -1124,6 +1124,57 @@ export async function fetchTrialConversion(): Promise<TrialConversionResponse> {
   return res.json();
 }
 
+export type SpotReportSummary = {
+  counts: Record<string, number>;
+  open_total: number;
+  oldest_open_age_h: number | null;
+  overdue_ack: number;
+  overdue_heal: number;
+  ack_sla_hours: number;
+  heal_sla_hours: number;
+  recent: Array<{
+    id: string;
+    card_id: string;
+    note?: string | null;
+    spot?: number | null;
+    status: string;
+    created_at: number;
+  }>;
+  uptime_s: number;
+};
+
+export async function reportWrongSpot(input: {
+  card_id: string;
+  note?: string;
+  spot?: number | null;
+  session?: string;
+}): Promise<{ id: string; card_id: string; status: string }> {
+  const res = await fetch(apiUrl("/api/spots/report"), {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    throw new Error(`Spot report failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function fetchSpotReportSummary(): Promise<SpotReportSummary> {
+  const res = await fetch(apiUrl("/api/spots/reports/summary"), {
+    headers: { Accept: "application/json", ...authHeaders() },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`Spot report summary failed (${res.status})`);
+  }
+  return res.json();
+}
+
 export async function fetchSpotSniffPack(limit = 20): Promise<SpotSniffPackResponse> {
   const res = await fetch(
     apiUrl(`/api/data-health/sniff-pack?limit=${Math.max(4, Math.min(40, limit))}`),

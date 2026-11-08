@@ -11,6 +11,7 @@ import { GradingEvPanel } from "@/components/GradingEvPanel";
 import { useLocale } from "@/components/LocaleProvider";
 import { PriceChart } from "@/components/PriceChart";
 import { WatchToggle } from "@/components/WatchToggle";
+import { WrongSpotReport } from "@/components/WrongSpotReport";
 import { formatChange } from "@/lib/api";
 import { cardmarketSearchUrl } from "@/lib/cardmarket";
 import { decisionOneLiner, signalLabel } from "@/lib/i18n/messages";
@@ -135,6 +136,10 @@ export function CardDetailView({
                   </div>
                 )}
                 <p className="detail-desk-disclaimer">{t("detail_desk_disclaimer")}</p>
+                <WrongSpotReport
+                  cardId={card.id}
+                  spot={history.last_price ?? card.price}
+                />
               </aside>
             </div>
             <div className="detail-hero-copy">

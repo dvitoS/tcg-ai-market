@@ -30,6 +30,7 @@ ALLOWED_EVENTS = frozenset(
         "trade_activate",
         "share_copy",
         "share_png",
+        "spot_report",
     }
 )
 

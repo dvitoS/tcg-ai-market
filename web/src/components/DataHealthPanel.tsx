@@ -6,11 +6,13 @@ import { useLocale } from "@/components/LocaleProvider";
 import {
   fetchDataHealth,
   fetchFunnelSummary,
+  fetchSpotReportSummary,
   fetchSpotSniffPack,
   fetchTrialConversion,
   healPoisonedSpots,
   resetDataHealth,
   type FunnelSummaryResponse,
+  type SpotReportSummary,
   type TrialConversionResponse,
 } from "@/lib/api";
 import type {
@@ -63,19 +65,23 @@ export function DataHealthPanel() {
   const [healResult, setHealResult] = useState<SpotHealResponse | null>(null);
   const [funnel, setFunnel] = useState<FunnelSummaryResponse | null>(null);
   const [trial, setTrial] = useState<TrialConversionResponse | null>(null);
+  const [reports, setReports] = useState<SpotReportSummary | null>(null);
 
   const load = useCallback(async () => {
     setBusy(true);
     setError(null);
     try {
-      const [health, funnelSummary, trialSummary] = await Promise.all([
-        fetchDataHealth(),
-        fetchFunnelSummary().catch(() => null),
-        fetchTrialConversion().catch(() => null),
-      ]);
+      const [health, funnelSummary, trialSummary, reportSummary] =
+        await Promise.all([
+          fetchDataHealth(),
+          fetchFunnelSummary().catch(() => null),
+          fetchTrialConversion().catch(() => null),
+          fetchSpotReportSummary().catch(() => null),
+        ]);
       setStats(health);
       setFunnel(funnelSummary);
       setTrial(trialSummary);
+      setReports(reportSummary);
     } catch {
       setError(t("obs_load_error"));
     } finally {
@@ -353,6 +359,43 @@ export function DataHealthPanel() {
                 })}
               </p>
             ) : null}
+          </div>
+
+          <div className="data-health-qa">
+            <p className="data-health-qa-title">{t("obs_reports_title")}</p>
+            <p className="data-health-caption">{t("obs_reports_caption")}</p>
+            {reports ? (
+              <>
+                <div className="data-health-metrics">
+                  <div>
+                    <span>{t("obs_reports_open")}</span>
+                    <strong>{reports.open_total}</strong>
+                  </div>
+                  <div>
+                    <span>{t("obs_reports_overdue")}</span>
+                    <strong>{reports.overdue_heal}</strong>
+                  </div>
+                </div>
+                <p className="data-health-cache lot-meta">
+                  {t("obs_reports_meta", {
+                    age:
+                      reports.oldest_open_age_h == null
+                        ? "—"
+                        : reports.oldest_open_age_h.toFixed(1),
+                    ack: reports.ack_sla_hours,
+                    heal: reports.heal_sla_hours,
+                  })}
+                </p>
+                {reports.recent.slice(0, 6).map((row) => (
+                  <p key={row.id} className="data-health-cache lot-meta">
+                    {row.status} · {row.card_id}
+                    {row.spot != null ? ` · $${Number(row.spot).toFixed(2)}` : ""}
+                  </p>
+                ))}
+              </>
+            ) : (
+              <p className="data-health-caption">{t("obs_reports_empty")}</p>
+            )}
           </div>
 
           <div className="data-health-qa">
