@@ -33,13 +33,14 @@ def test_funnel_api_batch_and_summary():
             "events": [
                 {"event": "landing_view", "session": "abc"},
                 {"event": "dotd_cta", "session": "abc", "props": {"target": "/pro"}},
+                {"event": "share_copy", "session": "abc", "props": {"surface": "trade"}},
                 {"event": "spam_event"},
             ]
         },
     )
     assert res.status_code == 200
     body = res.json()
-    assert body["accepted"] == 2
+    assert body["accepted"] == 3
     assert body["rejected"] == 1
 
     summary = client.get("/api/funnel/summary")
@@ -47,5 +48,7 @@ def test_funnel_api_batch_and_summary():
     data = summary.json()
     assert data["counts"]["landing_view"] == 1
     assert data["counts"]["dotd_cta"] == 1
-    assert data["total"] == 2
+    assert data["counts"]["share_copy"] == 1
+    assert data["total"] == 3
+    assert "share_png" in data["allowed_events"]
     assert "landing_view" in data["allowed_events"]

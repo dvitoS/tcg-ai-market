@@ -81,3 +81,24 @@ export function tradeReportFilename(verdict: string): string {
   const slug = (verdict || "fair").toLowerCase().replace(/[^a-z0-9]+/g, "-");
   return `kestrel-trade-${slug || "fair"}.png`;
 }
+
+/** Discord / LGS paste pack: blurb + totals + disclaimer + live share URL. */
+export function buildTradeShareClipboardText(args: {
+  blurb: string;
+  verdict: string;
+  youSpot: string;
+  themSpot: string;
+  note: string;
+  url: string;
+}): string {
+  return [
+    args.blurb,
+    args.verdict,
+    `You ${args.youSpot} · Them ${args.themSpot}`,
+    args.note,
+    args.url,
+  ]
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join("\n");
+}

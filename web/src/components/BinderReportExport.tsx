@@ -14,6 +14,7 @@ import {
   buildBinderShareUrl,
   downloadBinderReportPng,
 } from "@/lib/binderExport";
+import { trackFunnel } from "@/lib/funnel";
 
 export function BinderReportExport({
   snapshot,
@@ -62,6 +63,7 @@ export function BinderReportExport({
         cardRef.current,
         binderReportFilename(snapshot.set_name),
       );
+      trackFunnel("share_png", { surface: "binder", clipboard: copied });
       setNote(
         copied ? t("binder_export_done_clipboard") : t("binder_export_done"),
       );
@@ -81,6 +83,7 @@ export function BinderReportExport({
     try {
       await navigator.clipboard.writeText(text);
       setNote(t("binder_share_copied"));
+      trackFunnel("share_copy", { surface: "binder" });
     } catch {
       setNote(`${t("binder_share_copied_fallback")}\n${shareUrl}`);
     } finally {

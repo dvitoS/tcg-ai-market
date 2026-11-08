@@ -359,7 +359,7 @@ export function DataHealthPanel() {
                   {t("obs_funnel_total", { n: funnel.total })}
                 </p>
                 <div className="data-health-metrics">
-                  {(
+                  {                    (
                     [
                       "landing_view",
                       "dotd_cta",
@@ -367,6 +367,8 @@ export function DataHealthPanel() {
                       "pro_checkout_click",
                       "radar_activate",
                       "trade_activate",
+                      "share_copy",
+                      "share_png",
                     ] as const
                   ).map((key) => (
                     <div key={key}>

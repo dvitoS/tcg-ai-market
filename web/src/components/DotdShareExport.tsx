@@ -10,6 +10,7 @@ import {
   dotdShareFilename,
   downloadDotdSharePng,
 } from "@/lib/dotdExport";
+import { trackFunnel } from "@/lib/funnel";
 import type { RadarCard } from "@/lib/types";
 
 export function DotdShareExport({
@@ -61,6 +62,7 @@ export function DotdShareExport({
         cardRef.current,
         dotdShareFilename(card.name),
       );
+      trackFunnel("share_png", { surface: "dotd", clipboard: copied });
       setNote(
         copied ? t("dotd_export_done_clipboard") : t("dotd_export_done"),
       );
@@ -80,6 +82,7 @@ export function DotdShareExport({
     try {
       await navigator.clipboard.writeText(text);
       setNote(t("dotd_share_copied"));
+      trackFunnel("share_copy", { surface: "dotd" });
     } catch {
       setNote(`${t("dotd_share_copied_fallback")}\n${shareUrl}`);
     } finally {

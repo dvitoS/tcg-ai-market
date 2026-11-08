@@ -28,6 +28,8 @@ ALLOWED_EVENTS = frozenset(
         "pro_open_trade",
         "radar_activate",
         "trade_activate",
+        "share_copy",
+        "share_png",
     }
 )
 

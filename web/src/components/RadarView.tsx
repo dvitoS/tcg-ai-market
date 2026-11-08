@@ -306,6 +306,7 @@ export function RadarView() {
       try {
         await navigator.clipboard.writeText(text);
         setShareNote(t("radar_share_copied"));
+        trackFunnel("share_copy", { surface: "radar" });
       } catch {
         setShareNote(`${t("radar_share_copied_fallback")}\n${url}`);
       }

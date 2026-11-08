@@ -19,6 +19,7 @@ import {
   scoreTrade,
 } from "@/lib/api";
 import { trackFunnel } from "@/lib/funnel";
+import { buildTradeShareClipboardText } from "@/lib/tradeExport";
 import { pushRecentSearch } from "@/lib/searchRecent";
 import type {
   CatalogCard,
@@ -464,11 +465,32 @@ export function TradeView() {
     try {
       const href = await ensureShareUrl();
       if (!href) return;
+      const blurbKey =
+        result?.verdict === "YOU_AHEAD"
+          ? "trade_export_blurb_you"
+          : result?.verdict === "THEM_AHEAD"
+            ? "trade_export_blurb_them"
+            : "trade_export_blurb_fair";
+      const verdictKey =
+        result?.verdict === "YOU_AHEAD"
+          ? "trade_v_you_ahead"
+          : result?.verdict === "THEM_AHEAD"
+            ? "trade_v_them_ahead"
+            : "trade_v_fair";
+      const text = buildTradeShareClipboardText({
+        blurb: t(blurbKey),
+        verdict: t(verdictKey),
+        youSpot: formatMoney(result?.you.spot_total ?? 0),
+        themSpot: formatMoney(result?.them.spot_total ?? 0),
+        note: t("trade_share_paste_note"),
+        url: href,
+      });
       try {
-        await navigator.clipboard.writeText(href);
+        await navigator.clipboard.writeText(text);
         setShareNote(t("trade_share_copied"));
+        trackFunnel("share_copy", { surface: "trade" });
       } catch {
-        setShareNote(href);
+        setShareNote(`${t("trade_share_copied_fallback")}\n${href}`);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : t("trade_share_error"));
