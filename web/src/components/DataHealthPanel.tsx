@@ -9,6 +9,7 @@ import {
   fetchSpotReportSummary,
   fetchSpotSniffPack,
   fetchTrialConversion,
+  healAutoUnsafeSpots,
   healOpenSpotReports,
   healPoisonedSpots,
   resetDataHealth,
@@ -154,6 +155,25 @@ export function DataHealthPanel() {
     try {
       showHealNotice(await healPoisonedSpots({ mode, limit: 50 }));
       refreshHealStats();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("obs_load_error"));
+    } finally {
+      setHealBusy(false);
+    }
+  }
+
+  async function onHealAutoUnsafe() {
+    const ok = window.confirm(t("obs_heal_auto_confirm"));
+    if (!ok) return;
+    setHealBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      showHealNotice(
+        await healAutoUnsafeSpots({ mode: "null_market", limit: 200 }),
+      );
+      refreshHealStats();
+      reloadSniffInBackground();
     } catch (err) {
       setError(err instanceof Error ? err.message : t("obs_load_error"));
     } finally {
@@ -444,6 +464,14 @@ export function DataHealthPanel() {
               <p className="data-health-caption">{t("obs_heal_clean")}</p>
             )}
             <div className="data-health-actions">
+              <button
+                type="button"
+                className="btn-ghost"
+                disabled={healBusy || busy}
+                onClick={() => void onHealAutoUnsafe()}
+              >
+                {t("obs_heal_auto")}
+              </button>
               <button
                 type="button"
                 className="btn-ghost"

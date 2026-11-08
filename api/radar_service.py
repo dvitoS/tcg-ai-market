@@ -187,6 +187,14 @@ def build_radar(
         if "spot_quarantine" in sure.columns
         else pd.Series(False, index=sure.index)
     )
+    names = (
+        sure["name"] if "name" in sure.columns else pd.Series([None] * len(sure), index=sure.index)
+    )
+    supertypes = (
+        sure["supertype"]
+        if "supertype" in sure.columns
+        else pd.Series([None] * len(sure), index=sure.index)
+    )
     if share_safe:
         trust_u = pd.Series(
             [
@@ -195,14 +203,18 @@ def build_radar(
                     edge_pct=e,
                     rarity=r,
                     set_name=sn,
+                    name=nm,
+                    supertype=st,
                     price_change_7d_pct=c,
                     spot_quarantine=qflag,
                 )
-                for s, e, r, sn, c, qflag in zip(
+                for s, e, r, sn, nm, st, c, qflag in zip(
                     spot.tolist(),
                     edge_u.tolist(),
                     rarities.tolist(),
                     set_names.tolist(),
+                    names.tolist(),
+                    supertypes.tolist(),
                     chg7.tolist(),
                     quarantined.tolist(),
                     strict=False,

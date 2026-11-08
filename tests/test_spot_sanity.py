@@ -51,6 +51,66 @@ def test_share_safe_rejects_blank_rarity_high_spot() -> None:
     )
 
 
+def test_share_safe_rejects_energy_high_spot() -> None:
+    assert (
+        share_safe_under_deal(
+            spot=57.96,
+            edge_pct=20.0,
+            rarity="Common",
+            name="Basic Darkness Energy",
+            set_name="Shrouded Fable",
+        )
+        is False
+    )
+    assert (
+        share_safe_under_deal(
+            spot=2.50,
+            edge_pct=12.0,
+            rarity="Common",
+            name="Basic Darkness Energy",
+            set_name="Shrouded Fable",
+        )
+        is True
+    )
+
+
+def test_auto_quarantine_mask_energy_and_rarity() -> None:
+    from services.spot_sanity import auto_quarantine_mask
+
+    board = pd.DataFrame(
+        [
+            {
+                "id": "energy-1",
+                "name": "Basic Darkness Energy",
+                "set_name": "Shrouded Fable",
+                "rarity": "Common",
+                "supertype": "Energy",
+                "price": 57.96,
+            },
+            {
+                "id": "common-ok",
+                "name": "Pidove",
+                "set_name": "White Flare",
+                "rarity": "Common",
+                "supertype": "Pokémon",
+                "price": 0.35,
+            },
+            {
+                "id": "uncommon-high",
+                "name": "Oshawott",
+                "set_name": "White Flare",
+                "rarity": "Uncommon",
+                "supertype": "Pokémon",
+                "price": 79.5,
+            },
+        ]
+    )
+    mask = auto_quarantine_mask(board)
+    assert bool(mask.iloc[0]) is True
+    assert bool(mask.iloc[1]) is False
+    assert bool(mask.iloc[2]) is True
+
+
 def test_share_safe_rejects_promo_and_quarantine() -> None:
     assert (
         share_safe_under_deal(

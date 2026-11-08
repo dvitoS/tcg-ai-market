@@ -1227,6 +1227,33 @@ export async function healPoisonedSpots(input: {
   return res.json();
 }
 
+export async function healAutoUnsafeSpots(input: {
+  mode?: SpotHealMode;
+  limit?: number;
+}): Promise<SpotHealResponse> {
+  const res = await fetch(apiUrl("/api/data-health/heal-auto-unsafe"), {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify({
+      mode: input.mode ?? "null_market",
+      limit: input.limit ?? 200,
+    }),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const detail = await readApiError(
+      res,
+      `Auto-quarantine failed (${res.status})`,
+    );
+    throw new Error(detail);
+  }
+  return res.json();
+}
+
 export async function healOpenSpotReports(input: {
   mode: SpotHealMode;
   limit?: number;

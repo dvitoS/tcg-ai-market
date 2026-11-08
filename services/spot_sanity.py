@@ -28,6 +28,10 @@ UNDER_RARITY_SPOT_CAPS: dict[str, float] = {
     "uncommon": 30.0,
 }
 
+# Auto-quarantine (no human click) — clear-cut bad desk tips.
+ENERGY_SPOT_CAP = 8.0
+BLANK_RARITY_SPOT_CAP = 15.0
+
 # Identical board-price clusters across unrelated cards (JustTCG poison).
 POISON_CLUSTER_MIN_SIZE = 10
 POISON_CLUSTER_MIN_SETS = 3
@@ -148,12 +152,19 @@ def _looks_like_thin_promo(rarity: Any, set_name: Any) -> bool:
     return any(token in blob for token in _SHARE_UNSAFE_TOKENS)
 
 
+def _looks_like_energy(name: Any = None, rarity: Any = None, supertype: Any = None) -> bool:
+    blob = f"{name or ''} {rarity or ''} {supertype or ''}".strip().lower()
+    return "energy" in blob
+
+
 def share_safe_under_deal(
     *,
     spot: Any,
     edge_pct: Any,
     rarity: Any = None,
     set_name: Any = None,
+    name: Any = None,
+    supertype: Any = None,
     price_change_7d_pct: Any = None,
     spot_quarantine: Any = False,
 ) -> bool:
@@ -166,10 +177,14 @@ def share_safe_under_deal(
         return False
     if _looks_like_thin_promo(rarity, set_name):
         return False
+    price = _as_positive_float(spot)
     # Missing rarity on public UNDER often means poisoned bulk — keep G0 sniff safe.
     if not str(rarity or "").strip():
-        price = _as_positive_float(spot)
-        if price is None or price > 15.0:
+        if price is None or price > float(BLANK_RARITY_SPOT_CAP):
+            return False
+    # Basic / special Energy at high board spots is almost always wrong matching.
+    if _looks_like_energy(name, rarity, supertype):
+        if price is None or price > float(ENERGY_SPOT_CAP):
             return False
     return under_deal_allowed(
         spot=spot,
@@ -289,12 +304,71 @@ def summarize_poison_clusters(
     return rows[: max(0, int(limit))]
 
 
+def auto_quarantine_mask(quotes: pd.DataFrame) -> pd.Series:
+    """True for rows that should leave the sure desk without a human Heal click.
+
+    Covers poison clusters plus clear-cut tip poison: Energy over cap, blank
+    rarity over cap, and isolated common/uncommon over rarity spot caps.
+    """
+    if quotes is None or quotes.empty:
+        return pd.Series(dtype=bool)
+
+    poison = poison_spot_mask(quotes)
+    spot_s = _frame_spots(quotes)
+    names = (
+        quotes["name"].fillna("").astype(str)
+        if "name" in quotes.columns
+        else pd.Series([""] * len(quotes), index=quotes.index)
+    )
+    rarities = (
+        quotes["rarity"]
+        if "rarity" in quotes.columns
+        else pd.Series([None] * len(quotes), index=quotes.index)
+    )
+    supertypes = (
+        quotes["supertype"].fillna("").astype(str)
+        if "supertype" in quotes.columns
+        else pd.Series([""] * len(quotes), index=quotes.index)
+    )
+
+    energy_flags: list[bool] = []
+    blank_flags: list[bool] = []
+    rarity_flags: list[bool] = []
+    for spot, name, rarity, stype in zip(
+        spot_s.tolist(),
+        names.tolist(),
+        rarities.tolist(),
+        supertypes.tolist(),
+        strict=False,
+    ):
+        price = _as_positive_float(spot)
+        is_energy = _looks_like_energy(name, rarity, stype)
+        energy_flags.append(
+            bool(is_energy and (price is None or price > float(ENERGY_SPOT_CAP)))
+        )
+        blank = not str(rarity or "").strip()
+        blank_flags.append(
+            bool(blank and (price is None or price > float(BLANK_RARITY_SPOT_CAP)))
+        )
+        # Isolated over-cap commons/uncommons (clusters already covered by poison).
+        rarity_flags.append(
+            bool(price is not None and not under_spot_allowed_for_rarity(price, rarity))
+        )
+
+    return (
+        poison
+        | pd.Series(energy_flags, index=quotes.index)
+        | pd.Series(blank_flags, index=quotes.index)
+        | pd.Series(rarity_flags, index=quotes.index)
+    )
+
+
 def apply_spot_quarantine(quotes: pd.DataFrame) -> pd.DataFrame:
-    """Mark poison-cluster rows as not-sure HOLD without dropping them from browse."""
+    """Mark auto-unsafe rows as not-sure HOLD without dropping them from browse."""
     if quotes is None or quotes.empty:
         return quotes
     out = quotes.copy()
-    mask = poison_spot_mask(out)
+    mask = auto_quarantine_mask(out)
     out["spot_quarantine"] = mask.astype(bool)
     if not bool(mask.any()):
         return out

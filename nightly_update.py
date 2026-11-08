@@ -238,26 +238,44 @@ def refresh_price_history() -> dict[str, int]:
                 qa.get("sure_rows"),
                 qa.get("unmatched_sets_count"),
             )
-            # Soft-heal identical absurd spot clusters so skip_absurd cannot trap them.
+            # Soft-heal absurd clusters + auto-quarantine Energy/rarity-cap tips.
             try:
-                from services.spot_heal import heal_poisoned_spots, nightly_spot_heal_limit
+                from services.spot_heal import (
+                    heal_auto_unsafe_spots,
+                    heal_poisoned_spots,
+                    nightly_spot_heal_limit,
+                )
 
                 heal_limit = nightly_spot_heal_limit()
-                if heal_limit > 0 and int(qa.get("spot_quarantine_rows") or 0) > 0:
-                    heal = heal_poisoned_spots(mode="refetch", limit=heal_limit)
+                if heal_limit > 0:
+                    # Persist clear-cut unsafe tips off the sure desk (no human clicks).
+                    auto = heal_auto_unsafe_spots(mode="null_market", limit=heal_limit)
                     LOG.info(
-                        "Spot heal: count=%s updated=%s skip_poison=%s keys=%s",
-                        heal.get("count"),
-                        heal.get("updated"),
-                        heal.get("skip_poison"),
-                        heal.get("poison_keys"),
+                        "Auto-quarantine: count=%s quotes=%s keys=%s",
+                        auto.get("count"),
+                        auto.get("quotes_quarantined"),
+                        auto.get("poison_keys"),
                     )
-                    qa["spot_heal"] = {
-                        "count": heal.get("count"),
-                        "updated": heal.get("updated"),
-                        "skip_poison": heal.get("skip_poison"),
-                        "poison_keys": heal.get("poison_keys"),
+                    qa["spot_auto_quarantine"] = {
+                        "count": auto.get("count"),
+                        "quotes_quarantined": auto.get("quotes_quarantined"),
+                        "poison_keys": auto.get("poison_keys"),
                     }
+                    if int(qa.get("spot_quarantine_rows") or 0) > 0:
+                        heal = heal_poisoned_spots(mode="refetch", limit=heal_limit)
+                        LOG.info(
+                            "Spot heal: count=%s updated=%s skip_poison=%s keys=%s",
+                            heal.get("count"),
+                            heal.get("updated"),
+                            heal.get("skip_poison"),
+                            heal.get("poison_keys"),
+                        )
+                        qa["spot_heal"] = {
+                            "count": heal.get("count"),
+                            "updated": heal.get("updated"),
+                            "skip_poison": heal.get("skip_poison"),
+                            "poison_keys": heal.get("poison_keys"),
+                        }
                     from services.spot_qa import save_spot_qa_snapshot
 
                     save_spot_qa_snapshot(qa)
