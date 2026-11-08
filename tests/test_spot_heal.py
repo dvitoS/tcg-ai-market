@@ -112,6 +112,32 @@ def test_null_market_only_poisoned(monkeypatch) -> None:
     assert set(quarantined) == set(nulled)
 
 
+def test_targeted_null_market_skips_board_scan(monkeypatch) -> None:
+    """Per-row sniff Heal must not load the full board (that made clicks feel stuck)."""
+    scanned = {"n": 0}
+
+    def boom():
+        scanned["n"] += 1
+        raise AssertionError("full-board poison detect must not run for targeted null_market")
+
+    monkeypatch.setattr("services.spot_heal.detect_poisoned_card_ids", boom)
+    monkeypatch.setattr(
+        "services.spot_heal._spot_keys_for_card_ids",
+        lambda ids: (_ for _ in ()).throw(AssertionError("spot keys unused for null_market")),
+    )
+    monkeypatch.setattr("database.clear_card_market_price", lambda cid: None)
+    monkeypatch.setattr(
+        "services.quotes_store.quarantine_market_quote_ids",
+        lambda ids: len(list(ids)),
+    )
+    out = heal_poisoned_spots(mode="null_market", card_ids=["sv8-oshawott"])
+    assert out["count"] == 1
+    assert out["nulled"] == 1
+    assert out["quotes_quarantined"] == 1
+    assert out["poison_keys"] == []
+    assert scanned["n"] == 0
+
+
 def test_targeted_card_ids_ban_own_spots(monkeypatch) -> None:
     """Isolated wrong tips (Espeon $125) must ban their own key, not only clusters."""
     board = _poison_board(n=10)
