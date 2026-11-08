@@ -100,7 +100,7 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 ### Suggested next 3
 
 1. **Run G0 sniff pack** against production board after tonight’s nightly *(ops)*  
-2. **M2.5** — Reddit-ready deep links / OG polish *(PR open)*  
+2. **M2.5** — Reddit-ready deep links / OG *(PR #145)*  
 3. **M3.1** — sealed desk correctness sniff
 
 ### Explicit non-goals until spend unlock
