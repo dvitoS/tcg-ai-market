@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 from api.demo_mode import demo_mode
@@ -108,6 +109,36 @@ def _with_tcp_images(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return out
 
 
+def _token_overlap(expected: str, actual: str) -> bool:
+    """True when live JustTCG title still smells like the curated seed name."""
+    stop = {
+        "the",
+        "and",
+        "of",
+        "a",
+        "an",
+        "ex",
+        "box",
+        "set",
+        "pokemon",
+        "pokémon",
+        "tcg",
+    }
+    exp = {
+        t
+        for t in re.findall(r"[a-z0-9]+", (expected or "").lower())
+        if len(t) >= 3 and t not in stop
+    }
+    act = {
+        t
+        for t in re.findall(r"[a-z0-9]+", (actual or "").lower())
+        if len(t) >= 3 and t not in stop
+    }
+    if not exp or not act:
+        return False
+    return len(exp & act) >= min(2, len(exp))
+
+
 def _filter_demo(q: str | None) -> list[dict[str, Any]]:
     text = (q or "").strip().lower()
     if not text:
@@ -121,6 +152,46 @@ def _filter_demo(q: str | None) -> list[dict[str, Any]]:
             or text in str(row.get("tcgplayer_id") or "").lower()
         ]
     return _with_tcp_images(rows)
+
+
+def _sniff_live_showcase(*, limit: int) -> list[dict[str, Any]]:
+    """Quote curated TCP seeds live; drop rows that fail name sniff (M3.1)."""
+    from justtcg_sealed import quote_sealed, tcgplayer_product_image
+
+    out: list[dict[str, Any]] = []
+    for seed in _DEMO_SEALED:
+        if len(out) >= limit:
+            break
+        tid = str(seed.get("tcgplayer_id") or "").strip()
+        if not tid:
+            continue
+        try:
+            hits = quote_sealed(tcgplayer_id=tid, limit=1)
+        except Exception as exc:
+            LOG.info("sealed seed live quote failed (%s): %s", tid, exc)
+            continue
+        if not hits:
+            LOG.info("sealed seed sniff empty for tcp=%s", tid)
+            continue
+        hit = dict(hits[0])
+        live_name = str(hit.get("name") or "")
+        if not _token_overlap(str(seed.get("name") or ""), live_name):
+            LOG.info(
+                "sealed seed sniff rejected tcp=%s expected=%r got=%r",
+                tid,
+                seed.get("name"),
+                live_name,
+            )
+            continue
+        # Prefer verified TCP CDN when JustTCG omits art.
+        if not hit.get("image_url"):
+            hit["image_url"] = tcgplayer_product_image(tid)
+        hit["tcgplayer_id"] = tid
+        hit["card_id"] = f"sealed:{tid}"
+        hit["source"] = "justtcg"
+        hit["kind"] = "sealed"
+        out.append(hit)
+    return out
 
 
 def quote_sealed_products(
@@ -144,7 +215,17 @@ def quote_sealed_products(
                 "justtcg_configured": has_key,
                 "error": "Provide q, tcgplayer_id, or gtin.",
             }
-        # Soft Ink /sealed desk: curated demo showcase until we persist a sealed board.
+        # Soft Ink /sealed desk: live-sniff curated TCP seeds when JustTCG is up;
+        # otherwise show illustrative demo spots with verified CDN art only.
+        if has_key and not demo_mode():
+            live = _sniff_live_showcase(limit=limit)
+            if live:
+                return {
+                    "items": live[:limit],
+                    "source": "justtcg",
+                    "justtcg_configured": True,
+                }
+            LOG.info("sealed showcase sniff empty — falling back to demo seed")
         hits = _filter_demo(None)
         return {
             "items": hits[:limit],

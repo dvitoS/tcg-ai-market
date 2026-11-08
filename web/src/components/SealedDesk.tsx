@@ -128,6 +128,9 @@ export function SealedDesk() {
         </button>
       </form>
 
+      {source === "justtcg" && !submitted ? (
+        <p className="lot-meta">{t("sealed_desk_live")}</p>
+      ) : null}
       {source === "demo" ? (
         <p className="lot-meta">
           {justtcg ? t("sealed_desk_demo_live") : t("sealed_demo_note")}
@@ -140,6 +143,7 @@ export function SealedDesk() {
       ) : (
         <p className="lot-meta">{t("sealed_desk_showcase")}</p>
       )}
+      <p className="lot-meta">{t("sealed_desk_disclaimer")}</p>
 
       {error ? <p className="banner-error">{error}</p> : null}
       {note ? <p className="banner-ok">{note}</p> : null}
