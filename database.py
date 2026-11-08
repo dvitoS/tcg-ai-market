@@ -57,6 +57,7 @@ from database_clients import (
     reset_supabase,
     set_request_access_token,
     table_count,
+    table_has_rows,
     user_data_client_mode,
 )
 from database_user import (
@@ -128,6 +129,7 @@ __all__ = [
     "replace_card_history",
     "sell_portfolio_position",
     "table_count",
+    "table_has_rows",
     "update_card_market_price",
     "update_card_pokewallet_id",
     "update_card_tcgplayer_id",

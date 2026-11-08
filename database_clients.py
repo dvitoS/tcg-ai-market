@@ -497,7 +497,42 @@ def fetch_all(table: str, columns: str = "*", *, order: str | None = None) -> li
     return rows
 
 
-def table_count(table: str) -> int:
+def table_has_rows(table: str) -> bool:
+    """Cheap existence probe — never ``COUNT(*)`` (times out on price_history ~2M)."""
     client = get_supabase()
-    response = client.table(table).select("*", count="exact").limit(1).execute()
-    return int(response.count or 0)
+    # Prefer a narrow column when we know the schema.
+    column = "card_id" if table == "price_history" else "id" if table == "cards" else "*"
+    try:
+        response = client.table(table).select(column).limit(1).execute()
+        return bool(response.data)
+    except Exception:
+        if column == "*":
+            raise
+        response = client.table(table).select("*").limit(1).execute()
+        return bool(response.data)
+
+
+def table_count(table: str) -> int:
+    """Row count. Uses estimated counts for huge tables; falls back to presence.
+
+    Exact ``COUNT(*)`` on ``price_history`` (~2M rows) hits Supabase statement
+    timeout (57014) and aborted nightly in ``ensure_seed_database``.
+    """
+    client = get_supabase()
+    # PostgREST: exact is expensive; estimated/planned avoid full scans.
+    modes = ("estimated", "planned", "exact") if table == "price_history" else ("exact",)
+    last_exc: Exception | None = None
+    for mode in modes:
+        try:
+            response = client.table(table).select("*", count=mode).limit(1).execute()
+            if response.count is not None:
+                return int(response.count)
+        except Exception as exc:
+            last_exc = exc
+            continue
+    # Seed / emptiness checks only need >0 — don't fail the whole nightly.
+    if table_has_rows(table):
+        return 1
+    if last_exc is not None:
+        raise last_exc
+    return 0
