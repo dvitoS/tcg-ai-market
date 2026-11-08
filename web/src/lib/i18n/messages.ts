@@ -340,9 +340,17 @@ const en = {
   radar_share_copy: "Copy share link",
   radar_share_busy: "Copying…",
   radar_share_copied: "Share text copied — plain verdict + filter link.",
+  radar_share_copied_fallback: "Clipboard blocked — copy the link below.",
   radar_share_error: "Could not copy share link",
   radar_share_blurb:
-    "Kestrel Radar — sure underpriced / overpriced calls vs the fair band.",
+    "Kestrel Radar — sure underpriced / overpriced calls vs the fair band. Desk call, not financial advice.",
+  radar_share_filters: "Filters",
+  radar_share_board: "Board: {under} UNDER · {over} OVER (sure)",
+  radar_share_top_under: "Top UNDER: {name} (~{edge}% under fair)",
+  radar_share_preview_title: "Shared Radar filters",
+  radar_share_preview_lede:
+    "Someone shared this Radar lens. Sign in with Pro to open the live UNDER/OVER board.",
+  radar_share_preview_empty: "Open filters — no extras pinned on this link.",
 
   // Model trust (Kestrel Pro — on Radar)
   trust_eyebrow: "Model trust",
@@ -1038,9 +1046,17 @@ const hr: Dictionary = {
   radar_share_copy: "Kopiraj share link",
   radar_share_busy: "Kopiram…",
   radar_share_copied: "Share tekst kopiran — plain verdict + filter link.",
+  radar_share_copied_fallback: "Clipboard blokiran — kopiraj link ispod.",
   radar_share_error: "Nisam uspio kopirati share link",
   radar_share_blurb:
-    "Kestrel Radar — sure podcijenjeni / precijenjeni pozivi vs fair pojas.",
+    "Kestrel Radar — sure podcijenjeni / precijenjeni pozivi vs fair pojas. Desk call, ne financijski savjet.",
+  radar_share_filters: "Filteri",
+  radar_share_board: "Board: {under} UNDER · {over} OVER (sure)",
+  radar_share_top_under: "Top UNDER: {name} (~{edge}% ispod fair)",
+  radar_share_preview_title: "Podijeljeni Radar filteri",
+  radar_share_preview_lede:
+    "Netko je podijelio ovaj Radar lens. Prijavi se s Pro da otvoriš live UNDER/OVER board.",
+  radar_share_preview_empty: "Otvoreni filteri — bez dodatnih pinova na ovom linku.",
 
   trust_eyebrow: "Model trust",
   trust_title: "Kako forecast zarađuje povjerenje",

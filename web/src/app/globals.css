@@ -3013,6 +3013,19 @@ a {
   animation: rise 0.55s ease both;
 }
 
+.radar-share-preview {
+  margin: 0.85rem 0 1.1rem;
+  max-width: 36rem;
+}
+
+.radar-share-preview-chips {
+  margin: 0.45rem 0 0;
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 560;
+  line-height: 1.4;
+}
+
 .trade-target {
   display: flex;
   flex-wrap: wrap;
