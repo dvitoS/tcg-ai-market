@@ -147,6 +147,11 @@ def fetch_sealed_by_gtin(gtin: str) -> dict[str, Any] | None:
         },
     )
     rows = list(payload.get("data") or [])
+    # Prefer an exact GTIN hit when present; otherwise first sealed-looking row.
+    for row in rows:
+        row_gtin = re.sub(r"\D", "", str(row.get("gtin") or row.get("upc") or ""))
+        if row_gtin and row_gtin == code:
+            return row
     return rows[0] if rows else None
 
 
@@ -166,6 +171,10 @@ def fetch_sealed_by_tcgplayer_id(tcgplayer_id: str) -> dict[str, Any] | None:
             },
         )
         rows = list(payload.get("data") or [])
+        for row in rows:
+            external = _external_tcp(row)
+            if external and str(external).strip() == tid:
+                return row
         if rows:
             return rows[0]
     except Exception as exc:

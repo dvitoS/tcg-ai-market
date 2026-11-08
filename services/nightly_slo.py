@@ -33,8 +33,15 @@ def evaluate_nightly_slo(
     max_seconds: int,
     quotes_written: int,
     failures: list[str],
+    sure_rows: int | None = None,
+    min_sure_rows: int = 1,
 ) -> dict[str, Any]:
-    """Return SLO verdict. Quotes must refresh; wall clock must stay under soft max."""
+    """Return SLO verdict. Quotes must refresh; wall clock must stay under soft max.
+
+    When ``sure_rows`` is provided (post-retrain board sample), require at least
+    ``min_sure_rows`` sure quotes so a useless empty conformal board cannot
+    green-light marketing/ops (M0.5).
+    """
     reasons: list[str] = []
     if quotes_written <= 0:
         reasons.append("quotes_not_written")
@@ -42,6 +49,8 @@ def evaluate_nightly_slo(
         reasons.append("retrain_failed")
     if elapsed_s > float(max_seconds):
         reasons.append("elapsed_over_budget")
+    if sure_rows is not None and int(sure_rows) < int(min_sure_rows):
+        reasons.append("sure_board_empty")
     ok = len(reasons) == 0
     return {
         "slo_ok": ok,
@@ -49,4 +58,5 @@ def evaluate_nightly_slo(
         "elapsed_s": round(float(elapsed_s), 1),
         "max_seconds": int(max_seconds),
         "quotes_written": int(quotes_written),
+        "sure_rows": None if sure_rows is None else int(sure_rows),
     }

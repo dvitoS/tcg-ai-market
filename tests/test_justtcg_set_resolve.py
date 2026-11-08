@@ -134,3 +134,47 @@ def test_display_set_name_prefers_card_majority():
 def test_display_set_name_falls_back_to_code():
     cards = [("1", SimpleNamespace(set_name=None, id="xyz-1"))]
     assert _display_set_name("xyz", cards) == "xyz"
+
+
+def test_normalize_token_name_match_scores_high():
+    """Punctuation-insensitive name match must beat weak substring noise."""
+    row = {
+        "id": "sv-scarlet-violet-151-pokemon",
+        "name": "Scarlet & Violet 151",
+    }
+    assert score_justtcg_set_row(row, wanted_name="Scarlet & Violet—151") == 95
+    assert (
+        pick_justtcg_set_id([ALT, row], set_name="Scarlet & Violet—151") == row["id"]
+    )
+
+
+def test_resolve_merges_multi_query_rows(monkeypatch):
+    """Wanted name + set code queries merge; never silent rows[0] from first query."""
+
+    def fake_get(path, params=None):
+        q = str((params or {}).get("q") or "")
+        if q.lower() == "evolving skies":
+            return {"data": [ALT]}
+        if q.lower() == "swsh7":
+            return {"data": [ES]}
+        return {"data": []}
+
+    monkeypatch.setattr("justtcg_client._get", fake_get)
+    monkeypatch.setattr(
+        "justtcg_client.list_pokemon_sets",
+        lambda: (_ for _ in ()).throw(RuntimeError("should not list")),
+    )
+    assert resolve_set_id("Evolving Skies", set_code="swsh7") == ES["id"]
+
+
+def test_tie_keeps_first_max_score():
+    a = {"id": "swsh07-evolving-skies-pokemon", "name": "Evolving Skies"}
+    b = {"id": "swsh7-evolving-skies-alt-pokemon", "name": "Evolving Skies"}
+    # Both exact-name 100 — deterministic first max wins.
+    assert pick_justtcg_set_id([a, b], set_name="Evolving Skies") == a["id"]
+
+
+def test_short_code_does_not_false_match_unrelated_slug():
+    """sv2 must not latch onto a longer unrelated id that merely contains digits."""
+    noise = {"id": "sv25-random-noise-pokemon", "name": "Random Noise"}
+    assert pick_justtcg_set_id([ALT, noise], set_name="sv2", set_code="sv2") is None

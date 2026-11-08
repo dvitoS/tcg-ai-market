@@ -49,6 +49,26 @@ def test_evaluate_nightly_slo_retrain_and_budget() -> None:
     assert "catalog" not in result["slo_reasons"]
 
 
+def test_evaluate_nightly_slo_sure_board_gate() -> None:
+    ok = evaluate_nightly_slo(
+        elapsed_s=100.0,
+        max_seconds=9000,
+        quotes_written=40,
+        failures=[],
+        sure_rows=12,
+    )
+    assert ok["slo_ok"] is True
+    empty = evaluate_nightly_slo(
+        elapsed_s=100.0,
+        max_seconds=9000,
+        quotes_written=40,
+        failures=[],
+        sure_rows=0,
+    )
+    assert empty["slo_ok"] is False
+    assert "sure_board_empty" in empty["slo_reasons"]
+
+
 def test_phase_timer_elapsed() -> None:
     timer = PhaseTimer("demo")
     time.sleep(0.02)

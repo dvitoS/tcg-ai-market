@@ -144,6 +144,11 @@ function SidePanel({
                     ×{line.quantity}
                     {setName ? ` · ${setName}` : ""}
                     {scored?.spot != null ? ` · ${formatMoney(scored.spot)}` : ""}
+                    {scored?.spot_source === "justtcg_variant"
+                      ? ` · ${t("port_spot_live")}`
+                      : scored?.spot_source === "multiplier"
+                        ? ` · ${t("port_spot_estimated")}`
+                        : ""}
                     {scored?.expected_change_pct != null
                       ? ` · AI ${formatChange(scored.expected_change_pct)}`
                       : ""}
