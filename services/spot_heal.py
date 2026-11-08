@@ -53,22 +53,10 @@ def detect_poisoned_card_ids() -> tuple[list[str], set[float]]:
 
 
 def _spot_keys_for_card_ids(card_ids: list[str]) -> set[float]:
-    """Board + catalog spots for targeted ids (isolated wrong tips, not clusters)."""
+    """Catalog spots for targeted ids — no full-board scan."""
     keys: set[float] = set()
     if not card_ids:
         return keys
-    idset = set(card_ids)
-    try:
-        from api.catalog_service import load_board
-
-        board, _source = load_board()
-        if board is not None and not board.empty and "id" in board.columns:
-            frame = board.loc[board["id"].astype(str).isin(idset)]
-            if not frame.empty:
-                spots = _frame_spots(frame)
-                keys.update(float(v) for v in spots.dropna().tolist())
-    except Exception as exc:
-        LOG.warning("board spot keys failed: %s", exc)
     try:
         from database import get_card
 
@@ -95,19 +83,17 @@ def heal_poisoned_spots(
     - null_market: null ``cards.market_price`` for poisoned IDs + quarantine quotes
     - clear_history: null market + delete per-card history + quarantine quotes
     - refetch: null market + clear history + quarantine quotes + targeted JustTCG sync
+
+    Targeted ``card_ids`` (sniff / reports) skip the full-board poison scan so
+    per-row Heal stays fast. Poison keys are only collected for refetch.
     """
     if card_ids is None:
         ids, poison_keys = detect_poisoned_card_ids()
     else:
         ids = sorted({str(cid).strip() for cid in card_ids if str(cid).strip()})
-        poison_keys = set()
-        if ids:
-            try:
-                _live_ids, cluster_keys = detect_poisoned_card_ids()
-                poison_keys.update(cluster_keys)
-            except Exception as exc:
-                LOG.warning("poison key detect failed: %s", exc)
-            poison_keys.update(_spot_keys_for_card_ids(ids))
+        # Targeted heal: skip full-board cluster detect (slow). Own tip keys
+        # are enough to block refetch from rewriting the same wrong spot.
+        poison_keys = _spot_keys_for_card_ids(ids) if mode == "refetch" and ids else set()
 
     if limit is not None:
         ids = ids[: max(0, int(limit))]
