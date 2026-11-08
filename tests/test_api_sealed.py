@@ -29,10 +29,37 @@ def test_sealed_quote_showcase_without_query() -> None:
     assert body["source"] == "demo"
     assert len(body["items"]) >= 1
     assert body["items"][0]["card_id"].startswith("sealed:")
-    # Showcase uses real TCP ids → CDN art URLs.
+    # Showcase uses verified Pokémon TCP ids → CDN art URLs.
     with_art = [row for row in body["items"] if row.get("image_url")]
     assert len(with_art) >= 3
     assert "tcgplayer-cdn.tcgplayer.com" in str(with_art[0]["image_url"])
+    known = {
+        "565630",
+        "600518",
+        "593355",
+        "502005",
+        "528040",
+        "557350",
+        "543845",
+        "532848",
+    }
+    assert {str(row.get("tcgplayer_id")) for row in body["items"]} <= known
+
+
+def test_normalize_skips_cdn_without_external_tcp() -> None:
+    from justtcg_sealed import normalize_sealed_hit
+
+    hit = normalize_sealed_hit(
+        {
+            "id": "999001",
+            "name": "Opaque Sealed Handle",
+            "variants": [],
+        }
+    )
+    assert hit is not None
+    assert hit["tcgplayer_id"] == "999001"
+    # Without external_ids.tcgplayer, do not invent CDN art from opaque ids.
+    assert hit["image_url"] is None
 
 
 def test_tcgplayer_product_image_helper() -> None:
