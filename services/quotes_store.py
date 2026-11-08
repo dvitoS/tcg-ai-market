@@ -104,12 +104,36 @@ def _strip_optional_fields(
     return [{k: v for k, v in row.items() if k not in drop} for row in rows]
 
 
+def market_quotes_revision() -> str | None:
+    """Cheap board watermark — max(updated_at) — for multi-worker cache busting."""
+    try:
+        from database import get_supabase
+
+        client = get_supabase()
+        resp = (
+            client.table(TABLE)
+            .select("updated_at")
+            .order("updated_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+        rows = list(resp.data or [])
+        if not rows:
+            return "empty"
+        stamp = rows[0].get("updated_at")
+        return str(stamp) if stamp is not None else "empty"
+    except Exception as exc:
+        LOG.warning("market_quotes_revision failed: %s", exc)
+        return None
+
+
 def quarantine_market_quote_ids(card_ids: list[str] | set[str]) -> int:
     """Soft-drop sure tips for healed / reported cards on the persisted board.
 
     Radar / sniff read ``market_quotes``, not ``cards.market_price``. Nulling the
     catalog tip alone leaves stale sure UNDER/OVER rows until nightly rebuild —
-    mark those quote rows HOLD + not-confidence so they leave the sure desk now.
+    mark those quote rows HOLD + not-confidence and clear edge fields so they
+    leave the sure desk even if a worker briefly serves a warm cache.
     """
     ids = sorted({str(cid).strip() for cid in (card_ids or []) if str(cid).strip()})
     if not ids:
@@ -125,23 +149,48 @@ def quarantine_market_quote_ids(card_ids: list[str] | set[str]) -> int:
             "confidence_level": "low",
             "conformal_ok": False,
             "signal": SIGNAL_HOLD,
+            # Drop ranking edges so a stale sure filter cannot re-surface them.
+            "expected_change_pct": None,
+            "pred_lo_pct": None,
+            "pred_hi_pct": None,
             "updated_at": now,
         }
         updated = 0
         for chunk in _chunked(ids, size=80):
             try:
                 client.table(TABLE).update(payload).in_("card_id", chunk).execute()
-                updated += len(chunk)
             except Exception as exc:
                 msg = str(exc).lower()
-                if "conformal_ok" in msg or "column" in msg:
+                if "column" in msg or any(
+                    col in msg
+                    for col in (
+                        "conformal_ok",
+                        "pred_lo_pct",
+                        "pred_hi_pct",
+                        "expected_change_pct",
+                    )
+                ):
                     slim = {
-                        k: v for k, v in payload.items() if k != "conformal_ok"
+                        "confidence_ok": False,
+                        "confidence_level": "low",
+                        "signal": SIGNAL_HOLD,
+                        "updated_at": now,
                     }
                     client.table(TABLE).update(slim).in_("card_id", chunk).execute()
-                    updated += len(chunk)
                 else:
                     raise
+            # Count only rows that actually exist on the board.
+            try:
+                check = (
+                    client.table(TABLE)
+                    .select("card_id")
+                    .in_("card_id", chunk)
+                    .eq("confidence_ok", False)
+                    .execute()
+                )
+                updated += len(list(check.data or []))
+            except Exception:
+                updated += len(chunk)
         return updated
     except Exception as exc:
         LOG.warning("quarantine_market_quote_ids failed: %s", exc)
