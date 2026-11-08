@@ -7,6 +7,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { DealOfTheDay } from "@/components/DealOfTheDay";
 import { useLocale } from "@/components/LocaleProvider";
 import { fetchBillingMe, type BillingMe } from "@/lib/api";
+import { trackFunnel } from "@/lib/funnel";
 import type { RadarPreviewResponse } from "@/lib/types";
 
 export function ProView({
@@ -39,6 +40,10 @@ export function ProView({
     if (authLoading) return;
     void loadMe();
   }, [authLoading, user, loadMe]);
+
+  useEffect(() => {
+    trackFunnel("pro_view", undefined, { once: true });
+  }, []);
 
   const isPro = Boolean(me?.is_pro);
   const effectiveCheckout = me?.checkout_url || checkoutUrl;
@@ -73,10 +78,18 @@ export function ProView({
       <div className="detail-actions">
         {isPro ? (
           <>
-            <Link href="/radar" className="btn-primary">
+            <Link
+              href="/radar"
+              className="btn-primary"
+              onClick={() => trackFunnel("pro_open_radar", { is_pro: true })}
+            >
               {t("pro_open_radar")}
             </Link>
-            <Link href="/trade" className="btn-ghost">
+            <Link
+              href="/trade"
+              className="btn-ghost"
+              onClick={() => trackFunnel("pro_open_trade", { is_pro: true })}
+            >
               {t("pro_open_trade")}
             </Link>
             <Link href="/dealer" className="btn-ghost">
@@ -91,7 +104,12 @@ export function ProView({
         ) : (
           <>
             {effectiveCheckout ? (
-              <a href={effectiveCheckout} className="btn-primary" rel="noreferrer">
+              <a
+                href={effectiveCheckout}
+                className="btn-primary"
+                rel="noreferrer"
+                onClick={() => trackFunnel("pro_checkout_click")}
+              >
                 {t("dealer_upgrade")}
               </a>
             ) : (
@@ -99,10 +117,18 @@ export function ProView({
                 {t("pro_checkout_missing")}
               </span>
             )}
-            <Link href="/radar" className="btn-ghost">
+            <Link
+              href="/radar"
+              className="btn-ghost"
+              onClick={() => trackFunnel("pro_open_radar", { is_pro: false })}
+            >
               {t("pro_open_radar")}
             </Link>
-            <Link href="/trade" className="btn-ghost">
+            <Link
+              href="/trade"
+              className="btn-ghost"
+              onClick={() => trackFunnel("pro_open_trade", { is_pro: false })}
+            >
               {t("pro_open_trade")}
             </Link>
             <Link href="/dealer" className="btn-ghost">

@@ -78,6 +78,11 @@ const en = {
   landing_guides_fair: "Pokémon TCG fair value →",
   landing_guides_grade: "Should I grade this card? →",
   landing_guides_trade: "Is this trade fair? →",
+  obs_funnel_title: "Soft-launch funnel",
+  obs_funnel_caption:
+    "Process-local counts: landing → DOTD → Pro → Radar/Trade (resets on API restart).",
+  obs_funnel_total: "{n} events this process",
+  obs_funnel_empty: "No funnel events recorded yet on this API process.",
   obs_sniff_title: "Spot sniff pack (G0)",
   obs_sniff_caption:
     "Sample sure UNDER/OVER rows. Check TCGplayer + eBay sold before any marketing spend.",
@@ -873,6 +878,11 @@ const hr: Dictionary = {
   landing_guides_fair: "Pokémon TCG fair value →",
   landing_guides_grade: "Trebam li gradeati ovu kartu? →",
   landing_guides_trade: "Je li ovaj trade fair? →",
+  obs_funnel_title: "Soft-launch funnel",
+  obs_funnel_caption:
+    "Process-local brojači: landing → DOTD → Pro → Radar/Trade (reset na API restart).",
+  obs_funnel_total: "{n} eventa na ovom procesu",
+  obs_funnel_empty: "Još nema funnel eventa na ovom API procesu.",
   obs_sniff_title: "Spot sniff pack (G0)",
   obs_sniff_caption:
     "Uzorak sure UNDER/OVER redova. Provjeri TCGplayer + eBay sold prije marketing spend-a.",
