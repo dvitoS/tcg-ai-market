@@ -75,7 +75,7 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 | M2.2 | Radar share blurb | **Shipping** — dynamic filters + UNDER/OVER counts + top UNDER; locked-share filter preview; clipboard fallback |
 | M2.3 | Binder share lite | **Shipping** — clipboard with % / owned / missing / buy-cost; PNG+clipboard; signed-out set preview; no private P&L |
 | M2.4 | Deal-of-day share card | **Shipping** — PNG + clipboard + card deep link; Pro CTA watermark |
-| M2.5 | Reddit-ready deep links | `/trade/s/{id}` + card OG tags correct |
+| M2.5 | Reddit-ready deep links | **Shipping** — `/trade/s/{id}` metadata + OG image; card OG absolute `og:image` |
 
 #### M3 — Desk depth that earns trust
 
@@ -99,9 +99,9 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 
 ### Suggested next 3
 
-1. **Run G0 sniff pack** against production board after next nightly *(ops)*  
-2. **M2.5** — Reddit-ready deep links / OG polish  
-3. **M1.4 / M1.5** — source labels + desk-call disclaimer polish
+1. **Run G0 sniff pack** against production board after tonight’s nightly *(ops)*  
+2. **M1.4 / M1.5** — source labels + desk-call disclaimer polish  
+3. **M3.1** — sealed desk correctness sniff
 
 ### Explicit non-goals until spend unlock
 
