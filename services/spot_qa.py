@@ -85,12 +85,18 @@ def load_spot_qa_snapshot() -> dict[str, Any] | None:
     return _read_local()
 
 
-def compute_live_spot_qa() -> dict[str, Any]:
-    """Always-on metrics from board + price_history presence (no JustTCG calls)."""
+def compute_live_spot_qa(*, include_history_scan: bool = True) -> dict[str, Any]:
+    """Board metrics (+ optional price_history coverage).
+
+    ``include_history_scan=True`` (nightly) walks distinct ``price_history``
+    card_ids — multi-million rows. Soft Ink ``/api/data-health`` must pass
+    ``False`` or the 512MB API OOMs and browsers report a fake CORS failure.
+    """
     out: dict[str, Any] = {
         "cards_total": 0,
         "cards_with_history": 0,
         "history_coverage_pct": 0.0,
+        "history_scan": False,
         "quotes_total": 0,
         "sure_rows": 0,
         "spot_quarantine_rows": 0,
@@ -99,15 +105,19 @@ def compute_live_spot_qa() -> dict[str, Any]:
         "board_source": "empty",
     }
     try:
-        from database import distinct_history_card_ids, table_count
+        from database import table_count
 
         cards_total = int(table_count("cards") or 0)
-        with_hist = len(distinct_history_card_ids())
         out["cards_total"] = cards_total
-        out["cards_with_history"] = with_hist
-        out["history_coverage_pct"] = (
-            round(100.0 * with_hist / cards_total, 2) if cards_total else 0.0
-        )
+        if include_history_scan:
+            from database import distinct_history_card_ids
+
+            with_hist = len(distinct_history_card_ids())
+            out["cards_with_history"] = with_hist
+            out["history_coverage_pct"] = (
+                round(100.0 * with_hist / cards_total, 2) if cards_total else 0.0
+            )
+            out["history_scan"] = True
     except Exception as exc:
         LOG.warning("spot_qa history coverage failed: %s", exc)
 
@@ -196,18 +206,24 @@ def build_and_save_snapshot(
 
 
 def data_health_spot_fields() -> dict[str, Any]:
-    """Merge live metrics with last nightly snapshot for /api/data-health."""
-    live = compute_live_spot_qa()
+    """Merge live board metrics with last nightly snapshot for /api/data-health.
+
+    Never runs the full ``price_history`` distinct scan here — that OOMs the
+    Soft Ink API (512MB) and surfaces as a browser CORS error on 502.
+    """
+    live = compute_live_spot_qa(include_history_scan=False)
     snap = load_spot_qa_snapshot() or {}
+    history_scan = bool(live.get("history_scan"))
     return {
         "cards_total": int(live.get("cards_total") or snap.get("cards_total") or 0),
         "cards_with_history": int(
-            live.get("cards_with_history") or snap.get("cards_with_history") or 0
+            (live.get("cards_with_history") if history_scan else None)
+            or snap.get("cards_with_history")
+            or 0
         ),
         "history_coverage_pct": float(
-            live.get("history_coverage_pct")
-            if live.get("cards_total")
-            else snap.get("history_coverage_pct")
+            (live.get("history_coverage_pct") if history_scan else None)
+            or snap.get("history_coverage_pct")
             or 0.0
         ),
         "fresh_history_pct": (
