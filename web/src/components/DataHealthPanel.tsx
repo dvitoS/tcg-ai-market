@@ -121,7 +121,7 @@ export function DataHealthPanel() {
     }
   }
 
-  async function applyHealResult(result: SpotHealResponse) {
+  function showHealNotice(result: SpotHealResponse) {
     setHealResult(result);
     setNotice(
       t("obs_heal_done", {
@@ -132,8 +132,15 @@ export function DataHealthPanel() {
         quotes: result.quotes_quarantined ?? 0,
       }),
     );
-    setStats(await fetchDataHealth());
-    setReports(await fetchSpotReportSummary().catch(() => null));
+  }
+
+  function refreshHealStats() {
+    void fetchDataHealth()
+      .then(setStats)
+      .catch(() => {});
+    void fetchSpotReportSummary()
+      .then(setReports)
+      .catch(() => {});
   }
 
   async function onHeal(mode: SpotHealMode) {
@@ -145,7 +152,8 @@ export function DataHealthPanel() {
     setError(null);
     setNotice(null);
     try {
-      await applyHealResult(await healPoisonedSpots({ mode, limit: 50 }));
+      showHealNotice(await healPoisonedSpots({ mode, limit: 50 }));
+      refreshHealStats();
     } catch (err) {
       setError(err instanceof Error ? err.message : t("obs_load_error"));
     } finally {
@@ -154,15 +162,17 @@ export function DataHealthPanel() {
   }
 
   async function onHealOpenReports() {
-    const ok = window.confirm(t("obs_heal_confirm", { mode: "refetch" }));
+    const ok = window.confirm(t("obs_heal_confirm", { mode: "null_market" }));
     if (!ok) return;
     setHealBusy(true);
     setError(null);
     setNotice(null);
     try {
-      await applyHealResult(
-        await healOpenSpotReports({ mode: "refetch", limit: 30 }),
+      // Fast path: quarantine board quotes without waiting on JustTCG.
+      showHealNotice(
+        await healOpenSpotReports({ mode: "null_market", limit: 30 }),
       );
+      refreshHealStats();
     } catch (err) {
       setError(err instanceof Error ? err.message : t("obs_load_error"));
     } finally {
@@ -177,14 +187,18 @@ export function DataHealthPanel() {
     setError(null);
     setNotice(null);
     try {
-      await applyHealResult(
-        await healPoisonedSpots({
-          mode: "refetch",
-          limit: 1,
-          cardIds: [cardId],
-        }),
-      );
+      // null_market is fast (no JustTCG); quarantine drops the row from sure desk.
+      const result = await healPoisonedSpots({
+        mode: "null_market",
+        limit: 1,
+        cardIds: [cardId],
+      });
+      showHealNotice(result);
+      if ((result.quotes_quarantined ?? 0) < 1) {
+        setError(t("obs_sniff_heal_no_quote"));
+      }
       setSniff(await fetchSpotSniffPack(20));
+      refreshHealStats();
     } catch (err) {
       setError(err instanceof Error ? err.message : t("obs_load_error"));
     } finally {
