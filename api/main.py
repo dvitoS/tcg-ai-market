@@ -21,6 +21,7 @@ from api.routers import (
     cards,
     catalog,
     dealer,
+    funnel,
     fx,
     health,
     identify,
@@ -103,6 +104,7 @@ app.include_router(trust.router, prefix="/api")
 app.include_router(sealed.router, prefix="/api")
 app.include_router(trade.router, prefix="/api")
 app.include_router(dealer.router, prefix="/api")
+app.include_router(funnel.router, prefix="/api")
 app.include_router(webhooks.router, prefix="/api")
 
 

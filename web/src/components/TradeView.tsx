@@ -18,6 +18,7 @@ import {
   formatMoney,
   scoreTrade,
 } from "@/lib/api";
+import { trackFunnel } from "@/lib/funnel";
 import { pushRecentSearch } from "@/lib/searchRecent";
 import type {
   CatalogCard,
@@ -303,6 +304,11 @@ export function TradeView() {
         setStatusReady(true);
       });
   }, [authLoading, user, t]);
+
+  useEffect(() => {
+    if (!status?.allowed) return;
+    trackFunnel("trade_activate", undefined, { once: true });
+  }, [status?.allowed]);
 
   function addCard(card: CatalogCard) {
     const preview = previewFromCard(card);

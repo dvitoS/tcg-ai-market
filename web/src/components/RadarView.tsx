@@ -35,6 +35,7 @@ import {
   formatRadarShareFilters,
   type RadarShareFilters,
 } from "@/lib/radarShare";
+import { trackFunnel } from "@/lib/funnel";
 import { pushRecentSearch } from "@/lib/searchRecent";
 import type { RadarCard, RadarResponse, RadarStatus } from "@/lib/types";
 
@@ -252,6 +253,11 @@ export function RadarView() {
     }
     load();
   }, [hydrated, status?.allowed, user, load]);
+
+  useEffect(() => {
+    if (!status?.allowed) return;
+    trackFunnel("radar_activate", { source: data.source }, { once: true });
+  }, [status?.allowed, data.source]);
 
   function applyQuery(next: string) {
     const q = next.trim();

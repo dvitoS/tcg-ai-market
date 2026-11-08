@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 
 import { DealOfTheDay } from "@/components/DealOfTheDay";
 import { HeroCardSlider } from "@/components/HeroCardSlider";
 import { MarketPulse } from "@/components/MarketPulse";
 import { SoftInkWash } from "@/components/SoftInkWash";
 import { useLocale } from "@/components/LocaleProvider";
+import { trackFunnel } from "@/lib/funnel";
 import type {
   MarketPulseResponse,
   RadarPreviewResponse,
@@ -20,6 +22,10 @@ export function MarketingLanding({
   initialPulse?: MarketPulseResponse | null;
 }) {
   const { t } = useLocale();
+
+  useEffect(() => {
+    trackFunnel("landing_view", undefined, { once: true });
+  }, []);
 
   return (
     <div className="landing">
@@ -46,10 +52,18 @@ export function MarketingLanding({
             <h1 className="landing-headline">{t("landing_headline")}</h1>
             <p className="landing-lede">{t("landing_lede")}</p>
             <div className="landing-ctas">
-              <a href="#deal-of-day" className="btn-primary landing-cta">
+              <a
+                href="#deal-of-day"
+                className="btn-primary landing-cta"
+                onClick={() => trackFunnel("landing_cta_dotd")}
+              >
                 {t("landing_cta_market")}
               </a>
-              <Link href="/pro" className="btn-ghost landing-cta">
+              <Link
+                href="/pro"
+                className="btn-ghost landing-cta"
+                onClick={() => trackFunnel("landing_cta_pro")}
+              >
                 {t("landing_cta_pro")}
               </Link>
             </div>

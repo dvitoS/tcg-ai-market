@@ -1073,6 +1073,30 @@ export async function fetchDataHealth(): Promise<DataHealthResponse> {
   return res.json();
 }
 
+export type FunnelSummaryResponse = {
+  counts: Record<string, number>;
+  total: number;
+  recent: Array<{
+    event: string;
+    session?: string | null;
+    props?: Record<string, unknown> | null;
+    ts?: number;
+  }>;
+  uptime_s: number;
+  allowed_events: string[];
+};
+
+export async function fetchFunnelSummary(): Promise<FunnelSummaryResponse> {
+  const res = await fetch(apiUrl("/api/funnel/summary"), {
+    headers: { Accept: "application/json", ...authHeaders() },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`Funnel summary failed (${res.status})`);
+  }
+  return res.json();
+}
+
 export async function fetchSpotSniffPack(limit = 20): Promise<SpotSniffPackResponse> {
   const res = await fetch(
     apiUrl(`/api/data-health/sniff-pack?limit=${Math.max(4, Math.min(40, limit))}`),
