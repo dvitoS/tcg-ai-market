@@ -26,13 +26,12 @@ def test_sealed_quote_showcase_without_query() -> None:
     res = client.get("/api/sealed/quote")
     assert res.status_code == 200
     body = res.json()
-    assert body["source"] == "demo"
+    assert body["source"] in {"demo", "justtcg"}
     assert len(body["items"]) >= 1
     assert body["items"][0]["card_id"].startswith("sealed:")
-    # Showcase uses verified Pokémon TCP ids → CDN art URLs.
+    # Showcase uses verified Pokémon TCP ids → CDN art URLs (demo path).
     with_art = [row for row in body["items"] if row.get("image_url")]
-    assert len(with_art) >= 3
-    assert "tcgplayer-cdn.tcgplayer.com" in str(with_art[0]["image_url"])
+    assert len(with_art) >= 1
     known = {
         "565630",
         "600518",
@@ -44,6 +43,69 @@ def test_sealed_quote_showcase_without_query() -> None:
         "532848",
     }
     assert {str(row.get("tcgplayer_id")) for row in body["items"]} <= known
+    if body["source"] == "demo":
+        assert len(with_art) >= 3
+        assert "tcgplayer-cdn.tcgplayer.com" in str(with_art[0]["image_url"])
+
+
+def test_token_overlap_seed_sniff() -> None:
+    from api.sealed_service import _token_overlap
+
+    assert _token_overlap(
+        "Prismatic Evolutions Elite Trainer Box (ETB)",
+        "SV Prismatic Evolutions Elite Trainer Box",
+    )
+    assert not _token_overlap(
+        "Prismatic Evolutions Elite Trainer Box (ETB)",
+        "Magic: The Gathering Collector Booster",
+    )
+
+
+def test_live_showcase_sniff_keeps_matching_seeds(monkeypatch) -> None:
+    from api import sealed_service
+
+    monkeypatch.setattr(
+        "justtcg_client.justtcg_api_key",
+        lambda: "test-key",
+    )
+    monkeypatch.setattr(sealed_service, "demo_mode", lambda: False)
+
+    def fake_quote(*, tcgplayer_id=None, **_kwargs):
+        tid = str(tcgplayer_id or "")
+        if tid == "565630":
+            return [
+                {
+                    "card_id": "sealed:565630",
+                    "name": "Surging Sparks Elite Trainer Box",
+                    "set_name": "Surging Sparks",
+                    "tcgplayer_id": "565630",
+                    "spot_usd": 51.0,
+                    "image_url": None,
+                    "source": "justtcg",
+                    "kind": "sealed",
+                }
+            ]
+        if tid == "600518":
+            return [
+                {
+                    "card_id": "sealed:600518",
+                    "name": "Completely Unrelated MTG Bundle",
+                    "set_name": "Wrong",
+                    "tcgplayer_id": "600518",
+                    "spot_usd": 12.0,
+                    "image_url": None,
+                    "source": "justtcg",
+                    "kind": "sealed",
+                }
+            ]
+        return []
+
+    monkeypatch.setattr("justtcg_sealed.quote_sealed", fake_quote)
+    payload = sealed_service.quote_sealed_products(allow_showcase=True, limit=8)
+    assert payload["source"] == "justtcg"
+    ids = {str(row.get("tcgplayer_id")) for row in payload["items"]}
+    assert ids == {"565630"}
+    assert payload["items"][0]["image_url"]
 
 
 def test_normalize_skips_cdn_without_external_tcp() -> None:

@@ -81,7 +81,7 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 
 | ID | Item | Ship |
 | --- | --- | --- |
-| M3.1 | Sealed desk correctness | Verified TCP art + live JustTCG; curated seed only if sniffed |
+| M3.1 | Sealed desk correctness | **Shipping** — live JustTCG sniff of curated TCP seeds; name-mismatch drop; CDN art fallback; desk disclaimer |
 | M3.2 | Grading EV trust | Fees + gem-rate honesty; never imply 100% PSA 10 |
 | M3.3 | eBay sold comps UX | Readable sold cluster next to fair band |
 | M3.4 | Dealer CSV sync | Finish D5 for shops that price off TCP |
@@ -100,8 +100,8 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 ### Suggested next 3
 
 1. **Run G0 sniff pack** against production board after tonight’s nightly *(ops)*  
-2. **M3.1** — sealed desk correctness sniff  
-3. **M3.2 / M3.3** — grading EV honesty + eBay sold comps UX
+2. **M3.2 / M3.3** — grading EV honesty + eBay sold comps UX  
+3. **M3.4** — dealer CSV sync polish
 
 ### Explicit non-goals until spend unlock
 

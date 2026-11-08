@@ -246,9 +246,13 @@ const en = {
     "Quote ETBs, booster boxes, and tins via JustTCG — add lots to your portfolio when signed in.",
   sealed_desk_showcase: "Featured sealed seed — search a name, TCP id, or UPC for live quotes.",
   sealed_desk_demo_live:
-    "Showing curated showcase — search to pull live JustTCG sealed quotes.",
+    "Curated seed with illustrative spots — search to pull live JustTCG quotes.",
+  sealed_desk_live:
+    "Live JustTCG spots on sniffed TCP seeds — wrong matches are dropped.",
   sealed_desk_results: "{n} hit(s) for “{q}”",
   sealed_desk_signin: "Sign in to add lot",
+  sealed_desk_disclaimer:
+    "Desk quote, not financial advice — verify TCP art before buying.",
   sealed_title: "Add sealed",
   sealed_lede:
     "Quote an ETB, booster box, tin, or UPC via JustTCG — then log it as a portfolio lot (spot MTM, no condition multipliers).",
@@ -998,9 +1002,13 @@ const hr: Dictionary = {
     "Quote ETB-ova, booster boxeva i tinova preko JustTCG — dodaj lotove u portfolio kad si prijavljen.",
   sealed_desk_showcase: "Featured sealed seed — traži ime, TCP id ili UPC za live quoteove.",
   sealed_desk_demo_live:
-    "Prikaz curated showcasea — traži za live JustTCG sealed quoteove.",
+    "Curated seed s ilustrativnim spotovima — traži za live JustTCG quoteove.",
+  sealed_desk_live:
+    "Live JustTCG spotovi na sniffanim TCP seedovima — krivi matchovi se odbacuju.",
   sealed_desk_results: "{n} hit(ova) za “{q}”",
   sealed_desk_signin: "Prijavi se da dodaš lot",
+  sealed_desk_disclaimer:
+    "Desk quote, ne financijski savjet — provjeri TCP art prije kupnje.",
   sealed_title: "Dodaj sealed",
   sealed_lede:
     "Quoteaj ETB, booster box, tin ili UPC preko JustTCG — pa zabilježi lot (spot MTM, bez condition multiplikatora).",
