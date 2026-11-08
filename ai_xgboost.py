@@ -107,7 +107,10 @@ def load_history(
         print("Učitavam price_history spojenu s cards (Supabase)...")
     df = load_history_frame(card_ids=id_list, since_date=since_date)
     if df.empty:
-        raise RuntimeError("price_history je prazna. Pokreni generate_history.py ili seed import.")
+        raise RuntimeError(
+            "price_history je prazna (ili load nije vratio redove — npr. PostgREST "
+            "57014). Provjeri generate_history.py / seed, ili suzi since_date / card_ids."
+        )
     df["date"] = pd.to_datetime(df["date"])
     df["price"] = pd.to_numeric(df["price"], errors="coerce")
     df["market_price"] = pd.to_numeric(df["market_price"], errors="coerce")
