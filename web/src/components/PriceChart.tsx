@@ -118,10 +118,12 @@ export function PriceChart({
   // SSR points paint immediately; JustTCG/PSA enhance in the background.
   const [loading, setLoading] = useState(Boolean(cardId) && points.length === 0);
   const [error, setError] = useState<string | null>(null);
+  // PSA 10 off by default — live graded JustTCG is the Soft Ink quota burn.
+  // Toggle on only when the desk wants the series (or Grading EV loads it).
   const [visible, setVisible] = useState<Record<SeriesKey, boolean>>({
     tcgplayer: true,
     justtcg: true,
-    psa10: true,
+    psa10: false,
   });
   const seriesLabels: Record<SeriesKey, string> = {
     tcgplayer: t("chart_series_tcg"),
@@ -157,7 +159,7 @@ export function PriceChart({
     };
   }, [cardId, points.length]);
 
-  // Deferred PSA 10 only when the series is visible (default on) — never PSA 9.
+  // Deferred PSA 10 only when the series is toggled on — never PSA 9.
   useEffect(() => {
     if (!cardId || !sources || !visible.psa10) return;
     if (sources.grades === "psa10" || sources.grades === "all") return;

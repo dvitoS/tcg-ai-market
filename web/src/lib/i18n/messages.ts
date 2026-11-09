@@ -687,6 +687,8 @@ const en = {
   grade_ev_sell_fee: "Sell fee %",
   grade_ev_gem_rate: "Assumed PSA 10 hit %",
   grade_ev_loading: "Loading PSA 9 / 10 comps…",
+  grade_ev_load: "Load PSA 10 comps",
+  grade_ev_load_hint: "Uses 1 JustTCG request — only when you need EV.",
   grade_ev_error: "Could not load graded comps",
   grade_ev_need_psa: "Need a raw spot and a PSA 10 JustTCG print to score EV.",
   grade_ev_rate_limited:
@@ -1566,6 +1568,8 @@ const hr: Dictionary = {
   grade_ev_sell_fee: "Sell fee %",
   grade_ev_gem_rate: "Pretpostavljeni PSA 10 hit %",
   grade_ev_loading: "Učitavam PSA 9 / 10 comps…",
+  grade_ev_load: "Učitaj PSA 10 comps",
+  grade_ev_load_hint: "Troši 1 JustTCG request — samo kad trebaš EV.",
   grade_ev_error: "Ne mogu učitati graded comps",
   grade_ev_need_psa: "Treba raw spot i PSA 10 JustTCG cijena za EV.",
   grade_ev_rate_limited:
