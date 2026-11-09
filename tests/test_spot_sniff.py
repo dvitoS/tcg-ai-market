@@ -57,10 +57,43 @@ def test_build_spot_sniff_pack_balances_sides(monkeypatch) -> None:
 
 def test_combine_verdict_matrix() -> None:
     assert spot_sniff._combine_verdict("ok", "ok") == "pass"
-    assert spot_sniff._combine_verdict("ok", "skip") == "review"
+    assert spot_sniff._combine_verdict("ok", "skip", ebay_usable=True) == "review"
+    assert spot_sniff._combine_verdict("ok", "skip", ebay_usable=False) == "pass"
     assert spot_sniff._combine_verdict("warn", "ok") == "review"
     assert spot_sniff._combine_verdict("fail", "ok") == "fail"
     assert spot_sniff._combine_verdict("ok", "fail") == "fail"
+
+
+def test_resolve_missing_tcp_ids(monkeypatch) -> None:
+    items = [
+        {
+            "card_id": "dp45-1",
+            "name": "Arceus LV.X",
+            "set_name": "DP Black Star Promos",
+            "tcgplayer_id": None,
+            "tcgplayer_url": None,
+        }
+    ]
+
+    def _search(**_kwargs):
+        return {
+            "tcgplayer_id": "123456",
+            "variants": [
+                {
+                    "condition": "Near Mint",
+                    "printing": "Normal",
+                    "markets": [{"region": "NA", "price": 100.0, "price_status": "current"}],
+                }
+            ],
+        }
+
+    monkeypatch.setattr("justtcg_client.search_pokemon_card", _search)
+    stats = spot_sniff._resolve_missing_tcp_ids(items)
+    assert stats["tcp_missing"] == 1
+    assert stats["tcp_resolved"] == 1
+    assert items[0]["tcgplayer_id"] == "123456"
+    assert items[0]["tcp_live"] == 100.0
+    assert "tcgplayer.com/product/123456" in (items[0]["tcgplayer_url"] or "")
 
 
 def test_pct_delta_helpers() -> None:
@@ -192,9 +225,12 @@ def test_sniff_pack_endpoint_ok_for_ops(monkeypatch) -> None:
             "auto_warn": 0,
             "auto_fail": 0,
             "auto_skip": 0,
+            "tcp_missing": 0,
+            "tcp_resolved": 0,
             "live_error": None,
             "ebay_checked": False,
             "ebay_configured": False,
+            "ebay_usable": False,
             "ebay_ok": 0,
             "ebay_warn": 0,
             "ebay_fail": 0,

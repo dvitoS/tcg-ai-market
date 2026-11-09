@@ -631,6 +631,8 @@ export type SpotSniffItem = {
   tcp_delta_pct?: number | null;
   tcp_status?: "ok" | "warn" | "fail" | "skip";
   auto_status?: "ok" | "warn" | "fail" | "skip";
+  tcp_resolved?: boolean;
+  skip_reason?: string | null;
   ebay_median?: number | null;
   ebay_delta_pct?: number | null;
   ebay_n?: number;
@@ -657,9 +659,12 @@ export type SpotSniffPackResponse = {
   auto_warn?: number;
   auto_fail?: number;
   auto_skip?: number;
+  tcp_missing?: number;
+  tcp_resolved?: number;
   live_error?: string | null;
   ebay_checked?: boolean;
   ebay_configured?: boolean;
+  ebay_usable?: boolean;
   ebay_ok?: number;
   ebay_warn?: number;
   ebay_fail?: number;

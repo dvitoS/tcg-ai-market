@@ -62,7 +62,12 @@ _TCP_OK_PCT = _OK_PCT
 _TCP_WARN_PCT = _WARN_PCT
 
 
-def _combine_verdict(tcp_status: str, ebay_status: str) -> str:
+def _combine_verdict(
+    tcp_status: str,
+    ebay_status: str,
+    *,
+    ebay_usable: bool = True,
+) -> str:
     """pass | review | fail — human only needs review (+ spot-check passes)."""
     tcp = str(tcp_status or "skip")
     ebay = str(ebay_status or "skip")
@@ -73,11 +78,61 @@ def _combine_verdict(tcp_status: str, ebay_status: str) -> str:
     if tcp == "ok" and ebay == "ok":
         return "pass"
     if tcp == "ok" and ebay == "skip":
-        # TCP clean but no sold comps — light review, not a hard fail.
-        return "review"
+        # When eBay sold isn't available (no creds / no Insights), TCP-only is enough.
+        return "pass" if not ebay_usable else "review"
     if ebay == "ok" and tcp == "skip":
         return "review"
     return "review"
+
+
+def _card_number_from_id(card_id: str) -> str | None:
+    text = str(card_id or "").strip()
+    if "-" not in text:
+        return None
+    number = text.rsplit("-", 1)[-1].strip()
+    return number or None
+
+
+def _resolve_missing_tcp_ids(items: list[dict[str, Any]]) -> dict[str, int]:
+    """Fill blank tcgplayer_id via JustTCG name/number search (common on older board rows)."""
+    from justtcg_client import (
+        card_tcgplayer_id,
+        pick_nm_variant,
+        search_pokemon_card,
+        variant_price_usd,
+    )
+
+    missing = 0
+    resolved = 0
+    for item in items:
+        tid = str(item.get("tcgplayer_id") or "").strip()
+        if tid.isdigit():
+            continue
+        missing += 1
+        try:
+            card = search_pokemon_card(
+                name=str(item.get("name") or ""),
+                number=_card_number_from_id(str(item.get("card_id") or "")),
+                set_name=str(item.get("set_name") or "") or None,
+                quick=True,
+            )
+        except Exception:
+            card = None
+        if not card:
+            item["skip_reason"] = "no_tcp_id"
+            continue
+        resolved_tid = card_tcgplayer_id(card)
+        if not resolved_tid:
+            item["skip_reason"] = "no_tcp_id"
+            continue
+        item["tcgplayer_id"] = str(resolved_tid)
+        item["tcgplayer_url"] = _tcp_product_url(resolved_tid)
+        item["tcp_resolved"] = True
+        price = variant_price_usd(pick_nm_variant(list(card.get("variants") or [])))
+        if price is not None:
+            item["tcp_live"] = round(float(price), 4)
+        resolved += 1
+    return {"tcp_missing": missing, "tcp_resolved": resolved}
 
 
 def _enrich_live_tcp(items: list[dict[str, Any]]) -> dict[str, Any]:
@@ -89,6 +144,8 @@ def _enrich_live_tcp(items: list[dict[str, Any]]) -> dict[str, Any]:
         "auto_warn": 0,
         "auto_fail": 0,
         "auto_skip": 0,
+        "tcp_missing": 0,
+        "tcp_resolved": 0,
         "live_error": None,
     }
     try:
@@ -106,6 +163,7 @@ def _enrich_live_tcp(items: list[dict[str, Any]]) -> dict[str, Any]:
             item["tcp_delta_pct"] = None
             item["tcp_status"] = "skip"
             item["auto_status"] = "skip"
+            item["skip_reason"] = "justtcg_import"
             summary["auto_skip"] += 1
         return summary
 
@@ -120,8 +178,16 @@ def _enrich_live_tcp(items: list[dict[str, Any]]) -> dict[str, Any]:
             item["tcp_delta_pct"] = None
             item["tcp_status"] = "skip"
             item["auto_status"] = "skip"
+            item["skip_reason"] = "justtcg_key_missing"
             summary["auto_skip"] += 1
         return summary
+
+    try:
+        resolve_stats = _resolve_missing_tcp_ids(items)
+        summary["tcp_missing"] = int(resolve_stats.get("tcp_missing") or 0)
+        summary["tcp_resolved"] = int(resolve_stats.get("tcp_resolved") or 0)
+    except Exception as exc:
+        summary["live_error"] = f"resolve:{exc}"[:240]
 
     tids = [
         str(item.get("tcgplayer_id") or "").strip()
@@ -148,16 +214,23 @@ def _enrich_live_tcp(items: list[dict[str, Any]]) -> dict[str, Any]:
     except Exception as exc:
         summary["live_error"] = str(exc)[:240]
         for item in items:
-            item["tcp_live"] = None
-            item["tcp_delta_pct"] = None
-            item["tcp_status"] = "skip"
-            item["auto_status"] = "skip"
-            summary["auto_skip"] += 1
+            if item.get("tcp_live") is None:
+                item["tcp_live"] = None
+                item["tcp_delta_pct"] = None
+                item["tcp_status"] = "skip"
+                item["auto_status"] = "skip"
+                item["skip_reason"] = item.get("skip_reason") or "justtcg_batch_error"
+                summary["auto_skip"] += 1
         return summary
 
     for item in items:
         tid = str(item.get("tcgplayer_id") or "").strip()
         live = by_tid.get(tid)
+        if live is None and item.get("tcp_live") is not None:
+            try:
+                live = float(item["tcp_live"])
+            except (TypeError, ValueError):
+                live = None
         spot = item.get("spot")
         try:
             spot_f = float(spot) if spot is not None else None
@@ -169,6 +242,8 @@ def _enrich_live_tcp(items: list[dict[str, Any]]) -> dict[str, Any]:
         item["tcp_delta_pct"] = delta
         item["tcp_status"] = status
         item["auto_status"] = status  # legacy field = TCP status
+        if status == "skip" and not item.get("skip_reason"):
+            item["skip_reason"] = "no_tcp_id" if not tid.isdigit() else "no_tcp_price"
         summary[f"auto_{status}"] = int(summary.get(f"auto_{status}") or 0) + 1
 
     return summary
@@ -288,12 +363,16 @@ def _enrich_ebay_sold(items: list[dict[str, Any]]) -> dict[str, Any]:
     return summary
 
 
-def _apply_verdicts(items: list[dict[str, Any]]) -> dict[str, int]:
+def _apply_verdicts(
+    items: list[dict[str, Any]],
+    *,
+    ebay_usable: bool = True,
+) -> dict[str, int]:
     counts = {"pass": 0, "review": 0, "fail": 0}
     for item in items:
         tcp = str(item.get("tcp_status") or item.get("auto_status") or "skip")
         ebay = str(item.get("ebay_status") or "skip")
-        verdict = _combine_verdict(tcp, ebay)
+        verdict = _combine_verdict(tcp, ebay, ebay_usable=ebay_usable)
         item["verdict"] = verdict
         item["check_tcp"] = tcp == "ok"
         counts[verdict] = int(counts.get(verdict) or 0) + 1
@@ -393,6 +472,8 @@ def build_spot_sniff_pack(
                     "tcp_delta_pct": None,
                     "tcp_status": "skip",
                     "auto_status": "skip",
+                    "tcp_resolved": False,
+                    "skip_reason": None,
                     "ebay_median": None,
                     "ebay_delta_pct": None,
                     "ebay_n": 0,
@@ -416,6 +497,8 @@ def build_spot_sniff_pack(
             "auto_warn": 0,
             "auto_fail": 0,
             "auto_skip": len(items),
+            "tcp_missing": 0,
+            "tcp_resolved": 0,
             "live_error": None,
         }
     )
@@ -441,14 +524,19 @@ def build_spot_sniff_pack(
         for item in items:
             item["ebay_status"] = "skip"
 
-    verdict_counts = _apply_verdicts(items)
+    # eBay usable only when configured AND at least one true sold median landed.
+    ebay_usable = bool(ebay_summary.get("ebay_configured")) and int(
+        ebay_summary.get("ebay_ok") or 0
+    ) + int(ebay_summary.get("ebay_warn") or 0) + int(ebay_summary.get("ebay_fail") or 0) > 0
+
+    verdict_counts = _apply_verdicts(items, ebay_usable=ebay_usable)
     heal_summary = (
         _auto_heal_fails(items)
         if auto_heal
         else {"healed": 0, "ids": [], "quotes_quarantined": 0}
     )
     # Re-count after heal removed fails from items.
-    verdict_counts = _apply_verdicts(items)
+    verdict_counts = _apply_verdicts(items, ebay_usable=ebay_usable)
 
     order = {"fail": 0, "review": 1, "pass": 2}
     items.sort(
@@ -480,9 +568,12 @@ def build_spot_sniff_pack(
         "auto_warn": int(live_summary.get("auto_warn") or 0),
         "auto_fail": int(live_summary.get("auto_fail") or 0),
         "auto_skip": int(live_summary.get("auto_skip") or 0),
+        "tcp_missing": int(live_summary.get("tcp_missing") or 0),
+        "tcp_resolved": int(live_summary.get("tcp_resolved") or 0),
         "live_error": live_summary.get("live_error"),
         "ebay_checked": bool(ebay_summary.get("ebay_checked")),
         "ebay_configured": bool(ebay_summary.get("ebay_configured")),
+        "ebay_usable": bool(ebay_usable),
         "ebay_ok": int(ebay_summary.get("ebay_ok") or 0),
         "ebay_warn": int(ebay_summary.get("ebay_warn") or 0),
         "ebay_fail": int(ebay_summary.get("ebay_fail") or 0),
@@ -495,9 +586,9 @@ def build_spot_sniff_pack(
         "healed_ids": list(heal_summary.get("ids") or []),
         "g0_ready": bool(g0_ready),
         "instructions": (
-            "Auto G0: JustTCG NM + eBay sold medians. Hard fails are auto-healed. "
-            "Only open the review rows (TCP/eBay links). If g0_ready is true and "
-            "review rows smell OK, G0 can pass — still no ads until you confirm."
+            "Auto G0: resolves missing TCGplayer ids, JustTCG NM + eBay sold. "
+            "Hard fails auto-heal. Open only review rows. If g0_ready and review "
+            "rows smell OK → G0 can pass (still confirm before ads)."
         ),
         "items": items,
     }

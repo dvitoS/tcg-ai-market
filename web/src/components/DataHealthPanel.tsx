@@ -692,6 +692,24 @@ export function DataHealthPanel() {
                       healed: sniff.healed_n ?? 0,
                     })}
                   </p>
+                  <p className="data-health-cache">
+                    {t("obs_sniff_diag_meta", {
+                      missing: sniff.tcp_missing ?? 0,
+                      resolved: sniff.tcp_resolved ?? 0,
+                      jt: sniff.live_configured
+                        ? t("obs_sniff_diag_on")
+                        : t("obs_sniff_diag_off"),
+                      ebay: sniff.ebay_usable
+                        ? t("obs_sniff_diag_on")
+                        : t("obs_sniff_diag_off"),
+                    })}
+                  </p>
+                  {sniff.live_error ? (
+                    <p className="data-health-error">{sniff.live_error}</p>
+                  ) : null}
+                  {sniff.ebay_error ? (
+                    <p className="data-health-error">{sniff.ebay_error}</p>
+                  ) : null}
                   <p
                     className={
                       sniff.g0_ready
@@ -755,6 +773,10 @@ export function DataHealthPanel() {
                                     ? `${item.ebay_delta_pct > 0 ? "+" : ""}${Number(item.ebay_delta_pct).toFixed(1)}%`
                                     : "—",
                               })}`
+                            : ""}
+                          {item.skip_reason === "no_tcp_id" ||
+                          item.skip_reason === "justtcg_key_missing"
+                            ? ` · ${t("obs_sniff_skip_no_tcp")}`
                             : ""}
                         </span>
                         <span className="data-health-sniff-links">
