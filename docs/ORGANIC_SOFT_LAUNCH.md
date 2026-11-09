@@ -9,7 +9,7 @@ Paid spend stays locked until G0–G3 are green (`docs/ROADMAP.md`).
 | --- | --- | --- |
 | “Is this trade fair?” | **Trade** PNG + Discord paste | Verdict blurb + `/trade/s/{id}` |
 | “What’s under today?” | **DOTD** PNG + paste | Featured UNDER + card deep link |
-| “Show my board filters” | **Radar** paste (`?share=`) | Blurb + filter URL (no PNG yet) |
+| “Show my board filters” | **Radar** PNG + paste (`?share=`) | Board totals + top UNDER + filter URL |
 | “How close is this set?” | **Binder** PNG + paste | Completion % / missing / buy-cost |
 
 Always keep the desk disclaimer: *spot vs sure fair band — not financial advice.*
@@ -25,7 +25,7 @@ Desk call — spot vs sure fair band. Not financial advice.
 {share URL}
 ```
 
-Attach the PNG when you exported one (Trade / DOTD / Binder). Prefer the in-app **Copy Discord paste** / share buttons — they already assemble this pack.
+Attach the PNG when you exported one (Trade / DOTD / Binder / Radar). Prefer the in-app **Copy Discord paste** / share buttons — they already assemble this pack.
 
 ### LGS counter talk (30 seconds)
 

@@ -41,7 +41,7 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 | --- | --- | --- |
 | **G0 Trust** | Critical path | 20-card Radar sniff pack vs TCP + eBay sold passes; unmatched-set rate trending down; public `/guides` or methodology page live |
 | **G1 10s wedge** | Mostly shipped | ≥4/5 cold users explain “spot vs sure fair band / buy or pass” after one screen |
-| **G2 Share loop** | In progress | Trade / Radar / binder / DOTD share live; organic kit in `docs/ORGANIC_SOFT_LAUNCH.md`; still need ≥1 real Discord share/week |
+| **G2 Share loop** | In progress | Trade / Radar / binder / DOTD PNG + paste live; organic kit in `docs/ORGANIC_SOFT_LAUNCH.md`; still need ≥1 real Discord share/week |
 | **G3 Metrics** | Required before CAC | Funnel instrumented; trial→paid path clear; &lt;2% refunds citing “wrong prices” |
 
 ### Phases
@@ -72,7 +72,7 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 | ID | Item | Ship |
 | --- | --- | --- |
 | M2.1 | Trade report PNG | **Shipping** — save PNG (+ clipboard), optional share-link embed, plain-language blurb, watermark + Pro CTA |
-| M2.2 | Radar share blurb | **Shipping** — dynamic filters + UNDER/OVER counts + top UNDER; locked-share filter preview; clipboard fallback |
+| M2.2 | Radar share blurb + PNG | **Shipping** — Discord paste + desk PNG (board totals / top UNDER / filter URL); locked-share preview; funnel `share_png` |
 | M2.3 | Binder share lite | **Shipping** — clipboard with % / owned / missing / buy-cost; PNG+clipboard; signed-out set preview; no private P&L |
 | M2.4 | Deal-of-day share card | **Shipping** — PNG + clipboard + card deep link; Pro CTA watermark |
 | M2.5 | Reddit-ready deep links | **Shipping** — `/trade/s/{id}` metadata + OG image; card OG absolute `og:image` |
