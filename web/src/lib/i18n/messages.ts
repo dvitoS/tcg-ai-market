@@ -746,12 +746,12 @@ const en = {
   obs_qa_snapshot: "Snapshot {when}",
   obs_heal_title: "Poison / heal (M0.6)",
   obs_heal_caption:
-    "Identical JustTCG poison clusters stay quarantined until healed. Heal also soft-drops market_quotes so Radar/sniff update now. Auto-quarantine clears Energy / rarity-cap / cluster tips without sniff clicks.",
+    "Identical JustTCG poison clusters stay quarantined until healed. Heal also soft-drops market_quotes so Radar/sniff update now. Desk sweep drains Energy / rarity-cap / wild-7d / cluster tips — nightly also runs this after retrain.",
   obs_heal_clean: "No poison clusters on the current board sample.",
   obs_heal_cluster: "{price} · {count} cards · {sets} sets",
-  obs_heal_auto: "Auto-quarantine unsafe",
+  obs_heal_auto: "Desk sweep (drain)",
   obs_heal_auto_confirm:
-    "Auto-quarantine Energy over $8, blank rarity over $15, common/uncommon over caps, and poison clusters?",
+    "Drain the sure desk: Energy over $8, blank rarity over $15, common/uncommon over caps, wild 7d movers, and poison clusters — until clean?",
   obs_heal_dry: "Dry-run detect",
   obs_heal_null: "Null market",
   obs_heal_clear: "Clear history",
@@ -1581,12 +1581,12 @@ const hr: Dictionary = {
   obs_qa_snapshot: "Snapshot {when}",
   obs_heal_title: "Poison / heal (M0.6)",
   obs_heal_caption:
-    "Identčni JustTCG poison clusteri ostaju u karanteni dok se ne healaju. Heal soft-dropa i market_quotes. Auto-quarantine skida Energy / rarity-cap / clustere bez sniff klikova.",
+    "Identčni JustTCG poison clusteri ostaju u karanteni dok se ne healaju. Heal soft-dropa i market_quotes. Desk sweep drenira Energy / rarity-cap / wild-7d / clustere — nightly to isto radi nakon retraina.",
   obs_heal_clean: "Nema poison clustera na trenutnom board sampleu.",
   obs_heal_cluster: "{price} · {count} karata · {sets} setova",
-  obs_heal_auto: "Auto-quarantine unsafe",
+  obs_heal_auto: "Desk sweep (dreniraj)",
   obs_heal_auto_confirm:
-    "Auto-quarantine Energy > $8, blank rarity > $15, common/uncommon preko capa, i poison clustere?",
+    "Drenirati sure desk: Energy > $8, blank rarity > $15, common/uncommon preko capa, divlje 7d moveove, i poison clustere — dok ne bude čisto?",
   obs_heal_dry: "Dry-run detect",
   obs_heal_null: "Null market",
   obs_heal_clear: "Očisti history",

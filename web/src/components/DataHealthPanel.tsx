@@ -9,10 +9,10 @@ import {
   fetchSpotReportSummary,
   fetchSpotSniffPack,
   fetchTrialConversion,
-  healAutoUnsafeSpots,
   healOpenSpotReports,
   healPoisonedSpots,
   resetDataHealth,
+  sweepDeskPoison,
   type FunnelSummaryResponse,
   type SpotReportSummary,
   type TrialConversionResponse,
@@ -169,9 +169,9 @@ export function DataHealthPanel() {
     setError(null);
     setNotice(null);
     try {
-      showHealNotice(
-        await healAutoUnsafeSpots({ mode: "null_market", limit: 200 }),
-      );
+      // Full drain (auto-unsafe + poison clusters) — same path nightly runs
+      // after retrain so ops never needs 10-at-a-time Heal clicks.
+      showHealNotice(await sweepDeskPoison());
       refreshHealStats();
       reloadSniffInBackground();
     } catch (err) {

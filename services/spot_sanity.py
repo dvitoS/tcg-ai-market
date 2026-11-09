@@ -331,14 +331,22 @@ def auto_quarantine_mask(quotes: pd.DataFrame) -> pd.Series:
         else pd.Series([""] * len(quotes), index=quotes.index)
     )
 
+    change_7d = (
+        pd.to_numeric(quotes.get("price_change_7d_pct"), errors="coerce")
+        if "price_change_7d_pct" in quotes.columns
+        else pd.Series([None] * len(quotes), index=quotes.index)
+    )
+
     energy_flags: list[bool] = []
     blank_flags: list[bool] = []
     rarity_flags: list[bool] = []
-    for spot, name, rarity, stype in zip(
+    wild_7d_flags: list[bool] = []
+    for spot, name, rarity, stype, chg in zip(
         spot_s.tolist(),
         names.tolist(),
         rarities.tolist(),
         supertypes.tolist(),
+        change_7d.tolist(),
         strict=False,
     ):
         price = _as_positive_float(spot)
@@ -354,12 +362,26 @@ def auto_quarantine_mask(quotes: pd.DataFrame) -> pd.Series:
         rarity_flags.append(
             bool(price is not None and not under_spot_allowed_for_rarity(price, rarity))
         )
+        # Absurd 7d movers on the board — same gate as under_deal_allowed.
+        chg_abs: float | None
+        try:
+            chg_abs = (
+                abs(float(chg))
+                if chg is not None and chg == chg  # not NaN
+                else None
+            )
+        except (TypeError, ValueError):
+            chg_abs = None
+        wild_7d_flags.append(
+            bool(chg_abs is not None and chg_abs > float(RADAR_MAX_ABS_7D_CHANGE_PCT))
+        )
 
     return (
         poison
         | pd.Series(energy_flags, index=quotes.index)
         | pd.Series(blank_flags, index=quotes.index)
         | pd.Series(rarity_flags, index=quotes.index)
+        | pd.Series(wild_7d_flags, index=quotes.index)
     )
 
 

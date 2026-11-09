@@ -1240,7 +1240,7 @@ export async function healAutoUnsafeSpots(input: {
     },
     body: JSON.stringify({
       mode: input.mode ?? "null_market",
-      limit: input.limit ?? 200,
+      limit: input.limit ?? 5000,
     }),
     cache: "no-store",
   });
@@ -1249,6 +1249,25 @@ export async function healAutoUnsafeSpots(input: {
       res,
       `Auto-quarantine failed (${res.status})`,
     );
+    throw new Error(detail);
+  }
+  return res.json();
+}
+
+/** Drain auto-unsafe + poison clusters until clean (replaces 10-at-a-time Heal clicks). */
+export async function sweepDeskPoison(): Promise<SpotHealResponse> {
+  const res = await fetch(apiUrl("/api/data-health/desk-sweep"), {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: "{}",
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const detail = await readApiError(res, `Desk sweep failed (${res.status})`);
     throw new Error(detail);
   }
   return res.json();
