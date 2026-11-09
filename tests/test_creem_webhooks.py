@@ -90,7 +90,9 @@ def test_handle_checkout_completed_grants(monkeypatch) -> None:
 
 def test_handle_subscription_canceled_revokes(monkeypatch) -> None:
     import services.creem_webhooks as creem
+    from services.g3_trust import g3_trust_snapshot, reset_g3_trust_for_tests
 
+    reset_g3_trust_for_tests()
     calls: list[dict] = []
 
     def fake_status(**kwargs):
@@ -106,12 +108,37 @@ def test_handle_subscription_canceled_revokes(monkeypatch) -> None:
         "object": {
             "subscription": {"id": "sub_9"},
             "customer": {"email": "a@b.com"},
+            "cancel_reason": "wrong price on Radar",
         },
     }
     result = creem.handle_creem_event(event)
     assert result["ok"] is True
     assert result["action"] == "revoke"
+    assert result["cancel_reason"] == "wrong price on Radar"
     assert calls == [{"subscription_id": "sub_9", "status": "canceled"}]
+    snap = g3_trust_snapshot()
+    assert snap["wrong_price_hits"] == 1
+    assert snap["cancel_events"] == 1
+
+
+def test_handle_refund_records_g3(monkeypatch) -> None:
+    import services.creem_webhooks as creem
+    from services.g3_trust import g3_trust_snapshot, reset_g3_trust_for_tests
+
+    reset_g3_trust_for_tests()
+    event = {
+        "eventType": "refund.created",
+        "object": {
+            "customer": {"email": "a@b.com"},
+            "reason": "too expensive for my budget",
+        },
+    }
+    result = creem.handle_creem_event(event)
+    assert result["ok"] is True
+    assert result["action"] == "refund"
+    snap = g3_trust_snapshot()
+    assert snap["refund_events"] == 1
+    assert snap["wrong_price_hits"] == 0
 
 
 def test_webhook_route_rejects_bad_signature(monkeypatch) -> None:

@@ -92,6 +92,16 @@ const en = {
   obs_trial_paid_share: "Paid share",
   obs_trial_meta: "{entitled} entitled · {source} · {webhooks} webhook outcomes this process",
   obs_trial_empty: "Could not load trial conversion (ops only).",
+  obs_g3_title: "G3 trust gate",
+  obs_g3_caption:
+    "Spend unlock needs <2% of cancel/refund reasons citing wrong prices. Spot-report rate is a soft proxy until Creem reasons arrive.",
+  obs_g3_wrong_pct: "Wrong-price cites",
+  obs_g3_cancels: "Cancel events",
+  obs_g3_refunds: "Refund events",
+  obs_g3_reports: "Spot reports / 100 entitled",
+  obs_g3_ok: "Gate OK",
+  obs_g3_fail: "Gate blocked",
+  obs_g3_empty: "No cancel/refund reasons on this API process yet.",
   obs_na: "—",
   obs_reports_title: "Wrong-spot reports",
   obs_reports_caption:
@@ -968,6 +978,16 @@ const hr: Dictionary = {
   obs_trial_paid_share: "Paid share",
   obs_trial_meta: "{entitled} entitled · {source} · {webhooks} webhook outcomea na procesu",
   obs_trial_empty: "Nisam uspio učitati trial conversion (samo ops).",
+  obs_g3_title: "G3 trust gate",
+  obs_g3_caption:
+    "Spend unlock traži <2% cancel/refund razloga koji citiraju krive cijene. Spot-report rate je soft proxy dok Creem ne šalje reason.",
+  obs_g3_wrong_pct: "Wrong-price citati",
+  obs_g3_cancels: "Cancel eventi",
+  obs_g3_refunds: "Refund eventi",
+  obs_g3_reports: "Spot reporti / 100 entitled",
+  obs_g3_ok: "Gate OK",
+  obs_g3_fail: "Gate blokiran",
+  obs_g3_empty: "Još nema cancel/refund razloga na ovom API procesu.",
   obs_na: "—",
   obs_reports_title: "Wrong-spot reporti",
   obs_reports_caption:

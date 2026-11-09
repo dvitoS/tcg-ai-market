@@ -911,7 +911,7 @@ class FunnelSummaryResponse(BaseModel):
 
 
 class TrialConversionResponse(BaseModel):
-    """Ops: Creem trial → paid hygiene (M4.3)."""
+    """Ops: Creem trial → paid hygiene (M4.3) + G3 trust strip."""
 
     by_status: dict[str, int] = Field(default_factory=dict)
     active: int = 0
@@ -922,4 +922,5 @@ class TrialConversionResponse(BaseModel):
     entitled: int = 0
     paid_share_pct: float | None = None
     webhook_outcomes: dict[str, Any] = Field(default_factory=dict)
+    g3_trust: dict[str, Any] = Field(default_factory=dict)
     source: Literal["supabase", "empty"] = "empty"
