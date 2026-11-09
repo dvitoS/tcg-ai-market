@@ -20,10 +20,17 @@ Collector numbers usually align after zero-pad. Exceptions (do **not** blind-map
 
 | Slice | Goal | Status |
 | --- | --- | --- |
-| **CAT.2a** | Expand Soft Ink → TCGdex **set map** for SV + ME; art URL remap / `onError` | **This PR** |
-| **CAT.2b** | Nightly gap-fill can **read** TCGdex when pokemontcg fails (keep Soft Ink ids) | Later |
+| **CAT.2a** | Expand Soft Ink → TCGdex **set map** for SV + ME; art URL remap / `onError` | **Shipped** |
+| **CAT.2b** | Nightly gap-fill can **read** TCGdex when pokemontcg fails (keep Soft Ink ids) | **Shipping** |
 | **CAT.2c** | Optional Scrydex Growth if we need paid catalog+prices (CAT.3) | Optional |
 | **CAT.2d** | Persist remap table in DB + dual-read before flipping primary source | Before EOL |
+
+### CAT.2b behavior
+
+- `pokemon_tcg_client.fetch_cards` tries pokemontcg first.
+- On empty/failed mapped set → `tcgdex_set_card_rows_as_pokemontcg` (`sv01-001` list → Soft Ink `sv1-1`).
+- Disable with `NIGHTLY_TCGDEX_FALLBACK=0`.
+- Prices still come from JustTCG history sync — TCGdex fills catalog skeleton + art.
 
 ## Invariants
 
