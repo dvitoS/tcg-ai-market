@@ -1301,6 +1301,14 @@ a {
   font-style: italic;
 }
 
+.grade-ev-idle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 0.85rem;
+  margin: 0 0 0.85rem;
+}
+
 .grade-ev-inputs {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

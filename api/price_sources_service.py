@@ -53,14 +53,22 @@ def _points_from_rows(rows: list[dict[str, Any]] | None) -> list[dict[str, Any]]
 
 
 def _market_history_is_fresh(market: list[dict[str, Any]]) -> bool:
-    """True when nightly/DB NM series is usable — skip a live JustTCG NM call."""
+    """True when nightly/DB NM series is usable — skip a live JustTCG NM call.
+
+    Soft Ink used to re-burn quota on every sparse/stale detail open. Prefer any
+    usable DB series (≥ min points) even if a few days stale; only go live when
+    the series is empty or shorter than ``_DB_NM_MIN_POINTS``.
+    """
     if len(market) < _DB_NM_MIN_POINTS:
         return False
     try:
         last = date.fromisoformat(str(market[-1]["date"])[:10])
     except (TypeError, ValueError, KeyError):
         return False
-    return last >= date.today() - timedelta(days=_DB_NM_MAX_AGE_DAYS)
+    # Stale-but-present still beats a live call while browsing Soft Ink.
+    # Hard-stale (> ~2 weeks) may refresh once so charts do not freeze forever.
+    max_stale_days = max(_DB_NM_MAX_AGE_DAYS, 14)
+    return last >= date.today() - timedelta(days=max_stale_days)
 
 
 def _resolve_tcp_from_board(card_id: str) -> tuple[str, str, str | None]:

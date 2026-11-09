@@ -52,7 +52,9 @@ export function GradingEvPanel({
   const [sales9, setSales9] = useState<number | null>(null);
   const [periodKey, setPeriodKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  /** Opt-in — auto-fetch on every detail mount burned JustTCG PSA quota. */
+  const [armed, setArmed] = useState(false);
   const [fee, setFee] = useState(DEFAULT_GRADE_FEE_USD);
   const [ship, setShip] = useState(DEFAULT_SHIP_USD);
   const [sellFee, setSellFee] = useState(DEFAULT_SELL_FEE_PCT);
@@ -62,6 +64,19 @@ export function GradingEvPanel({
   const [gemRatePct, setGemRatePct] = useState(25);
 
   useEffect(() => {
+    // Reset when navigating between cards — do not auto-arm.
+    setArmed(false);
+    setPsa10(null);
+    setPsa9(null);
+    setSales10(null);
+    setSales9(null);
+    setPeriodKey(null);
+    setError(null);
+    setLoading(false);
+  }, [cardId]);
+
+  useEffect(() => {
+    if (!armed) return;
     let alive = true;
     setLoading(true);
     setError(null);
@@ -99,7 +114,7 @@ export function GradingEvPanel({
     return () => {
       alive = false;
     };
-  }, [cardId, t]);
+  }, [armed, cardId, t]);
 
   const adjustedRaw = useMemo(
     () => adjustNmPrice(rawPrice, { condition: normalizeCondition(condition) }),
@@ -183,90 +198,107 @@ export function GradingEvPanel({
       <p className="grade-ev-lede">{t("grade_ev_lede")}</p>
       <p className="grade-ev-honesty">{t("grade_ev_honesty")}</p>
 
-      <div className="grade-ev-inputs">
-        <label>
-          <span>{t("grade_ev_preset")}</span>
-          <select
-            value={preset}
-            onChange={(e) => onPreset(e.target.value as GradeFeePresetId)}
+      {!armed ? (
+        <p className="grade-ev-idle">
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => setArmed(true)}
           >
-            {GRADE_FEE_PRESETS.map((p) => (
-              <option key={p.id} value={p.id}>
-                {t(presetLabelKey(p.id))}
-              </option>
-            ))}
-            <option value="custom">{t("grade_ev_preset_custom")}</option>
-          </select>
-        </label>
-        <label>
-          <span>{t("port_condition")}</span>
-          <select
-            value={condition}
-            onChange={(e) => setCondition(normalizeCondition(e.target.value))}
-          >
-            {RAW_CONDITIONS.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span>{t("grade_ev_fee")}</span>
-          <input
-            type="number"
-            min={0}
-            step={1}
-            value={fee}
-            onChange={(e) => onFeeChange(Number(e.target.value) || 0)}
-          />
-        </label>
-        <label>
-          <span>{t("grade_ev_ship")}</span>
-          <input
-            type="number"
-            min={0}
-            step={1}
-            value={ship}
-            onChange={(e) => onShipChange(Number(e.target.value) || 0)}
-          />
-        </label>
-        <label>
-          <span>{t("grade_ev_sell_fee")}</span>
-          <input
-            type="number"
-            min={0}
-            max={100}
-            step={0.5}
-            value={sellFee}
-            onChange={(e) => setSellFee(Number(e.target.value) || 0)}
-          />
-        </label>
-        <label>
-          <span>{t("grade_ev_gem_rate")}</span>
-          <input
-            type="number"
-            min={0}
-            max={100}
-            step={1}
-            value={gemRatePct}
-            onChange={(e) => setGemRatePct(Number(e.target.value) || 0)}
-          />
-        </label>
-      </div>
+            {t("grade_ev_load")}
+          </button>
+          <span className="lot-meta">{t("grade_ev_load_hint")}</span>
+        </p>
+      ) : null}
 
-      {loading ? <p className="explore-lede">{t("grade_ev_loading")}</p> : null}
-      {error && !ev.ready ? (
+      {armed ? (
+        <div className="grade-ev-inputs">
+          <label>
+            <span>{t("grade_ev_preset")}</span>
+            <select
+              value={preset}
+              onChange={(e) => onPreset(e.target.value as GradeFeePresetId)}
+            >
+              {GRADE_FEE_PRESETS.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {t(presetLabelKey(p.id))}
+                </option>
+              ))}
+              <option value="custom">{t("grade_ev_preset_custom")}</option>
+            </select>
+          </label>
+          <label>
+            <span>{t("port_condition")}</span>
+            <select
+              value={condition}
+              onChange={(e) => setCondition(normalizeCondition(e.target.value))}
+            >
+              {RAW_CONDITIONS.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>{t("grade_ev_fee")}</span>
+            <input
+              type="number"
+              min={0}
+              step={1}
+              value={fee}
+              onChange={(e) => onFeeChange(Number(e.target.value) || 0)}
+            />
+          </label>
+          <label>
+            <span>{t("grade_ev_ship")}</span>
+            <input
+              type="number"
+              min={0}
+              step={1}
+              value={ship}
+              onChange={(e) => onShipChange(Number(e.target.value) || 0)}
+            />
+          </label>
+          <label>
+            <span>{t("grade_ev_sell_fee")}</span>
+            <input
+              type="number"
+              min={0}
+              max={100}
+              step={0.5}
+              value={sellFee}
+              onChange={(e) => setSellFee(Number(e.target.value) || 0)}
+            />
+          </label>
+          <label>
+            <span>{t("grade_ev_gem_rate")}</span>
+            <input
+              type="number"
+              min={0}
+              max={100}
+              step={1}
+              value={gemRatePct}
+              onChange={(e) => setGemRatePct(Number(e.target.value) || 0)}
+            />
+          </label>
+        </div>
+      ) : null}
+
+      {armed && loading ? (
+        <p className="explore-lede">{t("grade_ev_loading")}</p>
+      ) : null}
+      {armed && error && !ev.ready ? (
         <p className="form-error">
           {/rate.?limit/i.test(error) ? t("grade_ev_rate_limited") : error}
         </p>
       ) : null}
 
-      {!loading && !ev.ready && !error ? (
+      {armed && !loading && !ev.ready && !error ? (
         <p className="explore-lede">{t("grade_ev_need_psa")}</p>
       ) : null}
 
-      {ev.ready ? (
+      {armed && ev.ready ? (
         <>
           <div className="grade-ev-grid">
             <div className="grade-ev-metric">
