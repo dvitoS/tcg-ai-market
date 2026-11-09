@@ -684,16 +684,25 @@ export function DataHealthPanel() {
                       source: sniff.board_source,
                     })}
                   </p>
-                  {sniff.live_checked || sniff.live_configured ? (
-                    <p className="data-health-cache">
-                      {t("obs_sniff_live_meta", {
-                        ok: sniff.auto_ok ?? 0,
-                        warn: sniff.auto_warn ?? 0,
-                        fail: sniff.auto_fail ?? 0,
-                        skip: sniff.auto_skip ?? 0,
-                      })}
-                    </p>
-                  ) : null}
+                  <p className="data-health-cache">
+                    {t("obs_sniff_verdict_meta", {
+                      pass: sniff.verdict_pass ?? 0,
+                      review: sniff.verdict_review ?? 0,
+                      fail: sniff.verdict_fail ?? 0,
+                      healed: sniff.healed_n ?? 0,
+                    })}
+                  </p>
+                  <p
+                    className={
+                      sniff.g0_ready
+                        ? "data-health-notice"
+                        : "data-health-caption"
+                    }
+                  >
+                    {sniff.g0_ready
+                      ? t("obs_sniff_g0_ready")
+                      : t("obs_sniff_g0_not_ready")}
+                  </p>
                   <p className="data-health-caption">{sniff.instructions}</p>
                   <ul className="data-health-sniff-list">
                     {sniff.items.map((item) => (
@@ -708,16 +717,14 @@ export function DataHealthPanel() {
                             : t("obs_sniff_over")}
                         </span>
                         <span
-                          className={`data-health-sniff-status is-${item.auto_status || "skip"}`}
+                          className={`data-health-sniff-status is-${item.verdict || "review"}`}
                         >
                           {t(
-                            item.auto_status === "ok"
-                              ? "obs_sniff_status_ok"
-                              : item.auto_status === "warn"
-                                ? "obs_sniff_status_warn"
-                                : item.auto_status === "fail"
-                                  ? "obs_sniff_status_fail"
-                                  : "obs_sniff_status_skip",
+                            item.verdict === "pass"
+                              ? "obs_sniff_verdict_pass"
+                              : item.verdict === "fail"
+                                ? "obs_sniff_verdict_fail"
+                                : "obs_sniff_verdict_review",
                           )}
                         </span>
                         <strong>{item.name}</strong>
@@ -739,6 +746,16 @@ export function DataHealthPanel() {
                               ]
                                 .filter(Boolean)
                                 .join(" · ")}
+                          {item.ebay_median != null
+                            ? ` · ${t("obs_sniff_vs_ebay", {
+                                ebay: `$${Number(item.ebay_median).toFixed(2)}`,
+                                n: item.ebay_n ?? 0,
+                                delta:
+                                  item.ebay_delta_pct != null
+                                    ? `${item.ebay_delta_pct > 0 ? "+" : ""}${Number(item.ebay_delta_pct).toFixed(1)}%`
+                                    : "—",
+                              })}`
+                            : ""}
                         </span>
                         <span className="data-health-sniff-links">
                           {item.tcgplayer_url ? (

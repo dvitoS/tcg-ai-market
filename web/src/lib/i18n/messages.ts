@@ -103,8 +103,8 @@ const en = {
   obs_reports_heal_open: "Heal open (refetch)",
   obs_sniff_title: "Spot sniff pack (G0)",
   obs_sniff_caption:
-    "Sample sure UNDER/OVER rows with live TCP assist. Deep-check fail/warn vs TCGplayer + eBay sold before any marketing spend. Heal drops the row from the sure desk.",
-  obs_sniff_load: "Load sniff pack",
+    "One click: live TCP + eBay sold, auto-heal hard fails. You only open review rows before marketing spend.",
+  obs_sniff_load: "Run auto G0",
   obs_sniff_empty: "No sure Radar rows available for a sniff pack yet.",
   obs_sniff_under: "Under",
   obs_sniff_over: "Over",
@@ -123,11 +123,20 @@ const en = {
   obs_sniff_meta: "{under} under · {over} over · {source}",
   obs_sniff_live_meta:
     "TCP live: {ok} ok · {warn} warn · {fail} fail · {skip} skip",
+  obs_sniff_verdict_meta:
+    "Auto G0: {pass} pass · {review} review · {fail} fail · {healed} healed",
+  obs_sniff_g0_ready: "G0 auto-ready — spot-check review rows, then you can unlock spend.",
+  obs_sniff_g0_not_ready:
+    "G0 not ready — clear remaining fails / shrink review, then re-run.",
   obs_sniff_status_ok: "ok",
   obs_sniff_status_warn: "warn",
   obs_sniff_status_fail: "fail",
   obs_sniff_status_skip: "skip",
+  obs_sniff_verdict_pass: "pass",
+  obs_sniff_verdict_review: "review",
+  obs_sniff_verdict_fail: "fail",
   obs_sniff_vs_tcp: "spot {spot} · TCP {tcp} ({delta})",
+  obs_sniff_vs_ebay: "eBay sold med {ebay} n={n} ({delta})",
   landing_pulse_eyebrow: "Market pulse",
   landing_pulse_title: "How the sure board sits today",
   landing_pulse_story_under:
@@ -954,8 +963,8 @@ const hr: Dictionary = {
   obs_reports_heal_open: "Heal open (refetch)",
   obs_sniff_title: "Spot sniff pack (G0)",
   obs_sniff_caption:
-    "Uzorak sure UNDER/OVER s live TCP assistom. Fail/warn prvo usporedi s TCGplayer + eBay sold. Heal skida red sa sure deska.",
-  obs_sniff_load: "Učitaj sniff pack",
+    "Jedan klik: live TCP + eBay sold, auto-heal hard failova. Ti otvaraš samo review redove prije marketing spenda.",
+  obs_sniff_load: "Pokreni auto G0",
   obs_sniff_empty: "Nema sure Radar redova za sniff pack.",
   obs_sniff_under: "Under",
   obs_sniff_over: "Over",
@@ -974,11 +983,20 @@ const hr: Dictionary = {
   obs_sniff_meta: "{under} under · {over} over · {source}",
   obs_sniff_live_meta:
     "TCP live: {ok} ok · {warn} warn · {fail} fail · {skip} skip",
+  obs_sniff_verdict_meta:
+    "Auto G0: {pass} pass · {review} review · {fail} fail · {healed} healed",
+  obs_sniff_g0_ready: "G0 auto-ready — pregledaj review redove, onda možeš unlockati spend.",
+  obs_sniff_g0_not_ready:
+    "G0 nije ready — očisti preostale failove / smanji review, pa ponovi.",
   obs_sniff_status_ok: "ok",
   obs_sniff_status_warn: "warn",
   obs_sniff_status_fail: "fail",
   obs_sniff_status_skip: "skip",
+  obs_sniff_verdict_pass: "pass",
+  obs_sniff_verdict_review: "review",
+  obs_sniff_verdict_fail: "fail",
   obs_sniff_vs_tcp: "spot {spot} · TCP {tcp} ({delta})",
+  obs_sniff_vs_ebay: "eBay sold med {ebay} n={n} ({delta})",
   landing_pulse_eyebrow: "Market pulse",
   landing_pulse_title: "Kako sure board sjedi danas",
   landing_pulse_story_under:

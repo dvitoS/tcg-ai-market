@@ -99,7 +99,7 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 
 ### Suggested next 3
 
-1. **G0 sniff pack** *(ops)* — System status → Load sniff pack; deep-check **fail/warn** vs TCP + eBay sold (`docs/G0_SNIFF_CHECKLIST.md`)  
+1. **G0 sniff pack** *(ops)* — System status → **Run auto G0**; spot-check only **review** rows (`docs/G0_SNIFF_CHECKLIST.md`)  
 2. **G2 organic** — ≥1 real Discord / Reddit share/week (`docs/ORGANIC_SOFT_LAUNCH.md`)  
 3. **M4.5** — spend unlock only after G0–G3 green
 
@@ -110,7 +110,8 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 | Slim kestrel-api | **Shipped** (#160) — `Dockerfile.api` + `KESTREL_SERVICE=api` blocks full board rebuild |
 | TCGdex art fallback | **Shipped** (#172) — CAT.1 |
 | Post-nightly desk sweep | **Shipped** (#171) — auto quarantine + UNDER verify |
-| G0 sniff live TCP assist | **Shipping** — JustTCG NM batch flags ok/warn/fail; human eBay still required |
+| G0 sniff live TCP assist | **Shipped** (#173) — JustTCG NM batch |
+| G0 sniff auto verdict | **Shipping** — TCP + eBay sold + auto-heal fails; ops only reviews leftovers |
 
 ### Data / catalog track (parallel to M*)
 

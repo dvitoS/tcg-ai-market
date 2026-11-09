@@ -129,14 +129,21 @@ def data_health_sniff_pack(
     _ops: Annotated[dict[str, Any], Depends(require_ops_user)],
     limit: int = 20,
     live_check: bool = True,
+    ebay_check: bool = True,
+    auto_heal: bool = True,
 ) -> SpotSniffPackResponse:
-    """Ops M0.2 / G0: sure UNDER/OVER sample + optional JustTCG live TCP assist."""
+    """Ops G0: TCP + eBay auto verdict; hard fails quarantined when auto_heal."""
     from api.catalog_service import clear_board_cache
     from services.spot_sniff import build_spot_sniff_pack
 
     # Bust process cache; load_board revision check + radar load the board once.
     clear_board_cache()
-    payload = build_spot_sniff_pack(limit=limit, live_check=live_check)
+    payload = build_spot_sniff_pack(
+        limit=limit,
+        live_check=live_check,
+        ebay_check=ebay_check,
+        auto_heal=auto_heal,
+    )
     return SpotSniffPackResponse(**payload)
 
 

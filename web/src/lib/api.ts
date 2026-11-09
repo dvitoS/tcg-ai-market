@@ -1175,14 +1175,23 @@ export async function fetchSpotReportSummary(): Promise<SpotReportSummary> {
   return res.json();
 }
 
-export async function fetchSpotSniffPack(limit = 20): Promise<SpotSniffPackResponse> {
-  const res = await fetch(
-    apiUrl(`/api/data-health/sniff-pack?limit=${Math.max(4, Math.min(40, limit))}`),
-    {
-      headers: { Accept: "application/json", ...authHeaders() },
-      cache: "no-store",
-    },
-  );
+export async function fetchSpotSniffPack(
+  limit = 20,
+  opts?: { liveCheck?: boolean; ebayCheck?: boolean; autoHeal?: boolean },
+): Promise<SpotSniffPackResponse> {
+  const live = opts?.liveCheck !== false;
+  const ebay = opts?.ebayCheck !== false;
+  const heal = opts?.autoHeal !== false;
+  const qs = new URLSearchParams({
+    limit: String(Math.max(4, Math.min(40, limit))),
+    live_check: live ? "true" : "false",
+    ebay_check: ebay ? "true" : "false",
+    auto_heal: heal ? "true" : "false",
+  });
+  const res = await fetch(apiUrl(`/api/data-health/sniff-pack?${qs}`), {
+    headers: { Accept: "application/json", ...authHeaders() },
+    cache: "no-store",
+  });
   if (!res.ok) {
     throw new Error(`Sniff pack failed (${res.status})`);
   }

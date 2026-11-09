@@ -64,7 +64,15 @@ class SpotSniffItem(BaseModel):
     kestrel_path: str
     tcp_live: float | None = None
     tcp_delta_pct: float | None = None
+    tcp_status: Literal["ok", "warn", "fail", "skip"] = "skip"
     auto_status: Literal["ok", "warn", "fail", "skip"] = "skip"
+    ebay_median: float | None = None
+    ebay_delta_pct: float | None = None
+    ebay_n: int = 0
+    ebay_is_sold: bool = False
+    ebay_status: Literal["ok", "warn", "fail", "skip"] = "skip"
+    verdict: Literal["pass", "review", "fail"] = "review"
+    healed: bool = False
     check_tcp: bool | None = None
     check_ebay: bool | None = None
     notes: str = ""
@@ -85,6 +93,19 @@ class SpotSniffPackResponse(BaseModel):
     auto_fail: int = 0
     auto_skip: int = 0
     live_error: str | None = None
+    ebay_checked: bool = False
+    ebay_configured: bool = False
+    ebay_ok: int = 0
+    ebay_warn: int = 0
+    ebay_fail: int = 0
+    ebay_skip: int = 0
+    ebay_error: str | None = None
+    verdict_pass: int = 0
+    verdict_review: int = 0
+    verdict_fail: int = 0
+    healed_n: int = 0
+    healed_ids: list[str] = Field(default_factory=list)
+    g0_ready: bool = False
     instructions: str
     items: list[SpotSniffItem] = Field(default_factory=list)
 
