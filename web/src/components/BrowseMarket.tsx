@@ -437,23 +437,6 @@ export function BrowseMarket({
         </button>
       </div>
 
-      <form className="search-strip" onSubmit={onSearch}>
-        <SearchSuggest
-          value={query}
-          onChange={setQuery}
-          onCommit={applyQuery}
-          placeholder={t("explore_search_ph")}
-          ariaLabel={t("explore_search_aria")}
-          recentScope="browse"
-        />
-        <button type="submit" className="btn-primary">
-          {t("explore_search_btn")}
-        </button>
-        <button type="button" className="btn-ghost" onClick={onClear}>
-          {t("explore_clear")}
-        </button>
-      </form>
-
       <div className="browse-toolbar">
         <button
           type="button"
@@ -484,6 +467,23 @@ export function BrowseMarket({
         {rail}
 
         <div className="browse-main">
+          <form className="search-strip" onSubmit={onSearch}>
+            <SearchSuggest
+              value={query}
+              onChange={setQuery}
+              onCommit={applyQuery}
+              placeholder={t("explore_search_ph")}
+              ariaLabel={t("explore_search_aria")}
+              recentScope="browse"
+            />
+            <button type="submit" className="btn-primary">
+              {t("explore_search_btn")}
+            </button>
+            <button type="button" className="btn-ghost" onClick={onClear}>
+              {t("explore_clear")}
+            </button>
+          </form>
+
           {error ? <p className="banner-error">{error}</p> : null}
 
           {pending && items.length === 0 ? (
