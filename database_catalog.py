@@ -355,8 +355,48 @@ def insert_price_history(rows: list[dict[str, Any]]) -> int:
 
 
 def distinct_history_card_ids() -> set[str]:
-    rows = fetch_all("price_history", "card_id")
-    return {str(row["card_id"]) for row in rows}
+    """Cards with ≥1 ``price_history`` row — never ``fetch_all`` the 2M+ table.
+
+    Full-table card_id scans hit PostgREST ``statement_timeout`` (57014) and
+    can OOM the Soft Ink API if reused there. Prefer ``market_quotes.history_points``
+    (≤~25k rows), then fall back to chunked existence probes.
+    """
+    # Fast path: nightly board already tracks history_points per card.
+    try:
+        rows = fetch_all("market_quotes", "card_id,history_points")
+        if rows:
+            return {
+                str(row["card_id"])
+                for row in rows
+                if row.get("card_id") is not None
+                and int(row.get("history_points") or 0) > 0
+            }
+    except Exception as exc:
+        print(f"market_quotes history_points path failed: {exc}")
+
+    # Fallback: probe price_history per catalog id chunk (existence only).
+    catalog = [str(row["id"]) for row in fetch_all("cards", "id") if row.get("id")]
+    if not catalog:
+        return set()
+    client = get_supabase()
+    found: set[str] = set()
+    for chunk in _chunked(catalog, size=80):
+        try:
+            response = (
+                client.table("price_history")
+                .select("card_id")
+                .in_("card_id", chunk)
+                .limit(len(chunk) * 2)
+                .execute()
+            )
+        except Exception as exc:
+            print(f"price_history chunk probe failed ({len(chunk)} ids): {exc}")
+            continue
+        for row in list(response.data or []):
+            cid = row.get("card_id")
+            if cid is not None:
+                found.add(str(cid))
+    return found
 
 
 def distinct_history_card_ids_since(since_date: str) -> set[str]:

@@ -12,6 +12,10 @@ services:
         value: /app
       - key: KESTREL_SERVICE
         value: api
+      - key: WEB_CONCURRENCY
+        value: "1"
+      - key: MALLOC_ARENA_MAX
+        value: "2"
       - key: KESTREL_CORS_ORIGINS
         sync: false
       - key: SUPABASE_URL
