@@ -4371,6 +4371,15 @@ a {
   text-overflow: ellipsis;
 }
 
+.landing-hero-slide-prices {
+  margin: 0.1rem 0 0;
+  font-size: 0.82rem;
+  color: rgba(247, 241, 232, 0.92);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .landing-hero-slide-edge {
   margin: 0.15rem 0 0;
   font-family: var(--font-display);

@@ -77,6 +77,7 @@ export function HeroCardSlider({ cards }: { cards: RadarCard[] }) {
   const active = slides[Math.min(index, slides.length - 1)];
   const edge = formatChange(active.edge_pct);
   const spot = formatSpot(active.spot ?? active.price);
+  const fair = formatSpot(active.fair_price ?? active.predicted_price);
 
   return (
     <aside
@@ -133,8 +134,11 @@ export function HeroCardSlider({ cards }: { cards: RadarCard[] }) {
       <div className="landing-hero-slide-meta">
         <p className="landing-hero-slide-eyebrow">{t("landing_hero_slide_under")}</p>
         <p className="landing-hero-slide-name">{active.name}</p>
-        <p className="landing-hero-slide-set">
-          {[active.set_name, spot].filter(Boolean).join(" · ")}
+        {active.set_name ? (
+          <p className="landing-hero-slide-set">{active.set_name}</p>
+        ) : null}
+        <p className="landing-hero-slide-prices">
+          {t("landing_hero_slide_spot_fair", { spot, fair })}
         </p>
         {active.edge_pct != null ? (
           <p className="landing-hero-slide-edge">

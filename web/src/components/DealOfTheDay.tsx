@@ -52,8 +52,12 @@ function TeaserRow({ card }: { card: RadarCard }) {
         </div>
       </div>
       <div className="scan-metrics">
-        <strong>{formatSpot(card.spot ?? card.price)}</strong>
-        <span title={t("glossary_fair_tip")}>{t("metric_fair", { price: fair })}</span>
+        <strong>
+          {t("metric_spot", { price: formatSpot(card.spot ?? card.price) })}
+        </strong>
+        <span title={t("glossary_fair_tip")}>
+          {t("metric_fair", { price: fair })}
+        </span>
         <span className="pnl-up" title={t("glossary_edge_tip")}>
           {t("metric_edge", { pct: edge })}
         </span>
@@ -203,7 +207,11 @@ export function DealOfTheDay({
               </p>
             ) : null}
             <div className="deal-of-day-metrics">
-              <strong>{formatSpot(featured.spot ?? featured.price)}</strong>
+              <strong>
+                {t("metric_spot", {
+                  price: formatSpot(featured.spot ?? featured.price),
+                })}
+              </strong>
               <span title={t("glossary_fair_tip")}>
                 {t("metric_fair", { price: featuredFair })}
               </span>

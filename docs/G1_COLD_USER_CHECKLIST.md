@@ -8,12 +8,13 @@
 
 1. Open `https://www.kestreltcg.app` on phone (signed out).
 2. Do **not** coach vocabulary — only “look for ~10 seconds, then tell me what you’d do.”
-3. Ask:
+3. First screen should already label **spot** and **sure fair** on the hero card + DOTD.
+4. Ask:
    - What is the **spot** number?
-   - What is the **fair / sure** number (or band)?
+   - What is the **sure fair** number (or band)?
    - Would you **buy or pass** on the featured card, and why in one sentence?
-4. Pass if they mention spot vs fair (or under/over / buy-pass) without inventing “AI guarantee.”
-5. Fail if they only say “the AI said buy” or confuse Collectr portfolio with fair band.
+5. Pass if they mention spot vs sure fair (or under/over / buy-pass) without inventing “AI guarantee.”
+6. Fail if they only say “the AI said buy” or confuse Collectr portfolio with fair band.
 
 ## Pass criteria
 

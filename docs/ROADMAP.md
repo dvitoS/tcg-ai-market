@@ -40,7 +40,7 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 | Gate | Status target | Exit check |
 | --- | --- | --- |
 | **G0 Trust** | Critical path | 20-card Radar sniff pack vs TCP + eBay sold passes; unmatched-set rate trending down; public `/guides` or methodology page live |
-| **G1 10s wedge** | Mostly shipped | ≥4/5 cold users explain “spot vs sure fair band / buy or pass” after one screen |
+| **G1 10s wedge** | Mostly shipped | Landing labels spot + sure fair; ≥4/5 cold users pass `docs/G1_COLD_USER_CHECKLIST.md` |
 | **G2 Share loop** | In progress | Trade / Radar / binder / DOTD PNG + paste live; organic kit in `docs/ORGANIC_SOFT_LAUNCH.md`; still need ≥1 real Discord share/week |
 | **G3 Metrics** | Required before CAC | Funnel + trial strip live; Data Health **G3 trust gate**; &lt;2% cancel/refund cites “wrong prices” (`docs/G3_METRICS_CHECKLIST.md`) |
 
@@ -62,7 +62,7 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 | ID | Item | Ship |
 | --- | --- | --- |
 | M1.1 | Plain-language everywhere | Radar, DOTD, detail, Trade — one vocabulary (= A1) |
-| M1.2 | Landing desk core | Hero slider → pulse → DOTD; no news / sealed clutter on first scroll |
+| M1.2 | Landing desk core | Hero slider → pulse → DOTD; hero + DOTD label **spot / sure fair** for G1 |
 | M1.3 | Free teaser quality | DOTD 5 UNDER = Pro vocabulary; fast SSR (= A2/A3) |
 | M1.4 | Source labels on detail | **Shipping** — US spot + as-of; Cardmarket EUR never blended; chart US-only note |
 | M1.5 | Disclaimer tone | **Shipping** — “Desk call, not financial advice” under AI band |
