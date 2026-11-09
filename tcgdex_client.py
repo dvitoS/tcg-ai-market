@@ -3,17 +3,25 @@
 No API key. Used as an image CDN fallback while Soft Ink still keys cards on
 pokemontcg.io ids. Full catalog cutover stays a later roadmap item (EOL 2027).
 
+CAT.2b: nightly gap-fill may **read** a mapped set from TCGdex when pokemontcg
+fails, then rewrite rows back to Soft Ink ids (`sv1-1`).
+
 Docs: https://tcgdex.dev/rest · Base: https://api.tcgdex.net/v2/en/
 Images: https://assets.tcgdex.net/en/{serie}/{set}/{localId}/high.webp
 """
 
 from __future__ import annotations
 
-from typing import NamedTuple
+import logging
+import re
+from typing import Any, NamedTuple
+
+import requests
 
 TCGDEX_ASSETS = "https://assets.tcgdex.net"
 TCGDEX_API = "https://api.tcgdex.net/v2"
 POKEMONTCG_CDN_HOST = "images.pokemontcg.io"
+LOG = logging.getLogger("kestrel.tcgdex")
 
 
 class TcgdexSetMap(NamedTuple):
@@ -94,6 +102,32 @@ def pad_local_id(number: str, width: int = 3) -> str:
     if raw.isdigit():
         return raw.zfill(max(1, int(width)))
     return raw
+
+
+def unpad_local_id(number: str) -> str:
+    """Soft Ink / pokemontcg numbers drop leading zeros (001 → 1, TG01 → TG1)."""
+    raw = str(number or "").strip()
+    if not raw:
+        return raw
+    if raw.isdigit():
+        return str(int(raw))
+    match = re.match(r"^([A-Za-z]+)(\d+)$", raw)
+    if match:
+        return f"{match.group(1)}{int(match.group(2))}"
+    return raw
+
+
+def pokemontcg_set_to_tcgdex(set_code: str) -> TcgdexSetMap | None:
+    return _SET_MAP.get(str(set_code or "").strip())
+
+
+def tcgdex_local_to_pokemontcg_id(soft_set: str, local_id: str) -> str | None:
+    """Build Soft Ink card id from a Soft Ink set code + TCGdex localId."""
+    sid = str(soft_set or "").strip()
+    local = unpad_local_id(local_id)
+    if not sid or not local:
+        return None
+    return f"{sid}-{local}"
 
 
 def pokemontcg_to_tcgdex_id(card_id: str) -> str | None:
@@ -177,3 +211,94 @@ def prefer_card_image_url(card_id: str, existing: str | None = None) -> str | No
     if existing_s:
         return existing_s
     return tcgdex
+
+
+_CATEGORY_TO_SUPERTYPE = {
+    "Pokemon": "Pokémon",
+    "Pokémon": "Pokémon",
+    "Trainer": "Trainer",
+    "Energy": "Energy",
+}
+
+
+def _tcgdex_get(path: str, *, timeout: float = 45.0) -> dict[str, Any] | list[Any]:
+    url = f"{TCGDEX_API}/en/{path.lstrip('/')}"
+    res = requests.get(url, timeout=timeout, headers={"Accept": "application/json"})
+    res.raise_for_status()
+    data = res.json()
+    if not isinstance(data, (dict, list)):
+        raise RuntimeError(f"Unexpected TCGdex payload for {path}")
+    return data
+
+
+def tcgdex_set_card_rows_as_pokemontcg(
+    soft_set_id: str,
+    *,
+    set_name: str | None = None,
+    lang: str = "en",
+) -> list[dict[str, Any]]:
+    """Fetch one mapped set from TCGdex and emit pokemontcg-shaped card dicts.
+
+    Soft Ink ``id`` stays ``{soft_set}-{unpadded localId}``. Used when
+    pokemontcg.io gap-fill fails for a mapped set (CAT.2b).
+    """
+    soft = str(soft_set_id or "").strip()
+    mapped = pokemontcg_set_to_tcgdex(soft)
+    if mapped is None:
+        return []
+
+    payload = _tcgdex_get(f"sets/{mapped.set_id}")
+    if not isinstance(payload, dict):
+        return []
+    label = (
+        str(set_name or "").strip()
+        or str(payload.get("name") or "").strip()
+        or soft
+    )
+    rows_in = payload.get("cards") or []
+    if not isinstance(rows_in, list):
+        return []
+
+    out: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for row in rows_in:
+        if not isinstance(row, dict):
+            continue
+        local = str(row.get("localId") or "").strip()
+        soft_id = tcgdex_local_to_pokemontcg_id(soft, local)
+        if not soft_id or soft_id in seen:
+            continue
+        seen.add(soft_id)
+        name = str(row.get("name") or "").strip() or None
+        image_base = str(row.get("image") or "").strip().rstrip("/")
+        # List endpoint image is a base path; Soft Ink prefers full file URLs.
+        large = f"{image_base}/high.webp" if image_base else tcgdex_image_url(soft_id)
+        small = f"{image_base}/low.webp" if image_base else large
+        category = str(row.get("category") or "").strip()
+        out.append(
+            {
+                "id": soft_id,
+                "name": name,
+                "supertype": _CATEGORY_TO_SUPERTYPE.get(category),
+                "rarity": row.get("rarity"),
+                "set": {"id": soft, "name": label},
+                "images": {"small": small, "large": large},
+                # Marker for ops / tests — not persisted by clean_cards.
+                "_source": "tcgdex",
+            }
+        )
+    LOG.info(
+        "CAT.2b TCGdex fallback set=%s tcgdex=%s cards=%s",
+        soft,
+        mapped.set_id,
+        len(out),
+    )
+    return out
+
+
+def tcgdex_catalog_fallback_enabled() -> bool:
+    """Default on — set NIGHTLY_TCGDEX_FALLBACK=0 to disable."""
+    import os
+
+    raw = str(os.environ.get("NIGHTLY_TCGDEX_FALLBACK", "1") or "").strip().lower()
+    return raw not in {"0", "false", "no", "off"}
