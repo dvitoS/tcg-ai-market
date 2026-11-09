@@ -5432,6 +5432,28 @@ a {
   padding-top: 0;
 }
 
+.data-health-sniff-status {
+  display: inline-block;
+  margin-right: 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.data-health-sniff-status.is-ok {
+  color: #2f6b45;
+}
+
+.data-health-sniff-status.is-warn {
+  color: #8a5a12;
+}
+
+.data-health-sniff-status.is-fail {
+  color: #8b2e2e;
+}
+
 .data-health-sniff-links {
   display: flex;
   flex-wrap: wrap;

@@ -627,6 +627,9 @@ export type SpotSniffItem = {
   tcgplayer_id?: string | null;
   tcgplayer_url?: string | null;
   kestrel_path: string;
+  tcp_live?: number | null;
+  tcp_delta_pct?: number | null;
+  auto_status?: "ok" | "warn" | "fail" | "skip";
   check_tcp?: boolean | null;
   check_ebay?: boolean | null;
   notes?: string;
@@ -640,6 +643,13 @@ export type SpotSniffPackResponse = {
   over_n: number;
   board_source: string;
   pass_required: boolean;
+  live_checked?: boolean;
+  live_configured?: boolean;
+  auto_ok?: number;
+  auto_warn?: number;
+  auto_fail?: number;
+  auto_skip?: number;
+  live_error?: string | null;
   instructions: string;
   items: SpotSniffItem[];
 };

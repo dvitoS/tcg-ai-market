@@ -684,6 +684,16 @@ export function DataHealthPanel() {
                       source: sniff.board_source,
                     })}
                   </p>
+                  {sniff.live_checked || sniff.live_configured ? (
+                    <p className="data-health-cache">
+                      {t("obs_sniff_live_meta", {
+                        ok: sniff.auto_ok ?? 0,
+                        warn: sniff.auto_warn ?? 0,
+                        fail: sniff.auto_fail ?? 0,
+                        skip: sniff.auto_skip ?? 0,
+                      })}
+                    </p>
+                  ) : null}
                   <p className="data-health-caption">{sniff.instructions}</p>
                   <ul className="data-health-sniff-list">
                     {sniff.items.map((item) => (
@@ -697,11 +707,38 @@ export function DataHealthPanel() {
                             ? t("obs_sniff_under")
                             : t("obs_sniff_over")}
                         </span>
+                        <span
+                          className={`data-health-sniff-status is-${item.auto_status || "skip"}`}
+                        >
+                          {t(
+                            item.auto_status === "ok"
+                              ? "obs_sniff_status_ok"
+                              : item.auto_status === "warn"
+                                ? "obs_sniff_status_warn"
+                                : item.auto_status === "fail"
+                                  ? "obs_sniff_status_fail"
+                                  : "obs_sniff_status_skip",
+                          )}
+                        </span>
                         <strong>{item.name}</strong>
                         <span className="lot-meta">
-                          {[item.set_name, item.spot != null ? `$${Number(item.spot).toFixed(2)}` : null]
-                            .filter(Boolean)
-                            .join(" · ")}
+                          {item.tcp_live != null && item.spot != null
+                            ? t("obs_sniff_vs_tcp", {
+                                spot: `$${Number(item.spot).toFixed(2)}`,
+                                tcp: `$${Number(item.tcp_live).toFixed(2)}`,
+                                delta:
+                                  item.tcp_delta_pct != null
+                                    ? `${item.tcp_delta_pct > 0 ? "+" : ""}${Number(item.tcp_delta_pct).toFixed(1)}%`
+                                    : "—",
+                              })
+                            : [
+                                item.set_name,
+                                item.spot != null
+                                  ? `$${Number(item.spot).toFixed(2)}`
+                                  : null,
+                              ]
+                                .filter(Boolean)
+                                .join(" · ")}
                         </span>
                         <span className="data-health-sniff-links">
                           {item.tcgplayer_url ? (

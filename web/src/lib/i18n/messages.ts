@@ -103,7 +103,7 @@ const en = {
   obs_reports_heal_open: "Heal open (refetch)",
   obs_sniff_title: "Spot sniff pack (G0)",
   obs_sniff_caption:
-    "Sample sure UNDER/OVER rows. Check TCGplayer + eBay sold before any marketing spend. Heal row drops it from sure desk immediately.",
+    "Sample sure UNDER/OVER rows with live TCP assist. Deep-check fail/warn vs TCGplayer + eBay sold before any marketing spend. Heal drops the row from the sure desk.",
   obs_sniff_load: "Load sniff pack",
   obs_sniff_empty: "No sure Radar rows available for a sniff pack yet.",
   obs_sniff_under: "Under",
@@ -121,6 +121,13 @@ const en = {
   obs_sniff_heal_all_confirm:
     "Heal {n} sniff rows ({side})? Nulls tips + quarantines board quotes in one shot.",
   obs_sniff_meta: "{under} under · {over} over · {source}",
+  obs_sniff_live_meta:
+    "TCP live: {ok} ok · {warn} warn · {fail} fail · {skip} skip",
+  obs_sniff_status_ok: "ok",
+  obs_sniff_status_warn: "warn",
+  obs_sniff_status_fail: "fail",
+  obs_sniff_status_skip: "skip",
+  obs_sniff_vs_tcp: "spot {spot} · TCP {tcp} ({delta})",
   landing_pulse_eyebrow: "Market pulse",
   landing_pulse_title: "How the sure board sits today",
   landing_pulse_story_under:
@@ -947,7 +954,7 @@ const hr: Dictionary = {
   obs_reports_heal_open: "Heal open (refetch)",
   obs_sniff_title: "Spot sniff pack (G0)",
   obs_sniff_caption:
-    "Uzorak sure UNDER/OVER redova. Provjeri TCGplayer + eBay sold. Heal red odmah skida kartu sa sure deska.",
+    "Uzorak sure UNDER/OVER s live TCP assistom. Fail/warn prvo usporedi s TCGplayer + eBay sold. Heal skida red sa sure deska.",
   obs_sniff_load: "Učitaj sniff pack",
   obs_sniff_empty: "Nema sure Radar redova za sniff pack.",
   obs_sniff_under: "Under",
@@ -965,6 +972,13 @@ const hr: Dictionary = {
   obs_sniff_heal_all_confirm:
     "Heal {n} sniff redova ({side})? Null tipova + karantena board quoteova odjednom.",
   obs_sniff_meta: "{under} under · {over} over · {source}",
+  obs_sniff_live_meta:
+    "TCP live: {ok} ok · {warn} warn · {fail} fail · {skip} skip",
+  obs_sniff_status_ok: "ok",
+  obs_sniff_status_warn: "warn",
+  obs_sniff_status_fail: "fail",
+  obs_sniff_status_skip: "skip",
+  obs_sniff_vs_tcp: "spot {spot} · TCP {tcp} ({delta})",
   landing_pulse_eyebrow: "Market pulse",
   landing_pulse_title: "Kako sure board sjedi danas",
   landing_pulse_story_under:

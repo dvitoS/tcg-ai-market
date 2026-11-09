@@ -8,12 +8,13 @@
 
 1. Sign in as an **ops** user on Soft Ink → **System status**.
 2. Open **Spot sniff pack (G0)** → Load sniff pack (default 20 = ~10 UNDER + ~10 OVER).
-3. For each row:
+3. Soft Ink runs a **JustTCG NM live assist** and sorts **fail → warn → skip → ok**. Start with fail/warn.
+4. For each fail/warn (and spot-check a few ok):
    - Open **Kestrel** card detail (spot / sure fair band).
-   - Open **TCGplayer** product link (NM market).
+   - Open **TCGplayer** product link (NM market) — confirm live assist isn’t a wrong variant.
    - Check recent **eBay sold** comps (same printing / NM when possible).
-4. Mark **pass** only if spot is plausible for NM and the sure UNDER/OVER side still makes sense.
-5. **Any hard fail** → heal / quarantine via Data Health, re-run sniff after the next nightly (or spot heal). Do **not** unlock spend.
+5. Mark **pass** only if spot is plausible for NM and the sure UNDER/OVER side still makes sense. Auto-ok is assist, not the gate.
+6. **Any hard fail** → Heal on the row (or Desk sweep), re-run sniff. Do **not** unlock spend.
 
 ## Pass criteria
 
