@@ -75,6 +75,7 @@ html,
 body {
   min-height: 100%;
   color-scheme: dark;
+  overflow-x: clip;
 }
 
 body {
@@ -5172,29 +5173,97 @@ a {
   .landing-hero-stage {
     grid-template-columns: 1fr;
     justify-items: start;
-    gap: 1.5rem;
+    gap: 0;
   }
 
+  /* Keep the hero to copy + CTAs on narrow viewports; DoTD carries the cards. */
   .landing-hero-slider {
-    justify-self: start;
-    width: min(100%, 220px);
+    display: none;
   }
 }
 
 @media (max-width: 720px) {
+  .landing {
+    gap: 1.15rem;
+  }
+
   .landing-hero {
-    min-height: min(72vh, 680px);
+    /* Short full-bleed plane: brand + copy + CTAs, then desk — no tall empty wash. */
+    min-height: 0;
     align-items: end;
   }
 
   .landing-hero-img {
-    object-position: 72% center;
+    object-position: 68% center;
   }
 
   .landing-hero-veil {
     background:
-      linear-gradient(180deg, rgba(10, 9, 8, 0.38) 0%, rgba(10, 9, 8, 0.58) 40%, rgba(10, 9, 8, 0.94) 100%),
-      radial-gradient(ellipse at 50% 85%, rgba(192, 122, 58, 0.12), transparent 48%);
+      linear-gradient(105deg, rgba(10, 9, 8, 0.78) 0%, rgba(10, 9, 8, 0.42) 55%, rgba(10, 9, 8, 0.18) 100%),
+      linear-gradient(180deg, rgba(10, 9, 8, 0.32) 0%, rgba(10, 9, 8, 0.55) 45%, rgba(10, 9, 8, 0.96) 100%),
+      radial-gradient(ellipse at 48% 78%, rgba(192, 122, 58, 0.1), transparent 50%);
+  }
+
+  .landing-hero-stage {
+    width: min(1180px, calc(100% - 1.5rem));
+    padding: 3.1rem 0 1.85rem;
+    gap: 0;
+  }
+
+  .landing-hero-copy {
+    max-width: none;
+  }
+
+  /* Cards in the hero blow the mobile first-viewport budget; DoTD below already shows them. */
+  .landing-hero-slider {
+    display: none;
+  }
+
+  .landing-brand {
+    font-size: clamp(2.55rem, 12vw, 3.15rem);
+    text-shadow: 0 2px 22px rgba(0, 0, 0, 0.55);
+  }
+
+  .landing-product {
+    margin-top: 0.5rem;
+  }
+
+  .landing-product::after {
+    width: 2.75rem;
+    margin-top: 0.5rem;
+  }
+
+  .landing-headline {
+    margin-top: 0.65rem;
+    font-size: clamp(1.22rem, 5vw, 1.48rem);
+    max-width: 15.5em;
+    text-shadow: 0 1px 16px rgba(0, 0, 0, 0.45);
+  }
+
+  .landing-lede {
+    margin-top: 0.55rem;
+    font-size: 0.94rem;
+    line-height: 1.45;
+    color: rgba(214, 204, 190, 0.96);
+    text-shadow: 0 1px 14px rgba(0, 0, 0, 0.55);
+  }
+
+  .landing-ctas {
+    margin-top: 1.05rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .landing-cta {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .landing-cta.btn-ghost {
+    color: rgba(247, 241, 232, 0.88);
+    border-color: rgba(192, 122, 58, 0.38);
+    background: rgba(192, 122, 58, 0.06);
   }
 
   .deal-of-day-feature {
@@ -5206,16 +5275,50 @@ a {
     grid-template-columns: 110px 1fr;
   }
 
-  .landing-hero-stage {
-    padding: 2.75rem 0 2.25rem;
+  .landing-pulse {
+    padding: 1rem 0.85rem 0.95rem;
   }
 
-  .landing-hero-copy {
-    max-width: none;
+  .landing-pulse-title {
+    font-size: 1.25rem;
+  }
+
+  .landing-pulse-story {
+    font-size: 0.92rem;
+  }
+
+  .landing-mover-rail {
+    grid-template-columns: repeat(4, minmax(132px, 1fr));
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
   }
 
   .soft-ink-wash-canvas {
-    opacity: 0.85;
+    opacity: 0.62;
+  }
+
+  .soft-ink-wash-vignette {
+    background:
+      linear-gradient(90deg, rgba(10, 9, 8, 0.72) 0%, transparent 48%),
+      linear-gradient(180deg, transparent 40%, rgba(10, 9, 8, 0.55) 100%);
+  }
+}
+
+@media (max-width: 380px) {
+  .landing-hero-stage {
+    padding: 2.6rem 0 1.55rem;
+  }
+
+  .landing-brand {
+    font-size: clamp(2.25rem, 11.5vw, 2.75rem);
+  }
+
+  .landing-headline {
+    font-size: 1.15rem;
+  }
+
+  .landing-lede {
+    font-size: 0.88rem;
   }
 }
 
