@@ -73,9 +73,9 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 | --- | --- | --- |
 | M2.1 | Trade report PNG | **Shipping** — save PNG (+ clipboard), optional share-link embed, plain-language blurb, watermark + Pro CTA |
 | M2.2 | Radar share blurb + PNG + OG | **Shipping** — Discord paste + desk PNG; `?share=` OG title/image unfurl; locked-share preview; funnel `share_png` |
-| M2.3 | Binder share lite | **Shipping** — clipboard with % / owned / missing / buy-cost; PNG+clipboard; signed-out set preview; no private P&L |
+| M2.3 | Binder share lite + OG | **Shipping** — clipboard + PNG; `?set=` OG title/image unfurl; signed-out preview; no private P&L |
 | M2.4 | Deal-of-day share card | **Shipping** — PNG + clipboard + card deep link; Pro CTA watermark |
-| M2.5 | Reddit-ready deep links | **Shipping** — `/trade/s/{id}` metadata + OG image; card OG; Radar `?share=` OG + `/radar/share-image` |
+| M2.5 | Reddit-ready deep links | **Shipping** — Trade / card / Radar / Binder OG unfurl (`/radar/share-image`, `/binder/share-image`) |
 
 #### M3 — Desk depth that earns trust
 
