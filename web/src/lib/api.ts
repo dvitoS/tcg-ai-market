@@ -1097,6 +1097,23 @@ export async function fetchFunnelSummary(): Promise<FunnelSummaryResponse> {
   return res.json();
 }
 
+export type G3TrustSnapshot = {
+  cancel_events: number;
+  refund_events: number;
+  cited_total: number;
+  wrong_price_hits: number;
+  wrong_price_pct: number | null;
+  reason_buckets: Record<string, number>;
+  entitled: number;
+  canceled_entitlements: number;
+  spot_reports_open: number;
+  spot_reports_total: number;
+  spot_reports_per_100_entitled: number | null;
+  gate_target_pct: number;
+  gate_ok: boolean;
+  uptime_s: number;
+};
+
 export type TrialConversionResponse = {
   by_status: Record<string, number>;
   active: number;
@@ -1110,6 +1127,7 @@ export type TrialConversionResponse = {
     counts?: Record<string, number>;
     uptime_s?: number;
   };
+  g3_trust?: G3TrustSnapshot;
   source: "supabase" | "empty";
 };
 

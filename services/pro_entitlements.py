@@ -87,6 +87,8 @@ def entitlement_status_counts() -> dict[str, int]:
 
 def conversion_summary() -> dict[str, Any]:
     """Trial hygiene snapshot from ``pro_entitlements`` (+ process webhook counters)."""
+    from services.g3_trust import g3_trust_snapshot
+    from services.spot_reports import spot_report_summary
     from services.trial_hygiene import webhook_outcome_counts
 
     by_status = entitlement_status_counts()
@@ -99,6 +101,20 @@ def conversion_summary() -> dict[str, Any]:
     paid_share_pct = (
         round(100.0 * active / entitled, 1) if entitled > 0 else None
     )
+    try:
+        reports = spot_report_summary()
+    except Exception:
+        reports = {"open_total": 0, "counts": {}}
+    report_counts = reports.get("counts") if isinstance(reports, dict) else {}
+    if not isinstance(report_counts, dict):
+        report_counts = {}
+    spot_total = sum(int(v or 0) for v in report_counts.values())
+    g3 = g3_trust_snapshot(
+        entitled=entitled,
+        canceled=canceled,
+        spot_reports_open=int(reports.get("open_total") or 0),
+        spot_reports_total=spot_total,
+    )
     return {
         "by_status": by_status,
         "active": active,
@@ -109,6 +125,7 @@ def conversion_summary() -> dict[str, Any]:
         "entitled": entitled,
         "paid_share_pct": paid_share_pct,
         "webhook_outcomes": webhook_outcome_counts(),
+        "g3_trust": g3,
         "source": "supabase" if by_status else "empty",
     }
 

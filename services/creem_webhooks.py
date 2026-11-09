@@ -28,6 +28,14 @@ REVOKE_EVENTS = frozenset(
         "subscription.past_due",
     }
 )
+REFUND_EVENTS = frozenset(
+    {
+        "refund.created",
+        "refund.succeeded",
+        "payment.refunded",
+        "subscription.refunded",
+    }
+)
 
 
 def creem_webhook_secret() -> str:
@@ -148,6 +156,7 @@ def handle_creem_event(event: dict[str, Any]) -> dict[str, Any]:
         }
 
     if event_type in REVOKE_EVENTS:
+        from services.g3_trust import extract_cancel_reason, record_cancel_or_refund
         from services.trial_hygiene import record_webhook_outcome
 
         status_map = {
@@ -157,6 +166,13 @@ def handle_creem_event(event: dict[str, Any]) -> dict[str, Any]:
             "subscription.past_due": "past_due",
         }
         status = status_map.get(event_type, "canceled")
+        cancel_reason = extract_cancel_reason(obj)
+        if event_type == "subscription.canceled" or cancel_reason:
+            record_cancel_or_refund(
+                kind="cancel",
+                reason=cancel_reason,
+                event_type=event_type,
+            )
         if subscription_id:
             n = entitlements.set_entitlement_status_by_subscription(
                 subscription_id=subscription_id,
@@ -171,6 +187,7 @@ def handle_creem_event(event: dict[str, Any]) -> dict[str, Any]:
                 "event_type": event_type,
                 "updated": n,
                 "subscription_id": subscription_id,
+                "cancel_reason": cancel_reason,
             }
         if email:
             row = entitlements.grant_pro_entitlement(
@@ -191,10 +208,32 @@ def handle_creem_event(event: dict[str, Any]) -> dict[str, Any]:
                 "action": "revoke",
                 "event_type": event_type,
                 "email": email,
+                "cancel_reason": cancel_reason,
             }
         record_webhook_outcome(
             action="revoke_failed", status=status, event_type=event_type
         )
         return {"ok": False, "reason": "missing_subscription_or_email", "event_type": event_type}
+
+    if event_type in REFUND_EVENTS:
+        from services.g3_trust import extract_cancel_reason, record_cancel_or_refund
+        from services.trial_hygiene import record_webhook_outcome
+
+        refund_reason = extract_cancel_reason(obj)
+        record_cancel_or_refund(
+            kind="refund",
+            reason=refund_reason,
+            event_type=event_type,
+        )
+        record_webhook_outcome(
+            action="refund", status="refunded", event_type=event_type
+        )
+        return {
+            "ok": True,
+            "action": "refund",
+            "event_type": event_type,
+            "refund_reason": refund_reason,
+            "email": email,
+        }
 
     return {"ok": True, "action": "ignored", "event_type": event_type or "unknown"}

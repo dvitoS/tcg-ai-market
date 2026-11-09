@@ -600,6 +600,46 @@ export function DataHealthPanel() {
                     webhooks: trial.webhook_outcomes.counts?.total ?? 0,
                   })}
                 </p>
+                {trial.g3_trust ? (
+                  <div className="data-health-qa nested">
+                    <p className="data-health-qa-title">{t("obs_g3_title")}</p>
+                    <p className="data-health-caption">{t("obs_g3_caption")}</p>
+                    <div className="data-health-metrics">
+                      <div>
+                        <span>{t("obs_g3_wrong_pct")}</span>
+                        <strong>
+                          {trial.g3_trust.wrong_price_pct == null
+                            ? t("obs_na")
+                            : `${trial.g3_trust.wrong_price_pct}%`}
+                        </strong>
+                      </div>
+                      <div>
+                        <span>{t("obs_g3_cancels")}</span>
+                        <strong>{trial.g3_trust.cancel_events}</strong>
+                      </div>
+                      <div>
+                        <span>{t("obs_g3_refunds")}</span>
+                        <strong>{trial.g3_trust.refund_events}</strong>
+                      </div>
+                      <div>
+                        <span>{t("obs_g3_reports")}</span>
+                        <strong>
+                          {trial.g3_trust.spot_reports_per_100_entitled == null
+                            ? t("obs_na")
+                            : trial.g3_trust.spot_reports_per_100_entitled}
+                        </strong>
+                      </div>
+                    </div>
+                    <p className="data-health-cache lot-meta">
+                      {trial.g3_trust.gate_ok
+                        ? t("obs_g3_ok")
+                        : t("obs_g3_fail")}
+                      {trial.g3_trust.cited_total === 0
+                        ? ` · ${t("obs_g3_empty")}`
+                        : ""}
+                    </p>
+                  </div>
+                ) : null}
               </>
             ) : (
               <p className="data-health-caption">{t("obs_trial_empty")}</p>
@@ -625,6 +665,7 @@ export function DataHealthPanel() {
                       "trade_activate",
                       "share_copy",
                       "share_png",
+                      "spot_report",
                     ] as const
                   ).map((key) => (
                     <div key={key}>

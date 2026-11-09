@@ -42,7 +42,7 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 | **G0 Trust** | Critical path | 20-card Radar sniff pack vs TCP + eBay sold passes; unmatched-set rate trending down; public `/guides` or methodology page live |
 | **G1 10s wedge** | Mostly shipped | ≥4/5 cold users explain “spot vs sure fair band / buy or pass” after one screen |
 | **G2 Share loop** | In progress | Trade / Radar / binder / DOTD PNG + paste live; organic kit in `docs/ORGANIC_SOFT_LAUNCH.md`; still need ≥1 real Discord share/week |
-| **G3 Metrics** | Required before CAC | Funnel instrumented; trial→paid path clear; &lt;2% refunds citing “wrong prices” |
+| **G3 Metrics** | Required before CAC | Funnel + trial strip live; Data Health **G3 trust gate**; &lt;2% cancel/refund cites “wrong prices” (`docs/G3_METRICS_CHECKLIST.md`) |
 
 ### Phases
 
@@ -93,15 +93,15 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 | --- | --- | --- |
 | M4.1 | Funnel events | **Shipping** — landing → DOTD → Pro → Radar/Trade; `/api/funnel` + ops panel |
 | M4.2 | Organic first | **Shipping** — Trade Discord paste pack; share funnel; `docs/ORGANIC_SOFT_LAUNCH.md` |
-| M4.3 | Trial hygiene | **Shipping** — `trialing` status; ops `/api/billing/conversion`; Data Health strip |
+| M4.3 | Trial hygiene + G3 trust | **Shipping** — trial strip; cancel/refund wrong-price gate in `/api/billing/conversion` → Data Health |
 | M4.4 | Support playbook | **Shipping** — detail report + ops queue/SLA; `docs/WRONG_SPOT_SLA.md` |
 | M4.5 | **Spend unlock** | G0–G3 green → tiny paid search / creator tests |
 
 ### Suggested next 3
 
-1. **G2 organic** *(ops)* — ≥1 real Discord / Reddit share/week (`docs/ORGANIC_SOFT_LAUNCH.md`) — paste + PNG + Radar OG unfurl live  
-2. **G1 cold-user check** — ≥4/5 explain spot vs sure fair after one screen  
-3. **M4.5** — spend unlock only after G0–G3 green (G0 sniff already automated)
+1. **G2 organic** *(ops)* — ≥1 real Discord / Reddit share/week (`docs/ORGANIC_SOFT_LAUNCH.md`)  
+2. **G1 cold-user check** *(ops)* — `docs/G1_COLD_USER_CHECKLIST.md` (≥4/5)  
+3. **G3 trust week** *(ops)* — `docs/G3_METRICS_CHECKLIST.md` then **M4.5** spend unlock
 
 ### Just shipped (ops / infra)
 
