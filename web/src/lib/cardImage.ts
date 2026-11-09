@@ -4,7 +4,9 @@
  * Server already prefers TCGdex for known-broken pokemontcg CDN sets. This
  * client map covers warm caches / older payloads and img onError recovery.
  *
- * Delta Reign (me6): TCGdex has catalog rows but no art yet — use Scrydex CDN.
+ * Scrydex CDN when TCGdex art is missing or unmappable:
+ * - Delta Reign (me6)
+ * - 30th Celebration Classic Collection (me55c) — reprint numbers ≠ TCGdex 001–030
  */
 
 const BROKEN_POKEMONTCG_SETS = new Set([
@@ -19,8 +21,8 @@ const BROKEN_POKEMONTCG_SETS = new Set([
   "me6",
 ]);
 
-/** Soft Ink sets mapped to TCGdex but with no uploaded TCGdex art yet. */
-const TCGDEX_MISSING_ART_SETS = new Set(["me6"]);
+/** Soft Ink sets that should use Scrydex (not TCGdex) for art. */
+const TCGDEX_MISSING_ART_SETS = new Set(["me6", "me55c"]);
 
 /** Keep in sync with tcgdex_client._SET_MAP (CAT.2a). */
 const SET_MAP: Record<

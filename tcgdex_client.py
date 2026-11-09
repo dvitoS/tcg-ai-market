@@ -74,11 +74,15 @@ _BROKEN_POKEMONTCG_CDN_SETS = frozenset(
     }
 )
 
-# Mapped Soft Ink sets where TCGdex lists cards but image=null (no CDN art yet).
-# Public Scrydex CDN still serves these (same host pokemon-tcg-data points at).
+# Soft Ink sets that should skip TCGdex art and use Scrydex CDN instead.
+# - me6: TCGdex me06 lists cards but image=null (no CDN art yet)
+# - me55c: Classic Collection — Soft Ink keeps original reprint numbers
+#   (me55c-4 Charizard); TCGdex 30th-c uses 001–030 and also has no art yet.
+# Do NOT blind-map me55c into _SET_MAP.
 _TCGDEX_MISSING_ART_SETS = frozenset(
     {
-        "me6",  # Delta Reign — TCGdex me06, 141 cards, zero images (2026-11)
+        "me6",  # Delta Reign
+        "me55c",  # 30th Celebration: Classic Collection
     }
 )
 

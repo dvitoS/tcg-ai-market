@@ -93,3 +93,17 @@ def test_prefer_delta_reign_uses_scrydex_not_tcgdex() -> None:
     # Keep an already-good Scrydex URL.
     good = "https://images.scrydex.com/pokemon/me6-1/small"
     assert prefer_card_image_url("me6-1", good) == good
+
+
+def test_prefer_classic_collection_uses_scrydex() -> None:
+    """me55c keeps reprint numbers — no TCGdex blind map; Scrydex has art."""
+    broken = "https://images.pokemontcg.io/me55c/4.png"
+    assert prefer_card_image_url("me55c-4", broken) == (
+        "https://images.scrydex.com/pokemon/me55c-4/large"
+    )
+    assert prefer_card_image_url("me55c-58", None) == (
+        "https://images.scrydex.com/pokemon/me55c-58/large"
+    )
+    assert prefer_card_image_url("me55c-106p", None) == (
+        "https://images.scrydex.com/pokemon/me55c-106p/large"
+    )
