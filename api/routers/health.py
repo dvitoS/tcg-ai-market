@@ -128,14 +128,15 @@ def data_health_reset(
 def data_health_sniff_pack(
     _ops: Annotated[dict[str, Any], Depends(require_ops_user)],
     limit: int = 20,
+    live_check: bool = True,
 ) -> SpotSniffPackResponse:
-    """Ops M0.2: sample sure UNDER/OVER rows for manual TCP + eBay sniff."""
+    """Ops M0.2 / G0: sure UNDER/OVER sample + optional JustTCG live TCP assist."""
     from api.catalog_service import clear_board_cache
     from services.spot_sniff import build_spot_sniff_pack
 
     # Bust process cache; load_board revision check + radar load the board once.
     clear_board_cache()
-    payload = build_spot_sniff_pack(limit=limit)
+    payload = build_spot_sniff_pack(limit=limit, live_check=live_check)
     return SpotSniffPackResponse(**payload)
 
 

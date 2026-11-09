@@ -62,6 +62,9 @@ class SpotSniffItem(BaseModel):
     tcgplayer_id: str | None = None
     tcgplayer_url: str | None = None
     kestrel_path: str
+    tcp_live: float | None = None
+    tcp_delta_pct: float | None = None
+    auto_status: Literal["ok", "warn", "fail", "skip"] = "skip"
     check_tcp: bool | None = None
     check_ebay: bool | None = None
     notes: str = ""
@@ -75,6 +78,13 @@ class SpotSniffPackResponse(BaseModel):
     over_n: int = 0
     board_source: str = "empty"
     pass_required: bool = True
+    live_checked: bool = False
+    live_configured: bool = False
+    auto_ok: int = 0
+    auto_warn: int = 0
+    auto_fail: int = 0
+    auto_skip: int = 0
+    live_error: str | None = None
     instructions: str
     items: list[SpotSniffItem] = Field(default_factory=list)
 
