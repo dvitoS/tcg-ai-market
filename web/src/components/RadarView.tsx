@@ -16,6 +16,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { useCurrency } from "@/components/CurrencyProvider";
 import { DeskLoading } from "@/components/DeskLoading";
 import { useLocale } from "@/components/LocaleProvider";
+import { RadarShareCard } from "@/components/RadarShareCard";
 import { SearchSuggest } from "@/components/SearchSuggest";
 import { TrustPanel } from "@/components/TrustPanel";
 import {
@@ -29,6 +30,10 @@ import {
   sideLabel,
   sideTipKey,
 } from "@/lib/i18n/messages";
+import {
+  downloadRadarSharePng,
+  radarShareFilename,
+} from "@/lib/radarExport";
 import {
   buildRadarShareClipboardText,
   buildRadarShareUrl,
@@ -149,11 +154,15 @@ export function RadarView() {
   const [error, setError] = useState<string | null>(null);
   const [shareNote, setShareNote] = useState<string | null>(null);
   const [shareBusy, setShareBusy] = useState(false);
+  const [exportBusy, setExportBusy] = useState(false);
+  const [exportNote, setExportNote] = useState<string | null>(null);
   const [sharedFilters, setSharedFilters] = useState<RadarShareFilters | null>(
     null,
   );
+  const shareCardRef = useRef<HTMLDivElement>(null);
   const [pending, startTransition] = useTransition();
   const [hydrated, setHydrated] = useState(false);
+  const { formatSpot } = useCurrency();
 
   useEffect(() => {
     setHydrated(true);
@@ -273,20 +282,25 @@ export function RadarView() {
     applyQuery(query);
   }
 
+  function currentShareFilters(): RadarShareFilters {
+    return {
+      q: submitted || query || undefined,
+      set: setName || undefined,
+      rarity: rarity || undefined,
+      min_edge: minEdge,
+      min_price: parsePrice(minPrice),
+      max_price: parsePrice(maxPrice),
+    };
+  }
+
   async function onShare() {
     if (!status?.allowed || shareBusy) return;
     setShareBusy(true);
     setShareNote(null);
+    setExportNote(null);
     setError(null);
     try {
-      const filters: RadarShareFilters = {
-        q: submitted || query || undefined,
-        set: setName || undefined,
-        rarity: rarity || undefined,
-        min_edge: minEdge,
-        min_price: parsePrice(minPrice),
-        max_price: parsePrice(maxPrice),
-      };
+      const filters = currentShareFilters();
       const url = buildRadarShareUrl(window.location.origin, filters);
       const top = data.underpriced[0];
       const text = buildRadarShareClipboardText({
@@ -316,6 +330,33 @@ export function RadarView() {
       setError(err instanceof Error ? err.message : t("radar_share_error"));
     } finally {
       setShareBusy(false);
+    }
+  }
+
+  async function onExportPng() {
+    if (!status?.allowed || exportBusy || !shareCardRef.current) return;
+    setExportBusy(true);
+    setExportNote(null);
+    setShareNote(null);
+    setError(null);
+    try {
+      const { copied } = await downloadRadarSharePng(
+        shareCardRef.current,
+        radarShareFilename(),
+      );
+      trackFunnel("share_png", {
+        surface: "radar",
+        clipboard: copied,
+        under: data.under_total,
+        over: data.over_total,
+      });
+      setExportNote(
+        copied ? t("radar_export_done_clipboard") : t("radar_export_done"),
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("radar_export_error"));
+    } finally {
+      setExportBusy(false);
     }
   }
 
@@ -370,6 +411,13 @@ export function RadarView() {
     );
   }
 
+  const shareFilters = currentShareFilters();
+  const topUnder = data.underpriced[0] ?? null;
+  const shareUrl =
+    typeof window !== "undefined"
+      ? buildRadarShareUrl(window.location.origin, shareFilters)
+      : null;
+
   return (
     <section className="scanner-page radar-page">
       <div className="explore-command">
@@ -397,13 +445,23 @@ export function RadarView() {
         <button
           type="button"
           className="btn-ghost"
-          disabled={shareBusy}
+          disabled={shareBusy || exportBusy}
           onClick={() => void onShare()}
         >
           {shareBusy ? t("radar_share_busy") : t("radar_share_copy")}
         </button>
+        <button
+          type="button"
+          className="btn-ghost"
+          disabled={exportBusy || shareBusy}
+          onClick={() => void onExportPng()}
+        >
+          {exportBusy ? t("radar_export_busy") : t("radar_export_image")}
+        </button>
       </form>
+      <p className="lot-meta">{t("radar_share_hint")}</p>
       {shareNote ? <p className="pro-open-note">{shareNote}</p> : null}
+      {exportNote ? <p className="pro-open-note">{exportNote}</p> : null}
 
       <div className="filter-row">
         <label>
@@ -510,6 +568,26 @@ export function RadarView() {
       )}
 
       <TrustPanel />
+
+      <div className="trade-share-card-host" aria-hidden="true">
+        <RadarShareCard
+          ref={shareCardRef}
+          filters={shareFilters}
+          underTotal={data.under_total}
+          overTotal={data.over_total}
+          topUnder={topUnder}
+          spotLabel={
+            topUnder ? formatSpot(topUnder.spot ?? topUnder.price) : "—"
+          }
+          fairLabel={
+            topUnder
+              ? formatSpot(topUnder.fair_price ?? topUnder.predicted_price)
+              : "—"
+          }
+          edgeLabel={topUnder ? formatChange(topUnder.edge_pct) : "—"}
+          shareUrl={shareUrl}
+        />
+      </div>
     </section>
   );
 }

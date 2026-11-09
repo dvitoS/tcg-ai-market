@@ -413,7 +413,7 @@ const en = {
   radar_under_empty: "No underpriced rows at this edge floor / price range.",
   radar_over_title: "Overpriced — trim candidates",
   radar_over_empty: "No overpriced rows at this edge floor / price range.",
-  radar_share_copy: "Copy share link",
+  radar_share_copy: "Copy Discord paste",
   radar_share_busy: "Copying…",
   radar_share_copied: "Share text copied — plain verdict + filter link.",
   radar_share_copied_fallback: "Clipboard blocked — copy the link below.",
@@ -427,6 +427,17 @@ const en = {
   radar_share_preview_lede:
     "Someone shared this Radar lens. Sign in with Pro to open the live UNDER/OVER board.",
   radar_share_preview_empty: "Open filters — no extras pinned on this link.",
+  radar_export_image: "Save Radar PNG",
+  radar_export_busy: "Saving…",
+  radar_export_done: "Radar PNG downloaded.",
+  radar_export_done_clipboard: "Radar PNG saved — also on clipboard when the browser allows.",
+  radar_export_error: "Could not export Radar PNG",
+  radar_export_tag: "Radar desk share",
+  radar_export_note:
+    "Sure UNDER/OVER vs the fair band. Desk call — spot vs sure fair. Not financial advice.",
+  radar_export_watermark: "Shared from Kestrel Radar",
+  radar_export_cta: "Open live board → Pro",
+  radar_share_hint: "PNG + Discord paste for organic G2 shares (Discord / soft Reddit).",
 
   // Model trust (Kestrel Pro — on Radar)
   trust_eyebrow: "Model trust",
@@ -1274,7 +1285,7 @@ const hr: Dictionary = {
   radar_under_empty: "Nema podcijenjenih redova za ovaj edge floor / raspon cijena.",
   radar_over_title: "Precijenjeno — kandidati za trim",
   radar_over_empty: "Nema precijenjenih redova za ovaj edge floor / raspon cijena.",
-  radar_share_copy: "Kopiraj share link",
+  radar_share_copy: "Kopiraj Discord paste",
   radar_share_busy: "Kopiram…",
   radar_share_copied: "Share tekst kopiran — plain verdict + filter link.",
   radar_share_copied_fallback: "Clipboard blokiran — kopiraj link ispod.",
@@ -1288,6 +1299,17 @@ const hr: Dictionary = {
   radar_share_preview_lede:
     "Netko je podijelio ovaj Radar lens. Prijavi se s Pro da otvoriš live UNDER/OVER board.",
   radar_share_preview_empty: "Otvoreni filteri — bez dodatnih pinova na ovom linku.",
+  radar_export_image: "Spremi Radar PNG",
+  radar_export_busy: "Spremam…",
+  radar_export_done: "Radar PNG skinut.",
+  radar_export_done_clipboard: "Radar PNG spremljen — i na clipboardu kad browser dopusti.",
+  radar_export_error: "Nisam uspio exportati Radar PNG",
+  radar_export_tag: "Radar desk share",
+  radar_export_note:
+    "Sure UNDER/OVER vs fair band. Desk call — spot vs sure fair. Nije financijski savjet.",
+  radar_export_watermark: "Podijeljeno s Kestrel Radara",
+  radar_export_cta: "Otvori live board → Pro",
+  radar_share_hint: "PNG + Discord paste za organski G2 share (Discord / soft Reddit).",
 
   trust_eyebrow: "Model trust",
   trust_title: "Kako forecast zarađuje povjerenje",
