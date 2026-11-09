@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { useLocale } from "@/components/LocaleProvider";
 import { TradeReportExport } from "@/components/TradeReportExport";
 import { fetchTradeShare, formatChange, formatMoney } from "@/lib/api";
+import { onCardImageError, resolveCardImageUrl } from "@/lib/cardImage";
 import type { TradeShareView as TradeSharePayload, TradeSide } from "@/lib/types";
 
 function verdictClass(verdict: string): string {
@@ -41,10 +42,11 @@ function ReadOnlySide({ title, side }: { title: string; side: TradeSide }) {
             <div key={`${line.card_id}-${line.quantity}`} className="trade-line">
               <div className="scan-art">
                 <Image
-                  src={line.image_url || "/kestrel-logo.png"}
+                  src={resolveCardImageUrl(line.card_id, line.image_url)}
                   alt={line.name || line.card_id}
                   width={40}
                   height={56}
+                  onError={(event) => onCardImageError(event, line.card_id)}
                 />
               </div>
               <div>

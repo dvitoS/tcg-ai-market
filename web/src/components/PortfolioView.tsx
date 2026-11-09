@@ -23,6 +23,7 @@ import {
   sellPortfolioLot,
   updatePortfolioLot,
 } from "@/lib/api";
+import { onCardImageError, resolveCardImageUrl } from "@/lib/cardImage";
 import { signalLabel } from "@/lib/i18n/messages";
 import type {
   PortfolioLot,
@@ -646,12 +647,13 @@ export function PortfolioView() {
                   <Link href={`/cards/${encodeURIComponent(lot.card_id)}`} className="lot-art">
                     <Image
                       className="lot-art-img"
-                      src={lot.image_url || "/kestrel-logo.png"}
+                      src={resolveCardImageUrl(lot.card_id, lot.image_url)}
                       alt={lot.name || lot.card_id}
                       width={245}
                       height={342}
                       sizes="(max-width: 720px) 45vw, 180px"
                       style={{ width: "100%", height: "auto" }}
+                      onError={(event) => onCardImageError(event, lot.card_id)}
                     />
                   </Link>
                   <div className="lot-body">
@@ -864,10 +866,11 @@ export function PortfolioView() {
             <div key={item.card_id} className="watch-row">
               <Link href={`/cards/${encodeURIComponent(item.card_id)}`} className="watch-art">
                 <Image
-                  src={item.image_url || "/kestrel-logo.png"}
+                  src={resolveCardImageUrl(item.card_id, item.image_url)}
                   alt={item.name || item.card_id}
                   width={56}
                   height={78}
+                  onError={(event) => onCardImageError(event, item.card_id)}
                 />
               </Link>
               <div className="watch-copy">

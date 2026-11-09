@@ -10,6 +10,7 @@ import { ExploreCard } from "@/components/ExploreCard";
 import { useLocale } from "@/components/LocaleProvider";
 import { SearchSuggest } from "@/components/SearchSuggest";
 import { fetchScanner, formatChange, formatMoney } from "@/lib/api";
+import { onCardImageError, resolveCardImageUrl } from "@/lib/cardImage";
 import { pushRecentSearch } from "@/lib/searchRecent";
 import type { ScannerCard, ScannerResponse } from "@/lib/types";
 
@@ -39,10 +40,11 @@ function ScanRow({ card }: { card: ScannerCard }) {
     <Link href={`/cards/${encodeURIComponent(card.id)}`} className="scan-row">
       <div className="scan-art">
         <Image
-          src={card.image_url || "/kestrel-logo.png"}
+          src={resolveCardImageUrl(card.id, card.image_url)}
           alt={card.name}
           width={48}
           height={67}
+          onError={(event) => onCardImageError(event, card.id)}
         />
       </div>
       <div>

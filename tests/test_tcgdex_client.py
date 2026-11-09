@@ -5,6 +5,7 @@ from tcgdex_client import (
     pad_local_id,
     pokemontcg_to_tcgdex_id,
     prefer_card_image_url,
+    scrydex_image_url,
     tcgdex_image_url,
 )
 
@@ -65,3 +66,30 @@ def test_prefer_fills_missing_for_mapped_set() -> None:
     assert prefer_card_image_url("sv3-25", None) == (
         "https://assets.tcgdex.net/en/sv/sv03/025/high.webp"
     )
+
+
+def test_scrydex_image_url() -> None:
+    assert scrydex_image_url("me6-1") == (
+        "https://images.scrydex.com/pokemon/me6-1/large"
+    )
+    assert scrydex_image_url("me6-25", size="small") == (
+        "https://images.scrydex.com/pokemon/me6-25/small"
+    )
+    assert scrydex_image_url("") is None
+
+
+def test_prefer_delta_reign_uses_scrydex_not_tcgdex() -> None:
+    """Delta Reign (me6): TCGdex me06 has cards but image=null — use Scrydex."""
+    broken = "https://images.pokemontcg.io/me6/1.png"
+    out = prefer_card_image_url("me6-1", broken)
+    assert out == "https://images.scrydex.com/pokemon/me6-1/large"
+    dead_tcgdex = "https://assets.tcgdex.net/en/me/me06/001/high.webp"
+    assert prefer_card_image_url("me6-1", dead_tcgdex) == (
+        "https://images.scrydex.com/pokemon/me6-1/large"
+    )
+    assert prefer_card_image_url("me6-141", None) == (
+        "https://images.scrydex.com/pokemon/me6-141/large"
+    )
+    # Keep an already-good Scrydex URL.
+    good = "https://images.scrydex.com/pokemon/me6-1/small"
+    assert prefer_card_image_url("me6-1", good) == good

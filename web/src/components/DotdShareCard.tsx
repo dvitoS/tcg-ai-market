@@ -3,6 +3,7 @@
 import { forwardRef } from "react";
 
 import { useLocale } from "@/components/LocaleProvider";
+import { resolveCardImageUrl } from "@/lib/cardImage";
 import type { RadarCard } from "@/lib/types";
 
 export const DotdShareCard = forwardRef<
@@ -40,7 +41,7 @@ export const DotdShareCard = forwardRef<
       <div className="dotd-share-body">
         <div className="dotd-share-art">
           <img
-            src={card.image_url || "/kestrel-logo.png"}
+            src={resolveCardImageUrl(card.id, card.image_url)}
             alt=""
             width={140}
             height={196}

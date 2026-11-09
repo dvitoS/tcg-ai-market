@@ -5,6 +5,9 @@ pokemontcg.io ids. Full catalog cutover stays a later roadmap item (EOL 2027).
 
 Docs: https://tcgdex.dev/rest · Base: https://api.tcgdex.net/v2/en/
 Images: https://assets.tcgdex.net/en/{serie}/{set}/{localId}/high.webp
+
+When TCGdex lists a mapped set without uploaded art (e.g. Delta Reign / me6),
+prefer the public Scrydex CDN: https://images.scrydex.com/pokemon/{id}/large
 """
 
 from __future__ import annotations
@@ -13,6 +16,7 @@ from typing import NamedTuple
 
 TCGDEX_ASSETS = "https://assets.tcgdex.net"
 TCGDEX_API = "https://api.tcgdex.net/v2"
+SCRYDEX_CDN = "https://images.scrydex.com"
 POKEMONTCG_CDN_HOST = "images.pokemontcg.io"
 
 
@@ -67,6 +71,14 @@ _BROKEN_POKEMONTCG_CDN_SETS = frozenset(
         "me4",
         "me5",
         "me6",
+    }
+)
+
+# Mapped Soft Ink sets where TCGdex lists cards but image=null (no CDN art yet).
+# Public Scrydex CDN still serves these (same host pokemon-tcg-data points at).
+_TCGDEX_MISSING_ART_SETS = frozenset(
+    {
+        "me6",  # Delta Reign — TCGdex me06, 141 cards, zero images (2026-11)
     }
 )
 
@@ -130,9 +142,31 @@ def tcgdex_image_url(
     )
 
 
+def scrydex_image_url(card_id: str, *, size: str = "large") -> str | None:
+    """Build a Scrydex CDN URL (Soft Ink / pokemontcg id, no API key).
+
+    Example: me6-1 → https://images.scrydex.com/pokemon/me6-1/large
+    """
+    cid = str(card_id or "").strip()
+    if not cid or "-" not in cid:
+        return None
+    size_s = "small" if str(size or "").strip().lower() == "small" else "large"
+    return f"{SCRYDEX_CDN}/pokemon/{cid}/{size_s}"
+
+
 def is_pokemontcg_cdn_url(url: str | None) -> bool:
     text = str(url or "").strip().lower()
     return bool(text) and POKEMONTCG_CDN_HOST in text
+
+
+def is_tcgdex_assets_url(url: str | None) -> bool:
+    text = str(url or "").strip().lower()
+    return bool(text) and "assets.tcgdex.net" in text
+
+
+def is_scrydex_cdn_url(url: str | None) -> bool:
+    text = str(url or "").strip().lower()
+    return bool(text) and "images.scrydex.com" in text
 
 
 def pokemontcg_cdn_set_code(url: str | None) -> str | None:
@@ -156,16 +190,33 @@ def prefer_card_image_url(card_id: str, existing: str | None = None) -> str | No
 
     Prefer TCGdex when the stored/synthesized URL points at a known-broken
     pokemontcg CDN set, or when we have no URL but a TCGdex map exists.
+
+    Exception: sets in `_TCGDEX_MISSING_ART_SETS` (e.g. Delta Reign / me6)
+    use Scrydex CDN instead — TCGdex has catalog rows but no uploaded art.
     """
     existing_s = str(existing or "").strip() or None
     parts = split_card_id(card_id)
     set_code = parts[0] if parts else None
 
     tcgdex = tcgdex_image_url(card_id)
+    scrydex = scrydex_image_url(card_id)
     broken_set = bool(
         set_code in _BROKEN_POKEMONTCG_CDN_SETS
         or pokemontcg_cdn_set_code(existing_s) in _BROKEN_POKEMONTCG_CDN_SETS
     )
+
+    # Delta Reign etc.: skip dead TCGdex asset URLs → Scrydex.
+    if set_code in _TCGDEX_MISSING_ART_SETS and scrydex:
+        if is_scrydex_cdn_url(existing_s):
+            return existing_s
+        if (
+            not existing_s
+            or is_pokemontcg_cdn_url(existing_s)
+            or is_tcgdex_assets_url(existing_s)
+            or broken_set
+        ):
+            return scrydex
+        return existing_s
 
     if tcgdex and (
         not existing_s
@@ -176,4 +227,4 @@ def prefer_card_image_url(card_id: str, existing: str | None = None) -> str | No
 
     if existing_s:
         return existing_s
-    return tcgdex
+    return tcgdex or scrydex

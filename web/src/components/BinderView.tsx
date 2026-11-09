@@ -17,6 +17,7 @@ import { DeskLoading } from "@/components/DeskLoading";
 import { useLocale } from "@/components/LocaleProvider";
 import { fetchBinder, fetchBinderSets, formatMoney } from "@/lib/api";
 import { cleanBinderShareSet } from "@/lib/binderExport";
+import { onCardImageError, resolveCardImageUrl } from "@/lib/cardImage";
 import type { BinderMissingCard, BinderResponse, BinderSetSummary } from "@/lib/types";
 
 function MissingRow({ card }: { card: BinderMissingCard }) {
@@ -27,10 +28,11 @@ function MissingRow({ card }: { card: BinderMissingCard }) {
     <Link href={`/cards/${encodeURIComponent(card.id)}`} className="scan-row">
       <div className="scan-art">
         <Image
-          src={card.image_url || "/kestrel-logo.png"}
+          src={resolveCardImageUrl(card.id, card.image_url)}
           alt={card.name}
           width={48}
           height={67}
+          onError={(event) => onCardImageError(event, card.id)}
         />
       </div>
       <div>
