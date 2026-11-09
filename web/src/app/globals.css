@@ -4465,6 +4465,8 @@ a {
   border: 1px solid rgba(192, 122, 58, 0.28);
   border-radius: 3px;
   background: rgba(8, 7, 6, 0.55);
+  min-width: 0;
+  overflow: hidden;
 }
 
 .landing-pulse-stats dt {
@@ -4481,6 +4483,7 @@ a {
   font-size: 1.35rem;
   font-weight: 600;
   color: var(--text);
+  min-width: 0;
 }
 
 .landing-pulse-stats dd.is-buy,
@@ -4497,10 +4500,37 @@ a {
   animation: landing-pulse-stat-in 0.7s ease both;
 }
 
+.landing-pulse-breadth {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.15rem 0.4rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.landing-pulse-breadth-main {
+  line-height: 1.1;
+}
+
+.landing-pulse-breadth-sides {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.05rem;
+  min-width: 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
 .landing-pulse-sep {
-  margin: 0 0.28rem;
+  margin: 0 0.18rem;
   color: var(--muted);
   font-size: 0.85rem;
+}
+
+.landing-pulse-breadth-sides .landing-pulse-sep {
+  margin: 0 0.1rem;
 }
 
 .landing-pulse-flat {
@@ -5171,6 +5201,24 @@ a {
 
   .landing-pulse-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .landing-pulse-stats > div {
+    padding: 0.65rem 0.6rem 0.7rem;
+  }
+
+  .landing-pulse-stats dd {
+    font-size: clamp(1.05rem, 5.2vw, 1.25rem);
+  }
+
+  .landing-pulse-breadth {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+  }
+
+  .landing-pulse-breadth-sides {
+    font-size: 0.82rem;
   }
 
   .landing-trends {

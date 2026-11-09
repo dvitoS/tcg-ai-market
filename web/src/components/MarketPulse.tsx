@@ -222,12 +222,20 @@ export function MarketPulse({
         </div>
         <div>
           <dt>{t("landing_pulse_breadth")}</dt>
-          <dd className="landing-pulse-stat-num">
-            <span className="is-buy">{pulse.rising_n}</span>
-            <span className="landing-pulse-sep">↑</span>
-            <span className="landing-pulse-flat">{pulse.flat_n}</span>
-            <span className="landing-pulse-sep">↓</span>
-            <span className="is-sell">{pulse.falling_n}</span>
+          <dd className="landing-pulse-stat-num landing-pulse-breadth">
+            <span className="is-buy landing-pulse-breadth-main">
+              {pulse.rising_n}
+            </span>
+            <span className="landing-pulse-breadth-sides">
+              <span className="landing-pulse-sep" aria-hidden="true">
+                ↑
+              </span>
+              <span className="landing-pulse-flat">{pulse.flat_n}</span>
+              <span className="landing-pulse-sep" aria-hidden="true">
+                ↓
+              </span>
+              <span className="is-sell">{pulse.falling_n}</span>
+            </span>
           </dd>
         </div>
       </dl>
