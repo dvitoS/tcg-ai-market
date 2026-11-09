@@ -125,9 +125,14 @@ const en = {
     "TCP live: {ok} ok · {warn} warn · {fail} fail · {skip} skip",
   obs_sniff_verdict_meta:
     "Auto G0: {pass} pass · {review} review · {fail} fail · {healed} healed",
+  obs_sniff_diag_meta:
+    "TCP ids missing {missing} · resolved {resolved} · JustTCG {jt} · eBay {ebay}",
+  obs_sniff_diag_on: "on",
+  obs_sniff_diag_off: "off",
   obs_sniff_g0_ready: "G0 auto-ready — spot-check review rows, then you can unlock spend.",
   obs_sniff_g0_not_ready:
     "G0 not ready — clear remaining fails / shrink review, then re-run.",
+  obs_sniff_skip_no_tcp: "no TCGplayer id",
   obs_sniff_status_ok: "ok",
   obs_sniff_status_warn: "warn",
   obs_sniff_status_fail: "fail",
@@ -985,9 +990,14 @@ const hr: Dictionary = {
     "TCP live: {ok} ok · {warn} warn · {fail} fail · {skip} skip",
   obs_sniff_verdict_meta:
     "Auto G0: {pass} pass · {review} review · {fail} fail · {healed} healed",
+  obs_sniff_diag_meta:
+    "TCP id fali {missing} · resolved {resolved} · JustTCG {jt} · eBay {ebay}",
+  obs_sniff_diag_on: "on",
+  obs_sniff_diag_off: "off",
   obs_sniff_g0_ready: "G0 auto-ready — pregledaj review redove, onda možeš unlockati spend.",
   obs_sniff_g0_not_ready:
     "G0 nije ready — očisti preostale failove / smanji review, pa ponovi.",
+  obs_sniff_skip_no_tcp: "nema TCGplayer id",
   obs_sniff_status_ok: "ok",
   obs_sniff_status_warn: "warn",
   obs_sniff_status_fail: "fail",

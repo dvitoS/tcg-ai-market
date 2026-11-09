@@ -66,6 +66,8 @@ class SpotSniffItem(BaseModel):
     tcp_delta_pct: float | None = None
     tcp_status: Literal["ok", "warn", "fail", "skip"] = "skip"
     auto_status: Literal["ok", "warn", "fail", "skip"] = "skip"
+    tcp_resolved: bool = False
+    skip_reason: str | None = None
     ebay_median: float | None = None
     ebay_delta_pct: float | None = None
     ebay_n: int = 0
@@ -92,9 +94,12 @@ class SpotSniffPackResponse(BaseModel):
     auto_warn: int = 0
     auto_fail: int = 0
     auto_skip: int = 0
+    tcp_missing: int = 0
+    tcp_resolved: int = 0
     live_error: str | None = None
     ebay_checked: bool = False
     ebay_configured: bool = False
+    ebay_usable: bool = False
     ebay_ok: int = 0
     ebay_warn: int = 0
     ebay_fail: int = 0

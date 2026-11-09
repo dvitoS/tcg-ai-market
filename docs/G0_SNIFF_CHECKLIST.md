@@ -10,11 +10,13 @@
 2. Click **Pokreni auto G0** / **Run auto G0**.
 3. Soft Ink will:
    - sample ~20 sure UNDER/OVER rows
+   - **resolve missing TCGplayer ids** via JustTCG search (common on older board rows)
    - batch-check **JustTCG NM** (TCP market)
-   - parallel-check **eBay sold** medians
+   - parallel-check **eBay sold** medians (if Insights available; otherwise TCP-only pass)
    - **auto-heal** hard fails (quarantine off the sure desk)
-4. Read the summary: `pass · review · fail · healed` and whether **G0 auto-ready**.
-5. Open only the **review** rows (TCP + eBay links) — usually a handful, not all 20.
+4. Read the summary: `pass · review · fail · healed`, TCP missing/resolved, and whether **G0 auto-ready**.
+5. Open only the **review** rows (TCP + eBay links) — usually a handful, not all 20.  
+   If you still see **20 review / 0 pass** and “no TCGplayer id”, JustTCG key is missing on the API or search couldn’t match — fix that before manual clicking.
 6. If review rows smell OK and `g0_ready` is true → **G0 passes**.  
    If not → Heal remaining fails / re-run after nightly. Do **not** unlock spend.
 
