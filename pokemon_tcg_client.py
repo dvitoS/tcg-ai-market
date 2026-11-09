@@ -534,19 +534,50 @@ def fetch_cards(
             seen.add(card_id)
             all_cards.append(card)
 
+    def _try_tcgdex_fallback(sid: str, label: str) -> list[dict[str, Any]]:
+        """CAT.2b: mapped Soft Ink set → TCGdex list, Soft Ink ids preserved."""
+        try:
+            from tcgdex_client import (
+                tcgdex_catalog_fallback_enabled,
+                tcgdex_set_card_rows_as_pokemontcg,
+            )
+        except Exception:
+            return []
+        if not tcgdex_catalog_fallback_enabled():
+            return []
+        try:
+            rows = tcgdex_set_card_rows_as_pokemontcg(sid, set_name=label)
+        except Exception as exc:
+            _append_automation_log(
+                f"CAT.2b TCGdex fallback failed for '{label}' ({sid}): {exc}",
+                level="WARNING",
+            )
+            return []
+        if rows:
+            print(
+                f"  CAT.2b TCGdex fallback: '{label}' ({sid}) → {len(rows)} karata"
+            )
+        return rows
+
     for index, (sid, label) in enumerate(targets, start=1):
         print(f"[{index}/{len(targets)}] set '{label}' ({sid})")
         try:
             set_cards = fetch_cards_for_set(sid, set_name=label, page_size=page_size)
             _ingest(set_cards)
+            if not set_cards:
+                fallback = _try_tcgdex_fallback(sid, label)
+                _ingest(fallback)
         except Exception as exc:
             msg = f"{type(exc).__name__}: {exc}"
-            failed.append((sid, label, msg))
-            _append_automation_log(
-                f"Set '{label}' ({sid}) nije učitan — nastavljam s ostalima. {msg}",
-                level="WARNING",
-            )
-            set_cards = []
+            fallback = _try_tcgdex_fallback(sid, label)
+            if fallback:
+                _ingest(fallback)
+            else:
+                failed.append((sid, label, msg))
+                _append_automation_log(
+                    f"Set '{label}' ({sid}) nije učitan — nastavljam s ostalima. {msg}",
+                    level="WARNING",
+                )
         if index < len(targets) and pace > 0:
             print(
                 f"  [napredak] set {index}/{len(targets)} gotov. "
@@ -564,14 +595,25 @@ def fetch_cards(
             try:
                 set_cards = fetch_cards_for_set(sid, set_name=label, page_size=page_size)
                 _ingest(set_cards)
-                print(f"  retry OK: '{label}' ({sid}) → {len(set_cards)} karata")
+                if set_cards:
+                    print(f"  retry OK: '{label}' ({sid}) → {len(set_cards)} karata")
+                else:
+                    fallback = _try_tcgdex_fallback(sid, label)
+                    if fallback:
+                        _ingest(fallback)
+                    else:
+                        still_failed.append((sid, label, _prev))
             except Exception as exc:
                 msg = f"{type(exc).__name__}: {exc}"
-                still_failed.append((sid, label, msg))
-                _append_automation_log(
-                    f"Retry set '{label}' ({sid}) i dalje neuspješan. {msg}",
-                    level="WARNING",
-                )
+                fallback = _try_tcgdex_fallback(sid, label)
+                if fallback:
+                    _ingest(fallback)
+                else:
+                    still_failed.append((sid, label, msg))
+                    _append_automation_log(
+                        f"Retry set '{label}' ({sid}) i dalje neuspješan. {msg}",
+                        level="WARNING",
+                    )
             if pace > 0:
                 sleep(pace)
         failed = still_failed
