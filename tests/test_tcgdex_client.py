@@ -1,6 +1,7 @@
 """TCGdex id / art helpers — Soft Ink fallback while pokemontcg CDN lags."""
 
 from tcgdex_client import (
+    mapped_pokemontcg_set_codes,
     pad_local_id,
     pokemontcg_to_tcgdex_id,
     prefer_card_image_url,
@@ -20,9 +21,19 @@ def test_pokemontcg_to_tcgdex_id_mapped_sets() -> None:
     assert pokemontcg_to_tcgdex_id("me2pt5-284") == "me02.5-284"
     assert pokemontcg_to_tcgdex_id("zsv10pt5-111") == "sv10.5b-111"
     assert pokemontcg_to_tcgdex_id("rsv10pt5-156") == "sv10.5w-156"
+    assert pokemontcg_to_tcgdex_id("sv1-1") == "sv01-001"
+    assert pokemontcg_to_tcgdex_id("sv3pt5-25") == "sv03.5-025"
+    assert pokemontcg_to_tcgdex_id("sv8pt5-1") == "sv08.5-001"
+    assert pokemontcg_to_tcgdex_id("me3-4") == "me03-004"
     # Classic Collection numbering differs — no blind map.
     assert pokemontcg_to_tcgdex_id("me55c-4") is None
     assert pokemontcg_to_tcgdex_id("base1-4") is None
+
+
+def test_mapped_set_codes_cover_sv_and_me() -> None:
+    codes = set(mapped_pokemontcg_set_codes())
+    assert "sv1" in codes and "sv10" in codes and "me1" in codes
+    assert "me55c" not in codes
 
 
 def test_tcgdex_image_url_high_webp() -> None:
@@ -30,6 +41,9 @@ def test_tcgdex_image_url_high_webp() -> None:
     assert url == "https://assets.tcgdex.net/en/me/30th/027/high.webp"
     url2 = tcgdex_image_url("me2pt5-284")
     assert url2 == "https://assets.tcgdex.net/en/me/me02.5/284/high.webp"
+    assert tcgdex_image_url("sv1-1") == (
+        "https://assets.tcgdex.net/en/sv/sv01/001/high.webp"
+    )
 
 
 def test_prefer_rewrites_broken_pokemontcg_cdn() -> None:
@@ -48,3 +62,6 @@ def test_prefer_keeps_good_existing_non_broken() -> None:
 def test_prefer_fills_missing_for_mapped_set() -> None:
     out = prefer_card_image_url("me2pt5-284", None)
     assert out == "https://assets.tcgdex.net/en/me/me02.5/284/high.webp"
+    assert prefer_card_image_url("sv3-25", None) == (
+        "https://assets.tcgdex.net/en/sv/sv03/025/high.webp"
+    )

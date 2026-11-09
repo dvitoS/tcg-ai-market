@@ -27,10 +27,30 @@ class TcgdexSetMap(NamedTuple):
 # Only map sets where collector numbers align with Soft Ink / pokemontcg ids.
 # me55c Classic Collection uses a different numbering on TCGdex — skip blind map.
 _SET_MAP: dict[str, TcgdexSetMap] = {
-    "me55": TcgdexSetMap("30th", "me", 3),
-    "me2pt5": TcgdexSetMap("me02.5", "me", 3),
+    # Mega Evolution era (Soft Ink meN → TCGdex me0N / specials)
     "me1": TcgdexSetMap("me01", "me", 3),
+    "me2": TcgdexSetMap("me02", "me", 3),
+    "me3": TcgdexSetMap("me03", "me", 3),
+    "me4": TcgdexSetMap("me04", "me", 3),
+    "me5": TcgdexSetMap("me05", "me", 3),
     "me6": TcgdexSetMap("me06", "me", 3),
+    "me2pt5": TcgdexSetMap("me02.5", "me", 3),
+    "me55": TcgdexSetMap("30th", "me", 3),
+    # Scarlet & Violet main + trainer galleries / specials
+    "sv1": TcgdexSetMap("sv01", "sv", 3),
+    "sv2": TcgdexSetMap("sv02", "sv", 3),
+    "sv3": TcgdexSetMap("sv03", "sv", 3),
+    "sv3pt5": TcgdexSetMap("sv03.5", "sv", 3),
+    "sv4": TcgdexSetMap("sv04", "sv", 3),
+    "sv4pt5": TcgdexSetMap("sv04.5", "sv", 3),
+    "sv5": TcgdexSetMap("sv05", "sv", 3),
+    "sv6": TcgdexSetMap("sv06", "sv", 3),
+    "sv6pt5": TcgdexSetMap("sv06.5", "sv", 3),
+    "sv7": TcgdexSetMap("sv07", "sv", 3),
+    "sv8": TcgdexSetMap("sv08", "sv", 3),
+    "sv8pt5": TcgdexSetMap("sv08.5", "sv", 3),
+    "sv9": TcgdexSetMap("sv09", "sv", 3),
+    "sv10": TcgdexSetMap("sv10", "sv", 3),
     "zsv10pt5": TcgdexSetMap("sv10.5b", "sv", 3),
     "rsv10pt5": TcgdexSetMap("sv10.5w", "sv", 3),
 }
@@ -41,9 +61,19 @@ _BROKEN_POKEMONTCG_CDN_SETS = frozenset(
         "me55",
         "me55c",
         "me2pt5",
+        "me1",
+        "me2",
+        "me3",
+        "me4",
+        "me5",
         "me6",
     }
 )
+
+
+def mapped_pokemontcg_set_codes() -> tuple[str, ...]:
+    """Soft Ink set prefixes that have a TCGdex art/id remap."""
+    return tuple(sorted(_SET_MAP))
 
 
 def split_card_id(card_id: str) -> tuple[str, str] | None:

@@ -118,10 +118,10 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 | ID | Item | Ship |
 | --- | --- | --- |
 | CAT.1 | **TCGdex art fallback** | **Shipping** — rewrite known-broken `images.pokemontcg.io` sets (`me55`, `me2pt5`, …) to `assets.tcgdex.net`; Soft Ink `onError` recovery. No API key. |
-| CAT.2 | TCGdex / Scrydex full catalog cutover | Before pokemontcg.io EOL (**2027-03-01**) — ID remap + nightly gap-fill source swap |
+| CAT.2 | TCGdex / Scrydex full catalog cutover | **CAT.2a shipping** — SV/ME Soft Ink→TCGdex id/art map (`docs/CAT2_TCGDEX_CUTOVER.md`); full source swap later (EOL **2027-03-01**) |
 | CAT.3 | JustTCG Pro (or Scrydex Growth) price pipe | Optional — unlock faster NM history fill / single-vendor catalog+prices |
 
-**When to deepen TCGdex:** art fallback is now (CAT.1). Full catalog provider swap (CAT.2) after G0 sniff is green and before 2027 — do **not** block spend unlock on a full remap.
+**When to deepen TCGdex:** CAT.1 art fallback + CAT.2a id map are live. CAT.2b+ (nightly read / DB dual-read) before 2027 — do **not** block spend unlock on a full remap.
 
 ### Explicit non-goals until spend unlock
 

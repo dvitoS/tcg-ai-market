@@ -9,17 +9,41 @@ const BROKEN_POKEMONTCG_SETS = new Set([
   "me55",
   "me55c",
   "me2pt5",
+  "me1",
+  "me2",
+  "me3",
+  "me4",
+  "me5",
   "me6",
 ]);
 
+/** Keep in sync with tcgdex_client._SET_MAP (CAT.2a). */
 const SET_MAP: Record<
   string,
   { setId: string; serie: string; pad: number }
 > = {
-  me55: { setId: "30th", serie: "me", pad: 3 },
-  me2pt5: { setId: "me02.5", serie: "me", pad: 3 },
   me1: { setId: "me01", serie: "me", pad: 3 },
+  me2: { setId: "me02", serie: "me", pad: 3 },
+  me3: { setId: "me03", serie: "me", pad: 3 },
+  me4: { setId: "me04", serie: "me", pad: 3 },
+  me5: { setId: "me05", serie: "me", pad: 3 },
   me6: { setId: "me06", serie: "me", pad: 3 },
+  me2pt5: { setId: "me02.5", serie: "me", pad: 3 },
+  me55: { setId: "30th", serie: "me", pad: 3 },
+  sv1: { setId: "sv01", serie: "sv", pad: 3 },
+  sv2: { setId: "sv02", serie: "sv", pad: 3 },
+  sv3: { setId: "sv03", serie: "sv", pad: 3 },
+  sv3pt5: { setId: "sv03.5", serie: "sv", pad: 3 },
+  sv4: { setId: "sv04", serie: "sv", pad: 3 },
+  sv4pt5: { setId: "sv04.5", serie: "sv", pad: 3 },
+  sv5: { setId: "sv05", serie: "sv", pad: 3 },
+  sv6: { setId: "sv06", serie: "sv", pad: 3 },
+  sv6pt5: { setId: "sv06.5", serie: "sv", pad: 3 },
+  sv7: { setId: "sv07", serie: "sv", pad: 3 },
+  sv8: { setId: "sv08", serie: "sv", pad: 3 },
+  sv8pt5: { setId: "sv08.5", serie: "sv", pad: 3 },
+  sv9: { setId: "sv09", serie: "sv", pad: 3 },
+  sv10: { setId: "sv10", serie: "sv", pad: 3 },
   zsv10pt5: { setId: "sv10.5b", serie: "sv", pad: 3 },
   rsv10pt5: { setId: "sv10.5w", serie: "sv", pad: 3 },
 };
