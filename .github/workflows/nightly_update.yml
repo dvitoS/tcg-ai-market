@@ -119,13 +119,13 @@ jobs:
           # Higher TCP map rate → more cards eligible for JustTCG batches next night
           # (JustTCG itself stays capped at JUSTTCG_MAX_REQUESTS below).
           NIGHTLY_BACKFILL_TCP: "1"
-          NIGHTLY_BACKFILL_TCP_LIMIT: "300"
+          NIGHTLY_BACKFILL_TCP_LIMIT: "500"
           # Keep JustTCG search off by default (429 risk); TCP search is primary.
           NIGHTLY_BACKFILL_JUSTTCG: "0"
-          # Paid tier 10k/month — nightly ≤100 keeps monthly total ≤~9k with Soft Ink.
+          # Paid tier 10k/month — nightly 250 ≈ 7.5k/month; Soft Ink keeps ~2–2.5k.
           # Hard-enforced in nightly_update (empty/off ignored unless NIGHTLY_ALLOW_UNLIMITED_JUSTTCG=1).
           # Prevents card_limit=all from burning 1k+ req like the 2026-11-05 cancel storm.
-          JUSTTCG_MAX_REQUESTS: "100"
+          JUSTTCG_MAX_REQUESTS: "250"
           # Soft wall-clock SLO (default 150m) before GitHub's 180m hard kill.
           # Fail the job if retrain writes 0 quotes or elapsed exceeds this budget.
           NIGHTLY_SLO_MAX_SECONDS: "9000"
@@ -133,8 +133,8 @@ jobs:
           # ``all`` = unlimited null_market auto-quarantine / poison drain.
           NIGHTLY_SPOT_HEAL_LIMIT: "all"
           # JustTCG refetch budget for poison recovery (pre-retrain) + top UNDER verify.
-          NIGHTLY_SPOT_REFETCH_LIMIT: "80"
-          NIGHTLY_UNDER_VERIFY_LIMIT: "40"
+          NIGHTLY_SPOT_REFETCH_LIMIT: "120"
+          NIGHTLY_UNDER_VERIFY_LIMIT: "60"
           # Optional: CATALOG_SET_IDS="sv3pt5:151,swsh7:Evolving Skies,..."
           CATALOG_SET_IDS: ${{ secrets.CATALOG_SET_IDS }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
