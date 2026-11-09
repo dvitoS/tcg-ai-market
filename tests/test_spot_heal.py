@@ -247,6 +247,81 @@ def test_ingest_recovers_after_null_prior() -> None:
     assert wrote["price"] == 1.80
 
 
+def test_sweep_desk_poison_drains_until_clean(monkeypatch) -> None:
+    from services.spot_heal import sweep_desk_poison
+
+    calls = {"auto": 0, "poison": 0}
+
+    def fake_auto(*, mode="null_market", limit=None):
+        calls["auto"] += 1
+        # First round finds tips; second is clean.
+        n = 12 if calls["auto"] == 1 else 0
+        return {
+            "mode": mode,
+            "count": n,
+            "quotes_quarantined": n,
+            "poison_keys": [68.15] if n else [],
+        }
+
+    def fake_poison(*, mode="null_market", limit=None, card_ids=None):
+        calls["poison"] += 1
+        n = 8 if calls["poison"] == 1 else 0
+        return {
+            "mode": mode,
+            "count": n,
+            "quotes_quarantined": n,
+            "poison_keys": [99.99] if n else [],
+        }
+
+    monkeypatch.setattr("services.spot_heal.heal_auto_unsafe_spots", fake_auto)
+    monkeypatch.setattr("services.spot_heal.heal_poisoned_spots", fake_poison)
+    out = sweep_desk_poison(max_rounds=4)
+    assert out["auto_quarantined"] == 12
+    assert out["poison_nulled"] == 8
+    assert out["quotes_quarantined"] == 20
+    assert 68.15 in out["poison_keys"] and 99.99 in out["poison_keys"]
+    assert calls["auto"] == 2
+    assert calls["poison"] == 2
+
+
+def test_verify_top_under_spots_refetches_share_safe(monkeypatch) -> None:
+    from services.spot_heal import verify_top_under_spots
+
+    monkeypatch.setenv("NIGHTLY_UNDER_VERIFY_LIMIT", "3")
+    monkeypatch.setattr(
+        "api.radar_service.build_radar",
+        lambda **_k: {
+            "under_total": 40,
+            "underpriced": [
+                {"id": "a-1"},
+                {"id": "a-2"},
+                {"id": "a-3"},
+                {"id": "a-4"},
+            ],
+        },
+    )
+    seen: dict[str, object] = {}
+
+    def fake_heal(*, mode, limit=None, card_ids=None):
+        seen["mode"] = mode
+        seen["limit"] = limit
+        seen["ids"] = list(card_ids or [])
+        return {
+            "mode": mode,
+            "count": len(card_ids or []),
+            "ids": list(card_ids or []),
+            "updated": 1,
+            "skip_poison": 2,
+        }
+
+    monkeypatch.setattr("services.spot_heal.heal_poisoned_spots", fake_heal)
+    out = verify_top_under_spots()
+    assert seen["mode"] == "refetch"
+    assert seen["ids"] == ["a-1", "a-2", "a-3"]
+    assert out["under_total"] == 40
+    assert out["skip_poison"] == 2
+
+
 def test_refetch_never_calls_mass_wipe(monkeypatch) -> None:
     board = _poison_board(n=10)
     monkeypatch.setattr(

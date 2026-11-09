@@ -81,7 +81,8 @@ class SpotSniffPackResponse(BaseModel):
 
 class SpotHealRequest(BaseModel):
     mode: Literal["dry_run", "null_market", "clear_history", "refetch"] = "dry_run"
-    limit: int | None = Field(default=50, ge=1, le=500)
+    # High ceiling so one ops click can drain the desk (nightly uses unlimited).
+    limit: int | None = Field(default=50, ge=1, le=5000)
     card_ids: list[str] | None = Field(
         default=None,
         description="Optional explicit card ids (reports / sniff). Skips cluster detect.",

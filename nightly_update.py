@@ -239,15 +239,17 @@ def refresh_price_history() -> dict[str, int]:
                 qa.get("unmatched_sets_count"),
             )
             # Soft-heal absurd clusters + auto-quarantine Energy/rarity-cap tips.
+            # Full drain + UNDER verify also runs again AFTER retrain (see main).
             try:
                 from services.spot_heal import (
                     heal_auto_unsafe_spots,
                     heal_poisoned_spots,
                     nightly_spot_heal_limit,
+                    nightly_spot_refetch_limit,
                 )
 
                 heal_limit = nightly_spot_heal_limit()
-                if heal_limit > 0:
+                if heal_limit is None or heal_limit > 0:
                     # Persist clear-cut unsafe tips off the sure desk (no human clicks).
                     auto = heal_auto_unsafe_spots(mode="null_market", limit=heal_limit)
                     LOG.info(
@@ -261,8 +263,9 @@ def refresh_price_history() -> dict[str, int]:
                         "quotes_quarantined": auto.get("quotes_quarantined"),
                         "poison_keys": auto.get("poison_keys"),
                     }
-                    if int(qa.get("spot_quarantine_rows") or 0) > 0:
-                        heal = heal_poisoned_spots(mode="refetch", limit=heal_limit)
+                    refetch_lim = nightly_spot_refetch_limit()
+                    if refetch_lim > 0 and int(qa.get("spot_quarantine_rows") or 0) > 0:
+                        heal = heal_poisoned_spots(mode="refetch", limit=refetch_lim)
                         LOG.info(
                             "Spot heal: count=%s updated=%s skip_poison=%s keys=%s",
                             heal.get("count"),
@@ -541,6 +544,55 @@ def run_nightly() -> int:
         LOG.info("Board cache cleared after nightly retrain/quotes")
     except Exception as cache_exc:
         LOG.warning("Board cache clear failed: %s", cache_exc)
+
+    # Post-retrain desk sweep: retrain rewrites market_quotes and would otherwise
+    # put Energy / cluster / wild-7d tips back on the sure desk until a human
+    # clicks Heal 10-at-a-time. Drain automatically, then verify top UNDERs.
+    try:
+        from services.spot_heal import sweep_desk_poison, verify_top_under_spots
+
+        sweep = sweep_desk_poison()
+        LOG.info(
+            "Post-retrain desk sweep: auto=%s poison=%s quotes=%s keys=%s",
+            sweep.get("auto_quarantined"),
+            sweep.get("poison_nulled"),
+            sweep.get("quotes_quarantined"),
+            sweep.get("poison_keys"),
+        )
+        verify = verify_top_under_spots()
+        LOG.info(
+            "Post-retrain UNDER verify: count=%s updated=%s skip_poison=%s under_total=%s",
+            verify.get("count"),
+            verify.get("updated"),
+            verify.get("skip_poison"),
+            verify.get("under_total"),
+        )
+        try:
+            from api.catalog_service import clear_board_cache
+
+            clear_board_cache()
+        except Exception:
+            pass
+        try:
+            from services.spot_qa import load_spot_qa_snapshot, save_spot_qa_snapshot
+
+            snap = load_spot_qa_snapshot() or {}
+            snap["post_retrain_desk_sweep"] = {
+                "auto_quarantined": sweep.get("auto_quarantined"),
+                "poison_nulled": sweep.get("poison_nulled"),
+                "quotes_quarantined": sweep.get("quotes_quarantined"),
+            }
+            snap["post_retrain_under_verify"] = {
+                "count": verify.get("count"),
+                "updated": verify.get("updated"),
+                "skip_poison": verify.get("skip_poison"),
+                "under_total": verify.get("under_total"),
+            }
+            save_spot_qa_snapshot(snap)
+        except Exception as snap_exc:
+            LOG.warning("Post-retrain sweep snapshot failed: %s", snap_exc)
+    except Exception as sweep_exc:
+        LOG.warning("Post-retrain desk sweep failed: %s", sweep_exc)
 
     sure_rows_live: int | None = None
     try:

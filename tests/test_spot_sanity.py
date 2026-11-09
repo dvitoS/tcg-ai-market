@@ -103,12 +103,22 @@ def test_auto_quarantine_mask_energy_and_rarity() -> None:
                 "supertype": "Pokémon",
                 "price": 79.5,
             },
+            {
+                "id": "wild-7d",
+                "name": "Umbreon",
+                "set_name": "Aquapolis",
+                "rarity": "Rare Holo",
+                "supertype": "Pokémon",
+                "price": 3850.0,
+                "price_change_7d_pct": 29768.0,
+            },
         ]
     )
     mask = auto_quarantine_mask(board)
     assert bool(mask.iloc[0]) is True
     assert bool(mask.iloc[1]) is False
     assert bool(mask.iloc[2]) is True
+    assert bool(mask.iloc[3]) is True
 
 
 def test_share_safe_rejects_promo_and_quarantine() -> None:

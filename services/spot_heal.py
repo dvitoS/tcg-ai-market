@@ -190,15 +190,112 @@ def heal_poisoned_spots(
     return out
 
 
-def nightly_spot_heal_limit() -> int:
-    raw = (
-        os.environ.get("NIGHTLY_SPOT_HEAL_LIMIT", "").strip()
-        or "100"
-    )
+def _env_limit(name: str, default: int) -> int | None:
+    """Parse a heal limit env. ``all`` / empty-with-default-None → unlimited.
+
+    Returns ``None`` for unlimited, ``0`` to skip, or a positive int.
+    """
+    raw = os.environ.get(name, "").strip()
+    if not raw:
+        return default
+    low = raw.lower()
+    if low in {"all", "unlimited", "inf", "none"}:
+        return None
     try:
         return max(0, int(raw))
     except ValueError:
-        return 100
+        return default
+
+
+def nightly_spot_heal_limit() -> int | None:
+    """Pre-retrain auto-quarantine / poison batch size (default unlimited)."""
+    return _env_limit("NIGHTLY_SPOT_HEAL_LIMIT", default=None)
+
+
+def nightly_spot_refetch_limit() -> int:
+    """JustTCG refetch budget after quarantine (default 80). ``0`` skips refetch."""
+    lim = _env_limit("NIGHTLY_SPOT_REFETCH_LIMIT", default=80)
+    return 0 if lim is None else int(lim)
+
+
+def nightly_under_verify_limit() -> int:
+    """Top share-safe UNDER tips to auto-refetch after retrain (default 40)."""
+    lim = _env_limit("NIGHTLY_UNDER_VERIFY_LIMIT", default=40)
+    return 0 if lim is None else int(lim)
+
+
+def sweep_desk_poison(
+    *,
+    max_rounds: int = 6,
+    limit: int | None = None,
+) -> dict[str, Any]:
+    """Drain auto-unsafe + poison-cluster tips via null_market until clean.
+
+    Runs after nightly retrain so a fresh ``market_quotes`` board cannot leave
+    Energy / rarity-cap / cluster tips on the sure desk. No JustTCG calls —
+    ops should not need to click Heal 10-at-a-time after each nightly.
+    """
+    rounds = max(1, int(max_rounds))
+    auto_total = 0
+    poison_total = 0
+    quotes_total = 0
+    keys: set[float] = set()
+    for round_i in range(rounds):
+        auto = heal_auto_unsafe_spots(mode="null_market", limit=limit)
+        auto_n = int(auto.get("count") or 0)
+        auto_total += auto_n
+        quotes_total += int(auto.get("quotes_quarantined") or 0)
+        keys.update(float(k) for k in (auto.get("poison_keys") or []))
+
+        poison = heal_poisoned_spots(mode="null_market", limit=limit)
+        poison_n = int(poison.get("count") or 0)
+        poison_total += poison_n
+        quotes_total += int(poison.get("quotes_quarantined") or 0)
+        keys.update(float(k) for k in (poison.get("poison_keys") or []))
+
+        LOG.info(
+            "Desk sweep round %s/%s: auto=%s poison=%s",
+            round_i + 1,
+            rounds,
+            auto_n,
+            poison_n,
+        )
+        if auto_n == 0 and poison_n == 0:
+            break
+
+    return {
+        "rounds": rounds,
+        "auto_quarantined": auto_total,
+        "poison_nulled": poison_total,
+        "quotes_quarantined": quotes_total,
+        "poison_keys": sorted(keys),
+    }
+
+
+def verify_top_under_spots(*, limit: int | None = None) -> dict[str, Any]:
+    """Auto-refetch the top share-safe UNDER tips so wrong spots heal without clicks.
+
+    Nulls + quarantines + targeted JustTCG sync with forbid keys so the same
+    poison tip cannot rewrite itself. Caps at ``NIGHTLY_UNDER_VERIFY_LIMIT``.
+    """
+    lim = nightly_under_verify_limit() if limit is None else max(0, int(limit))
+    if lim <= 0:
+        return {"mode": "refetch", "count": 0, "ids": [], "skipped": True}
+
+    from api.radar_service import build_radar
+
+    radar = build_radar(min_edge=0, limit=lim, share_safe=True)
+    ids = [
+        str(row.get("id") or "").strip()
+        for row in list(radar.get("underpriced") or [])[:lim]
+        if str(row.get("id") or "").strip()
+    ]
+    if not ids:
+        return {"mode": "refetch", "count": 0, "ids": [], "under_total": 0}
+
+    result = heal_poisoned_spots(mode="refetch", limit=lim, card_ids=ids)
+    result["under_total"] = int(radar.get("under_total") or 0)
+    return result
 
 
 def main(argv: list[str] | None = None) -> int:

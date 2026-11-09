@@ -129,6 +129,12 @@ jobs:
           # Soft wall-clock SLO (default 150m) before GitHub's 180m hard kill.
           # Fail the job if retrain writes 0 quotes or elapsed exceeds this budget.
           NIGHTLY_SLO_MAX_SECONDS: "9000"
+          # Post-retrain desk drain — no human Heal clicks after nightly.
+          # ``all`` = unlimited null_market auto-quarantine / poison drain.
+          NIGHTLY_SPOT_HEAL_LIMIT: "all"
+          # JustTCG refetch budget for poison recovery (pre-retrain) + top UNDER verify.
+          NIGHTLY_SPOT_REFETCH_LIMIT: "80"
+          NIGHTLY_UNDER_VERIFY_LIMIT: "40"
           # Optional: CATALOG_SET_IDS="sv3pt5:151,swsh7:Evolving Skies,..."
           CATALOG_SET_IDS: ${{ secrets.CATALOG_SET_IDS }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

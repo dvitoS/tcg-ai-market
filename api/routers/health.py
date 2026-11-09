@@ -187,8 +187,38 @@ def data_health_heal_auto_unsafe(
     mode = body.mode if body.mode != "dry_run" else "null_market"
     if body.mode == "dry_run":
         mode = "dry_run"
-    result = heal_auto_unsafe_spots(mode=mode, limit=body.limit or 200)
+    # Default high so one click drains the desk (nightly also sweeps after retrain).
+    result = heal_auto_unsafe_spots(mode=mode, limit=body.limit or 5000)
     if mode != "dry_run":
         clear_board_cache()
         clear_price_sources_cache()
     return _spot_heal_response(result, mode=mode)
+
+
+@router.post("/data-health/desk-sweep", response_model=SpotHealResponse)
+def data_health_desk_sweep(
+    _ops: Annotated[dict[str, Any], Depends(require_ops_user)],
+) -> SpotHealResponse:
+    """Ops: drain auto-unsafe + poison clusters until clean (no 10-at-a-time clicks)."""
+    from api.catalog_service import clear_board_cache
+    from services.spot_heal import sweep_desk_poison
+
+    sweep = sweep_desk_poison()
+    clear_board_cache()
+    clear_price_sources_cache()
+    return SpotHealResponse(
+        mode="null_market",
+        count=int(sweep.get("auto_quarantined") or 0)
+        + int(sweep.get("poison_nulled") or 0),
+        ids=[],
+        poison_keys=[float(k) for k in (sweep.get("poison_keys") or [])],
+        nulled=int(sweep.get("auto_quarantined") or 0)
+        + int(sweep.get("poison_nulled") or 0),
+        history_cleared=0,
+        quotes_quarantined=int(sweep.get("quotes_quarantined") or 0),
+        updated=0,
+        skipped=0,
+        skip_poison=0,
+        skip_absurd=0,
+        saved=0,
+    )
