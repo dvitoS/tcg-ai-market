@@ -9,7 +9,7 @@ Paid spend stays locked until G0–G3 are green (`docs/ROADMAP.md`).
 | --- | --- | --- |
 | “Is this trade fair?” | **Trade** PNG + Discord paste | Verdict blurb + `/trade/s/{id}` |
 | “What’s under today?” | **DOTD** PNG + paste | Featured UNDER + card deep link |
-| “Show my board filters” | **Radar** PNG + paste (`?share=`) | Board totals + top UNDER + filter URL |
+| “Show my board filters” | **Radar** PNG + paste (`?share=`) | Board totals + top UNDER + filter URL (Discord/Reddit OG unfurl) |
 | “How close is this set?” | **Binder** PNG + paste | Completion % / missing / buy-cost |
 
 Always keep the desk disclaimer: *spot vs sure fair band — not financial advice.*

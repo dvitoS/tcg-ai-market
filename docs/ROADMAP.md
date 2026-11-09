@@ -72,10 +72,10 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 | ID | Item | Ship |
 | --- | --- | --- |
 | M2.1 | Trade report PNG | **Shipping** — save PNG (+ clipboard), optional share-link embed, plain-language blurb, watermark + Pro CTA |
-| M2.2 | Radar share blurb + PNG | **Shipping** — Discord paste + desk PNG (board totals / top UNDER / filter URL); locked-share preview; funnel `share_png` |
+| M2.2 | Radar share blurb + PNG + OG | **Shipping** — Discord paste + desk PNG; `?share=` OG title/image unfurl; locked-share preview; funnel `share_png` |
 | M2.3 | Binder share lite | **Shipping** — clipboard with % / owned / missing / buy-cost; PNG+clipboard; signed-out set preview; no private P&L |
 | M2.4 | Deal-of-day share card | **Shipping** — PNG + clipboard + card deep link; Pro CTA watermark |
-| M2.5 | Reddit-ready deep links | **Shipping** — `/trade/s/{id}` metadata + OG image; card OG absolute `og:image` |
+| M2.5 | Reddit-ready deep links | **Shipping** — `/trade/s/{id}` metadata + OG image; card OG; Radar `?share=` OG + `/radar/share-image` |
 
 #### M3 — Desk depth that earns trust
 
@@ -99,9 +99,9 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 
 ### Suggested next 3
 
-1. **G0 sniff pack** *(ops)* — System status → **Run auto G0**; spot-check only **review** rows (`docs/G0_SNIFF_CHECKLIST.md`)  
-2. **G2 organic** — ≥1 real Discord / Reddit share/week (`docs/ORGANIC_SOFT_LAUNCH.md`)  
-3. **M4.5** — spend unlock only after G0–G3 green
+1. **G2 organic** *(ops)* — ≥1 real Discord / Reddit share/week (`docs/ORGANIC_SOFT_LAUNCH.md`) — paste + PNG + Radar OG unfurl live  
+2. **G1 cold-user check** — ≥4/5 explain spot vs sure fair after one screen  
+3. **M4.5** — spend unlock only after G0–G3 green (G0 sniff already automated)
 
 ### Just shipped (ops / infra)
 
