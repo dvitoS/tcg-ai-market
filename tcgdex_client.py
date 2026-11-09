@@ -1,0 +1,149 @@
+"""TCGdex (https://tcgdex.dev) — free catalog/art helper.
+
+No API key. Used as an image CDN fallback while Soft Ink still keys cards on
+pokemontcg.io ids. Full catalog cutover stays a later roadmap item (EOL 2027).
+
+Docs: https://tcgdex.dev/rest · Base: https://api.tcgdex.net/v2/en/
+Images: https://assets.tcgdex.net/en/{serie}/{set}/{localId}/high.webp
+"""
+
+from __future__ import annotations
+
+from typing import NamedTuple
+
+TCGDEX_ASSETS = "https://assets.tcgdex.net"
+TCGDEX_API = "https://api.tcgdex.net/v2"
+POKEMONTCG_CDN_HOST = "images.pokemontcg.io"
+
+
+class TcgdexSetMap(NamedTuple):
+    """pokemontcg set id → TCGdex set + serie + localId zero-pad width."""
+
+    set_id: str
+    serie: str
+    pad: int = 3
+
+
+# Only map sets where collector numbers align with Soft Ink / pokemontcg ids.
+# me55c Classic Collection uses a different numbering on TCGdex — skip blind map.
+_SET_MAP: dict[str, TcgdexSetMap] = {
+    "me55": TcgdexSetMap("30th", "me", 3),
+    "me2pt5": TcgdexSetMap("me02.5", "me", 3),
+    "me1": TcgdexSetMap("me01", "me", 3),
+    "me6": TcgdexSetMap("me06", "me", 3),
+    "zsv10pt5": TcgdexSetMap("sv10.5b", "sv", 3),
+    "rsv10pt5": TcgdexSetMap("sv10.5w", "sv", 3),
+}
+
+# Sets where images.pokemontcg.io currently 404s for many/all cards.
+_BROKEN_POKEMONTCG_CDN_SETS = frozenset(
+    {
+        "me55",
+        "me55c",
+        "me2pt5",
+        "me6",
+    }
+)
+
+
+def split_card_id(card_id: str) -> tuple[str, str] | None:
+    text = str(card_id or "").strip()
+    if "-" not in text:
+        return None
+    set_code, number = text.rsplit("-", 1)
+    if not set_code or not number:
+        return None
+    return set_code, number
+
+
+def pad_local_id(number: str, width: int = 3) -> str:
+    """Pad numeric local ids (27 → 027); leave promo / letter ids alone (H29)."""
+    raw = str(number or "").strip()
+    if not raw:
+        return raw
+    if raw.isdigit():
+        return raw.zfill(max(1, int(width)))
+    return raw
+
+
+def pokemontcg_to_tcgdex_id(card_id: str) -> str | None:
+    parts = split_card_id(card_id)
+    if not parts:
+        return None
+    set_code, number = parts
+    mapped = _SET_MAP.get(set_code)
+    if mapped is None:
+        return None
+    return f"{mapped.set_id}-{pad_local_id(number, mapped.pad)}"
+
+
+def tcgdex_image_url(
+    card_id: str,
+    *,
+    lang: str = "en",
+    quality: str = "high",
+    ext: str = "webp",
+) -> str | None:
+    """Build a TCGdex assets URL from a Soft Ink / pokemontcg card id."""
+    parts = split_card_id(card_id)
+    if not parts:
+        return None
+    set_code, number = parts
+    mapped = _SET_MAP.get(set_code)
+    if mapped is None:
+        return None
+    local = pad_local_id(number, mapped.pad)
+    q = str(quality or "high").strip() or "high"
+    e = str(ext or "webp").strip().lstrip(".") or "webp"
+    return (
+        f"{TCGDEX_ASSETS}/{lang}/{mapped.serie}/{mapped.set_id}/{local}/{q}.{e}"
+    )
+
+
+def is_pokemontcg_cdn_url(url: str | None) -> bool:
+    text = str(url or "").strip().lower()
+    return bool(text) and POKEMONTCG_CDN_HOST in text
+
+
+def pokemontcg_cdn_set_code(url: str | None) -> str | None:
+    """Extract set code from https://images.pokemontcg.io/{set}/{number}.png."""
+    text = str(url or "").strip()
+    if not is_pokemontcg_cdn_url(text):
+        return None
+    try:
+        # .../io/{set}/{number}.png
+        path = text.split(POKEMONTCG_CDN_HOST, 1)[1]
+        parts = [p for p in path.split("/") if p]
+        if len(parts) >= 2:
+            return parts[0]
+    except Exception:
+        return None
+    return None
+
+
+def prefer_card_image_url(card_id: str, existing: str | None = None) -> str | None:
+    """Pick the best image URL for Soft Ink cards.
+
+    Prefer TCGdex when the stored/synthesized URL points at a known-broken
+    pokemontcg CDN set, or when we have no URL but a TCGdex map exists.
+    """
+    existing_s = str(existing or "").strip() or None
+    parts = split_card_id(card_id)
+    set_code = parts[0] if parts else None
+
+    tcgdex = tcgdex_image_url(card_id)
+    broken_set = bool(
+        set_code in _BROKEN_POKEMONTCG_CDN_SETS
+        or pokemontcg_cdn_set_code(existing_s) in _BROKEN_POKEMONTCG_CDN_SETS
+    )
+
+    if tcgdex and (
+        not existing_s
+        or (broken_set and is_pokemontcg_cdn_url(existing_s))
+        or (set_code in _SET_MAP and is_pokemontcg_cdn_url(existing_s) and broken_set)
+    ):
+        return tcgdex
+
+    if existing_s:
+        return existing_s
+    return tcgdex

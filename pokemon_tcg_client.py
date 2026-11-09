@@ -647,6 +647,13 @@ def clean_cards(
         image_url = images.get("small") or images.get("large")
         if not image_url:
             image_url = pokemontcg_image_url(str(card_id))
+        # Rewrite known-broken pokemontcg CDN sets to TCGdex assets (no API key).
+        try:
+            from tcgdex_client import prefer_card_image_url
+
+            image_url = prefer_card_image_url(str(card_id), image_url) or image_url
+        except Exception:
+            pass
 
         market_price = _extract_market_price(card)
         # min_price <= 0 means "no floor" (same as None) so unpriced cards stay.

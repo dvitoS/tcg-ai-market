@@ -13,6 +13,7 @@ import {
 import { useCurrency } from "@/components/CurrencyProvider";
 import { useLocale } from "@/components/LocaleProvider";
 import { formatChange } from "@/lib/api";
+import { onCardImageError, resolveCardImageUrl } from "@/lib/cardImage";
 import type { RadarCard } from "@/lib/types";
 
 const INTERVAL_MS = 4500;
@@ -113,12 +114,13 @@ export function HeroCardSlider({ cards }: { cards: RadarCard[] }) {
                 className="landing-hero-slide-frame"
               >
                 <Image
-                  src={card.image_url || "/kestrel-logo.png"}
+                  src={resolveCardImageUrl(card.id, card.image_url)}
                   alt=""
                   width={280}
                   height={392}
                   className="landing-hero-slide-img"
                   priority={i === 0}
+                  onError={(event) => onCardImageError(event, card.id)}
                 />
                 <span className="landing-hero-slide-glare" aria-hidden="true" />
                 <span className="landing-hero-slide-sheen" aria-hidden="true" />

@@ -139,7 +139,9 @@ Actions secrets: `SUPABASE_URL`, `SUPABASE_KEY`, preferably `JUSTTCG_API_KEY`. O
 
 Also backfills `tcgplayer_id` (default 300/night via Actions) so more cards become JustTCG-batchable without raising the JustTCG request budget, refreshes `market_quotes`, emails/Discord digests when configured, purges expired `auth_sessions`. **Fails** if `market_quotes` persist is empty.
 
-**Later (catalog source):** migrate off pokemontcg.io before 2027 — free [TCGdex](https://tcgdex.dev/) (IDs differ, e.g. `sv01-001` vs `sv1-1`) or paid successor [Scrydex](https://scrydex.com/).
+**Catalog art now:** Soft Ink rewrites known-broken pokemontcg CDN sets to free [TCGdex](https://tcgdex.dev/) assets (`assets.tcgdex.net`, no API key) — see `tcgdex_client.py`.
+
+**Later (catalog source):** full migrate off pokemontcg.io before 2027 — TCGdex (IDs differ, e.g. `sv01-001` vs `sv1-1`) or paid successor [Scrydex](https://scrydex.com/).
 
 ### Catalog scale
 

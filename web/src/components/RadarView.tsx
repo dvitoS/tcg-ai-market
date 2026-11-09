@@ -23,6 +23,7 @@ import {
   fetchRadarBootstrap,
   formatChange,
 } from "@/lib/api";
+import { onCardImageError, resolveCardImageUrl } from "@/lib/cardImage";
 import {
   decisionOneLiner,
   sideLabel,
@@ -95,10 +96,11 @@ function RadarRow({ card }: { card: RadarCard }) {
     >
       <div className="scan-art">
         <Image
-          src={card.image_url || "/kestrel-logo.png"}
+          src={resolveCardImageUrl(card.id, card.image_url)}
           alt={card.name}
           width={48}
           height={67}
+          onError={(event) => onCardImageError(event, card.id)}
         />
       </div>
       <div>

@@ -13,6 +13,7 @@ import {
 import { useCurrency } from "@/components/CurrencyProvider";
 import { useLocale } from "@/components/LocaleProvider";
 import { fetchMarketPulse, formatChange } from "@/lib/api";
+import { onCardImageError, resolveCardImageUrl } from "@/lib/cardImage";
 import type { MessageKey } from "@/lib/i18n/messages";
 import type { MarketMover, MarketPulseResponse } from "@/lib/types";
 
@@ -109,11 +110,12 @@ function MoverCard({
       <span className="landing-mover-card-stage">
         <span ref={frameRef} className="landing-mover-card-frame">
           <Image
-            src={mover.image_url || "/kestrel-logo.png"}
+            src={resolveCardImageUrl(mover.id, mover.image_url)}
             alt=""
             width={160}
             height={224}
             className="landing-mover-card-img"
+            onError={(event) => onCardImageError(event, mover.id)}
           />
           <span className="landing-mover-card-glare" aria-hidden="true" />
           <span className="landing-mover-card-sheen" aria-hidden="true" />

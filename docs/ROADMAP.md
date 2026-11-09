@@ -103,6 +103,16 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 2. **Ship slim kestrel-api image** — no Streamlit in runtime; block full board rebuild when `KESTREL_SERVICE=api` (512MB OOM)  
 3. **M4.5** — spend unlock only after G0–G3 green
 
+### Data / catalog track (parallel to M*)
+
+| ID | Item | Ship |
+| --- | --- | --- |
+| CAT.1 | **TCGdex art fallback** | **Shipping** — rewrite known-broken `images.pokemontcg.io` sets (`me55`, `me2pt5`, …) to `assets.tcgdex.net`; Soft Ink `onError` recovery. No API key. |
+| CAT.2 | TCGdex / Scrydex full catalog cutover | Before pokemontcg.io EOL (**2027-03-01**) — ID remap + nightly gap-fill source swap |
+| CAT.3 | JustTCG Pro (or Scrydex Growth) price pipe | Optional — unlock faster NM history fill / single-vendor catalog+prices |
+
+**When to deepen TCGdex:** art fallback is now (CAT.1). Full catalog provider swap (CAT.2) after G0 sniff is green and before 2027 — do **not** block spend unlock on a full remap.
+
 ### Explicit non-goals until spend unlock
 
 - News grid (“This week in Pokémon”) before a real feed + desk CTA  
