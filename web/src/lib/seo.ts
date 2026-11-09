@@ -2,6 +2,11 @@ import type { Metadata } from "next";
 
 import type { Guide } from "@/lib/guides";
 import { guidePath } from "@/lib/guides";
+import {
+  radarShareSeoDescription,
+  radarShareSeoTitle,
+  type RadarShareFilters,
+} from "@/lib/radarShare";
 import type { CatalogCard, TradeShareView } from "@/lib/types";
 
 export const SITE_URL = "https://www.kestreltcg.app";
@@ -160,6 +165,45 @@ export function tradeShareMetadata(share: TradeShareView): Metadata {
     alternates: { canonical: url },
     // Share links are public previews — indexable enough for unfurl, no sitemap push.
     robots: { index: false, follow: true },
+    openGraph: {
+      type: "website",
+      url,
+      siteName: "Kestrel",
+      title,
+      description,
+      images: [{ url: ogImage, width: 1200, height: 630, alt: title }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImage],
+    },
+  };
+}
+
+export function radarSharePath(shareToken?: string | null): string {
+  if (!shareToken) return "/radar";
+  return `/radar?share=${encodeURIComponent(shareToken)}`;
+}
+
+export function radarShareMetadata(
+  filters: RadarShareFilters | null,
+  shareToken?: string | null,
+): Metadata {
+  const title = radarShareSeoTitle(filters);
+  const description = radarShareSeoDescription(filters);
+  const path = radarSharePath(shareToken);
+  const url = absoluteUrl(path);
+  const ogImage = shareToken
+    ? absoluteUrl(`/radar/share-image?share=${encodeURIComponent(shareToken)}`)
+    : absoluteUrl("/radar/opengraph-image");
+  return {
+    title,
+    description,
+    alternates: { canonical: absoluteUrl("/radar") },
+    // Shared lenses are previews — indexable enough for unfurl, keep canonical on /radar.
+    robots: shareToken ? { index: false, follow: true } : undefined,
     openGraph: {
       type: "website",
       url,
