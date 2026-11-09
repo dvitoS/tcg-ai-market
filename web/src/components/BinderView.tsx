@@ -16,6 +16,7 @@ import { BinderReportExport } from "@/components/BinderReportExport";
 import { DeskLoading } from "@/components/DeskLoading";
 import { useLocale } from "@/components/LocaleProvider";
 import { fetchBinder, fetchBinderSets, formatMoney } from "@/lib/api";
+import { cleanBinderShareSet } from "@/lib/binderExport";
 import type { BinderMissingCard, BinderResponse, BinderSetSummary } from "@/lib/types";
 
 function MissingRow({ card }: { card: BinderMissingCard }) {
@@ -70,8 +71,7 @@ export function BinderView() {
 
   useEffect(() => {
     if (setBoot.current !== undefined) return;
-    const raw = searchParams.get("set");
-    const boot = raw && raw.trim() ? raw.trim() : null;
+    const boot = cleanBinderShareSet(searchParams.get("set"));
     setBoot.current = boot;
     setSharedSet(boot);
   }, [searchParams]);

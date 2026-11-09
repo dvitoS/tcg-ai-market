@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
 
+import {
+  binderShareSeoDescription,
+  binderShareSeoTitle,
+} from "@/lib/binderExport";
 import type { Guide } from "@/lib/guides";
 import { guidePath } from "@/lib/guides";
 import {
@@ -204,6 +208,41 @@ export function radarShareMetadata(
     alternates: { canonical: absoluteUrl("/radar") },
     // Shared lenses are previews — indexable enough for unfurl, keep canonical on /radar.
     robots: shareToken ? { index: false, follow: true } : undefined,
+    openGraph: {
+      type: "website",
+      url,
+      siteName: "Kestrel",
+      title,
+      description,
+      images: [{ url: ogImage, width: 1200, height: 630, alt: title }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImage],
+    },
+  };
+}
+
+export function binderSharePath(setName?: string | null): string {
+  if (!setName) return "/binder";
+  return `/binder?set=${encodeURIComponent(setName)}`;
+}
+
+export function binderShareMetadata(setName: string | null): Metadata {
+  const title = binderShareSeoTitle(setName);
+  const description = binderShareSeoDescription(setName);
+  const path = binderSharePath(setName);
+  const url = absoluteUrl(path);
+  const ogImage = setName
+    ? absoluteUrl(`/binder/share-image?set=${encodeURIComponent(setName)}`)
+    : absoluteUrl("/binder/opengraph-image");
+  return {
+    title,
+    description,
+    alternates: { canonical: absoluteUrl("/binder") },
+    robots: setName ? { index: false, follow: true } : undefined,
     openGraph: {
       type: "website",
       url,
