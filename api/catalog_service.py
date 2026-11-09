@@ -12,6 +12,7 @@ from typing import Any, Literal
 import pandas as pd
 
 from pokemon_tcg_client import pokemontcg_image_url
+from tcgdex_client import prefer_card_image_url
 
 LOG = logging.getLogger("kestrel.api.catalog")
 
@@ -26,6 +27,10 @@ _BOARD_CACHE: tuple[float, str | None, pd.DataFrame, Source] | None = None
 
 
 def _image_for(card_id: str, existing: str | None = None) -> str | None:
+    """Resolve art URL — TCGdex for known-broken pokemontcg CDN sets."""
+    preferred = prefer_card_image_url(str(card_id), existing)
+    if preferred:
+        return preferred
     if existing and str(existing).strip():
         return str(existing).strip()
     return pokemontcg_image_url(str(card_id))

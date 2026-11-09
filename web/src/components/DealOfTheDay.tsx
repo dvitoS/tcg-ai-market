@@ -9,6 +9,7 @@ import { DeskLoading } from "@/components/DeskLoading";
 import { DotdShareExport } from "@/components/DotdShareExport";
 import { useLocale } from "@/components/LocaleProvider";
 import { fetchRadarPreview, formatChange } from "@/lib/api";
+import { onCardImageError, resolveCardImageUrl } from "@/lib/cardImage";
 import { trackFunnel } from "@/lib/funnel";
 import {
   decisionOneLiner,
@@ -37,10 +38,11 @@ function TeaserRow({ card }: { card: RadarCard }) {
     >
       <div className="scan-art">
         <Image
-          src={card.image_url || "/kestrel-logo.png"}
+          src={resolveCardImageUrl(card.id, card.image_url)}
           alt={card.name}
           width={48}
           height={67}
+          onError={(event) => onCardImageError(event, card.id)}
         />
       </div>
       <div>
@@ -173,10 +175,11 @@ export function DealOfTheDay({
         >
           <div className="deal-of-day-art">
             <Image
-              src={featured.image_url || "/kestrel-logo.png"}
+              src={resolveCardImageUrl(featured.id, featured.image_url)}
               alt={featured.name}
               width={variant === "landing" ? 160 : 96}
               height={variant === "landing" ? 224 : 134}
+              onError={(event) => onCardImageError(event, featured.id)}
             />
           </div>
           <div className="deal-of-day-copy">

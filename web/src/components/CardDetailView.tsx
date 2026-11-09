@@ -13,6 +13,7 @@ import { PriceChart } from "@/components/PriceChart";
 import { WatchToggle } from "@/components/WatchToggle";
 import { WrongSpotReport } from "@/components/WrongSpotReport";
 import { formatChange } from "@/lib/api";
+import { onCardImageError, resolveCardImageUrl } from "@/lib/cardImage";
 import { cardmarketSearchUrl } from "@/lib/cardmarket";
 import { decisionOneLiner, signalLabel } from "@/lib/i18n/messages";
 import type { CardDetailResponse, HistoryPoint } from "@/lib/types";
@@ -67,7 +68,7 @@ export function CardDetailView({
     points: detail.history?.points || fromPoints.points,
   };
   const meta = [card.set_name, card.rarity, card.id].filter(Boolean).join(" · ");
-  const image = card.image_url || "/kestrel-logo.png";
+  const image = resolveCardImageUrl(card.id, card.image_url);
   const dayChange = history.day_change_pct;
   const showSignal = Boolean(card.confidence_ok && card.conformal_ok && card.signal);
   const band =
@@ -107,6 +108,7 @@ export function CardDetailView({
                   className="detail-hero-img"
                   sizes="(max-width: 720px) 55vw, 200px"
                   style={{ width: "100%", height: "auto" }}
+                  onError={(event) => onCardImageError(event, card.id)}
                 />
               </div>
               <aside className="detail-hero-under" aria-label={t("detail_ai_under_title")}>

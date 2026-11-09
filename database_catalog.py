@@ -70,22 +70,24 @@ def _verify_tables(client: Any) -> None:
 
 
 def _backfill_image_urls() -> None:
+    from tcgdex_client import prefer_card_image_url
+
     client = get_supabase()
     rows = fetch_all("cards", "id,image_url")
     updates: list[dict[str, Any]] = []
     for row in rows:
-        if row.get("image_url"):
-            continue
         card_id = str(row["id"])
-        if "-" not in card_id:
+        existing = row.get("image_url")
+        # Fill missing URLs, and rewrite known-broken pokemontcg CDN sets to TCGdex.
+        preferred = prefer_card_image_url(card_id, existing if isinstance(existing, str) else None)
+        if not preferred:
+            if existing or "-" not in card_id:
+                continue
+            set_code, number = card_id.rsplit("-", 1)
+            preferred = f"https://images.pokemontcg.io/{set_code}/{number}.png"
+        if existing and str(existing).strip() == preferred:
             continue
-        set_code, number = card_id.rsplit("-", 1)
-        updates.append(
-            {
-                "id": card_id,
-                "image_url": f"https://images.pokemontcg.io/{set_code}/{number}.png",
-            }
-        )
+        updates.append({"id": card_id, "image_url": preferred})
     for batch in _chunked(updates):
         client.table("cards").upsert(batch, on_conflict="id").execute()
 
