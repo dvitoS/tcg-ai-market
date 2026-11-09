@@ -61,9 +61,9 @@ def test_paid_tier_batch_and_delay_defaults():
 
     assert int(config.JUSTTCG_BATCH_SIZE) == 100
     assert float(config.JUSTTCG_REQUEST_DELAY_SECONDS) <= 1.25
-    assert int(config.JUSTTCG_NIGHTLY_MAX_REQUESTS) == 100
-    # 100/night × 30 ≈ 3k; Soft Ink can use ~6k and still stay ≤9k/month.
-    assert int(config.JUSTTCG_NIGHTLY_MAX_REQUESTS) * 30 <= 3000
+    assert int(config.JUSTTCG_NIGHTLY_MAX_REQUESTS) == 250
+    # 250/night × 30 ≈ 7.5k; Soft Ink keeps ~2–2.5k → stay ≤10k/month.
+    assert int(config.JUSTTCG_NIGHTLY_MAX_REQUESTS) * 30 <= 7500
 
 
 def test_justtcg_max_requests_env(monkeypatch):

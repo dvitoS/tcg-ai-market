@@ -223,10 +223,10 @@ TCG_API_BASE_URL = "https://api.pokewallet.io"
 JUSTTCG_API_KEY = _secret("JUSTTCG_API_KEY")
 JUSTTCG_API_BASE_URL = "https://api.justtcg.com/v1"
 # Paid Soft Ink JustTCG: 1000/day, 10k/month, 50/min, 100 cards/req.
-# Target ≤9000/month (≈300/day). Nightly ≤100 → Soft Ink keeps ≈200/day.
+# Target ≤~9–10k/month. Nightly 250 → ~7.5k/month; Soft Ink keeps ~2–2.5k.
 JUSTTCG_BATCH_SIZE = 100
 JUSTTCG_REQUEST_DELAY_SECONDS = 1.25  # 50/min → ≥1.2s between calls
-JUSTTCG_NIGHTLY_MAX_REQUESTS = 100
+JUSTTCG_NIGHTLY_MAX_REQUESTS = 250
 # Soft Ink "All" + nightly replace_card_history use this window.
 # 90d keeps charts useful without the free-tier payload of 180d/1y.
 JUSTTCG_HISTORY_DURATION = "90d"
@@ -399,8 +399,8 @@ MAX_RETRIES = 3
 CATALOG_HTTP_MAX_ATTEMPTS = 10
 # Gap-fill catalog: max sets fetched per nightly when many are still missing.
 NIGHTLY_CATALOG_SET_BUDGET = 50
-# Batch-first JustTCG (100 cards/req, ≤100 req/night) — ~8k cards/night fits the budget.
-# Full ~20k catalog refreshes in ~3 nights; missing-history cards stay prioritized.
+# Batch-first JustTCG (100 cards/req, ≤250 req/night) — up to ~25k card slots/night.
+# Full catalog refreshes faster; missing-history cards stay prioritized.
 NIGHTLY_CARD_LIMIT_DEFAULT = 8000
 NIGHTLY_TASK_NAME = "TCGMarketNightlyUpdate"
 NIGHTLY_SCHEDULE_TIME = "03:00"
@@ -464,7 +464,7 @@ def justtcg_max_requests() -> int | None:
     """Soft outbound JustTCG budget for this process, or None if uncapped.
 
     Empty / 0 / off → unlimited (interactive Soft Ink).
-    Nightly sets ~100 (≈3k/month) so ≤9k/month leaves Soft Ink daytime room.
+    Nightly sets ~250 (≈7.5k/month) so ≤10k/month leaves Soft Ink daytime room.
     """
     raw = (
         _secret("JUSTTCG_MAX_REQUESTS")
