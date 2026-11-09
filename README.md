@@ -141,7 +141,7 @@ Also backfills `tcgplayer_id` (default 300/night via Actions) so more cards beco
 
 **Catalog art now:** Soft Ink rewrites known-broken pokemontcg CDN sets to free [TCGdex](https://tcgdex.dev/) assets (`assets.tcgdex.net`, no API key) — see `tcgdex_client.py`.
 
-**Later (catalog source):** full migrate off pokemontcg.io before 2027 — TCGdex (IDs differ, e.g. `sv01-001` vs `sv1-1`) or paid successor [Scrydex](https://scrydex.com/).
+**Later (catalog source):** full migrate off pokemontcg.io before 2027 — see `docs/CAT2_TCGDEX_CUTOVER.md` (IDs differ, e.g. `sv01-001` vs `sv1-1`) or paid successor [Scrydex](https://scrydex.com/).
 
 ### Catalog scale
 
