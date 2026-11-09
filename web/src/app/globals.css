@@ -5218,7 +5218,10 @@ a {
   }
 
   .landing-pulse-breadth-sides {
-    font-size: 0.82rem;
+    max-width: 100%;
+    font-size: 0.78rem;
+    column-gap: 0.35rem;
+    row-gap: 0.1rem;
   }
 
   .landing-trends {
