@@ -126,7 +126,7 @@ const en = {
   obs_sniff_verdict_meta:
     "Auto G0: {pass} pass · {review} review · {fail} fail · {healed} healed",
   obs_sniff_diag_meta:
-    "TCP ids missing {missing} · resolved {resolved} · JustTCG {jt} · eBay {ebay}",
+    "TCP ids missing {missing} · resolved {resolved} · rejected {rejected} · JustTCG {jt} · eBay {ebay}",
   obs_sniff_diag_on: "on",
   obs_sniff_diag_off: "off",
   obs_sniff_g0_ready: "G0 auto-ready — spot-check review rows, then you can unlock spend.",
@@ -991,7 +991,7 @@ const hr: Dictionary = {
   obs_sniff_verdict_meta:
     "Auto G0: {pass} pass · {review} review · {fail} fail · {healed} healed",
   obs_sniff_diag_meta:
-    "TCP id fali {missing} · resolved {resolved} · JustTCG {jt} · eBay {ebay}",
+    "TCP id fali {missing} · resolved {resolved} · rejected {rejected} · JustTCG {jt} · eBay {ebay}",
   obs_sniff_diag_on: "on",
   obs_sniff_diag_off: "off",
   obs_sniff_g0_ready: "G0 auto-ready — pregledaj review redove, onda možeš unlockati spend.",

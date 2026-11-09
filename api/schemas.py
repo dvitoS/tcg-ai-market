@@ -96,6 +96,7 @@ class SpotSniffPackResponse(BaseModel):
     auto_skip: int = 0
     tcp_missing: int = 0
     tcp_resolved: int = 0
+    tcp_rejected: int = 0
     live_error: str | None = None
     ebay_checked: bool = False
     ebay_configured: bool = False

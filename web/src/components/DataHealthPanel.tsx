@@ -696,6 +696,7 @@ export function DataHealthPanel() {
                     {t("obs_sniff_diag_meta", {
                       missing: sniff.tcp_missing ?? 0,
                       resolved: sniff.tcp_resolved ?? 0,
+                      rejected: sniff.tcp_rejected ?? 0,
                       jt: sniff.live_configured
                         ? t("obs_sniff_diag_on")
                         : t("obs_sniff_diag_off"),
