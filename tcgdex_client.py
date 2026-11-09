@@ -8,6 +8,9 @@ fails, then rewrite rows back to Soft Ink ids (`sv1-1`).
 
 Docs: https://tcgdex.dev/rest · Base: https://api.tcgdex.net/v2/en/
 Images: https://assets.tcgdex.net/en/{serie}/{set}/{localId}/high.webp
+
+When TCGdex lists a mapped set without uploaded art (e.g. Delta Reign / me6),
+prefer the public Scrydex CDN: https://images.scrydex.com/pokemon/{id}/large
 """
 
 from __future__ import annotations
@@ -20,6 +23,7 @@ import requests
 
 TCGDEX_ASSETS = "https://assets.tcgdex.net"
 TCGDEX_API = "https://api.tcgdex.net/v2"
+SCRYDEX_CDN = "https://images.scrydex.com"
 POKEMONTCG_CDN_HOST = "images.pokemontcg.io"
 LOG = logging.getLogger("kestrel.tcgdex")
 
@@ -75,6 +79,18 @@ _BROKEN_POKEMONTCG_CDN_SETS = frozenset(
         "me4",
         "me5",
         "me6",
+    }
+)
+
+# Soft Ink sets that should skip TCGdex art and use Scrydex CDN instead.
+# - me6: TCGdex me06 lists cards but image=null (no CDN art yet)
+# - me55c: Classic Collection — Soft Ink keeps original reprint numbers
+#   (me55c-4 Charizard); TCGdex 30th-c uses 001–030 and also has no art yet.
+# Do NOT blind-map me55c into _SET_MAP.
+_TCGDEX_MISSING_ART_SETS = frozenset(
+    {
+        "me6",  # Delta Reign
+        "me55c",  # 30th Celebration: Classic Collection
     }
 )
 
@@ -164,9 +180,31 @@ def tcgdex_image_url(
     )
 
 
+def scrydex_image_url(card_id: str, *, size: str = "large") -> str | None:
+    """Build a Scrydex CDN URL (Soft Ink / pokemontcg id, no API key).
+
+    Example: me6-1 → https://images.scrydex.com/pokemon/me6-1/large
+    """
+    cid = str(card_id or "").strip()
+    if not cid or "-" not in cid:
+        return None
+    size_s = "small" if str(size or "").strip().lower() == "small" else "large"
+    return f"{SCRYDEX_CDN}/pokemon/{cid}/{size_s}"
+
+
 def is_pokemontcg_cdn_url(url: str | None) -> bool:
     text = str(url or "").strip().lower()
     return bool(text) and POKEMONTCG_CDN_HOST in text
+
+
+def is_tcgdex_assets_url(url: str | None) -> bool:
+    text = str(url or "").strip().lower()
+    return bool(text) and "assets.tcgdex.net" in text
+
+
+def is_scrydex_cdn_url(url: str | None) -> bool:
+    text = str(url or "").strip().lower()
+    return bool(text) and "images.scrydex.com" in text
 
 
 def pokemontcg_cdn_set_code(url: str | None) -> str | None:
@@ -190,16 +228,33 @@ def prefer_card_image_url(card_id: str, existing: str | None = None) -> str | No
 
     Prefer TCGdex when the stored/synthesized URL points at a known-broken
     pokemontcg CDN set, or when we have no URL but a TCGdex map exists.
+
+    Exception: sets in `_TCGDEX_MISSING_ART_SETS` (e.g. Delta Reign / me6)
+    use Scrydex CDN instead — TCGdex has catalog rows but no uploaded art.
     """
     existing_s = str(existing or "").strip() or None
     parts = split_card_id(card_id)
     set_code = parts[0] if parts else None
 
     tcgdex = tcgdex_image_url(card_id)
+    scrydex = scrydex_image_url(card_id)
     broken_set = bool(
         set_code in _BROKEN_POKEMONTCG_CDN_SETS
         or pokemontcg_cdn_set_code(existing_s) in _BROKEN_POKEMONTCG_CDN_SETS
     )
+
+    # Delta Reign etc.: skip dead TCGdex asset URLs → Scrydex.
+    if set_code in _TCGDEX_MISSING_ART_SETS and scrydex:
+        if is_scrydex_cdn_url(existing_s):
+            return existing_s
+        if (
+            not existing_s
+            or is_pokemontcg_cdn_url(existing_s)
+            or is_tcgdex_assets_url(existing_s)
+            or broken_set
+        ):
+            return scrydex
+        return existing_s
 
     if tcgdex and (
         not existing_s
@@ -210,7 +265,7 @@ def prefer_card_image_url(card_id: str, existing: str | None = None) -> str | No
 
     if existing_s:
         return existing_s
-    return tcgdex
+    return tcgdex or scrydex
 
 
 _CATEGORY_TO_SUPERTYPE = {
@@ -272,6 +327,7 @@ def tcgdex_set_card_rows_as_pokemontcg(
         name = str(row.get("name") or "").strip() or None
         image_base = str(row.get("image") or "").strip().rstrip("/")
         # List endpoint image is a base path; Soft Ink prefers full file URLs.
+        # clean_cards → prefer_card_image_url rewrites missing/broken art (Scrydex).
         large = f"{image_base}/high.webp" if image_base else tcgdex_image_url(soft_id)
         small = f"{image_base}/low.webp" if image_base else large
         category = str(row.get("category") or "").strip()
@@ -302,3 +358,4 @@ def tcgdex_catalog_fallback_enabled() -> bool:
 
     raw = str(os.environ.get("NIGHTLY_TCGDEX_FALLBACK", "1") or "").strip().lower()
     return raw not in {"0", "false", "no", "off"}
+

@@ -3,6 +3,10 @@
  *
  * Server already prefers TCGdex for known-broken pokemontcg CDN sets. This
  * client map covers warm caches / older payloads and img onError recovery.
+ *
+ * Scrydex CDN when TCGdex art is missing or unmappable:
+ * - Delta Reign (me6)
+ * - 30th Celebration Classic Collection (me55c) — reprint numbers ≠ TCGdex 001–030
  */
 
 const BROKEN_POKEMONTCG_SETS = new Set([
@@ -16,6 +20,9 @@ const BROKEN_POKEMONTCG_SETS = new Set([
   "me5",
   "me6",
 ]);
+
+/** Soft Ink sets that should use Scrydex (not TCGdex) for art. */
+const TCGDEX_MISSING_ART_SETS = new Set(["me6", "me55c"]);
 
 /** Keep in sync with tcgdex_client._SET_MAP (CAT.2a). */
 const SET_MAP: Record<
@@ -57,6 +64,12 @@ function padLocalId(number: string, width: number): string {
   return raw;
 }
 
+function setCodeFromCardId(cardId: string): string {
+  const id = String(cardId || "").trim();
+  const dash = id.lastIndexOf("-");
+  return dash > 0 ? id.slice(0, dash) : "";
+}
+
 export function tcgdexImageUrl(cardId: string): string | null {
   const id = String(cardId || "").trim();
   const dash = id.lastIndexOf("-");
@@ -69,37 +82,67 @@ export function tcgdexImageUrl(cardId: string): string | null {
   return `https://assets.tcgdex.net/en/${mapped.serie}/${mapped.setId}/${local}/high.webp`;
 }
 
+export function scrydexImageUrl(cardId: string): string | null {
+  const id = String(cardId || "").trim();
+  if (!id.includes("-")) return null;
+  return `https://images.scrydex.com/pokemon/${id}/large`;
+}
+
 export function resolveCardImageUrl(
   cardId: string | null | undefined,
   existing?: string | null,
 ): string {
   const id = String(cardId || "").trim();
   const url = String(existing || "").trim();
-  const setCode = id.includes("-") ? id.slice(0, id.lastIndexOf("-")) : "";
+  const setCode = setCodeFromCardId(id);
   const tcgdex = id ? tcgdexImageUrl(id) : null;
+  const scrydex = id ? scrydexImageUrl(id) : null;
   const broken =
     BROKEN_POKEMONTCG_SETS.has(setCode) ||
     (url.includes("images.pokemontcg.io/") &&
       [...BROKEN_POKEMONTCG_SETS].some((s) => url.includes(`/${s}/`)));
+  const deadTcgdex =
+    TCGDEX_MISSING_ART_SETS.has(setCode) &&
+    (!url || broken || url.includes("assets.tcgdex.net"));
+
+  if (deadTcgdex && scrydex) return scrydex;
   if (tcgdex && (!url || broken)) return tcgdex;
-  return url || tcgdex || "/kestrel-logo.png";
+  return url || tcgdex || scrydex || "/kestrel-logo.png";
 }
 
-/** img onError: try TCGdex once, then Soft Ink mark. */
+/** img onError: try TCGdex, then Scrydex, then Soft Ink mark. */
 export function onCardImageError(
   event: { currentTarget: HTMLImageElement },
   cardId?: string | null,
 ): void {
   const img = event.currentTarget;
-  const tried = img.dataset.tcgdexTried === "1";
-  if (!tried && cardId) {
-    const alt = tcgdexImageUrl(cardId);
+  const id = String(cardId || "").trim();
+  const setCode = setCodeFromCardId(id);
+  const triedTcgdex = img.dataset.tcgdexTried === "1";
+  const triedScrydex = img.dataset.scrydexTried === "1";
+
+  if (!triedTcgdex && id && !TCGDEX_MISSING_ART_SETS.has(setCode)) {
+    const alt = tcgdexImageUrl(id);
     if (alt && img.src !== alt) {
       img.dataset.tcgdexTried = "1";
       img.src = alt;
       return;
     }
+    img.dataset.tcgdexTried = "1";
+  } else if (!triedTcgdex) {
+    img.dataset.tcgdexTried = "1";
   }
+
+  if (!triedScrydex && id) {
+    const alt = scrydexImageUrl(id);
+    if (alt && !img.src.includes("images.scrydex.com")) {
+      img.dataset.scrydexTried = "1";
+      img.src = alt;
+      return;
+    }
+    img.dataset.scrydexTried = "1";
+  }
+
   if (!img.src.includes("kestrel-logo")) {
     img.src = "/kestrel-logo.png";
   }

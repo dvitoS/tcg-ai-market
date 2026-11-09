@@ -13,6 +13,7 @@ import { createPortal } from "react-dom";
 
 import { useLocale } from "@/components/LocaleProvider";
 import { fetchCatalog, formatMoney } from "@/lib/api";
+import { onCardImageError, resolveCardImageUrl } from "@/lib/cardImage";
 import { pushRecentSearch, readRecentSearches } from "@/lib/searchRecent";
 import type { CatalogCard } from "@/lib/types";
 
@@ -316,10 +317,11 @@ export function SearchSuggest({
                 >
                   <span className="search-suggest-art">
                     <Image
-                      src={card.image_url || "/kestrel-logo.png"}
+                      src={resolveCardImageUrl(card.id, card.image_url)}
                       alt=""
                       width={32}
                       height={44}
+                      onError={(event) => onCardImageError(event, card.id)}
                     />
                   </span>
                   <span>

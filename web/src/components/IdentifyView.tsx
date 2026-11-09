@@ -12,6 +12,7 @@ import {
   canvasFromVideo,
   recognizeCardText,
 } from "@/lib/cardOcr";
+import { onCardImageError, resolveCardImageUrl } from "@/lib/cardImage";
 import { signalLabel } from "@/lib/i18n/messages";
 import type { IdentifyMatch } from "@/lib/types";
 
@@ -280,10 +281,11 @@ export function IdentifyView() {
                 >
                   <div className="identify-match-art">
                     <Image
-                      src={card.image_url || "/kestrel-logo.png"}
+                      src={resolveCardImageUrl(card.id, card.image_url)}
                       alt=""
                       width={72}
                       height={100}
+                      onError={(event) => onCardImageError(event, card.id)}
                     />
                   </div>
                   <div className="identify-match-body">

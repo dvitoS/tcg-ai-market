@@ -18,6 +18,7 @@ import {
   formatMoney,
   scoreTrade,
 } from "@/lib/api";
+import { onCardImageError, resolveCardImageUrl } from "@/lib/cardImage";
 import { trackFunnel } from "@/lib/funnel";
 import { buildTradeShareClipboardText } from "@/lib/tradeExport";
 import { pushRecentSearch } from "@/lib/searchRecent";
@@ -128,7 +129,10 @@ function SidePanel({
                 normalizePrinting(r.printing) === normalizePrinting(line.printing),
             );
             const name = scored?.name || line.name || line.card_id;
-            const image = scored?.image_url || line.image_url || "/kestrel-logo.png";
+            const image = resolveCardImageUrl(
+              line.card_id,
+              scored?.image_url || line.image_url,
+            );
             const setName = scored?.set_name || line.set_name;
             return (
               <div key={lineKey(line)} className="trade-line">
@@ -138,6 +142,7 @@ function SidePanel({
                     alt={name}
                     width={40}
                     height={56}
+                    onError={(event) => onCardImageError(event, line.card_id)}
                   />
                 </div>
                 <div>
