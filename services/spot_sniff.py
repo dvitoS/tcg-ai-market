@@ -93,10 +93,18 @@ def _card_number_from_id(card_id: str) -> str | None:
     return number or None
 
 
+# Name+number (≥120) before we trust a resolved TCP id for auto-fail.
+_MIN_TCP_MATCH_SCORE = 120
+# Below this, even a "fail" band is treated as review (wrong printing risk).
+_STRICT_TCP_FAIL_SCORE = 150
+
+
 def _resolve_missing_tcp_ids(items: list[dict[str, Any]]) -> dict[str, int]:
-    """Fill blank tcgplayer_id via JustTCG name/number search (common on older board rows)."""
+    """Fill blank tcgplayer_id via JustTCG search — only strong name+number hits."""
     from justtcg_client import (
+        _score_search_row,
         card_tcgplayer_id,
+        normalize_card_number,
         pick_nm_variant,
         search_pokemon_card,
         variant_price_usd,
@@ -104,22 +112,39 @@ def _resolve_missing_tcp_ids(items: list[dict[str, Any]]) -> dict[str, int]:
 
     missing = 0
     resolved = 0
+    rejected = 0
     for item in items:
         tid = str(item.get("tcgplayer_id") or "").strip()
         if tid.isdigit():
+            item["tcp_match_score"] = item.get("tcp_match_score") or 999
             continue
         missing += 1
+        name = str(item.get("name") or "")
+        set_name = str(item.get("set_name") or "") or None
+        number = _card_number_from_id(str(item.get("card_id") or ""))
         try:
+            # Full search (not quick) — number+set disambiguation matters for G0.
             card = search_pokemon_card(
-                name=str(item.get("name") or ""),
-                number=_card_number_from_id(str(item.get("card_id") or "")),
-                set_name=str(item.get("set_name") or "") or None,
-                quick=True,
+                name=name,
+                number=number,
+                set_name=set_name,
+                quick=False,
             )
         except Exception:
             card = None
         if not card:
             item["skip_reason"] = "no_tcp_id"
+            continue
+        score = _score_search_row(
+            card,
+            wanted_name=name.strip().lower(),
+            wanted_number=normalize_card_number(number) if number else "",
+            wanted_set=(set_name or "").strip().lower(),
+        )
+        item["tcp_match_score"] = int(score)
+        if score < _MIN_TCP_MATCH_SCORE:
+            item["skip_reason"] = "weak_tcp_match"
+            rejected += 1
             continue
         resolved_tid = card_tcgplayer_id(card)
         if not resolved_tid:
@@ -132,7 +157,11 @@ def _resolve_missing_tcp_ids(items: list[dict[str, Any]]) -> dict[str, int]:
         if price is not None:
             item["tcp_live"] = round(float(price), 4)
         resolved += 1
-    return {"tcp_missing": missing, "tcp_resolved": resolved}
+    return {
+        "tcp_missing": missing,
+        "tcp_resolved": resolved,
+        "tcp_rejected": rejected,
+    }
 
 
 def _enrich_live_tcp(items: list[dict[str, Any]]) -> dict[str, Any]:
@@ -146,6 +175,7 @@ def _enrich_live_tcp(items: list[dict[str, Any]]) -> dict[str, Any]:
         "auto_skip": 0,
         "tcp_missing": 0,
         "tcp_resolved": 0,
+        "tcp_rejected": 0,
         "live_error": None,
     }
     try:
@@ -186,6 +216,7 @@ def _enrich_live_tcp(items: list[dict[str, Any]]) -> dict[str, Any]:
         resolve_stats = _resolve_missing_tcp_ids(items)
         summary["tcp_missing"] = int(resolve_stats.get("tcp_missing") or 0)
         summary["tcp_resolved"] = int(resolve_stats.get("tcp_resolved") or 0)
+        summary["tcp_rejected"] = int(resolve_stats.get("tcp_rejected") or 0)
     except Exception as exc:
         summary["live_error"] = f"resolve:{exc}"[:240]
 
@@ -373,6 +404,22 @@ def _apply_verdicts(
         tcp = str(item.get("tcp_status") or item.get("auto_status") or "skip")
         ebay = str(item.get("ebay_status") or "skip")
         verdict = _combine_verdict(tcp, ebay, ebay_usable=ebay_usable)
+        # Resolved-via-search matches that aren't rock-solid must not auto-fail
+        # (wrong printing / same-name hit → false quarantine).
+        try:
+            match_score = int(item.get("tcp_match_score") or 0)
+        except (TypeError, ValueError):
+            match_score = 0
+        if (
+            verdict == "fail"
+            and bool(item.get("tcp_resolved"))
+            and match_score < _STRICT_TCP_FAIL_SCORE
+        ):
+            verdict = "review"
+            item["skip_reason"] = item.get("skip_reason") or "weak_tcp_fail"
+            item["notes"] = (
+                (item.get("notes") or "") + " weak TCP match→review"
+            ).strip()
         item["verdict"] = verdict
         item["check_tcp"] = tcp == "ok"
         counts[verdict] = int(counts.get(verdict) or 0) + 1
@@ -499,6 +546,7 @@ def build_spot_sniff_pack(
             "auto_skip": len(items),
             "tcp_missing": 0,
             "tcp_resolved": 0,
+            "tcp_rejected": 0,
             "live_error": None,
         }
     )
@@ -570,6 +618,7 @@ def build_spot_sniff_pack(
         "auto_skip": int(live_summary.get("auto_skip") or 0),
         "tcp_missing": int(live_summary.get("tcp_missing") or 0),
         "tcp_resolved": int(live_summary.get("tcp_resolved") or 0),
+        "tcp_rejected": int(live_summary.get("tcp_rejected") or 0),
         "live_error": live_summary.get("live_error"),
         "ebay_checked": bool(ebay_summary.get("ebay_checked")),
         "ebay_configured": bool(ebay_summary.get("ebay_configured")),

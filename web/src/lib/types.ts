@@ -661,6 +661,7 @@ export type SpotSniffPackResponse = {
   auto_skip?: number;
   tcp_missing?: number;
   tcp_resolved?: number;
+  tcp_rejected?: number;
   live_error?: string | null;
   ebay_checked?: boolean;
   ebay_configured?: boolean;

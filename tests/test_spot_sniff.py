@@ -77,6 +77,9 @@ def test_resolve_missing_tcp_ids(monkeypatch) -> None:
 
     def _search(**_kwargs):
         return {
+            "name": "Arceus LV.X",
+            "number": "1",
+            "set_name": "DP Black Star Promos",
             "tcgplayer_id": "123456",
             "variants": [
                 {
@@ -93,7 +96,54 @@ def test_resolve_missing_tcp_ids(monkeypatch) -> None:
     assert stats["tcp_resolved"] == 1
     assert items[0]["tcgplayer_id"] == "123456"
     assert items[0]["tcp_live"] == 100.0
+    assert items[0]["tcp_match_score"] >= 120
     assert "tcgplayer.com/product/123456" in (items[0]["tcgplayer_url"] or "")
+
+
+def test_weak_resolved_match_not_auto_fail() -> None:
+    items = [
+        {
+            "card_id": "x-1",
+            "name": "Weak",
+            "tcp_status": "fail",
+            "ebay_status": "skip",
+            "tcp_resolved": True,
+            "tcp_match_score": 120,
+            "notes": "",
+        }
+    ]
+    counts = spot_sniff._apply_verdicts(items, ebay_usable=False)
+    assert counts["fail"] == 0
+    assert counts["review"] == 1
+    assert items[0]["verdict"] == "review"
+
+
+def test_reject_weak_tcp_search(monkeypatch) -> None:
+    items = [
+        {
+            "card_id": "sv1-1",
+            "name": "Pikachu",
+            "set_name": "Scarlet & Violet",
+            "tcgplayer_id": None,
+        }
+    ]
+
+    def _search(**_kwargs):
+        # Wrong card — name mismatch, no number → low score
+        return {
+            "name": "Pikachu VMAX",
+            "number": "999",
+            "set_name": "Other",
+            "tcgplayer_id": "999",
+            "variants": [],
+        }
+
+    monkeypatch.setattr("justtcg_client.search_pokemon_card", _search)
+    stats = spot_sniff._resolve_missing_tcp_ids(items)
+    assert stats["tcp_resolved"] == 0
+    assert stats["tcp_rejected"] == 1
+    assert items[0].get("tcgplayer_id") in (None, "")
+    assert items[0]["skip_reason"] == "weak_tcp_match"
 
 
 def test_pct_delta_helpers() -> None:
