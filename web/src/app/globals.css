@@ -5442,11 +5442,13 @@ a {
   color: var(--muted);
 }
 
-.data-health-sniff-status.is-ok {
+.data-health-sniff-status.is-ok,
+.data-health-sniff-status.is-pass {
   color: #2f6b45;
 }
 
-.data-health-sniff-status.is-warn {
+.data-health-sniff-status.is-warn,
+.data-health-sniff-status.is-review {
   color: #8a5a12;
 }
 

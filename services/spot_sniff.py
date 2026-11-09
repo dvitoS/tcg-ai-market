@@ -1,17 +1,21 @@
-"""Ops spot sniff pack — sample sure Radar rows for TCP / eBay checks (M0.2 / G0).
+"""Ops spot sniff pack — G0 TCP + eBay automation (M0.2).
 
-Live JustTCG NM batch (optional) auto-flags rows so ops only deep-checks
-warn/fail instead of clicking through all 20 by hand.
+JustTCG NM batch + parallel eBay sold medians → per-row verdict
+(pass / review / fail). Optional auto-heal quarantines hard fails so ops
+only spot-checks the short review list.
 """
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from typing import Any
 
-# Spot vs live TCP market: within band → ok; mid → warn; beyond → fail.
-_TCP_OK_PCT = 15.0
-_TCP_WARN_PCT = 35.0
+# Spot vs live market / sold median bands.
+_OK_PCT = 15.0
+_WARN_PCT = 35.0
+_EBAY_WORKERS = 4
+_EBAY_SOLD_LIMIT = 6
 
 
 def _tcp_product_url(tcgplayer_id: Any) -> str | None:
@@ -40,20 +44,44 @@ def _pct_delta(spot: float | None, live: float | None) -> float | None:
     return round(100.0 * (s - live_v) / live_v, 2)
 
 
-def _auto_status(*, spot: float | None, live: float | None, delta_pct: float | None) -> str:
-    """ok | warn | fail | skip — skip when no live TCP price to compare."""
+def _band_status(*, spot: float | None, live: float | None, delta_pct: float | None) -> str:
+    """ok | warn | fail | skip."""
     if live is None or delta_pct is None or spot is None:
         return "skip"
     abs_d = abs(float(delta_pct))
-    if abs_d <= _TCP_OK_PCT:
+    if abs_d <= _OK_PCT:
         return "ok"
-    if abs_d <= _TCP_WARN_PCT:
+    if abs_d <= _WARN_PCT:
         return "warn"
     return "fail"
 
 
+# Back-compat aliases used by tests / older callers.
+_auto_status = _band_status
+_TCP_OK_PCT = _OK_PCT
+_TCP_WARN_PCT = _WARN_PCT
+
+
+def _combine_verdict(tcp_status: str, ebay_status: str) -> str:
+    """pass | review | fail — human only needs review (+ spot-check passes)."""
+    tcp = str(tcp_status or "skip")
+    ebay = str(ebay_status or "skip")
+    if tcp == "fail" or ebay == "fail":
+        return "fail"
+    if tcp == "warn" or ebay == "warn":
+        return "review"
+    if tcp == "ok" and ebay == "ok":
+        return "pass"
+    if tcp == "ok" and ebay == "skip":
+        # TCP clean but no sold comps — light review, not a hard fail.
+        return "review"
+    if ebay == "ok" and tcp == "skip":
+        return "review"
+    return "review"
+
+
 def _enrich_live_tcp(items: list[dict[str, Any]]) -> dict[str, Any]:
-    """Batch JustTCG NM lookup; mutate items with tcp_live / auto_status."""
+    """Batch JustTCG NM lookup; mutate items with tcp_live / tcp_status."""
     summary = {
         "live_checked": False,
         "live_configured": False,
@@ -71,11 +99,12 @@ def _enrich_live_tcp(items: list[dict[str, Any]]) -> dict[str, Any]:
             pick_nm_variant,
             variant_price_usd,
         )
-    except Exception as exc:  # pragma: no cover - import guard
+    except Exception as exc:  # pragma: no cover
         summary["live_error"] = f"import:{exc}"
         for item in items:
             item["tcp_live"] = None
             item["tcp_delta_pct"] = None
+            item["tcp_status"] = "skip"
             item["auto_status"] = "skip"
             summary["auto_skip"] += 1
         return summary
@@ -89,6 +118,7 @@ def _enrich_live_tcp(items: list[dict[str, Any]]) -> dict[str, Any]:
         for item in items:
             item["tcp_live"] = None
             item["tcp_delta_pct"] = None
+            item["tcp_status"] = "skip"
             item["auto_status"] = "skip"
             summary["auto_skip"] += 1
         return summary
@@ -100,7 +130,6 @@ def _enrich_live_tcp(items: list[dict[str, Any]]) -> dict[str, Any]:
     ]
     by_tid: dict[str, float] = {}
     try:
-        # Chunk if pack > batch size (sniff max 40; batch usually ≥40).
         from justtcg_client import JUSTTCG_BATCH_SIZE
 
         chunk = max(1, int(JUSTTCG_BATCH_SIZE or 40))
@@ -121,6 +150,7 @@ def _enrich_live_tcp(items: list[dict[str, Any]]) -> dict[str, Any]:
         for item in items:
             item["tcp_live"] = None
             item["tcp_delta_pct"] = None
+            item["tcp_status"] = "skip"
             item["auto_status"] = "skip"
             summary["auto_skip"] += 1
         return summary
@@ -134,22 +164,199 @@ def _enrich_live_tcp(items: list[dict[str, Any]]) -> dict[str, Any]:
         except (TypeError, ValueError):
             spot_f = None
         delta = _pct_delta(spot_f, live)
-        status = _auto_status(spot=spot_f, live=live, delta_pct=delta)
+        status = _band_status(spot=spot_f, live=live, delta_pct=delta)
         item["tcp_live"] = round(live, 4) if live is not None else None
         item["tcp_delta_pct"] = delta
-        item["auto_status"] = status
+        item["tcp_status"] = status
+        item["auto_status"] = status  # legacy field = TCP status
         summary[f"auto_{status}"] = int(summary.get(f"auto_{status}") or 0) + 1
 
     return summary
 
 
-def build_spot_sniff_pack(*, limit: int = 20, live_check: bool = True) -> dict[str, Any]:
-    """Return a balanced sample of sure UNDER/OVER rows for sniffing.
+def _fetch_one_ebay(item: dict[str, Any]) -> dict[str, Any]:
+    from services.ebay_listings import fetch_ebay_sold_comps
 
-    When ``live_check`` is true and JustTCG is configured, each row gets a
-    live NM TCP market compare so ops can prioritize warn/fail first.
-    Marketing spend must not launch until a human still marks the pack as
-    passing against TCGplayer + eBay sold (auto-ok is assist, not the gate).
+    card_id = str(item.get("card_id") or "")
+    name = str(item.get("name") or card_id)
+    set_name = str(item.get("set_name") or "")
+    rows, hint, stats = fetch_ebay_sold_comps(
+        card_id=card_id,
+        name=name,
+        set_name=set_name,
+        limit=_EBAY_SOLD_LIMIT,
+    )
+    is_sold = bool(stats.get("is_sold", 0.0)) and bool(rows)
+    median = stats.get("median") if is_sold else None
+    try:
+        median_f = float(median) if median is not None else None
+    except (TypeError, ValueError):
+        median_f = None
+    n = int(stats.get("n") or 0) if is_sold else 0
+    return {
+        "card_id": card_id,
+        "ebay_median": round(median_f, 4) if median_f is not None else None,
+        "ebay_n": n,
+        "ebay_is_sold": is_sold,
+        "ebay_hint": (hint or None) if not is_sold else None,
+    }
+
+
+def _enrich_ebay_sold(items: list[dict[str, Any]]) -> dict[str, Any]:
+    """Parallel eBay sold medians; mutate items with ebay_* + ebay_status."""
+    summary = {
+        "ebay_checked": False,
+        "ebay_configured": False,
+        "ebay_ok": 0,
+        "ebay_warn": 0,
+        "ebay_fail": 0,
+        "ebay_skip": 0,
+        "ebay_error": None,
+    }
+    try:
+        from ebay_client import ebay_configured
+    except Exception as exc:  # pragma: no cover
+        summary["ebay_error"] = f"import:{exc}"
+        for item in items:
+            item["ebay_median"] = None
+            item["ebay_delta_pct"] = None
+            item["ebay_n"] = 0
+            item["ebay_is_sold"] = False
+            item["ebay_status"] = "skip"
+            summary["ebay_skip"] += 1
+        return summary
+
+    configured = bool(ebay_configured())
+    summary["ebay_configured"] = configured
+    if not configured or not items:
+        for item in items:
+            item["ebay_median"] = None
+            item["ebay_delta_pct"] = None
+            item["ebay_n"] = 0
+            item["ebay_is_sold"] = False
+            item["ebay_status"] = "skip"
+            summary["ebay_skip"] += 1
+        return summary
+
+    by_id: dict[str, dict[str, Any]] = {}
+    try:
+        workers = min(_EBAY_WORKERS, max(1, len(items)))
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = [pool.submit(_fetch_one_ebay, item) for item in items]
+            for fut in as_completed(futures):
+                try:
+                    row = fut.result()
+                    by_id[str(row["card_id"])] = row
+                except Exception as exc:
+                    summary["ebay_error"] = str(exc)[:240]
+        summary["ebay_checked"] = True
+    except Exception as exc:
+        summary["ebay_error"] = str(exc)[:240]
+        for item in items:
+            item["ebay_median"] = None
+            item["ebay_delta_pct"] = None
+            item["ebay_n"] = 0
+            item["ebay_is_sold"] = False
+            item["ebay_status"] = "skip"
+            summary["ebay_skip"] += 1
+        return summary
+
+    for item in items:
+        meta = by_id.get(str(item.get("card_id") or ""), {})
+        median = meta.get("ebay_median")
+        spot = item.get("spot")
+        try:
+            spot_f = float(spot) if spot is not None else None
+        except (TypeError, ValueError):
+            spot_f = None
+        delta = _pct_delta(spot_f, median)
+        # Active-only fallback (no true sold) → skip, not a false pass.
+        if not meta.get("ebay_is_sold"):
+            status = "skip"
+            delta = None
+            median = None
+        else:
+            status = _band_status(spot=spot_f, live=median, delta_pct=delta)
+        item["ebay_median"] = median
+        item["ebay_delta_pct"] = delta
+        item["ebay_n"] = int(meta.get("ebay_n") or 0)
+        item["ebay_is_sold"] = bool(meta.get("ebay_is_sold"))
+        item["ebay_status"] = status
+        item["check_ebay"] = status == "ok"
+        summary[f"ebay_{status}"] = int(summary.get(f"ebay_{status}") or 0) + 1
+
+    return summary
+
+
+def _apply_verdicts(items: list[dict[str, Any]]) -> dict[str, int]:
+    counts = {"pass": 0, "review": 0, "fail": 0}
+    for item in items:
+        tcp = str(item.get("tcp_status") or item.get("auto_status") or "skip")
+        ebay = str(item.get("ebay_status") or "skip")
+        verdict = _combine_verdict(tcp, ebay)
+        item["verdict"] = verdict
+        item["check_tcp"] = tcp == "ok"
+        counts[verdict] = int(counts.get(verdict) or 0) + 1
+    return counts
+
+
+def _auto_heal_fails(items: list[dict[str, Any]]) -> dict[str, Any]:
+    """Quarantine hard-fail rows so they drop off the sure desk."""
+    fail_ids = [
+        str(item.get("card_id") or "").strip()
+        for item in items
+        if str(item.get("verdict") or "") == "fail" and str(item.get("card_id") or "").strip()
+    ]
+    fail_ids = list(dict.fromkeys(fail_ids))
+    if not fail_ids:
+        return {"healed": 0, "ids": [], "quotes_quarantined": 0}
+
+    from services.spot_heal import heal_poisoned_spots
+
+    result = heal_poisoned_spots(
+        mode="null_market",
+        limit=len(fail_ids),
+        card_ids=fail_ids,
+    )
+    healed = int(result.get("quotes_quarantined") or result.get("nulled") or 0)
+    healed_set = set(fail_ids) if healed else set()
+    # Prefer actual ids from heal result when present.
+    raw_ids = [str(x) for x in (result.get("ids") or []) if str(x).strip()]
+    if raw_ids:
+        healed_set = set(raw_ids)
+
+    remaining: list[dict[str, Any]] = []
+    for item in items:
+        cid = str(item.get("card_id") or "")
+        if cid in healed_set:
+            item["healed"] = True
+            item["notes"] = (item.get("notes") or "") + "auto-healed fail"
+            continue
+        remaining.append(item)
+    items[:] = remaining
+    return {
+        "healed": len(healed_set),
+        "ids": sorted(healed_set),
+        "quotes_quarantined": healed,
+        "heal_raw": {
+            "nulled": int(result.get("nulled") or 0),
+            "quotes_quarantined": int(result.get("quotes_quarantined") or 0),
+        },
+    }
+
+
+def build_spot_sniff_pack(
+    *,
+    limit: int = 20,
+    live_check: bool = True,
+    ebay_check: bool = True,
+    auto_heal: bool = True,
+) -> dict[str, Any]:
+    """Balanced sure UNDER/OVER sample with TCP + eBay auto verdict.
+
+    Default path auto-heals hard fails. Ops only reviews ``verdict=review``
+    rows (and optionally spot-checks passes). Gate still needs ≥18/20 pass
+    after heal — see ``g0_ready``.
     """
     limit = max(4, min(int(limit or 20), 40))
     half = max(2, limit // 2)
@@ -184,7 +391,15 @@ def build_spot_sniff_pack(*, limit: int = 20, live_check: bool = True) -> dict[s
                     "kestrel_path": _kestrel_card_path(card_id),
                     "tcp_live": None,
                     "tcp_delta_pct": None,
+                    "tcp_status": "skip",
                     "auto_status": "skip",
+                    "ebay_median": None,
+                    "ebay_delta_pct": None,
+                    "ebay_n": 0,
+                    "ebay_is_sold": False,
+                    "ebay_status": "skip",
+                    "verdict": "review",
+                    "healed": False,
                     "check_tcp": None,
                     "check_ebay": None,
                     "notes": "",
@@ -206,11 +421,50 @@ def build_spot_sniff_pack(*, limit: int = 20, live_check: bool = True) -> dict[s
     )
     if not live_check:
         for item in items:
+            item["tcp_status"] = "skip"
             item["auto_status"] = "skip"
 
-    # Surface fail/warn first so ops start with the hard ones.
-    order = {"fail": 0, "warn": 1, "skip": 2, "ok": 3}
-    items.sort(key=lambda it: (order.get(str(it.get("auto_status") or "skip"), 9), it["side"], it["name"]))
+    ebay_summary = (
+        _enrich_ebay_sold(items)
+        if ebay_check
+        else {
+            "ebay_checked": False,
+            "ebay_configured": False,
+            "ebay_ok": 0,
+            "ebay_warn": 0,
+            "ebay_fail": 0,
+            "ebay_skip": len(items),
+            "ebay_error": None,
+        }
+    )
+    if not ebay_check:
+        for item in items:
+            item["ebay_status"] = "skip"
+
+    verdict_counts = _apply_verdicts(items)
+    heal_summary = (
+        _auto_heal_fails(items)
+        if auto_heal
+        else {"healed": 0, "ids": [], "quotes_quarantined": 0}
+    )
+    # Re-count after heal removed fails from items.
+    verdict_counts = _apply_verdicts(items)
+
+    order = {"fail": 0, "review": 1, "pass": 2}
+    items.sort(
+        key=lambda it: (
+            order.get(str(it.get("verdict") or "review"), 9),
+            str(it.get("side") or ""),
+            str(it.get("name") or ""),
+        )
+    )
+
+    passed = int(verdict_counts.get("pass") or 0)
+    review = int(verdict_counts.get("review") or 0)
+    fail = int(verdict_counts.get("fail") or 0)
+    total = max(1, len(items))
+    # After auto-heal, ready when no remaining fails and ≥90% pass (18/20).
+    g0_ready = fail == 0 and passed >= max(1, int(round(0.9 * total))) and total >= 4
 
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -227,10 +481,23 @@ def build_spot_sniff_pack(*, limit: int = 20, live_check: bool = True) -> dict[s
         "auto_fail": int(live_summary.get("auto_fail") or 0),
         "auto_skip": int(live_summary.get("auto_skip") or 0),
         "live_error": live_summary.get("live_error"),
+        "ebay_checked": bool(ebay_summary.get("ebay_checked")),
+        "ebay_configured": bool(ebay_summary.get("ebay_configured")),
+        "ebay_ok": int(ebay_summary.get("ebay_ok") or 0),
+        "ebay_warn": int(ebay_summary.get("ebay_warn") or 0),
+        "ebay_fail": int(ebay_summary.get("ebay_fail") or 0),
+        "ebay_skip": int(ebay_summary.get("ebay_skip") or 0),
+        "ebay_error": ebay_summary.get("ebay_error"),
+        "verdict_pass": passed,
+        "verdict_review": review,
+        "verdict_fail": fail,
+        "healed_n": int(heal_summary.get("healed") or 0),
+        "healed_ids": list(heal_summary.get("ids") or []),
+        "g0_ready": bool(g0_ready),
         "instructions": (
-            "Auto TCP live (JustTCG NM) flags fail/warn first — still open TCGplayer + "
-            "eBay sold for those rows. Mark pass only if spot is plausible for NM and "
-            "the sure side still makes sense. Any hard fail → block marketing spend (G0)."
+            "Auto G0: JustTCG NM + eBay sold medians. Hard fails are auto-healed. "
+            "Only open the review rows (TCP/eBay links). If g0_ready is true and "
+            "review rows smell OK, G0 can pass — still no ads until you confirm."
         ),
         "items": items,
     }
