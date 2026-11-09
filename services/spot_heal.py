@@ -234,31 +234,47 @@ def sweep_desk_poison(
     Runs after nightly retrain so a fresh ``market_quotes`` board cannot leave
     Energy / rarity-cap / cluster tips on the sure desk. No JustTCG calls —
     ops should not need to click Heal 10-at-a-time after each nightly.
+
+    Caps each round (default 800) so ``NIGHTLY_SPOT_HEAL_LIMIT=all`` cannot
+    quarantine 10k+ rows in one PostgREST storm (statement_timeout / API OOM).
     """
     rounds = max(1, int(max_rounds))
+    # Per-round ceiling even when caller passes unlimited/None.
+    round_cap = 800
+    if limit is not None:
+        round_cap = max(1, min(int(limit), 800)) if int(limit) > 0 else 800
     auto_total = 0
     poison_total = 0
     quotes_total = 0
     keys: set[float] = set()
     for round_i in range(rounds):
-        auto = heal_auto_unsafe_spots(mode="null_market", limit=limit)
+        try:
+            auto = heal_auto_unsafe_spots(mode="null_market", limit=round_cap)
+        except Exception as exc:
+            LOG.warning("Desk sweep auto round %s failed: %s", round_i + 1, exc)
+            break
         auto_n = int(auto.get("count") or 0)
         auto_total += auto_n
         quotes_total += int(auto.get("quotes_quarantined") or 0)
         keys.update(float(k) for k in (auto.get("poison_keys") or []))
 
-        poison = heal_poisoned_spots(mode="null_market", limit=limit)
+        try:
+            poison = heal_poisoned_spots(mode="null_market", limit=round_cap)
+        except Exception as exc:
+            LOG.warning("Desk sweep poison round %s failed: %s", round_i + 1, exc)
+            break
         poison_n = int(poison.get("count") or 0)
         poison_total += poison_n
         quotes_total += int(poison.get("quotes_quarantined") or 0)
         keys.update(float(k) for k in (poison.get("poison_keys") or []))
 
         LOG.info(
-            "Desk sweep round %s/%s: auto=%s poison=%s",
+            "Desk sweep round %s/%s: auto=%s poison=%s (cap=%s)",
             round_i + 1,
             rounds,
             auto_n,
             poison_n,
+            round_cap,
         )
         if auto_n == 0 and poison_n == 0:
             break
@@ -269,6 +285,7 @@ def sweep_desk_poison(
         "poison_nulled": poison_total,
         "quotes_quarantined": quotes_total,
         "poison_keys": sorted(keys),
+        "round_cap": round_cap,
     }
 
 

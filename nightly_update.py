@@ -598,7 +598,8 @@ def run_nightly() -> int:
     try:
         from services.spot_qa import compute_live_spot_qa
 
-        qa_live = compute_live_spot_qa()
+        # Skip full price_history distinct scan (2M+ rows → timeout / API OOM).
+        qa_live = compute_live_spot_qa(include_history_scan=False)
         sure_rows_live = int(qa_live.get("sure_rows") or 0)
     except Exception as sure_exc:
         LOG.warning("Post-nightly sure_rows sample failed: %s", sure_exc)

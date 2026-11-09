@@ -92,7 +92,15 @@ def _display_set_name(set_code: str, cards: list) -> str:
 
 def _sets_prioritized_by_coverage(by_set: dict[str, list]) -> list[tuple[str, str]]:
     """Prefer sets with more cards missing price_history (fill gaps first)."""
-    have_history = distinct_history_card_ids()
+    try:
+        have_history = distinct_history_card_ids()
+    except Exception as exc:
+        # Never abort the whole JustTCG sync on a coverage probe timeout.
+        print(f"set coverage probe failed ({exc}) — using catalog order", file=sys.stderr)
+        return [
+            (set_code, _display_set_name(set_code, cards))
+            for set_code, cards in sorted(by_set.items(), key=lambda item: item[0])
+        ]
     scored: list[tuple[int, str, str]] = []
     for set_code, cards in by_set.items():
         missing = sum(1 for _n, card in cards if str(card.id) not in have_history)

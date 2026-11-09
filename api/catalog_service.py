@@ -37,6 +37,7 @@ def _image_for(card_id: str, existing: str | None = None) -> str | None:
 
 
 def _frame_from_quotes(quotes: pd.DataFrame) -> pd.DataFrame:
+    # Copy once; downcast floats later so the 500–512MB Render free plan fits.
     frame = quotes.copy()
     if "id" not in frame.columns and "card_id" in frame.columns:
         frame["id"] = frame["card_id"]
@@ -62,7 +63,7 @@ def _frame_from_quotes(quotes: pd.DataFrame) -> pd.DataFrame:
         "pred_hi_pct",
     ):
         if col in frame.columns:
-            frame[col] = pd.to_numeric(frame[col], errors="coerce")
+            frame[col] = pd.to_numeric(frame[col], errors="coerce").astype("float32")
     if "confidence_ok" in frame.columns:
         frame["confidence_ok"] = frame["confidence_ok"].fillna(True).astype(bool)
     else:
@@ -73,7 +74,7 @@ def _frame_from_quotes(quotes: pd.DataFrame) -> pd.DataFrame:
         frame["conformal_ok"] = True
     if "history_points" in frame.columns:
         frame["history_points"] = (
-            pd.to_numeric(frame["history_points"], errors="coerce").fillna(0).astype(int)
+            pd.to_numeric(frame["history_points"], errors="coerce").fillna(0).astype("int32")
         )
     else:
         frame["history_points"] = 0
@@ -85,6 +86,14 @@ def _frame_from_quotes(quotes: pd.DataFrame) -> pd.DataFrame:
         frame = apply_spot_quarantine(frame)
     except Exception as exc:
         LOG.warning("spot quarantine skipped: %s", exc)
+    # Drop unused object cols that bloat RSS on free/500MB instances.
+    drop_cols = [
+        c
+        for c in ("rarity_encoded", "supertype_encoded")
+        if c in frame.columns
+    ]
+    if drop_cols:
+        frame = frame.drop(columns=drop_cols)
     return frame
 
 
@@ -216,12 +225,17 @@ def load_board(*, force_refresh: bool = False) -> tuple[pd.DataFrame, Source]:
 
 
 def _load_board_uncached() -> tuple[pd.DataFrame, Source]:
+    import gc
+
     try:
         from services.quotes_store import load_market_quotes
 
         quotes = load_market_quotes()
         if quotes is not None and not quotes.empty:
-            return _frame_from_quotes(quotes), "supabase"
+            frame = _frame_from_quotes(quotes)
+            del quotes
+            gc.collect()
+            return frame, "supabase"
     except Exception as exc:
         LOG.info("market_quotes unavailable (%s); trying demo seed", exc)
 
@@ -259,7 +273,15 @@ def filter_board(
 ) -> pd.DataFrame:
     if board is None or board.empty:
         return board
-    frame = board.copy()
+    needs_copy = bool(
+        (q and q.strip())
+        or (set_name and set_name.strip() and set_name.strip().lower() not in {"all", "all sets"})
+        or (signal and signal.strip() and signal.strip().upper() != "ALL")
+        or min_price is not None
+        or max_price is not None
+        or mode == "signals"
+    )
+    frame = board.copy() if needs_copy else board
     if mode == "signals" and "signal" in frame.columns:
         # Prefer conformal / confidence-ok rows when present.
         if "confidence_ok" in frame.columns:

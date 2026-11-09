@@ -22,6 +22,8 @@ def test_dockerfile_api_uses_runtime_requirements_and_service_flag():
     text = (ROOT / "Dockerfile.api").read_text(encoding="utf-8")
     assert "requirements-api-runtime.txt" in text
     assert "KESTREL_SERVICE=api" in text
+    assert "WEB_CONCURRENCY=1" in text
+    assert "MALLOC_ARENA_MAX=2" in text
     # Must not install the Streamlit-heavy root requirements.txt
     assert "pip install --no-cache-dir -r requirements.txt" not in text
     assert "pip install --no-cache-dir -r requirements-api-runtime.txt" in text
