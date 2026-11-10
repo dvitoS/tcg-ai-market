@@ -181,31 +181,85 @@ def attach_ebay_features(
 
 
 def pick_sample_cards(limit: int) -> pd.DataFrame:
-    """Prefer higher-priced catalog cards with names (better eBay hit rate)."""
+    """Sure-desk tips first, then higher-priced catalog (better eBay hit rate)."""
     if limit <= 0:
         return pd.DataFrame()
+    rows: list[dict[str, Any]] = []
+    seen: set[str] = set()
+
+    def _add(card_id: str, name: str, set_name: str, market_price: Any) -> None:
+        cid = str(card_id or "").strip()
+        if not cid or cid in seen:
+            return
+        seen.add(cid)
+        rows.append(
+            {
+                "id": cid,
+                "name": name,
+                "set_name": set_name,
+                "market_price": market_price,
+            }
+        )
+
     try:
         from database import get_supabase
 
         client = get_supabase()
-        response = (
-            client.table("cards")
-            .select("id,name,set_name,market_price")
-            .order("market_price", desc=True)
-            .limit(max(limit * 3, limit))
-            .execute()
-        )
-        data = getattr(response, "data", None) or []
-        if not data:
-            return pd.DataFrame()
-        frame = pd.DataFrame(data)
-        frame = frame.dropna(subset=["id", "name"])
-        frame["market_price"] = pd.to_numeric(frame.get("market_price"), errors="coerce")
-        frame = frame.sort_values("market_price", ascending=False)
-        return frame.head(limit).reset_index(drop=True)
+        # Hot desk: conformal BUY/SELL — liquidity features matter most here.
+        for signal in ("BUY", "SELL"):
+            if len(rows) >= limit:
+                break
+            need = max(1, limit - len(rows))
+            try:
+                resp = (
+                    client.table("market_quotes")
+                    .select("card_id,name,set_name,market_price,expected_change_pct")
+                    .eq("signal", signal)
+                    .eq("conformal_ok", True)
+                    .order(
+                        "expected_change_pct",
+                        desc=(signal == "BUY"),
+                    )
+                    .limit(need)
+                    .execute()
+                )
+                for row in list(resp.data or []):
+                    _add(
+                        row.get("card_id"),
+                        str(row.get("name") or ""),
+                        str(row.get("set_name") or ""),
+                        row.get("market_price"),
+                    )
+            except Exception as exc:
+                LOG.warning("pick_sample sure %s failed: %s", signal, exc)
+
+        if len(rows) < limit:
+            response = (
+                client.table("cards")
+                .select("id,name,set_name,market_price")
+                .order("market_price", desc=True)
+                .limit(max((limit - len(rows)) * 3, limit))
+                .execute()
+            )
+            for row in list(getattr(response, "data", None) or []):
+                if len(rows) >= limit:
+                    break
+                _add(
+                    row.get("id"),
+                    str(row.get("name") or ""),
+                    str(row.get("set_name") or ""),
+                    row.get("market_price"),
+                )
     except Exception as exc:
         LOG.warning("pick_sample_cards failed: %s", exc)
         return pd.DataFrame()
+
+    if not rows:
+        return pd.DataFrame()
+    frame = pd.DataFrame(rows)
+    frame = frame.dropna(subset=["id", "name"])
+    frame["market_price"] = pd.to_numeric(frame.get("market_price"), errors="coerce")
+    return frame.head(limit).reset_index(drop=True)
 
 
 def harvest_ebay_liquidity(
@@ -214,22 +268,40 @@ def harvest_ebay_liquidity(
     sleep_s: float = 0.35,
 ) -> dict[str, Any]:
     """Pull Browse active depth for a sample of cards and upsert today's snapshot."""
-    stats = {"sampled": 0, "upserted": 0, "errors": 0, "skipped": 0}
+    stats = {
+        "sampled": 0,
+        "upserted": 0,
+        "errors": 0,
+        "skipped": 0,
+        "skip_reason": None,
+    }
     try:
         import ebay_client as ebay
     except Exception as exc:
         LOG.warning("ebay_client import failed: %s", exc)
         stats["skipped"] = 1
+        stats["skip_reason"] = "import_failed"
         return stats
     if not ebay.ebay_configured():
-        LOG.info("eBay not configured — skip liquidity harvest")
+        LOG.warning(
+            "eBay not configured — skip liquidity harvest "
+            "(set EBAY_APP_ID + EBAY_CERT_ID in Actions secrets)"
+        )
         stats["skipped"] = 1
+        stats["skip_reason"] = "ebay_not_configured"
         return stats
 
     n = int(sample_size() if limit is None else limit)
+    if n <= 0:
+        LOG.warning("EBAY_LIQUIDITY_SAMPLE_N=%s — harvest disabled", n)
+        stats["skipped"] = 1
+        stats["skip_reason"] = "sample_n_zero"
+        return stats
     cards = pick_sample_cards(n)
     if cards.empty:
+        LOG.warning("eBay liquidity harvest: no sample cards")
         stats["skipped"] = 1
+        stats["skip_reason"] = "no_sample_cards"
         return stats
 
     today = date.today().isoformat()

@@ -54,4 +54,4 @@ def test_build_trust_report_tolerates_empty_metrics(monkeypatch) -> None:
     payload = build_trust_report(horizon_days=7, sample_n=20)
     assert payload["calibration"]["rmse"] is None
     assert payload["conformal_coverage"]["target_pct"] == 80.0
-    assert payload["radar_backtest"]["method"] == "current_signals_vs_history"
+    assert payload["radar_backtest"]["method"] == "sure_signals_vs_trailing_history"

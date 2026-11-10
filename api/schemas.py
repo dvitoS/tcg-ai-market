@@ -617,7 +617,9 @@ class TrustRadarBacktest(BaseModel):
     avg_move_pct: float | None = None
     under_n: int = 0
     over_n: int = 0
-    method: str = "current_signals_vs_history"
+    method: str = "sure_signals_vs_trailing_history"
+    tighten_suggested: bool = False
+    note: str | None = None
 
 
 class TrustResponse(BaseModel):

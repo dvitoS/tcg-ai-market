@@ -190,6 +190,9 @@ export function TrustPanel() {
                     })
                   : t("trust_bt_empty")}
               </p>
+              {bt?.tighten_suggested ? (
+                <p className="form-error">{t("trust_bt_tighten")}</p>
+              ) : null}
             </div>
           </div>
         </>
