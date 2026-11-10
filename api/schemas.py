@@ -618,8 +618,11 @@ class TrustRadarBacktest(BaseModel):
     under_n: int = 0
     over_n: int = 0
     min_edge: float = 0.0
-    method: str = "sure_signals_vs_trailing_history"
+    method: str = "forward_tip_ledger"
     tighten_suggested: bool = False
+    pending_n: int = 0
+    coverage_pct: float | None = None
+    coverage_n: int = 0
     note: str | None = None
 
 

@@ -427,6 +427,9 @@ export type TrustRadarBacktest = {
   min_edge?: number;
   method: string;
   tighten_suggested?: boolean;
+  pending_n?: number;
+  coverage_pct?: number | null;
+  coverage_n?: number;
   note?: string | null;
 };
 

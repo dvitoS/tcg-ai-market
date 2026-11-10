@@ -198,6 +198,12 @@ export function TrustPanel({ minEdge = 0 }: { minEdge?: number }) {
                     })
                   : t("trust_bt_empty")}
               </p>
+              {(bt?.pending_n ?? 0) > 0 ? (
+                <p className="lot-meta">
+                  {t("trust_bt_pending", { n: bt?.pending_n ?? 0 })}
+                </p>
+              ) : null}
+              {bt?.note ? <p className="lot-meta">{bt.note}</p> : null}
               {bt?.tighten_suggested ? (
                 <p className="form-error">{t("trust_bt_tighten")}</p>
               ) : null}
