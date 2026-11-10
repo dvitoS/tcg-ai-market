@@ -134,7 +134,7 @@ Actions secrets: `SUPABASE_URL`, `SUPABASE_KEY`, preferably `JUSTTCG_API_KEY`. O
 
 1. **Catalog gap-fill** (default) — list every pokemontcg.io set, compare to DB counts, fetch only **missing/incomplete** sets (budget `NIGHTLY_CATALOG_SET_BUDGET`, default 50/night). When the catalog is complete, catalog step is a no-op.
 2. **Unkeyed pace ~2.5s** — aligned with published ~30 req/min without a key (no new keys available). Existing keys can still set `POKEMONTCG_API_KEY` for ~1.5s pace until 2027.
-3. **JustTCG drip** — schedule `NIGHTLY_CARD_LIMIT=8000` with **`JUSTTCG_MAX_REQUESTS=250`** (~7.5k/month; Soft Ink keeps daytime headroom under the 10k tier). Missing history first; retrain always runs.
+3. **JustTCG drip** — schedule `NIGHTLY_CARD_LIMIT=8000` with **`JUSTTCG_MAX_REQUESTS=250`** (~7.5k/month; Soft Ink keeps daytime headroom under the 10k tier). **Hot desk first** (Radar sure BUY/SELL + watchlist), then missing history; retrain always runs. After retrain: desk sweep + auto G0 sniff/heal (`NIGHTLY_AUTO_G0=1`).
 4. Manual dispatch can still choose `catalog_mode=full` and raise `card_limit` / budget carefully (`NIGHTLY_ALLOW_UNLIMITED_JUSTTCG=1` only for explicit bootstrap).
 
 Also backfills `tcgplayer_id` (default 300/night via Actions) so more cards become JustTCG-batchable without raising the JustTCG request budget, refreshes `market_quotes`, emails/Discord digests when configured, purges expired `auth_sessions`. **Fails** if `market_quotes` persist is empty.

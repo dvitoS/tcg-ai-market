@@ -2,12 +2,23 @@
 
 **Gate:** paid marketing stays locked until this pack passes.
 
-**When:** after a green nightly (quotes + sure_rows).
+**When:** after a green nightly (quotes + sure_rows). Nightly already runs auto G0 — manual click is only for leftovers / mid-day checks.
 
-## Automated path (preferred)
+## Nightly (default — no ops click)
+
+After post-retrain desk sweep + UNDER verify, `nightly_update` calls `run_nightly_auto_g0`:
+
+- live JustTCG NM sniff on ~20 sure UNDER/OVER rows
+- eBay sold only when `EBAY_SOLD_ENABLED=1` + Insights
+- auto-heal hard fails
+- writes `g0_ready` + `nightly_auto_g0` onto the spot_qa snapshot
+
+Env: `NIGHTLY_AUTO_G0=1` (default), `NIGHTLY_AUTO_G0_LIMIT=20`, `NIGHTLY_G0_REQUIRED=0` (set `1` only when you want a non-ready pack to fail the job).
+
+## Manual path (System status)
 
 1. Sign in as an **ops** user on Soft Ink → **System status**.
-2. Click **Pokreni auto G0** / **Run auto G0**.
+2. Click **Pokreni auto G0** / **Run auto G0** if nightly left review rows or you need a mid-day recheck.
 3. Soft Ink will:
    - sample ~20 sure UNDER/OVER rows
    - **resolve missing TCGplayer ids** via JustTCG search (common on older board rows)
@@ -18,7 +29,7 @@
 5. Open only the **review** rows (TCP + eBay links) — usually a handful, not all 20.  
    If you still see **20 review / 0 pass** and “no TCGplayer id”, JustTCG key is missing on the API or search couldn’t match — fix that before manual clicking.
 6. If review rows smell OK and `g0_ready` is true → **G0 passes**.  
-   If not → Heal remaining fails / re-run after nightly. Do **not** unlock spend.
+   If not → Heal remaining fails / wait for next nightly. Do **not** unlock spend.
 
 ## Pass criteria
 

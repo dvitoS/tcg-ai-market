@@ -594,6 +594,33 @@ def run_nightly() -> int:
     except Exception as sweep_exc:
         LOG.warning("Post-retrain desk sweep failed: %s", sweep_exc)
 
+    # Auto G0 sniff + heal — ops-free trust sample after the desk is swept.
+    try:
+        from services.spot_sniff import run_nightly_auto_g0
+
+        g0 = run_nightly_auto_g0()
+        if g0.get("skipped"):
+            LOG.info("Nightly auto G0 skipped: %s", g0.get("reason"))
+        else:
+            LOG.info(
+                "Nightly auto G0: g0_ready=%s pass=%s review=%s fail=%s "
+                "healed=%s ebay=%s",
+                g0.get("g0_ready"),
+                g0.get("verdict_pass"),
+                g0.get("verdict_review"),
+                g0.get("verdict_fail"),
+                g0.get("healed_n"),
+                g0.get("ebay_check"),
+            )
+            if not g0.get("g0_ready"):
+                LOG.warning(
+                    "Nightly auto G0 not ready — review leftovers on System status"
+                )
+            if g0.get("required") and not g0.get("g0_ready"):
+                failures.append("nightly_auto_g0_not_ready")
+    except Exception as g0_exc:
+        LOG.warning("Nightly auto G0 failed: %s", g0_exc)
+
     sure_rows_live: int | None = None
     try:
         from services.spot_qa import compute_live_spot_qa
