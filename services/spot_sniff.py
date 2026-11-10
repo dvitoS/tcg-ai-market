@@ -3,10 +3,15 @@
 JustTCG NM batch + parallel eBay sold medians → per-row verdict
 (pass / review / fail). Optional auto-heal quarantines hard fails so ops
 only spot-checks the short review list.
+
+Nightly also runs ``run_nightly_auto_g0`` after desk sweep so G0 does not
+depend on a human clicking System status.
 """
 
 from __future__ import annotations
 
+import logging
+import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from typing import Any
@@ -16,6 +21,8 @@ _OK_PCT = 15.0
 _WARN_PCT = 35.0
 _EBAY_WORKERS = 4
 _EBAY_SOLD_LIMIT = 6
+
+LOG = logging.getLogger("tcg.spot_sniff")
 
 
 def _tcp_product_url(tcgplayer_id: Any) -> str | None:
@@ -641,3 +648,89 @@ def build_spot_sniff_pack(
         ),
         "items": items,
     }
+
+
+def nightly_auto_g0_enabled() -> bool:
+    """Default on — set ``NIGHTLY_AUTO_G0=0`` to skip the post-retrain sniff."""
+    raw = (os.environ.get("NIGHTLY_AUTO_G0") or "1").strip().lower()
+    return raw not in {"0", "false", "no", "off"}
+
+
+def nightly_auto_g0_required() -> bool:
+    """When true, a non-ready G0 pack fails the nightly SLO path."""
+    raw = (os.environ.get("NIGHTLY_G0_REQUIRED") or "0").strip().lower()
+    return raw in {"1", "true", "yes", "on"}
+
+
+def nightly_auto_g0_limit() -> int:
+    raw = (os.environ.get("NIGHTLY_AUTO_G0_LIMIT") or "20").strip()
+    try:
+        return max(4, min(int(raw), 40))
+    except ValueError:
+        return 20
+
+
+def run_nightly_auto_g0() -> dict[str, Any]:
+    """Post-retrain G0: live TCP sniff + auto-heal; persist summary on spot_qa.
+
+    eBay sold is included only when Insights is enabled (``ebay_sold_enabled``),
+    otherwise TCP-only verdicts still gate the desk without review noise.
+    """
+    if not nightly_auto_g0_enabled():
+        return {"skipped": True, "reason": "NIGHTLY_AUTO_G0=0", "required": False}
+
+    try:
+        from api.catalog_service import clear_board_cache
+
+        clear_board_cache()
+    except Exception as cache_exc:
+        LOG.warning("Nightly auto G0 board cache clear failed: %s", cache_exc)
+
+    ebay_check = False
+    try:
+        from ebay_client import ebay_sold_enabled
+
+        ebay_check = bool(ebay_sold_enabled())
+    except Exception:
+        ebay_check = False
+
+    limit = nightly_auto_g0_limit()
+    pack = build_spot_sniff_pack(
+        limit=limit,
+        live_check=True,
+        ebay_check=ebay_check,
+        auto_heal=True,
+    )
+    summary: dict[str, Any] = {
+        "skipped": False,
+        "required": nightly_auto_g0_required(),
+        "ebay_check": ebay_check,
+        "limit": limit,
+        "count": int(pack.get("count") or 0),
+        "g0_ready": bool(pack.get("g0_ready")),
+        "verdict_pass": int(pack.get("verdict_pass") or 0),
+        "verdict_review": int(pack.get("verdict_review") or 0),
+        "verdict_fail": int(pack.get("verdict_fail") or 0),
+        "healed_n": int(pack.get("healed_n") or 0),
+        "healed_ids": list(pack.get("healed_ids") or [])[:40],
+        "tcp_missing": int(pack.get("tcp_missing") or 0),
+        "tcp_resolved": int(pack.get("tcp_resolved") or 0),
+        "auto_ok": int(pack.get("auto_ok") or 0),
+        "auto_fail": int(pack.get("auto_fail") or 0),
+        "live_checked": bool(pack.get("live_checked")),
+        "generated_at": pack.get("generated_at"),
+    }
+
+    try:
+        from services.spot_qa import load_spot_qa_snapshot, save_spot_qa_snapshot
+
+        snap = load_spot_qa_snapshot() or {}
+        snap["nightly_auto_g0"] = {
+            k: v for k, v in summary.items() if k not in {"skipped", "required"}
+        }
+        snap["g0_ready"] = summary["g0_ready"]
+        save_spot_qa_snapshot(snap)
+    except Exception as snap_exc:
+        LOG.warning("Nightly auto G0 snapshot failed: %s", snap_exc)
+
+    return summary

@@ -112,6 +112,8 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 | Post-nightly desk sweep | **Shipped** (#171) — auto quarantine + UNDER verify |
 | G0 sniff live TCP assist | **Shipped** (#173) — JustTCG NM batch |
 | G0 sniff auto verdict | **Shipping** — TCP + eBay sold + auto-heal fails; ops only reviews leftovers |
+| Hot-desk JustTCG drip | **Shipping** — Radar sure BUY/SELL + watchlist before missing-history |
+| Nightly auto G0 | **Shipping** — post-sweep sniff+heal; no ops click for the daily sample |
 
 ### Data / catalog track (parallel to M*)
 

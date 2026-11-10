@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import sqlite3
 from pathlib import Path
 from typing import Any
@@ -183,14 +184,104 @@ def card_counts_by_set_id() -> dict[str, int]:
     return counts
 
 
+def hot_desk_sync_enabled() -> bool:
+    """When true, JustTCG sync prefers Radar sure tips + watchlist (hot desk)."""
+    raw = (os.environ.get("NIGHTLY_HOT_DESK") or "1").strip().lower()
+    return raw not in {"0", "false", "no", "off"}
+
+
+def hot_desk_sync_limit() -> int:
+    """Max Radar BUY/SELL ids to pin ahead of missing-history drip (default 600)."""
+    raw = (os.environ.get("HOT_DESK_SYNC_LIMIT") or "600").strip()
+    try:
+        return max(0, int(raw))
+    except ValueError:
+        return 600
+
+
+def _quote_signal_card_ids(signal: str, *, limit: int) -> list[str]:
+    """Sure-desk card ids for one BUY/SELL signal, strongest edge first."""
+    if limit <= 0:
+        return []
+    client = get_supabase()
+    query = (
+        client.table("market_quotes")
+        .select("card_id,expected_change_pct")
+        .eq("signal", signal)
+        .eq("conformal_ok", True)
+    )
+    # BUY: largest positive expected move; SELL: most negative first.
+    desc = signal.upper() == "BUY"
+    resp = query.order("expected_change_pct", desc=desc).limit(int(limit)).execute()
+    out: list[str] = []
+    for row in list(resp.data or []):
+        cid = str(row.get("card_id") or "").strip()
+        if cid:
+            out.append(cid)
+    return out
+
+
+def hot_desk_card_ids(*, limit: int | None = None) -> set[str]:
+    """Card ids that should refresh first: watchlist + conformal BUY/SELL desk.
+
+    Keeps Soft Ink Radar / DOTD / alerts from lagging behind a pure
+    missing-history JustTCG drip when the nightly request budget is tight.
+    """
+    cap = int(limit if limit is not None else hot_desk_sync_limit())
+    ids: set[str] = set()
+
+    try:
+        from database_user import load_all_watchlists
+
+        wl = load_all_watchlists()
+        if wl is not None and not wl.empty and "card_id" in wl.columns:
+            for raw in wl["card_id"].tolist():
+                cid = str(raw or "").strip()
+                if cid and cid.lower() != "nan":
+                    ids.add(cid)
+    except Exception as exc:
+        LOG.warning("hot_desk watchlist failed: %s", exc)
+
+    remaining = max(0, cap - len(ids))
+    if remaining > 0:
+        half = max(1, remaining // 2)
+        sell_n = max(0, remaining - half)
+        try:
+            ids.update(_quote_signal_card_ids("BUY", limit=half))
+            ids.update(_quote_signal_card_ids("SELL", limit=sell_n))
+        except Exception as exc:
+            LOG.warning("hot_desk market_quotes failed: %s", exc)
+
+    LOG.info(
+        "Hot desk sync set: %s ids (cap=%s watchlist+radar)",
+        len(ids),
+        cap,
+    )
+    return ids
+
+
 def list_cards_for_sync(*, limit: int | None = None) -> list[Card]:
-    """Prefer cards missing price_history, then higher market price (smart nightly limits)."""
+    """Prefer hot-desk cards, then missing price_history, then higher spot.
+
+    Order:
+    1. Radar sure BUY/SELL + all watchlist ids (when ``NIGHTLY_HOT_DESK`` on)
+    2. Cards still missing history
+    3. Higher ``market_price``
+    """
     cards = list_cards(limit=None, order_price_desc=False)
     if not cards:
         return []
     have = distinct_history_card_ids()
+    hot: set[str] = set()
+    if hot_desk_sync_enabled():
+        try:
+            hot = hot_desk_card_ids()
+        except Exception as exc:
+            LOG.warning("hot_desk_card_ids failed: %s", exc)
+            hot = set()
     cards.sort(
         key=lambda c: (
+            0 if str(c.id) in hot else 1,
             0 if str(c.id) not in have else 1,
             -(c.market_price or 0.0),
             str(c.id),
