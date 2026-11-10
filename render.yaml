@@ -5,7 +5,8 @@ services:
     name: kestrel-api
     runtime: docker
     dockerfilePath: ./Dockerfile.api
-    plan: free
+    # Soft Ink production: ~1 CPU / 2GB (Render “standard”-class). Free/512MB OOMs.
+    plan: standard
     healthCheckPath: /api/health
     envVars:
       - key: PYTHONPATH
