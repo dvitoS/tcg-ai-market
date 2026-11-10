@@ -6,13 +6,17 @@ from fastapi.testclient import TestClient
 
 from api.catalog_service import clear_board_cache
 from api.main import app
-from api.price_sources_service import clear_price_sources_cache
+from api.price_sources_service import (
+    clear_price_sources_cache,
+    reset_live_nm_budget_for_tests,
+)
 from justtcg_client import JustTCGRateLimitError
 
 
 def setup_function() -> None:
     clear_board_cache()
     clear_price_sources_cache()
+    reset_live_nm_budget_for_tests()
 
 
 def _bundle(
@@ -352,7 +356,7 @@ def test_card_price_sources_uses_fresh_db_nm_without_live_call(monkeypatch) -> N
     today = date.today()
     market = [
         {"date": (today - timedelta(days=i)).isoformat(), "price": 10.0 + i}
-        for i in range(14, -1, -1)
+        for i in range(9, -1, -1)
     ]
 
     def _nm(**kwargs):
@@ -391,7 +395,7 @@ def test_card_price_sources_uses_fresh_db_nm_without_live_call(monkeypatch) -> N
     assert body["justtcg_from_db"] is True
     assert body["justtcg_fallback"] is False
     assert body["grades"] == "none"
-    assert len(body["justtcg"]) == 15
+    assert len(body["justtcg"]) == 10
     assert body["justtcg"][-1]["price"] == market[-1]["price"]
     assert body["psa10"] == []
     assert body["psa9"] == []
@@ -407,6 +411,72 @@ def test_card_price_sources_uses_fresh_db_nm_without_live_call(monkeypatch) -> N
     assert gbody["grades"] == "all"
     assert len(gbody["psa10"]) == 1
     assert len(gbody["psa9"]) == 1
+
+
+def test_card_price_sources_live_nm_when_db_stale(monkeypatch) -> None:
+    """DB last point older than SOFT_INK_NM_STALE_DAYS → one live JustTCG NM."""
+    from datetime import date, timedelta
+
+    calls = {"nm": 0}
+    today = date.today()
+    # Last point 5 days ago with enough history depth.
+    market = [
+        {"date": (today - timedelta(days=i + 5)).isoformat(), "price": 10.0 + i}
+        for i in range(9, -1, -1)
+    ]
+
+    def _nm(**kwargs):
+        calls["nm"] += 1
+        return ([{"date": today.isoformat(), "price": 42.0}], "tcp-stale")
+
+    monkeypatch.setenv("SOFT_INK_NM_STALE_DAYS", "3")
+    monkeypatch.setenv("SOFT_INK_LIVE_NM_DAILY_BUDGET", "120")
+    monkeypatch.setattr("api.price_sources_service.justtcg_api_key", lambda: "test-key")
+    monkeypatch.setattr("justtcg_client.nm_history_for_card", _nm)
+    monkeypatch.setattr(
+        "api.price_sources_service.load_card_history",
+        lambda card_id, limit=180: market,
+    )
+
+    client = TestClient(app)
+    res = client.get("/api/cards/stale-db-card/sources")
+    assert res.status_code == 200
+    body = res.json()
+    assert calls["nm"] == 1
+    assert body["justtcg_from_db"] is False
+    assert body["justtcg"][-1]["price"] == 42.0
+
+
+def test_card_price_sources_live_nm_budget_falls_back_to_db(monkeypatch) -> None:
+    from datetime import date, timedelta
+
+    calls = {"nm": 0}
+    today = date.today()
+    market = [
+        {"date": (today - timedelta(days=i + 5)).isoformat(), "price": 10.0 + i}
+        for i in range(9, -1, -1)
+    ]
+
+    def _nm(**kwargs):
+        calls["nm"] += 1
+        return ([{"date": today.isoformat(), "price": 99.0}], "tcp-budget")
+
+    monkeypatch.setenv("SOFT_INK_NM_STALE_DAYS", "3")
+    monkeypatch.setenv("SOFT_INK_LIVE_NM_DAILY_BUDGET", "0")
+    monkeypatch.setattr("api.price_sources_service.justtcg_api_key", lambda: "test-key")
+    monkeypatch.setattr("justtcg_client.nm_history_for_card", _nm)
+    monkeypatch.setattr(
+        "api.price_sources_service.load_card_history",
+        lambda card_id, limit=180: market,
+    )
+
+    client = TestClient(app)
+    res = client.get("/api/cards/budget-card/sources")
+    assert res.status_code == 200
+    body = res.json()
+    assert calls["nm"] == 0
+    assert body["justtcg_from_db"] is True
+    assert body["justtcg"][-1]["price"] == market[-1]["price"]
 
 
 def test_card_price_sources_skips_psa10_after_nm_rate_limit(monkeypatch) -> None:

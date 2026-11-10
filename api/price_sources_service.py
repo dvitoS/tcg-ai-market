@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import threading
 import time
 from concurrent.futures import Future
@@ -17,6 +18,8 @@ LOG = logging.getLogger("kestrel.api.price_sources")
 
 # Soft Ink used to live-call JustTCG NM+PSA on every card detail mount.
 # Nightly already writes JustTCG NM into price_history — prefer that for NM.
+# On 2GB Render we refresh live when DB is modestly stale, capped per day so
+# JustTCG 10k/mo and API RSS stay safe (nightly drip still owns bulk fill).
 _SOURCES_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
 _SOURCES_CACHE_LOCK = threading.Lock()
 # Long TTL: NM comes from nightly DB; PSA live calls are the Soft Ink quota burn.
@@ -26,6 +29,11 @@ _SOURCES_CACHE_MAX = 256
 _DB_NM_MIN_POINTS = 7
 _DB_NM_MAX_AGE_DAYS = 3
 
+# Process-local Soft Ink live NM budget (resets on UTC day / restart).
+_LIVE_NM_DAY: str | None = None
+_LIVE_NM_USED = 0
+_LIVE_NM_LOCK = threading.Lock()
+
 # Single-flight: PriceChart + GradingEv both hit /sources on first paint.
 _SOURCES_INFLIGHT: dict[str, Future] = {}
 _SOURCES_INFLIGHT_LOCK = threading.Lock()
@@ -34,6 +42,56 @@ _SOURCES_INFLIGHT_LOCK = threading.Lock()
 def clear_price_sources_cache() -> None:
     with _SOURCES_CACHE_LOCK:
         _SOURCES_CACHE.clear()
+
+
+def reset_live_nm_budget_for_tests() -> None:
+    """Test helper — clear the process live-NM counter."""
+    global _LIVE_NM_DAY, _LIVE_NM_USED
+    with _LIVE_NM_LOCK:
+        _LIVE_NM_DAY = None
+        _LIVE_NM_USED = 0
+
+
+def soft_ink_nm_stale_days() -> int:
+    """DB NM older than this triggers one live JustTCG NM (default 3)."""
+    raw = (os.environ.get("SOFT_INK_NM_STALE_DAYS") or "").strip()
+    if raw.isdigit():
+        return max(1, min(int(raw), 30))
+    return int(_DB_NM_MAX_AGE_DAYS)
+
+
+def soft_ink_live_nm_daily_budget() -> int | None:
+    """Soft Ink live NM calls/day on this process.
+
+    ``None`` = uncapped (still rate-limited by JustTCG). ``0`` = never live
+    when DB has enough points. Default ``120`` leaves most of the 10k/mo for
+    the nightly drip.
+    """
+    raw = (os.environ.get("SOFT_INK_LIVE_NM_DAILY_BUDGET") or "120").strip().lower()
+    if raw in {"0", "off", "none"}:
+        return 0
+    if raw in {"unlimited", "inf", "all"}:
+        return None
+    if raw.isdigit():
+        return max(1, min(int(raw), 5000))
+    return 120
+
+
+def _try_consume_live_nm_budget() -> bool:
+    """Return True when a live NM call is allowed and counted."""
+    budget = soft_ink_live_nm_daily_budget()
+    if budget == 0:
+        return False
+    today = date.today().isoformat()
+    global _LIVE_NM_DAY, _LIVE_NM_USED
+    with _LIVE_NM_LOCK:
+        if _LIVE_NM_DAY != today:
+            _LIVE_NM_DAY = today
+            _LIVE_NM_USED = 0
+        if budget is not None and _LIVE_NM_USED >= budget:
+            return False
+        _LIVE_NM_USED += 1
+        return True
 
 
 def _points_from_rows(rows: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
@@ -53,11 +111,11 @@ def _points_from_rows(rows: list[dict[str, Any]] | None) -> list[dict[str, Any]]
 
 
 def _market_history_is_fresh(market: list[dict[str, Any]]) -> bool:
-    """True when nightly/DB NM series is usable — skip a live JustTCG NM call.
+    """True when nightly/DB NM series is fresh enough to skip live JustTCG NM.
 
-    Soft Ink used to re-burn quota on every sparse/stale detail open. Prefer any
-    usable DB series (≥ min points) even if a few days stale; only go live when
-    the series is empty or shorter than ``_DB_NM_MIN_POINTS``.
+    With 2GB Soft Ink we refresh when the last point is older than
+    ``SOFT_INK_NM_STALE_DAYS`` (default 3). Sparse series always go live
+    (budget permitting). Nightly drip still fills the catalog in bulk.
     """
     if len(market) < _DB_NM_MIN_POINTS:
         return False
@@ -65,10 +123,7 @@ def _market_history_is_fresh(market: list[dict[str, Any]]) -> bool:
         last = date.fromisoformat(str(market[-1]["date"])[:10])
     except (TypeError, ValueError, KeyError):
         return False
-    # Stale-but-present still beats a live call while browsing Soft Ink.
-    # Hard-stale (> ~2 weeks) may refresh once so charts do not freeze forever.
-    max_stale_days = max(_DB_NM_MAX_AGE_DAYS, 14)
-    return last >= date.today() - timedelta(days=max_stale_days)
+    return last >= date.today() - timedelta(days=soft_ink_nm_stale_days())
 
 
 def _resolve_tcp_from_board(card_id: str) -> tuple[str, str, str | None]:
@@ -262,37 +317,52 @@ def _build_card_price_sources_uncached(
         else:
             nm_outcome = None
     elif has_key:
-        try:
-            from justtcg_client import nm_history_for_card
-
-            points, resolved = nm_history_for_card(
-                tcgplayer_id=tcp,
-                name=name,
-                number=number or None,
-                set_name=set_name or None,
-            )
-            if resolved:
-                tcp = str(resolved)
-            justtcg = _points_from_rows(points)
-            if justtcg:
-                nm_outcome = "live"
+        if not _try_consume_live_nm_budget():
+            # Daily Soft Ink live budget exhausted — serve stale DB, don't crash quota.
+            if market:
+                justtcg = list(market)
+                justtcg_from_db = True
+                nm_outcome = "db"
+                LOG.info(
+                    "live NM budget exhausted — using DB for %s (%s pts)",
+                    card_id,
+                    len(market),
+                )
             else:
-                nm_outcome = "empty"
-        except JustTCGRateLimitError as exc:
-            rate_limited = True
-            justtcg_error = "JustTCG rate limited — try again later."
-            nm_outcome = "error"
-            LOG.warning("nm_history_for_card rate-limited for %s", card_id)
-            _ = exc
-        except Exception as exc:
-            justtcg_error = str(exc)[:180]
-            nm_outcome = "error"
-            LOG.info("nm_history_for_card failed for %s: %s", card_id, exc)
+                nm_outcome = None
+                justtcg_error = "JustTCG live NM daily budget exhausted."
+        else:
+            try:
+                from justtcg_client import nm_history_for_card
 
-        if not justtcg and market:
-            justtcg = list(market)
-            justtcg_fallback = True
-            nm_outcome = "fallback"
+                points, resolved = nm_history_for_card(
+                    tcgplayer_id=tcp,
+                    name=name,
+                    number=number or None,
+                    set_name=set_name or None,
+                )
+                if resolved:
+                    tcp = str(resolved)
+                justtcg = _points_from_rows(points)
+                if justtcg:
+                    nm_outcome = "live"
+                else:
+                    nm_outcome = "empty"
+            except JustTCGRateLimitError as exc:
+                rate_limited = True
+                justtcg_error = "JustTCG rate limited — try again later."
+                nm_outcome = "error"
+                LOG.warning("nm_history_for_card rate-limited for %s", card_id)
+                _ = exc
+            except Exception as exc:
+                justtcg_error = str(exc)[:180]
+                nm_outcome = "error"
+                LOG.info("nm_history_for_card failed for %s: %s", card_id, exc)
+
+            if not justtcg and market:
+                justtcg = list(market)
+                justtcg_fallback = True
+                nm_outcome = "fallback"
 
     if nm_outcome:
         record_justtcg_event(nm_outcome)

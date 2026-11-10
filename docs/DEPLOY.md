@@ -39,7 +39,11 @@ You already have `railway.toml` for the **eBay webhook**. Deploy Soft Ink API as
 
 Alternative: Render Blueprint via root `render.yaml`.
 
-**Memory (Render free / ~500–512MB):** `Dockerfile.api` installs `requirements-api-runtime.txt` (no Streamlit), sets `KESTREL_SERVICE=api` (blocks full history rebuilds), `WEB_CONCURRENCY=1`, and `MALLOC_ARENA_MAX=2`. Board frames use float32. Nightly must not `fetch_all(price_history)` — coverage uses `market_quotes.history_points`. Prefer **Starter** if the instance still restarts under traffic; nightly owns full retrain/board rebuilds.
+**Memory:** `Dockerfile.api` installs `requirements-api-runtime.txt` (no Streamlit), sets `KESTREL_SERVICE=api` (blocks full history rebuilds — nightly owns those), `WEB_CONCURRENCY=1`, and `MALLOC_ARENA_MAX=2`. Board frames use float32.
+
+- **512 MB (free / $7):** OOM risk under Radar + detail — avoid.
+- **2 GB (~$25, 1 CPU):** recommended Soft Ink production. Board warm (~20k quotes) + Soft Ink live NM refresh when DB is >3d stale (`SOFT_INK_NM_STALE_DAYS`, capped by `SOFT_INK_LIVE_NM_DAILY_BUDGET=120`) stays safe.
+- **JustTCG drip stays** on GitHub Actions (`JUSTTCG_MAX_REQUESTS=250`) — that is the **10k/mo JustTCG quota**, not Render RAM. Do not remove the drip to “use the 2 GB”.
 
 Local Docker shape:
 
