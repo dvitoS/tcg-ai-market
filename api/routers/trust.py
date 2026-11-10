@@ -50,6 +50,12 @@ def trust_report(
     horizon_days: int = Query(default=7, ge=3, le=30),
     lookback_days: int = Query(default=30, ge=7, le=120),
     sample_n: int = Query(default=80, ge=10, le=120),
+    min_edge: float = Query(
+        default=0,
+        ge=0,
+        le=100,
+        description="Same % floor as Radar min edge — scores only tips at/above it.",
+    ),
 ) -> TrustResponse:
     response.headers.update(_NO_STORE)
     if not _pro_allowed(user):
@@ -61,12 +67,14 @@ def trust_report(
         horizon_days=horizon_days,
         lookback_days=lookback_days,
         sample_n=sample_n,
+        min_edge=min_edge,
     )
     return TrustResponse(
         source=payload.get("source") or "empty",
         trained_at=payload.get("trained_at"),
         artifact_id=str(payload.get("artifact_id") or "latest"),
         horizon_days=int(payload.get("horizon_days") or horizon_days),
+        min_edge=float(payload.get("min_edge") or min_edge or 0),
         calibration=TrustCalibration(**(payload.get("calibration") or {})),
         conformal_coverage=TrustCoverage(**(payload.get("conformal_coverage") or {})),
         radar_backtest=TrustRadarBacktest(**(payload.get("radar_backtest") or {})),

@@ -424,6 +424,7 @@ export type TrustRadarBacktest = {
   avg_move_pct?: number | null;
   under_n: number;
   over_n: number;
+  min_edge?: number;
   method: string;
   tighten_suggested?: boolean;
   note?: string | null;
@@ -434,6 +435,7 @@ export type TrustResponse = {
   trained_at?: string | null;
   artifact_id: string;
   horizon_days: number;
+  min_edge?: number;
   calibration: TrustCalibration;
   conformal_coverage: TrustCoverage;
   radar_backtest: TrustRadarBacktest;

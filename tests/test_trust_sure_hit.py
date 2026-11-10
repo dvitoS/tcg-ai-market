@@ -9,6 +9,34 @@ import pandas as pd
 from api import trust_service as ts
 
 
+def test_split_sure_sides_respects_min_edge() -> None:
+    board = pd.DataFrame(
+        [
+            {
+                "id": "weak",
+                "signal": "BUY",
+                "conformal_ok": True,
+                "confidence_ok": True,
+                "expected_change_pct": 5.0,
+                "pred_lo_pct": 5.0,
+                "pred_hi_pct": 12.0,
+            },
+            {
+                "id": "strong",
+                "signal": "BUY",
+                "conformal_ok": True,
+                "confidence_ok": True,
+                "expected_change_pct": 15.0,
+                "pred_lo_pct": 15.0,
+                "pred_hi_pct": 22.0,
+            },
+        ]
+    )
+    sure = ts._sure_desk_frame(board)
+    under, _over = ts._split_sure_sides(sure, sample_n=20, min_edge=12)
+    assert [r["id"] for r in under] == ["strong"]
+
+
 def test_split_sure_sides_prefers_buy_sell_signal() -> None:
     board = pd.DataFrame(
         [

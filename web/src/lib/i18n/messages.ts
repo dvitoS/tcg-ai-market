@@ -487,6 +487,7 @@ const en = {
   trust_cov_empty: "No coverage sample yet — need sure bands + price history.",
   trust_bt_title: "Sure Radar call quality",
   trust_bt_meta: "{days}d horizon · {under} UNDER · {over} OVER",
+  trust_bt_min_edge: "min edge ≥{edge}%",
   trust_bt_lede: "{hit}% directional hits · avg move {move}%",
   trust_bt_empty: "Not enough history on current sure Radar signals to score hits.",
   trust_bt_tighten:
@@ -1385,6 +1386,7 @@ const hr: Dictionary = {
   trust_cov_empty: "Još nema coverage uzorka — trebaju sure bandovi + price history.",
   trust_bt_title: "Sure Radar kvaliteta",
   trust_bt_meta: "{days}d horizont · {under} UNDER · {over} OVER",
+  trust_bt_min_edge: "min edge ≥{edge}%",
   trust_bt_lede: "{hit}% directional hitova · prosj. pomak {move}%",
   trust_bt_empty: "Nema dovoljno historyja na sure Radar signalima za hit score.",
   trust_bt_tighten:
