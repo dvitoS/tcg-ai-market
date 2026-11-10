@@ -7,6 +7,7 @@ import type {
   CardPriceSourcesResponse,
   CatalogMode,
   CatalogResponse,
+  PsaCertLookupResponse,
   IdentifyResponse,
   DataHealthResponse,
   SpotHealMode,
@@ -258,6 +259,28 @@ export async function fetchCardPriceSources(
 
   _priceSourcesInflight.set(key, promise);
   return promise;
+}
+
+export async function fetchPsaCert(
+  certNumber: string,
+  options: { includePop?: boolean } = {},
+): Promise<PsaCertLookupResponse> {
+  const cert = String(certNumber || "").trim();
+  if (!cert) throw new Error("PSA cert number required");
+  const qs = new URLSearchParams({
+    include_pop: options.includePop === false ? "false" : "true",
+  });
+  const res = await fetch(
+    apiUrl(`/api/psa/cert/${encodeURIComponent(cert)}?${qs}`),
+    {
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+    },
+  );
+  if (!res.ok) {
+    throw new Error(await readApiError(res, `PSA cert lookup failed (${res.status})`));
+  }
+  return res.json() as Promise<PsaCertLookupResponse>;
 }
 
 export async function fetchEbayComps(

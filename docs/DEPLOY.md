@@ -33,6 +33,7 @@ You already have `railway.toml` for the **eBay webhook**. Deploy Soft Ink API as
 | `KESTREL_CORS_ORIGINS` | `https://app.YOURDOMAIN.com,https://YOURDOMAIN.com` |
 | `AUTH_DISABLED` | `0` in production |
 | `PRO_OPEN` | `1` for open beta, else allowlist |
+| `PSA_PUBLIC_API_TOKEN` | Optional — PSA Public API bearer (cert + pop only; **not** graded market prices). Soft Ink Grading EV can suggest gem % from SpecID population. Free tier ~100 calls/day. |
 
 4. Networking → Generate domain, then add custom `api.YOURDOMAIN.com`.
 5. Health check path is `/api/health`.

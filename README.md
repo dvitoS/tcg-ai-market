@@ -167,5 +167,6 @@ CATALOG_MIN_PRICE=5
 - **AI model** — board/scanner: **7d** forward return + set-relative + price-path liquidity + **eBay active depth / ask premium** (from `ebay_liquidity_snapshots`) + **conformal** gating; portfolio: separate **30d** artifact (`latest_30d`) with lot ADD/TRIM/HOLD coach (catalog stays 7d). Nightly also runs **expanding-window walk-forward** (`wf_folds` / `wf_direction_accuracy_pct` / `wf_rmse_vs_naive` on the artifact). Optional: `EBAY_LIQUIDITY_SAMPLE_N` (default `40`) caps nightly Browse harvest.  
 - `database_*.py` — clients / catalog / user (facade: `database.py`)  
 - `pokemon_tcg_client.py` / `pokewallet_client.py` — facade: `api_client.py`  
-- `justtcg_client.py` + `justtcg_psa10.py` — NM vs PSA10  
+- `justtcg_client.py` + `justtcg_psa10.py` — NM vs PSA10 comps  
+- `psa_public_client.py` — PSA Public API cert + population (gem-rate hint; **not** sold prices) 
 - Auth: Soft Ink Bearer JWT → Supabase RLS  

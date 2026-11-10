@@ -124,6 +124,29 @@ export type CardPriceSourcesResponse = {
   cache?: "hit" | "miss" | null;
 };
 
+/** PSA Public API cert lookup — population / grade, not sold comps. */
+export type PsaCertLookupResponse = {
+  configured: boolean;
+  cert_number: string;
+  spec_id?: number | null;
+  subject?: string | null;
+  brand?: string | null;
+  category?: string | null;
+  variety?: string | null;
+  year?: string | null;
+  card_number?: string | null;
+  grade?: string | null;
+  label_type?: string | null;
+  total_population?: number | null;
+  population_higher?: number | null;
+  pop_total?: number | null;
+  pop_grade9?: number | null;
+  pop_grade10?: number | null;
+  pop_description?: string | null;
+  gem_rate_pct?: number | null;
+  source?: string;
+};
+
 export type IdentifyMatch = {
   score: number;
   reasons: string[];

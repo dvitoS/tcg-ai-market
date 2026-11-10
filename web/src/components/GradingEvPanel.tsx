@@ -4,7 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 
 import { GradingSensitivityChart } from "@/components/GradingSensitivityChart";
 import { useLocale } from "@/components/LocaleProvider";
-import { fetchCardPriceSources, formatChange, formatMoney } from "@/lib/api";
+import {
+  fetchCardPriceSources,
+  fetchPsaCert,
+  formatChange,
+  formatMoney,
+} from "@/lib/api";
 import {
   DEFAULT_GRADE_FEE_USD,
   DEFAULT_SELL_FEE_PCT,
@@ -62,6 +67,10 @@ export function GradingEvPanel({
   const [preset, setPreset] = useState<GradeFeePresetId>("psa_regular");
   /** Assumed PSA 10 hit rate — never default to 100%. */
   const [gemRatePct, setGemRatePct] = useState(25);
+  const [certInput, setCertInput] = useState("");
+  const [certBusy, setCertBusy] = useState(false);
+  const [certNote, setCertNote] = useState<string | null>(null);
+  const [certError, setCertError] = useState<string | null>(null);
 
   useEffect(() => {
     // Reset when navigating between cards — do not auto-arm.
@@ -73,7 +82,44 @@ export function GradingEvPanel({
     setPeriodKey(null);
     setError(null);
     setLoading(false);
+    setCertInput("");
+    setCertBusy(false);
+    setCertNote(null);
+    setCertError(null);
   }, [cardId]);
+
+  const onCertLookup = () => {
+    const cert = certInput.trim();
+    if (!cert || certBusy) return;
+    setCertBusy(true);
+    setCertError(null);
+    setCertNote(null);
+    void fetchPsaCert(cert)
+      .then((pack) => {
+        if (pack.gem_rate_pct != null && Number.isFinite(pack.gem_rate_pct)) {
+          const pct = Math.max(1, Math.min(99, Math.round(Number(pack.gem_rate_pct))));
+          setGemRatePct(pct);
+          setCertNote(
+            t("grade_ev_cert_applied", {
+              pct: String(pct),
+              n10: String(pack.pop_grade10 ?? "—"),
+              total: String(pack.pop_total ?? "—"),
+            }),
+          );
+        } else {
+          setCertError(t("grade_ev_cert_error"));
+        }
+      })
+      .catch((err) => {
+        const msg = err instanceof Error ? err.message : t("grade_ev_cert_error");
+        if (/503|not configured/i.test(msg)) {
+          setCertError(t("grade_ev_cert_missing"));
+        } else {
+          setCertError(msg || t("grade_ev_cert_error"));
+        }
+      })
+      .finally(() => setCertBusy(false));
+  };
 
   useEffect(() => {
     if (!armed) return;
@@ -197,6 +243,31 @@ export function GradingEvPanel({
       </div>
       <p className="grade-ev-lede">{t("grade_ev_lede")}</p>
       <p className="grade-ev-honesty">{t("grade_ev_honesty")}</p>
+
+      <div className="grade-ev-cert">
+        <label>
+          <span>{t("grade_ev_cert_label")}</span>
+          <input
+            type="text"
+            inputMode="numeric"
+            autoComplete="off"
+            placeholder={t("grade_ev_cert_placeholder")}
+            value={certInput}
+            onChange={(e) => setCertInput(e.target.value)}
+          />
+        </label>
+        <button
+          type="button"
+          className="btn-secondary"
+          disabled={certBusy || !certInput.trim()}
+          onClick={onCertLookup}
+        >
+          {certBusy ? t("grade_ev_loading") : t("grade_ev_cert_lookup")}
+        </button>
+        <span className="lot-meta">{t("grade_ev_cert_hint")}</span>
+        {certNote ? <p className="grade-ev-cert-ok">{certNote}</p> : null}
+        {certError ? <p className="grade-ev-error">{certError}</p> : null}
+      </div>
 
       {!armed ? (
         <p className="grade-ev-idle">

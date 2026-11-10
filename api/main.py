@@ -27,6 +27,7 @@ from api.routers import (
     identify,
     market,
     portfolio,
+    psa,
     radar,
     scanner,
     sealed,
@@ -107,6 +108,7 @@ app.include_router(trade.router, prefix="/api")
 app.include_router(dealer.router, prefix="/api")
 app.include_router(funnel.router, prefix="/api")
 app.include_router(spots.router, prefix="/api")
+app.include_router(psa.router, prefix="/api")
 app.include_router(webhooks.router, prefix="/api")
 
 

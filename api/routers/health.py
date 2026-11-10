@@ -18,6 +18,7 @@ from api.schemas import (
     SpotSniffPackResponse,
 )
 from justtcg_client import justtcg_api_key
+from psa_public_client import psa_public_configured
 from services.creem_webhooks import creem_webhook_secret
 from services.prices import (
     justtcg_observability_summary,
@@ -47,6 +48,7 @@ def health() -> HealthResponse:
         creem_webhook_secret=bool(creem_webhook_secret()),
         pro_checkout_url=bool(pro_checkout_url()),
         pro_open=bool(pro_open_beta()),
+        psa_public_api=bool(psa_public_configured()),
         git_sha=_deploy_git_sha(),
     )
 

@@ -15,8 +15,33 @@ class HealthResponse(BaseModel):
     creem_webhook_secret: bool = False
     pro_checkout_url: bool = False
     pro_open: bool = True
+    psa_public_api: bool = False
     # Deploy fingerprint (Render sets RENDER_GIT_COMMIT).
     git_sha: str | None = None
+
+
+class PsaCertLookupResponse(BaseModel):
+    """PSA Public API cert pack — population / grade metadata, not sold comps."""
+
+    configured: bool = True
+    cert_number: str
+    spec_id: int | None = None
+    subject: str | None = None
+    brand: str | None = None
+    category: str | None = None
+    variety: str | None = None
+    year: str | None = None
+    card_number: str | None = None
+    grade: str | None = None
+    label_type: str | None = None
+    total_population: int | None = None
+    population_higher: int | None = None
+    pop_total: int | None = None
+    pop_grade9: int | None = None
+    pop_grade10: int | None = None
+    pop_description: str | None = None
+    gem_rate_pct: float | None = None
+    source: str = "psa_public_api"
 
 
 class DataHealthResponse(BaseModel):
