@@ -1,4 +1,4 @@
-"""Model trust panel — artifact calibration + proxy coverage + radar-call hits."""
+"""Model trust panel — artifact calibration + forward tip-ledger Radar hits."""
 
 from __future__ import annotations
 
@@ -6,13 +6,13 @@ import logging
 import math
 from typing import Any
 
-import numpy as np
 import pandas as pd
 
 from api.catalog_service import load_board
 from api.demo_mode import demo_mode
 from api.portfolio_service import load_history_for_cards
 from services.model_store import ARTIFACT_ID, load_model_metrics
+from services.tip_ledger import record_sure_tips, score_forward_tips
 
 LOG = logging.getLogger("tcg.trust")
 
@@ -68,91 +68,6 @@ def _history_prices_by_card(history: pd.DataFrame) -> dict[str, pd.DataFrame]:
     for card_id, group in hist.groupby("card_id"):
         out[str(card_id)] = group.sort_values("date")
     return out
-
-
-def _realized_pct(frame: pd.DataFrame, *, horizon_days: int) -> float | None:
-    if frame is None or frame.empty or len(frame) < 2:
-        return None
-    end = frame.iloc[-1]
-    end_date = pd.Timestamp(end["date"]).normalize()
-    target = end_date - pd.DateOffset(days=int(horizon_days))
-    prior = frame[frame["date"] <= target]
-    if prior.empty:
-        # Fall back to earliest point if history shorter than horizon.
-        start = frame.iloc[0]
-        gap = (end_date - pd.Timestamp(start["date"]).normalize()).days
-        if gap < max(2, horizon_days // 2):
-            return None
-        start_px = float(start["price"])
-    else:
-        start_px = float(prior.iloc[-1]["price"])
-    end_px = float(end["price"])
-    if start_px <= 0:
-        return None
-    return (end_px - start_px) / start_px * 100.0
-
-
-def _proxy_coverage(
-    board: pd.DataFrame,
-    by_card: dict[str, pd.DataFrame],
-    *,
-    horizon_days: int,
-    sample_n: int,
-    target_pct: float,
-) -> dict[str, Any]:
-    note = (
-        "Proxy: today’s conformal band vs trailing realized return "
-        f"over ~{horizon_days}d (not holdout calibration)."
-    )
-    empty = {
-        "method": "unavailable",
-        "target_pct": target_pct,
-        "coverage_pct": None,
-        "n": 0,
-        "note": "No sure board rows with bands + history.",
-    }
-    if board is None or board.empty or not by_card:
-        return empty
-
-    sure = board.copy()
-    if "conformal_ok" in sure.columns:
-        sure = sure[sure["conformal_ok"].fillna(False).astype(bool)]
-    if "confidence_ok" in sure.columns:
-        sure = sure[sure["confidence_ok"].fillna(False).astype(bool)]
-    sure = sure.dropna(subset=["pred_lo_pct", "pred_hi_pct"], how="any")
-    if sure.empty:
-        return empty
-
-    # Prefer higher |edge| rows for a sharper trust sample.
-    if "expected_change_pct" in sure.columns:
-        sure = sure.assign(
-            _abs=sure["expected_change_pct"].abs()
-        ).sort_values("_abs", ascending=False)
-    sample = sure.head(int(sample_n))
-
-    covered = 0
-    n = 0
-    for _, row in sample.iterrows():
-        card_id = str(row.get("id") or row.get("card_id") or "")
-        hist = by_card.get(card_id)
-        realized = _realized_pct(hist, horizon_days=horizon_days) if hist is not None else None
-        lo = _finite(row.get("pred_lo_pct"))
-        hi = _finite(row.get("pred_hi_pct"))
-        if realized is None or lo is None or hi is None:
-            continue
-        n += 1
-        if min(lo, hi) <= realized <= max(lo, hi):
-            covered += 1
-
-    if n <= 0:
-        return empty
-    return {
-        "method": "proxy_trailing",
-        "target_pct": target_pct,
-        "coverage_pct": round(100.0 * covered / n, 2),
-        "n": n,
-        "note": note,
-    }
 
 
 def _sure_desk_frame(board: pd.DataFrame) -> pd.DataFrame:
@@ -223,74 +138,49 @@ def _split_sure_sides(
     return under_rows[:half], over_rows[:half]
 
 
-def _radar_backtest(
+def tips_payload_from_board(
     board: pd.DataFrame,
-    by_card: dict[str, pd.DataFrame],
     *,
-    horizon_days: int,
-    lookback_days: int,
-    sample_n: int,
+    sample_n: int = 80,
     min_edge: float = 0.0,
-) -> dict[str, Any]:
-    del lookback_days  # Signals are current; history window is horizon_days.
-    floor = max(0.0, float(min_edge or 0.0))
-    base: dict[str, Any] = {
-        "lookback_days": int(horizon_days),
-        "horizon_days": int(horizon_days),
-        "n": 0,
-        "hit_rate_pct": None,
-        "avg_move_pct": None,
-        "under_n": 0,
-        "over_n": 0,
-        "min_edge": floor,
-        "method": "sure_signals_vs_trailing_history",
-        "tighten_suggested": False,
-        "note": (
-            "Sure BUY/SELL desk vs trailing ~Nd move"
-            + (f" (min edge ≥{floor:g}%)" if floor > 0 else "")
-            + ". Not a frozen historical tip ledger — Soft Ink call quality proxy."
-        ),
-    }
+) -> list[dict[str, Any]]:
+    """Serialize a balanced sure tip sample for the forward ledger."""
     sure = _sure_desk_frame(board)
-    if sure.empty or not by_card:
-        return base
-
     under_rows, over_rows = _split_sure_sides(
-        sure, sample_n=sample_n, min_edge=floor
+        sure, sample_n=sample_n, min_edge=min_edge
     )
-    hits = 0
-    moves: list[float] = []
-    under_n = 0
-    over_n = 0
-
+    out: list[dict[str, Any]] = []
     for side, rows in (("UNDER", under_rows), ("OVER", over_rows)):
         for row in rows:
-            card_id = str(row.get("id") or row.get("card_id") or "")
-            hist = by_card.get(card_id)
-            realized = _realized_pct(hist, horizon_days=horizon_days) if hist is not None else None
-            if realized is None:
+            cid = str(row.get("id") or row.get("card_id") or "").strip()
+            if not cid:
                 continue
-            moves.append(realized)
-            if side == "UNDER":
-                under_n += 1
-                if realized > 0:
-                    hits += 1
-            else:
-                over_n += 1
-                if realized < 0:
-                    hits += 1
+            _side, edge = _tip_edge_pct(row)
+            out.append(
+                {
+                    "card_id": cid,
+                    "side": side,
+                    "edge_pct": edge,
+                    "pred_lo_pct": _finite(row.get("pred_lo_pct")),
+                    "pred_hi_pct": _finite(row.get("pred_hi_pct")),
+                }
+            )
+    return out
 
-    n = under_n + over_n
-    base["n"] = n
-    base["under_n"] = under_n
-    base["over_n"] = over_n
-    if n > 0:
-        hit_pct = round(100.0 * hits / n, 2)
-        base["hit_rate_pct"] = hit_pct
-        base["avg_move_pct"] = round(float(np.mean(moves)), 2) if moves else None
-        # Soft Ink desk quality bar — below this, raise Radar min edge / fewer tips.
-        base["tighten_suggested"] = bool(n >= 16 and hit_pct < 55.0)
-    return base
+
+def record_radar_tips_from_board(
+    board: pd.DataFrame | None = None,
+    *,
+    sample_n: int = 80,
+) -> dict[str, Any]:
+    """Snapshot today's sure desk into the tip ledger (nightly / trust refresh)."""
+    if board is None:
+        board, _source = load_board()
+    if board is None or board.empty:
+        return {"saved": False, "tips": 0, "reason": "empty_board"}
+    # Record at edge floor 0 so Trust can filter later by min_edge.
+    tips = tips_payload_from_board(board, sample_n=sample_n, min_edge=0.0)
+    return record_sure_tips(tips)
 
 
 def build_trust_report(
@@ -299,11 +189,13 @@ def build_trust_report(
     lookback_days: int = 30,
     sample_n: int = 80,
     min_edge: float = 0.0,
+    record_tips: bool = True,
 ) -> dict[str, Any]:
     horizon_days = max(3, min(int(horizon_days or 7), 30))
     lookback_days = max(7, min(int(lookback_days or 30), 120))
     sample_n = max(10, min(int(sample_n or 80), 120))
     min_edge = max(0.0, min(float(min_edge or 0.0), 100.0))
+    del lookback_days  # Forward ledger uses horizon_days only.
 
     meta = load_model_metrics(ARTIFACT_ID) or {}
     metrics = dict(meta.get("metrics") or {})
@@ -313,24 +205,33 @@ def build_trust_report(
 
     board, source = load_board()
     board_frame = board if board is not None else pd.DataFrame()
+
+    if record_tips and not board_frame.empty:
+        try:
+            recorded = record_radar_tips_from_board(board_frame, sample_n=sample_n)
+            LOG.info("Trust tip ledger record: %s", recorded)
+        except Exception as exc:
+            LOG.warning("Trust tip ledger record failed: %s", exc)
+
+    from services.tip_ledger import load_tip_ledger
+
+    ledger = load_tip_ledger()
+    card_ids = sorted(
+        {
+            str(t.get("card_id") or "").strip()
+            for t in ledger
+            if str(t.get("card_id") or "").strip()
+        }
+    )
+    # Also include today's sure tips so history is warm for upcoming scores.
     sure = _sure_desk_frame(board_frame)
     under_rows, over_rows = _split_sure_sides(
         sure, sample_n=sample_n, min_edge=min_edge
     )
-
-    # History must cover the sure tip sample (old path used arbitrary board head).
-    card_ids: list[str] = []
     for row in under_rows + over_rows:
         cid = str(row.get("id") or row.get("card_id") or "").strip()
         if cid:
             card_ids.append(cid)
-    # Coverage proxy also needs sure high-edge rows.
-    if not sure.empty:
-        id_col = "id" if "id" in sure.columns else "card_id"
-        if id_col in sure.columns:
-            extra = sure[id_col].astype(str).head(sample_n).tolist()
-            card_ids.extend(extra)
-    # Dedupe preserve order.
     seen: set[str] = set()
     ordered_ids: list[str] = []
     for cid in card_ids:
@@ -341,14 +242,12 @@ def build_trust_report(
     history = load_history_for_cards(ordered_ids) if ordered_ids else pd.DataFrame()
     by_card = _history_prices_by_card(history)
 
-    coverage = _proxy_coverage(
-        board_frame,
+    radar = score_forward_tips(
         by_card,
         horizon_days=horizon_days,
-        sample_n=sample_n,
-        target_pct=target_pct,
+        min_edge=min_edge,
     )
-    # Prefer holdout key if a future nightly writes it.
+
     holdout = _metric_float(metrics, "conformal_coverage_pct")
     if holdout is not None:
         coverage = {
@@ -358,15 +257,28 @@ def build_trust_report(
             "n": _metric_int(metrics, "direction_n") or 0,
             "note": "Holdout conformal coverage from the latest retrain.",
         }
-
-    radar = _radar_backtest(
-        board_frame,
-        by_card,
-        horizon_days=horizon_days,
-        lookback_days=lookback_days,
-        sample_n=sample_n,
-        min_edge=min_edge,
-    )
+    elif radar.get("coverage_n"):
+        coverage = {
+            "method": "forward_tip_ledger",
+            "target_pct": target_pct,
+            "coverage_pct": radar.get("coverage_pct"),
+            "n": int(radar.get("coverage_n") or 0),
+            "note": (
+                "Forward band coverage: tip-time conformal band vs realized "
+                f"{horizon_days}d move after the tip."
+            ),
+        }
+    else:
+        coverage = {
+            "method": "unavailable",
+            "target_pct": target_pct,
+            "coverage_pct": None,
+            "n": 0,
+            "note": (
+                "No forward band coverage yet — waiting for tip ledger rows "
+                f"older than {horizon_days}d."
+            ),
+        }
 
     return {
         "source": "demo" if demo_mode() and source == "demo" else (source or "empty"),

@@ -621,38 +621,46 @@ def run_nightly() -> int:
     except Exception as g0_exc:
         LOG.warning("Nightly auto G0 failed: %s", g0_exc)
 
-    # Sure-desk Radar hit proxy — Soft Ink Trust panel primary quality number.
+    # Forward tip ledger + Sure Radar hit (scores only after horizon closes).
     try:
-        from api.trust_service import build_trust_report
+        from api.trust_service import build_trust_report, record_radar_tips_from_board
         from services.spot_qa import load_spot_qa_snapshot, save_spot_qa_snapshot
 
-        trust = build_trust_report(horizon_days=7, sample_n=80)
+        recorded = record_radar_tips_from_board(sample_n=80)
+        LOG.info("Radar tip ledger: %s", recorded)
+        trust = build_trust_report(
+            horizon_days=7, sample_n=80, min_edge=0.0, record_tips=False
+        )
         radar_bt = dict(trust.get("radar_backtest") or {})
         LOG.info(
-            "Sure Radar hit: hit=%s%% n=%s under=%s over=%s tighten=%s",
+            "Sure Radar forward hit: hit=%s%% n=%s pending=%s under=%s over=%s "
+            "tighten=%s",
             radar_bt.get("hit_rate_pct"),
             radar_bt.get("n"),
+            radar_bt.get("pending_n"),
             radar_bt.get("under_n"),
             radar_bt.get("over_n"),
             radar_bt.get("tighten_suggested"),
         )
         if radar_bt.get("tighten_suggested"):
             LOG.warning(
-                "Sure Radar hit below 55%% — raise Radar min edge / fewer tips "
-                "before chasing raw model %"
+                "Forward Sure Radar hit below 55%% — fewer tips / better spots, "
+                "not a higher raw AI %% chase"
             )
         snap = load_spot_qa_snapshot() or {}
         snap["radar_sure_hit"] = {
             "hit_rate_pct": radar_bt.get("hit_rate_pct"),
             "n": radar_bt.get("n"),
+            "pending_n": radar_bt.get("pending_n"),
             "under_n": radar_bt.get("under_n"),
             "over_n": radar_bt.get("over_n"),
             "tighten_suggested": radar_bt.get("tighten_suggested"),
             "horizon_days": radar_bt.get("horizon_days"),
+            "method": radar_bt.get("method"),
         }
         save_spot_qa_snapshot(snap)
     except Exception as trust_exc:
-        LOG.warning("Sure Radar hit snapshot failed: %s", trust_exc)
+        LOG.warning("Sure Radar forward hit snapshot failed: %s", trust_exc)
 
     sure_rows_live: int | None = None
     try:

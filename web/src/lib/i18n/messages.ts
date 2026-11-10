@@ -484,14 +484,17 @@ const en = {
   trust_cal_wf: "Walk-forward direction",
   trust_cov_title: "Conformal coverage",
   trust_cov_target: "Target ~{pct}%",
-  trust_cov_empty: "No coverage sample yet — need sure bands + price history.",
+  trust_cov_empty:
+    "No forward band coverage yet — tip ledger needs ~7d before bands are scored.",
   trust_bt_title: "Sure Radar call quality",
-  trust_bt_meta: "{days}d horizon · {under} UNDER · {over} OVER",
+  trust_bt_meta: "{days}d forward · {under} UNDER · {over} OVER",
   trust_bt_min_edge: "min edge ≥{edge}%",
-  trust_bt_lede: "{hit}% directional hits · avg move {move}%",
-  trust_bt_empty: "Not enough history on current sure Radar signals to score hits.",
+  trust_bt_lede: "{hit}% forward hits · avg move {move}%",
+  trust_bt_empty:
+    "Collecting forward tip ledger — first scores appear ~7d after nightly snapshots.",
+  trust_bt_pending: "{n} tip(s) still inside the forward window",
   trust_bt_tighten:
-    "Hit under 55% — raise Radar min edge (fewer tips) before chasing raw AI %.",
+    "Forward hit under 55% — fewer / cleaner tips, not a higher raw AI % chase.",
 
   // Trade Analyzer (Kestrel Pro)
   trade_eyebrow: "Kestrel Pro",
@@ -1383,14 +1386,17 @@ const hr: Dictionary = {
   trust_cal_wf: "Walk-forward direction",
   trust_cov_title: "Conformal coverage",
   trust_cov_target: "Cilj ~{pct}%",
-  trust_cov_empty: "Još nema coverage uzorka — trebaju sure bandovi + price history.",
+  trust_cov_empty:
+    "Još nema forward band coverage — tip ledger treba ~7d prije bodovanja.",
   trust_bt_title: "Sure Radar kvaliteta",
-  trust_bt_meta: "{days}d horizont · {under} UNDER · {over} OVER",
+  trust_bt_meta: "{days}d forward · {under} UNDER · {over} OVER",
   trust_bt_min_edge: "min edge ≥{edge}%",
-  trust_bt_lede: "{hit}% directional hitova · prosj. pomak {move}%",
-  trust_bt_empty: "Nema dovoljno historyja na sure Radar signalima za hit score.",
+  trust_bt_lede: "{hit}% forward hitova · prosj. pomak {move}%",
+  trust_bt_empty:
+    "Skupljam forward tip ledger — prvi scoreovi ~7d nakon nightly snimki.",
+  trust_bt_pending: "{n} tip(ova) još unutar forward prozora",
   trust_bt_tighten:
-    "Hit ispod 55% — digni Radar min edge (manje tipova) prije jurnjave za sirovi AI %.",
+    "Forward hit ispod 55% — manje / čistiji tipovi, ne jurnjava za sirovi AI %.",
 
   trade_eyebrow: "Kestrel Pro",
   trade_title: "Trade Analyzer",

@@ -76,46 +76,48 @@ def test_split_sure_sides_prefers_buy_sell_signal() -> None:
 
 
 def test_radar_backtest_scores_sure_tips(monkeypatch) -> None:
+    from services import tip_ledger as tl
+
     today = date.today()
-    board = pd.DataFrame(
-        [
+    as_of = today - timedelta(days=8)
+    monkeypatch.setattr(
+        tl,
+        "load_tip_ledger",
+        lambda: [
             {
-                "id": "under-hit",
-                "signal": "BUY",
-                "conformal_ok": True,
-                "confidence_ok": True,
-                "expected_change_pct": 8.0,
+                "card_id": "under-hit",
+                "side": "UNDER",
+                "edge_pct": 8.0,
                 "pred_lo_pct": 1.0,
                 "pred_hi_pct": 12.0,
+                "as_of": as_of.isoformat(),
             },
             {
-                "id": "over-hit",
-                "signal": "SELL",
-                "conformal_ok": True,
-                "confidence_ok": True,
-                "expected_change_pct": -8.0,
+                "card_id": "over-hit",
+                "side": "OVER",
+                "edge_pct": -8.0,
                 "pred_lo_pct": -12.0,
                 "pred_hi_pct": -1.0,
+                "as_of": as_of.isoformat(),
             },
-        ]
+        ],
     )
     by_card = {
         "under-hit": pd.DataFrame(
             [
-                {"date": pd.Timestamp(today - timedelta(days=7)), "price": 10.0},
-                {"date": pd.Timestamp(today), "price": 12.0},
+                {"date": pd.Timestamp(as_of), "price": 10.0},
+                {"date": pd.Timestamp(as_of + timedelta(days=7)), "price": 12.0},
             ]
         ),
         "over-hit": pd.DataFrame(
             [
-                {"date": pd.Timestamp(today - timedelta(days=7)), "price": 20.0},
-                {"date": pd.Timestamp(today), "price": 16.0},
+                {"date": pd.Timestamp(as_of), "price": 20.0},
+                {"date": pd.Timestamp(as_of + timedelta(days=7)), "price": 16.0},
             ]
         ),
     }
-    out = ts._radar_backtest(
-        board, by_card, horizon_days=7, lookback_days=30, sample_n=20
-    )
+    out = tl.score_forward_tips(by_card, horizon_days=7, min_edge=0)
+    assert out["method"] == "forward_tip_ledger"
     assert out["n"] == 2
     assert out["hit_rate_pct"] == 100.0
     assert out["tighten_suggested"] is False
@@ -149,11 +151,18 @@ def test_build_trust_loads_history_for_sure_ids(monkeypatch) -> None:
     monkeypatch.setattr(ts, "load_model_metrics", lambda *_a, **_k: {"metrics": {}})
     monkeypatch.setattr(ts, "load_board", lambda: (board, "supabase"))
     monkeypatch.setattr(ts, "demo_mode", lambda: False)
+    monkeypatch.setattr(
+        ts, "record_radar_tips_from_board", lambda *_a, **_k: {"saved": False}
+    )
+    monkeypatch.setattr(
+        "services.tip_ledger.load_tip_ledger",
+        lambda: [],
+    )
 
     def _hist(ids):
         loaded.extend(list(ids))
         return pd.DataFrame()
 
     monkeypatch.setattr(ts, "load_history_for_cards", _hist)
-    ts.build_trust_report(horizon_days=7, sample_n=20)
+    ts.build_trust_report(horizon_days=7, sample_n=20, record_tips=False)
     assert "sure-buy" in loaded
