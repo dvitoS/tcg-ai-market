@@ -167,15 +167,38 @@ def _sure_desk_frame(board: pd.DataFrame) -> pd.DataFrame:
     return sure
 
 
+def _tip_edge_pct(row: pd.Series) -> tuple[str | None, float | None]:
+    """Return (UNDER|OVER|None, edge_pct) aligned with Radar ranking."""
+    signal = str(row.get("signal") or "").upper()
+    lo = _finite(row.get("pred_lo_pct"))
+    hi = _finite(row.get("pred_hi_pct"))
+    exp = _finite(row.get("expected_change_pct"))
+    edge_u = lo if lo is not None else exp
+    edge_o = hi if hi is not None else exp
+    if signal == "BUY" or (edge_u is not None and edge_u > 0):
+        return "UNDER", edge_u
+    if signal == "SELL" or (edge_o is not None and edge_o < 0):
+        return "OVER", edge_o
+    if exp is not None and exp >= 5:
+        return "UNDER", exp
+    if exp is not None and exp <= -5:
+        return "OVER", exp
+    return None, None
+
+
 def _split_sure_sides(
-    sure: pd.DataFrame, *, sample_n: int
+    sure: pd.DataFrame,
+    *,
+    sample_n: int,
+    min_edge: float = 0.0,
 ) -> tuple[list[pd.Series], list[pd.Series]]:
-    """Balanced UNDER/OVER sample from sure tips (BUY/SELL + band polarity)."""
+    """Balanced UNDER/OVER sample from sure tips (respects Radar min edge %)."""
     under_rows: list[pd.Series] = []
     over_rows: list[pd.Series] = []
     if sure is None or sure.empty:
         return under_rows, over_rows
 
+    floor = max(0.0, float(min_edge or 0.0))
     ranked = sure
     if "expected_change_pct" in sure.columns:
         ranked = sure.assign(_abs=sure["expected_change_pct"].abs()).sort_values(
@@ -183,15 +206,17 @@ def _split_sure_sides(
         )
 
     for _, row in ranked.iterrows():
-        signal = str(row.get("signal") or "").upper()
-        lo = _finite(row.get("pred_lo_pct"))
-        hi = _finite(row.get("pred_hi_pct"))
-        exp = _finite(row.get("expected_change_pct"))
-        if signal == "BUY" or (lo is not None and lo > 0) or (exp is not None and exp >= 5):
+        side, edge = _tip_edge_pct(row)
+        if side is None or edge is None:
+            continue
+        if floor > 0:
+            if side == "UNDER" and edge < floor:
+                continue
+            if side == "OVER" and edge > -floor:
+                continue
+        if side == "UNDER":
             under_rows.append(row)
-        elif signal == "SELL" or (hi is not None and hi < 0) or (
-            exp is not None and exp <= -5
-        ):
+        else:
             over_rows.append(row)
 
     half = max(1, int(sample_n) // 2)
@@ -205,8 +230,10 @@ def _radar_backtest(
     horizon_days: int,
     lookback_days: int,
     sample_n: int,
+    min_edge: float = 0.0,
 ) -> dict[str, Any]:
     del lookback_days  # Signals are current; history window is horizon_days.
+    floor = max(0.0, float(min_edge or 0.0))
     base: dict[str, Any] = {
         "lookback_days": int(horizon_days),
         "horizon_days": int(horizon_days),
@@ -215,18 +242,22 @@ def _radar_backtest(
         "avg_move_pct": None,
         "under_n": 0,
         "over_n": 0,
+        "min_edge": floor,
         "method": "sure_signals_vs_trailing_history",
         "tighten_suggested": False,
         "note": (
-            "Sure BUY/SELL desk vs trailing ~Nd move. "
-            "Not a frozen historical tip ledger — still the Soft Ink call quality proxy."
+            "Sure BUY/SELL desk vs trailing ~Nd move"
+            + (f" (min edge ≥{floor:g}%)" if floor > 0 else "")
+            + ". Not a frozen historical tip ledger — Soft Ink call quality proxy."
         ),
     }
     sure = _sure_desk_frame(board)
     if sure.empty or not by_card:
         return base
 
-    under_rows, over_rows = _split_sure_sides(sure, sample_n=sample_n)
+    under_rows, over_rows = _split_sure_sides(
+        sure, sample_n=sample_n, min_edge=floor
+    )
     hits = 0
     moves: list[float] = []
     under_n = 0
@@ -267,10 +298,12 @@ def build_trust_report(
     horizon_days: int = 7,
     lookback_days: int = 30,
     sample_n: int = 80,
+    min_edge: float = 0.0,
 ) -> dict[str, Any]:
     horizon_days = max(3, min(int(horizon_days or 7), 30))
     lookback_days = max(7, min(int(lookback_days or 30), 120))
     sample_n = max(10, min(int(sample_n or 80), 120))
+    min_edge = max(0.0, min(float(min_edge or 0.0), 100.0))
 
     meta = load_model_metrics(ARTIFACT_ID) or {}
     metrics = dict(meta.get("metrics") or {})
@@ -281,7 +314,9 @@ def build_trust_report(
     board, source = load_board()
     board_frame = board if board is not None else pd.DataFrame()
     sure = _sure_desk_frame(board_frame)
-    under_rows, over_rows = _split_sure_sides(sure, sample_n=sample_n)
+    under_rows, over_rows = _split_sure_sides(
+        sure, sample_n=sample_n, min_edge=min_edge
+    )
 
     # History must cover the sure tip sample (old path used arbitrary board head).
     card_ids: list[str] = []
@@ -330,6 +365,7 @@ def build_trust_report(
         horizon_days=horizon_days,
         lookback_days=lookback_days,
         sample_n=sample_n,
+        min_edge=min_edge,
     )
 
     return {
@@ -337,6 +373,7 @@ def build_trust_report(
         "trained_at": meta.get("trained_at"),
         "artifact_id": meta.get("artifact_id") or ARTIFACT_ID,
         "horizon_days": horizon_days,
+        "min_edge": min_edge,
         "calibration": calibration,
         "conformal_coverage": coverage,
         "radar_backtest": radar,

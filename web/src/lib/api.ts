@@ -872,6 +872,7 @@ export async function fetchTrustReport(input?: {
   horizon_days?: number;
   lookback_days?: number;
   sample_n?: number;
+  min_edge?: number;
 }): Promise<TrustResponse> {
   const params = new URLSearchParams();
   if (input?.horizon_days != null) {
@@ -882,6 +883,9 @@ export async function fetchTrustReport(input?: {
   }
   if (input?.sample_n != null) {
     params.set("sample_n", String(input.sample_n));
+  }
+  if (input?.min_edge != null) {
+    params.set("min_edge", String(input.min_edge));
   }
   const qs = params.toString();
   const res = await fetch(apiUrl(`/api/trust${qs ? `?${qs}` : ""}`), {

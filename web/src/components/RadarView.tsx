@@ -567,7 +567,7 @@ export function RadarView() {
         </div>
       )}
 
-      <TrustPanel />
+      <TrustPanel minEdge={minEdge} />
 
       <div className="trade-share-card-host" aria-hidden="true">
         <RadarShareCard

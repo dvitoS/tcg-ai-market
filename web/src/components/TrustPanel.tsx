@@ -24,12 +24,13 @@ function trustErrorMessage(
   return code || t("trust_error");
 }
 
-export function TrustPanel() {
+export function TrustPanel({ minEdge = 0 }: { minEdge?: number }) {
   const { t } = useLocale();
   const [data, setData] = useState<TrustResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [reloadKey, setReloadKey] = useState(0);
+  const edgeFloor = Number.isFinite(minEdge) ? Math.max(0, Number(minEdge)) : 0;
 
   const load = useCallback(() => {
     setReloadKey((n) => n + 1);
@@ -46,7 +47,11 @@ export function TrustPanel() {
         alive = false;
       };
     }
-    void fetchTrustReport({ horizon_days: 7, sample_n: 60 })
+    void fetchTrustReport({
+      horizon_days: 7,
+      sample_n: 60,
+      min_edge: edgeFloor,
+    })
       .then((payload) => {
         if (!alive) return;
         setData(payload);
@@ -63,7 +68,7 @@ export function TrustPanel() {
     return () => {
       alive = false;
     };
-  }, [t, reloadKey]);
+  }, [t, reloadKey, edgeFloor]);
 
   const cal = data?.calibration;
   const cov = data?.conformal_coverage;
@@ -181,6 +186,9 @@ export function TrustPanel() {
                   under: bt?.under_n ?? 0,
                   over: bt?.over_n ?? 0,
                 })}
+                {edgeFloor > 0
+                  ? ` · ${t("trust_bt_min_edge", { edge: edgeFloor })}`
+                  : ""}
               </p>
               <p className="explore-lede">
                 {bt?.n
