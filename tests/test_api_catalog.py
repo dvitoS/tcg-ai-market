@@ -22,6 +22,7 @@ def test_health_ok() -> None:
     assert isinstance(body.get("creem_webhook_secret"), bool)
     assert isinstance(body.get("pro_checkout_url"), bool)
     assert isinstance(body.get("pro_open"), bool)
+    assert isinstance(body.get("psa_public_api"), bool)
     assert "git_sha" in body
 
 
