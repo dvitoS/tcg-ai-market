@@ -27,20 +27,6 @@ def _price_stats(rows: list[dict[str, Any]]) -> dict[str, float | None]:
     }
 
 
-def _as_active_comps(listings: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Tag Browse rows so the UI can label them as active (not sold)."""
-    out: list[dict[str, Any]] = []
-    for row in listings:
-        if not isinstance(row, dict):
-            continue
-        item = dict(row)
-        item["comp_source"] = "active"
-        item["sold_date"] = ""
-        item["is_sold"] = False
-        out.append(item)
-    return out
-
-
 def _affiliate_rows(rows: list[dict[str, Any]], *, customid: str) -> list[dict[str, Any]]:
     if not rows:
         return []
