@@ -12,7 +12,7 @@
    - sample ~20 sure UNDER/OVER rows
    - **resolve missing TCGplayer ids** via JustTCG search (common on older board rows)
    - batch-check **JustTCG NM** (TCP market)
-   - parallel-check **eBay sold** medians (if Insights available; otherwise TCP-only pass)
+   - parallel-check **eBay sold** medians only when `EBAY_SOLD_ENABLED=1` + Insights; otherwise TCP-only (no active-Browse proxy)
    - **auto-heal** hard fails (quarantine off the sure desk)
 4. Read the summary: `pass · review · fail · healed`, TCP missing/resolved, and whether **G0 auto-ready**.
 5. Open only the **review** rows (TCP + eBay links) — usually a handful, not all 20.  

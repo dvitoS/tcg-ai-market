@@ -27,20 +27,6 @@ def _price_stats(rows: list[dict[str, Any]]) -> dict[str, float | None]:
     }
 
 
-def _as_active_comps(listings: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Tag Browse rows so the UI can label them as active (not sold)."""
-    out: list[dict[str, Any]] = []
-    for row in listings:
-        if not isinstance(row, dict):
-            continue
-        item = dict(row)
-        item["comp_source"] = "active"
-        item["sold_date"] = ""
-        item["is_sold"] = False
-        out.append(item)
-    return out
-
-
 def _affiliate_rows(rows: list[dict[str, Any]], *, customid: str) -> list[dict[str, Any]]:
     if not rows:
         return []
@@ -81,8 +67,14 @@ def fetch_ebay_sold_comps(
     set_name: str,
     limit: int = 8,
 ) -> tuple[list[dict[str, Any]], str | None, dict[str, float | None]]:
-    """Sold comps (or active fallback). No Streamlit session cache."""
+    """True sold comps via Marketplace Insights only — no active Browse proxy.
+
+    Active fallback duplicated the Active asks block on Soft Ink detail; disabled
+    unless ``ebay_sold_enabled()`` (Insights approved).
+    """
     empty_stats: dict[str, float | None] = {"min": None, "median": None, "max": None, "n": 0.0}
+    if not ebay.ebay_sold_enabled():
+        return [], "ebay_sold_disabled", empty_stats
     if not ebay.ebay_configured() or not hasattr(ebay, "sold_comps_for_card"):
         return [], "eBay credentials missing.", empty_stats
 
@@ -105,22 +97,7 @@ def fetch_ebay_sold_comps(
             row.setdefault("comp_source", "sold")
             row.setdefault("is_sold", True)
 
-    if not rows:
-        active, active_err = fetch_ebay_listings(
-            card_id=card_id,
-            name=name,
-            set_name=set_name,
-            limit=limit,
-        )
-        # fetch_ebay_listings already affiliate-tagged; re-tag source only.
-        if active:
-            # Strip prior affiliate customid path by rebuilding from raw fields —
-            # active rows are already tagged; just mark as active comps.
-            rows = _as_active_comps(active)
-            hint = None
-        elif active_err and not hint:
-            hint = active_err[:180]
-    else:
+    if rows:
         rows = _affiliate_rows(rows, customid=f"detail-sold-{card_id}")
 
     stats = _price_stats(rows)
@@ -142,11 +119,17 @@ def build_ebay_detail_payload(
         if configured
         else ([], "eBay credentials missing.")
     )
-    sold_rows, sold_hint, sold_stats = (
-        fetch_ebay_sold_comps(card_id=card_id, name=name, set_name=set_name, limit=limit)
-        if configured
-        else ([], "eBay credentials missing.", {"min": None, "median": None, "max": None, "n": 0.0})
-    )
+    sold_enabled = bool(getattr(ebay, "ebay_sold_enabled", lambda: False)())
+    if configured and sold_enabled:
+        sold_rows, sold_hint, sold_stats = fetch_ebay_sold_comps(
+            card_id=card_id, name=name, set_name=set_name, limit=limit
+        )
+    else:
+        sold_rows, sold_hint, sold_stats = (
+            [],
+            "ebay_sold_disabled" if configured else "eBay credentials missing.",
+            {"min": None, "median": None, "max": None, "n": 0.0},
+        )
     is_sold = bool(sold_stats.get("is_sold", 0.0))
     return {
         "configured": configured,
@@ -162,8 +145,9 @@ def build_ebay_detail_payload(
             "n": int(sold_stats.get("n") or 0),
             "is_sold": is_sold,
         },
-        "sold_fallback_active": bool(sold_rows) and not is_sold,
-        "active_fallback": [] if is_sold else sold_rows,
+        # Never surface active Browse as a "sold" block — Soft Ink shows Active once.
+        "sold_fallback_active": False,
+        "active_fallback": [],
     }
 
 
@@ -216,15 +200,17 @@ def load_ebay_sold_comps(
     import streamlit as st
 
     empty_stats: dict[str, float | None] = {"min": None, "median": None, "max": None, "n": 0}
+    if not ebay.ebay_sold_enabled():
+        return [], "ebay_sold_disabled", empty_stats
     if not ebay.ebay_configured() or not hasattr(ebay, "sold_comps_for_card"):
         return [], "eBay credentials missing.", empty_stats
 
-    cache_key = f"ebay_sold_v2::{card_id}"
+    cache_key = f"ebay_sold_v3::{card_id}"
     cached = st.session_state.get(cache_key)
     if isinstance(cached, dict) and isinstance(cached.get("rows"), list):
         return list(cached["rows"]), cached.get("hint"), dict(cached.get("stats") or empty_stats)
 
-    # Build without affiliate tags for Streamlit (UI tags links).
+    # Insights only — no active Browse proxy (duplicates Active asks).
     number = _card_number(card_id)
     hint: str | None = None
     rows: list[dict[str, Any]] = []
@@ -242,18 +228,6 @@ def load_ebay_sold_comps(
         if isinstance(row, dict):
             row.setdefault("comp_source", "sold")
             row.setdefault("is_sold", True)
-
-    if not rows:
-        active, active_err = load_ebay_listings(
-            card_id=card_id,
-            name=name,
-            set_name=set_name,
-        )
-        if active:
-            rows = _as_active_comps(active)
-            hint = None
-        elif active_err and not hint:
-            hint = active_err[:180]
 
     stats = _price_stats(rows)
     stats["is_sold"] = 1.0 if rows and all(r.get("is_sold", True) for r in rows) else 0.0

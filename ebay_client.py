@@ -30,6 +30,24 @@ def ebay_configured() -> bool:
     return bool((app_id and cert_id) or oauth)
 
 
+def ebay_sold_enabled() -> bool:
+    """Marketplace Insights sold comps — off by default.
+
+    Without Insights access Soft Ink used to fall back to active Browse rows and
+    show them twice (Sold proxy + Active). Set ``EBAY_SOLD_ENABLED=1`` only when
+    Marketplace Insights is approved for this app.
+    """
+    from config import _secret
+    import os
+
+    raw = (
+        _secret("EBAY_SOLD_ENABLED")
+        or os.getenv("EBAY_SOLD_ENABLED", "")
+        or ""
+    ).strip().lower()
+    return raw in {"1", "true", "yes", "on"}
+
+
 def _marketplace_id() -> str:
     from config import _secret
 
