@@ -621,6 +621,39 @@ def run_nightly() -> int:
     except Exception as g0_exc:
         LOG.warning("Nightly auto G0 failed: %s", g0_exc)
 
+    # Sure-desk Radar hit proxy — Soft Ink Trust panel primary quality number.
+    try:
+        from api.trust_service import build_trust_report
+        from services.spot_qa import load_spot_qa_snapshot, save_spot_qa_snapshot
+
+        trust = build_trust_report(horizon_days=7, sample_n=80)
+        radar_bt = dict(trust.get("radar_backtest") or {})
+        LOG.info(
+            "Sure Radar hit: hit=%s%% n=%s under=%s over=%s tighten=%s",
+            radar_bt.get("hit_rate_pct"),
+            radar_bt.get("n"),
+            radar_bt.get("under_n"),
+            radar_bt.get("over_n"),
+            radar_bt.get("tighten_suggested"),
+        )
+        if radar_bt.get("tighten_suggested"):
+            LOG.warning(
+                "Sure Radar hit below 55%% — raise Radar min edge / fewer tips "
+                "before chasing raw model %"
+            )
+        snap = load_spot_qa_snapshot() or {}
+        snap["radar_sure_hit"] = {
+            "hit_rate_pct": radar_bt.get("hit_rate_pct"),
+            "n": radar_bt.get("n"),
+            "under_n": radar_bt.get("under_n"),
+            "over_n": radar_bt.get("over_n"),
+            "tighten_suggested": radar_bt.get("tighten_suggested"),
+            "horizon_days": radar_bt.get("horizon_days"),
+        }
+        save_spot_qa_snapshot(snap)
+    except Exception as trust_exc:
+        LOG.warning("Sure Radar hit snapshot failed: %s", trust_exc)
+
     sure_rows_live: int | None = None
     try:
         from services.spot_qa import compute_live_spot_qa

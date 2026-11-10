@@ -425,6 +425,8 @@ export type TrustRadarBacktest = {
   under_n: number;
   over_n: number;
   method: string;
+  tighten_suggested?: boolean;
+  note?: string | null;
 };
 
 export type TrustResponse = {

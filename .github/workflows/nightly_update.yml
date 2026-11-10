@@ -145,7 +145,8 @@ jobs:
           EBAY_APP_ID: ${{ secrets.EBAY_APP_ID }}
           EBAY_CERT_ID: ${{ secrets.EBAY_CERT_ID }}
           EBAY_OAUTH_TOKEN: ${{ secrets.EBAY_OAUTH_TOKEN }}
-          EBAY_LIQUIDITY_SAMPLE_N: ${{ secrets.EBAY_LIQUIDITY_SAMPLE_N }}
+          # Default 40 when secret unset — empty secret previously looked "set" as "".
+          EBAY_LIQUIDITY_SAMPLE_N: ${{ secrets.EBAY_LIQUIDITY_SAMPLE_N != '' && secrets.EBAY_LIQUIDITY_SAMPLE_N || '40' }}
           # Optional watchlist email digests
           SMTP_HOST: ${{ secrets.SMTP_HOST }}
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
