@@ -1,10 +1,12 @@
 /* Soft Ink offline shell — precache only; never pin live HTML/JS (avoids hydrate 418). */
-const CACHE = "kestrel-shell-v2";
+const CACHE = "kestrel-shell-v3";
 const PRECACHE = [
   "/",
   "/offline",
   "/manifest.webmanifest",
   "/kestrel-logo.png",
+  "/kestrel-mark.png",
+  "/icons/favicon-32.png",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
   "/icons/apple-touch-icon.png",
