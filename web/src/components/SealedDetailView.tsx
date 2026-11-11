@@ -235,6 +235,12 @@ export function SealedDetailView({ detail }: { detail: SealedDetailResponse }) {
               className="sealed-detail-img"
               priority
               sizes="(max-width: 720px) 70vw, 320px"
+              onError={(event) => {
+                const img = event.currentTarget;
+                if (!img.src.includes("kestrel-logo")) {
+                  img.src = "/kestrel-logo.png";
+                }
+              }}
             />
           </div>
           <div className="sealed-detail-blurb">

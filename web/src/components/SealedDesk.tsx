@@ -129,6 +129,12 @@ export function SealedDesk({
                     height={245}
                     className="sealed-desk-img"
                     sizes="(max-width: 640px) 45vw, 180px"
+                    onError={(event) => {
+                      const img = event.currentTarget;
+                      if (!img.src.includes("kestrel-logo")) {
+                        img.src = "/kestrel-logo.png";
+                      }
+                    }}
                   />
                   <div className="explore-card-readout">
                     <span className="explore-card-price">
