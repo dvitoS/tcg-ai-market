@@ -71,12 +71,15 @@ export function DealOfTheDay({
   variant = "landing",
   className = "",
   initialPreview = null,
+  openBeta = true,
 }: {
   limit?: number;
   variant?: "landing" | "pro";
   className?: string;
   /** SSR / parent-provided preview — skips the cold client fetch when present. */
   initialPreview?: RadarPreviewResponse | null;
+  /** When false, landing CTA says unlock/paywall instead of open Radar. */
+  openBeta?: boolean;
 }) {
   const { t, locale } = useLocale();
   const { formatSpot } = useCurrency();
@@ -133,9 +136,14 @@ export function DealOfTheDay({
     variant === "pro" ? t("pro_demo_empty") : t("landing_dotd_empty");
   const loadingLabel =
     variant === "pro" ? t("pro_demo_loading") : t("landing_dotd_loading");
-  const ctaHref = variant === "pro" ? "/radar" : "/pro";
+  const ctaHref =
+    variant === "pro" || openBeta ? "/radar" : "/pro";
   const ctaLabel =
-    variant === "pro" ? t("pro_demo_open") : t("landing_dotd_cta");
+    variant === "pro"
+      ? t("pro_demo_open")
+      : openBeta
+        ? t("landing_dotd_cta")
+        : t("landing_dotd_cta_gated");
   const featuredVerdict = featured
     ? decisionOneLiner(locale, featured.side || "UNDER", featured.edge_pct)
     : null;

@@ -45,59 +45,90 @@ export function ProView({
     trackFunnel("pro_view", undefined, { once: true });
   }, []);
 
-  const isPro = Boolean(me?.is_pro);
+  const openBeta = Boolean(me?.pro_open ?? proOpen);
+  const reason = me?.reason || (openBeta ? "open_beta" : "locked");
+  const paidPro =
+    Boolean(me?.is_pro) &&
+    (reason === "entitlement" || reason === "allowlist" || reason === "pro");
+  const gated = !openBeta && !paidPro;
   const effectiveCheckout = me?.checkout_url || checkoutUrl;
   const portalUrl = me?.portal_url || null;
-  const gated = !(me?.pro_open ?? proOpen);
+
+  const title = paidPro
+    ? t("pro_title_active")
+    : openBeta
+      ? t("pro_title_open")
+      : t("pro_title");
+  const lede = paidPro
+    ? t("pro_lede_active")
+    : openBeta
+      ? t("pro_lede_open")
+      : t("pro_lede");
 
   return (
     <main className="pro-page">
       <p className="explore-command-eyebrow">{t("pro_eyebrow")}</p>
-      <h1 className="explore-title">
-        {isPro ? t("pro_title_active") : t("pro_title")}
-      </h1>
-      <p className="explore-lede">
-        {isPro ? t("pro_lede_active") : t("pro_lede")}
-      </p>
+      <h1 className="explore-title">{title}</h1>
+      <p className="explore-lede">{lede}</p>
 
       {error ? <p className="banner-error">{error}</p> : null}
       {meError ? <p className="banner-error">{meError}</p> : null}
 
-      {isPro ? (
+      {paidPro ? (
         <p className="pro-open-note pro-active-note">
           {t("pro_active_note", {
             email: me?.email || user?.email || "—",
           })}
         </p>
-      ) : !gated ? (
+      ) : openBeta ? (
         <p className="pro-open-note">{t("pro_open_note")}</p>
       ) : (
         <p className="pro-open-note">{t("pro_gated_note")}</p>
       )}
 
       <div className="detail-actions">
-        {isPro ? (
+        {paidPro || openBeta ? (
           <>
             <Link
               href="/radar"
               className="btn-primary"
-              onClick={() => trackFunnel("pro_open_radar", { is_pro: true })}
+              onClick={() =>
+                trackFunnel("pro_open_radar", {
+                  is_pro: paidPro,
+                  open_beta: openBeta,
+                })
+              }
             >
               {t("pro_open_radar")}
             </Link>
             <Link
               href="/trade"
               className="btn-ghost"
-              onClick={() => trackFunnel("pro_open_trade", { is_pro: true })}
+              onClick={() =>
+                trackFunnel("pro_open_trade", {
+                  is_pro: paidPro,
+                  open_beta: openBeta,
+                })
+              }
             >
               {t("pro_open_trade")}
             </Link>
             <Link href="/dealer" className="btn-ghost">
               {t("pro_open_dealer")}
             </Link>
-            {portalUrl ? (
+            {paidPro && portalUrl ? (
               <a href={portalUrl} className="btn-ghost" rel="noreferrer">
                 {t("pro_manage")}
+              </a>
+            ) : null}
+            {openBeta && !paidPro && effectiveCheckout ? (
+              <a
+                href={effectiveCheckout}
+                className="btn-ghost"
+                rel="noreferrer"
+                onClick={() => trackFunnel("pro_checkout_click")}
+              >
+                {t("pro_checkout_later")}
               </a>
             ) : null}
           </>
@@ -147,6 +178,7 @@ export function ProView({
         limit={5}
         variant="pro"
         initialPreview={initialDotd}
+        openBeta={openBeta}
       />
 
       <ul className="pro-feature-list">

@@ -155,6 +155,8 @@ export type SealedQuoteItem = {
   demo?: boolean | null;
   product_kind?: string | null;
   packs?: number | null;
+  /** Product spot − Illustration Rare set sum (USD), when board is warm. */
+  ir_vs_product_usd?: number | null;
 };
 
 export type SealedQuoteResponse = {

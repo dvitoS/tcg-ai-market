@@ -161,6 +161,8 @@ export function MarketPulse({
     };
   }, [initialPulse]);
 
+  const [openTip, setOpenTip] = useState<string | null>(null);
+
   if (!pulse || pulse.source === "empty" || pulse.board_total <= 0) {
     return null;
   }
@@ -169,6 +171,32 @@ export function MarketPulse({
   const hasMovers = pulse.risers.length > 0 || pulse.fallers.length > 0;
   const medianTone =
     (pulse.median_change_7d_pct ?? 0) >= 0 ? "is-buy" : "is-sell";
+  const stats: Array<{
+    id: string;
+    label: MessageKey;
+    tip: MessageKey;
+  }> = [
+    {
+      id: "under",
+      label: "landing_pulse_sure_under",
+      tip: "landing_pulse_sure_under_tip",
+    },
+    {
+      id: "over",
+      label: "landing_pulse_sure_over",
+      tip: "landing_pulse_sure_over_tip",
+    },
+    {
+      id: "median",
+      label: "landing_pulse_median_7d",
+      tip: "landing_pulse_median_7d_tip",
+    },
+    {
+      id: "breadth",
+      label: "landing_pulse_breadth",
+      tip: "landing_pulse_breadth_tip",
+    },
+  ];
 
   return (
     <section className="landing-pulse" aria-labelledby="landing-pulse-title">
@@ -206,38 +234,72 @@ export function MarketPulse({
       ) : null}
 
       <dl className="landing-pulse-stats">
-        <div title={t("landing_pulse_sure_under_tip")}>
-          <dt>{t("landing_pulse_sure_under")}</dt>
-          <dd className="is-buy landing-pulse-stat-num">{pulse.sure_under}</dd>
-        </div>
-        <div title={t("landing_pulse_sure_over_tip")}>
-          <dt>{t("landing_pulse_sure_over")}</dt>
-          <dd className="is-sell landing-pulse-stat-num">{pulse.sure_over}</dd>
-        </div>
-        <div title={t("landing_pulse_median_7d_tip")}>
-          <dt>{t("landing_pulse_median_7d")}</dt>
-          <dd className={`${medianTone} landing-pulse-stat-num`}>
-            {formatChange(pulse.median_change_7d_pct)}
-          </dd>
-        </div>
-        <div title={t("landing_pulse_breadth_tip")}>
-          <dt>{t("landing_pulse_breadth")}</dt>
-          <dd className="landing-pulse-stat-num landing-pulse-breadth">
-            <span className="is-buy landing-pulse-breadth-main">
-              {pulse.rising_n}
-            </span>
-            <span className="landing-pulse-breadth-sides">
-              <span className="landing-pulse-sep" aria-hidden="true">
-                ↑
-              </span>
-              <span className="landing-pulse-flat">{pulse.flat_n}</span>
-              <span className="landing-pulse-sep" aria-hidden="true">
-                ↓
-              </span>
-              <span className="is-sell">{pulse.falling_n}</span>
-            </span>
-          </dd>
-        </div>
+        {stats.map((stat) => {
+          const open = openTip === stat.id;
+          return (
+            <div
+              key={stat.id}
+              className={`landing-pulse-stat${open ? " is-open" : ""}`}
+              title={t(stat.tip)}
+            >
+              <dt>
+                <button
+                  type="button"
+                  className="landing-pulse-stat-btn"
+                  aria-expanded={open}
+                  aria-controls={`pulse-tip-${stat.id}`}
+                  onClick={() =>
+                    setOpenTip((cur) => (cur === stat.id ? null : stat.id))
+                  }
+                >
+                  <span>{t(stat.label)}</span>
+                  <span className="landing-pulse-stat-q" aria-hidden="true">
+                    ?
+                  </span>
+                </button>
+              </dt>
+              {stat.id === "under" ? (
+                <dd className="is-buy landing-pulse-stat-num">
+                  {pulse.sure_under}
+                </dd>
+              ) : null}
+              {stat.id === "over" ? (
+                <dd className="is-sell landing-pulse-stat-num">
+                  {pulse.sure_over}
+                </dd>
+              ) : null}
+              {stat.id === "median" ? (
+                <dd className={`${medianTone} landing-pulse-stat-num`}>
+                  {formatChange(pulse.median_change_7d_pct)}
+                </dd>
+              ) : null}
+              {stat.id === "breadth" ? (
+                <dd className="landing-pulse-stat-num landing-pulse-breadth">
+                  <span className="is-buy landing-pulse-breadth-main">
+                    {pulse.rising_n}
+                  </span>
+                  <span className="landing-pulse-breadth-sides">
+                    <span className="landing-pulse-sep" aria-hidden="true">
+                      ↑
+                    </span>
+                    <span className="landing-pulse-flat">{pulse.flat_n}</span>
+                    <span className="landing-pulse-sep" aria-hidden="true">
+                      ↓
+                    </span>
+                    <span className="is-sell">{pulse.falling_n}</span>
+                  </span>
+                </dd>
+              ) : null}
+              <p
+                id={`pulse-tip-${stat.id}`}
+                className="landing-pulse-tip-text"
+                hidden={!open}
+              >
+                {t(stat.tip)}
+              </p>
+            </div>
+          );
+        })}
       </dl>
 
       <p className="landing-pulse-foot">
