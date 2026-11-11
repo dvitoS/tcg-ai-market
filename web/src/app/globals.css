@@ -1641,12 +1641,63 @@ a {
   text-transform: uppercase;
 }
 
+.sealed-detail-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+}
+
+.sealed-detail-title-copy {
+  min-width: 0;
+  flex: 1;
+}
+
 .sealed-detail-title {
   margin: 0.35rem 0 0;
   font-family: var(--font-display, inherit);
   font-size: clamp(1.8rem, 4vw, 2.7rem);
   letter-spacing: 0.04em;
   line-height: 1.05;
+}
+
+.sealed-detail-add-btn {
+  flex: 0 0 auto;
+  margin-top: 0.15rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid rgba(232, 197, 106, 0.45);
+  border-radius: 4px;
+  background: rgba(232, 197, 106, 0.12);
+  color: var(--sealed-gold, #e8c56a);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.sealed-detail-add-btn:hover {
+  background: rgba(232, 197, 106, 0.22);
+  color: var(--sealed-ink, #f6f1e8);
+}
+
+.sealed-detail-add-btn:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.sealed-detail-dock {
+  margin-top: 1rem;
+}
+
+/* Hit tiles are links — use normal pointer, not holo crosshair (+). */
+.sealed-hit-tile,
+.sealed-hit-tile .holo-card-art,
+.sealed-sir-grid .holo-card-art {
+  cursor: pointer;
 }
 
 .sealed-detail-split {
