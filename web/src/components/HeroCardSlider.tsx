@@ -138,8 +138,10 @@ export function HeroCardSlider({ cards }: { cards: RadarCard[] }) {
           <p className="landing-hero-slide-set">{active.set_name}</p>
         ) : null}
         <p className="landing-hero-slide-prices">
-          {t("landing_hero_slide_spot_fair", { spot, fair })}
+          <span>{t("metric_spot", { price: spot })}</span>
+          <span>{t("metric_fair", { price: fair })}</span>
         </p>
+        <p className="landing-hero-slide-call">{t("landing_hero_slide_call")}</p>
         {active.edge_pct != null ? (
           <p className="landing-hero-slide-edge">
             {t("landing_hero_slide_edge", { pct: edge })}

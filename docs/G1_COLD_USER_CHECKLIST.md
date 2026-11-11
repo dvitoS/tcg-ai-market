@@ -20,6 +20,7 @@
 
 - ≥4/5 pass on the questions above.
 - If fail: tighten DOTD one-liner / hero lede (M1 vocabulary), re-test — do **not** unlock spend.
+- Re-test script after copy pass: same 5 people (or 5 new), phone, signed out — ask only the three questions.
 
 ## Non-goals
 

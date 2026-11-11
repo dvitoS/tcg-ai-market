@@ -199,13 +199,6 @@ export function DealOfTheDay({
             <div className="lot-meta">
               {[featured.set_name, featured.rarity].filter(Boolean).join(" · ")}
             </div>
-            {featuredVerdict ? (
-              <p className="decision-line">{featuredVerdict}</p>
-            ) : featuredBand ? (
-              <p className="lot-meta" title={t("glossary_band_tip")}>
-                {t("landing_dotd_band", { band: featuredBand })}
-              </p>
-            ) : null}
             <div className="deal-of-day-metrics">
               <strong>
                 {t("metric_spot", {
@@ -219,6 +212,15 @@ export function DealOfTheDay({
                 {t("metric_edge", { pct: featuredEdge })}
               </span>
             </div>
+            {featuredVerdict ? (
+              <p className="decision-line">{featuredVerdict}</p>
+            ) : featuredBand ? (
+              <p className="lot-meta" title={t("glossary_band_tip")}>
+                {t("landing_dotd_band", { band: featuredBand })}
+              </p>
+            ) : (
+              <p className="decision-line">{t("landing_hero_slide_call")}</p>
+            )}
           </div>
         </Link>
       ) : null}
