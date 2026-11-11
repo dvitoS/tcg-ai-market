@@ -22,8 +22,8 @@ export async function generateMetadata({
     return {
       title: `${name} — sealed vs singles`,
       description: setName
-        ? `${name} market price with ${setName} chase singles from the Soft Ink sealed desk.`
-        : `${name} market price on the Soft Ink sealed desk.`,
+        ? `${name} market price compared with chase singles from ${setName}.`
+        : `${name} market price compared with chase singles from the set.`,
       alternates: { canonical: absoluteUrl(`/sealed/${encodeURIComponent(id)}`) },
     };
   } catch {
