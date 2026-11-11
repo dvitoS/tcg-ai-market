@@ -1107,7 +1107,6 @@ const hr: Dictionary = {
   metric_spot: "Spot (tržište) {price}",
   metric_fair: "Sure fair (AI) {price}",
   metric_edge: "{pct} vs Sure fair",
-  // metric_edge kept bilingual on purpose — % gap vs Sure fair reads the same.
   card_move_3d: "Pov. 3d",
   card_move_7d: "Pov. 7d",
   card_move_ai_7d: "AI 7d",
