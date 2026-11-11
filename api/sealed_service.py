@@ -595,6 +595,34 @@ def _token_overlap(expected: str, actual: str) -> bool:
     return len(exp & act) >= min(2, len(exp))
 
 
+def normalize_sealed_set_name(raw: str | None) -> str:
+    """Map JustTCG set labels onto Soft Ink catalog ``set_name`` values.
+
+    Live quotes often arrive as ``SV10: Destined Rivals`` or
+    ``SV01: Scarlet & Violet Base Set`` — exact board filters miss those.
+    """
+    text = str(raw or "").strip()
+    if not text:
+        return ""
+    # Drop leading expansion codes: SV10:, SV03.5:, ME01:, etc.
+    text = re.sub(
+        r"^[A-Za-z]{1,6}\d{0,2}(?:\.\d+)?(?:pt\d+)?\s*:\s*",
+        "",
+        text,
+    ).strip()
+    aliases = {
+        "scarlet & violet base set": "Scarlet & Violet",
+        "scarlet and violet base set": "Scarlet & Violet",
+        "scarlet and violet": "Scarlet & Violet",
+        "pokemon scarlet & violet": "Scarlet & Violet",
+        "151": "151",
+        "scarlet & violet—151": "151",
+        "scarlet & violet - 151": "151",
+        "scarlet & violet 151": "151",
+    }
+    return aliases.get(text.lower(), text)
+
+
 def _filter_demo(q: str | None) -> list[dict[str, Any]]:
     text = (q or "").strip().lower()
     if not text:
@@ -656,7 +684,10 @@ def _sniff_live_showcase(*, limit: int) -> list[dict[str, Any]]:
         hit["card_id"] = f"sealed:{tid}"
         hit["source"] = "justtcg"
         hit["kind"] = "sealed"
-        hit["set_name"] = hit.get("set_name") or seed.get("set_name")
+        # Prefer curated catalog set_name — JustTCG often prefixes SV10:/SV01:.
+        hit["set_name"] = seed.get("set_name") or normalize_sealed_set_name(
+            hit.get("set_name")
+        )
         hit["product_kind"] = seed.get("product_kind")
         hit["packs"] = seed.get("packs")
         out.append(hit)
@@ -809,9 +840,19 @@ def _set_hits(set_name: str, *, limit: int = 48) -> tuple[list[dict[str, Any]], 
     from api.catalog_service import filter_board, load_board, row_to_card
 
     board, source = load_board()
-    if board is None or board.empty or not set_name.strip():
+    wanted = normalize_sealed_set_name(set_name) or str(set_name or "").strip()
+    if board is None or board.empty or not wanted:
         return [], []
-    scoped = filter_board(board, set_name=set_name.strip(), mode="browse")
+    scoped = filter_board(board, set_name=wanted, mode="browse")
+    # Fallback: board may still use a near-label (rare); try case-insensitive contains.
+    if (scoped is None or scoped.empty) and "set_name" in board.columns:
+        needle = wanted.lower()
+        mask = board["set_name"].astype(str).str.lower() == needle
+        if not mask.any():
+            mask = board["set_name"].astype(str).str.lower().str.contains(
+                re.escape(needle), na=False
+            )
+        scoped = board[mask].reset_index(drop=True) if mask.any() else scoped
     if scoped is None or scoped.empty:
         return [], []
 
@@ -877,20 +918,26 @@ def sealed_product_detail(tcgplayer_id: str, *, hits_limit: int = 48) -> dict[st
             live = quote_sealed(tcgplayer_id=tid, limit=1)
             if live:
                 hit = dict(live[0])
-                if product and not _token_overlap(str(product.get("name") or ""), str(hit.get("name") or "")):
+                if product and not _token_overlap(
+                    str(product.get("name") or ""), str(hit.get("name") or "")
+                ):
                     LOG.info("sealed detail sniff rejected tcp=%s", tid)
                 else:
+                    seed = product
                     if not hit.get("image_url"):
                         hit["image_url"] = tcgplayer_product_image(tid)
                     hit["tcgplayer_id"] = tid
                     hit["card_id"] = f"sealed:{tid}"
                     hit["kind"] = "sealed"
                     hit["source"] = "justtcg"
-                    if product:
-                        hit["set_name"] = hit.get("set_name") or product.get("set_name")
-                        hit["product_kind"] = product.get("product_kind")
-                        hit["packs"] = product.get("packs")
-                        hit["name"] = hit.get("name") or product.get("name")
+                    # Catalog set_name wins — JustTCG prefixes break board filters.
+                    hit["set_name"] = (seed or {}).get("set_name") or normalize_sealed_set_name(
+                        hit.get("set_name")
+                    )
+                    if seed:
+                        hit["product_kind"] = seed.get("product_kind")
+                        hit["packs"] = seed.get("packs")
+                        hit["name"] = hit.get("name") or seed.get("name")
                     product = hit
                     source = "justtcg"
         except Exception as exc:
@@ -899,11 +946,18 @@ def sealed_product_detail(tcgplayer_id: str, *, hits_limit: int = 48) -> dict[st
     if not product:
         return None
 
-    set_name = str(product.get("set_name") or "").strip()
+    set_name = normalize_sealed_set_name(product.get("set_name")) or str(
+        product.get("set_name") or ""
+    ).strip()
+    product["set_name"] = set_name or product.get("set_name")
     shelf = [
         row
         for row in _with_tcp_images(
-            [dict(r) for r in _DEMO_SEALED if str(r.get("set_name") or "") == set_name]
+            [
+                dict(r)
+                for r in _DEMO_SEALED
+                if normalize_sealed_set_name(r.get("set_name")) == set_name
+            ]
         )
         if str(row.get("tcgplayer_id") or "") != tid
     ][:6]

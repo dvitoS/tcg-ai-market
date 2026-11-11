@@ -2,13 +2,13 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
 import { useCurrency } from "@/components/CurrencyProvider";
 import { HoloCardArt } from "@/components/HoloCardArt";
 import { useLocale } from "@/components/LocaleProvider";
-import { addPortfolioLot, ensureSealedCard } from "@/lib/api";
+import { addPortfolioLot, ensureSealedCard, formatMoney } from "@/lib/api";
 import { resolveCardImageUrl } from "@/lib/cardImage";
 import { resolveFoilMode } from "@/lib/foilMode";
 import type { CatalogCard, SealedDetailResponse, SealedQuoteItem } from "@/lib/types";
@@ -24,8 +24,12 @@ function cardSpot(card: CatalogCard): number | null {
   return Number(raw);
 }
 
+/** Stable USD for SSR + first paint — avoids currency/locale hydrate mismatch (#418). */
+function usdSpot(value?: number | null): string {
+  return formatMoney(value, "USD");
+}
+
 function HitTile({ card }: { card: CatalogCard }) {
-  const { formatSpot } = useCurrency();
   const foil = resolveFoilMode(card.finishes, card.rarity, card.name);
   const image = resolveCardImageUrl(card.id, card.image_url);
   return (
@@ -43,7 +47,9 @@ function HitTile({ card }: { card: CatalogCard }) {
         sizes="(max-width: 720px) 28vw, 120px"
         className="sealed-hit-holo"
       />
-      <span className="sealed-hit-price">{formatSpot(cardSpot(card))}</span>
+      <span className="sealed-hit-price" suppressHydrationWarning>
+        {usdSpot(cardSpot(card))}
+      </span>
       <span className="sealed-hit-name">{card.name}</span>
     </Link>
   );
@@ -74,7 +80,7 @@ function productBlurb(
 export function SealedDetailView({ detail }: { detail: SealedDetailResponse }) {
   const { t } = useLocale();
   const { formatSpot } = useCurrency();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const product = detail.product;
   const setName = detail.set_name || product.set_name || "";
   const ir = detail.groups.find((g) => g.key === "ir");
@@ -97,6 +103,15 @@ export function SealedDetailView({ detail }: { detail: SealedDetailResponse }) {
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [spotReady, setSpotReady] = useState(false);
+
+  useEffect(() => {
+    setSpotReady(true);
+  }, []);
+
+  const productSpot = spotReady
+    ? formatSpot(product.spot_usd)
+    : usdSpot(product.spot_usd);
 
   async function onAdd(event: FormEvent) {
     event.preventDefault();
@@ -143,7 +158,9 @@ export function SealedDetailView({ detail }: { detail: SealedDetailResponse }) {
       <div className="sealed-detail-split">
         <article className="sealed-detail-product">
           <p className="sealed-detail-kicker">{product.name}</p>
-          <p className="sealed-detail-price">{formatSpot(product.spot_usd)}</p>
+          <p className="sealed-detail-price" suppressHydrationWarning>
+            {productSpot}
+          </p>
           <p className="sealed-detail-price-meta">
             {t("sealed_detail_market")}
             {product.packs ? ` · ${t("sealed_detail_packs", { n: product.packs })}` : ""}
@@ -175,7 +192,9 @@ export function SealedDetailView({ detail }: { detail: SealedDetailResponse }) {
                   <li key={row.card_id}>
                     <Link href={`/sealed/${encodeURIComponent(row.tcgplayer_id || "")}`}>
                       <span>{row.name}</span>
-                      <strong>{formatSpot(row.spot_usd)}</strong>
+                      <strong suppressHydrationWarning>
+                        {spotReady ? formatSpot(row.spot_usd) : usdSpot(row.spot_usd)}
+                      </strong>
                     </Link>
                   </li>
                 ))}
@@ -190,8 +209,8 @@ export function SealedDetailView({ detail }: { detail: SealedDetailResponse }) {
               ? t("sealed_detail_ir_kicker", { n: ir.count })
               : t("sealed_detail_hits_kicker", { set: setName || "—" })}
           </p>
-          <p className="sealed-detail-price">
-            {ir ? moneyShort(ir.total_usd) : formatSpot(null)}
+          <p className="sealed-detail-price" suppressHydrationWarning>
+            {ir ? moneyShort(ir.total_usd) : "—"}
           </p>
           <p className="sealed-detail-price-meta">
             {ir
@@ -251,12 +270,14 @@ export function SealedDetailView({ detail }: { detail: SealedDetailResponse }) {
       <div className="sealed-desk-dock">
         <div className="sealed-desk-dock-copy">
           <p className="lot-name">{product.name}</p>
-          <p className="lot-meta">
-            {formatSpot(product.spot_usd)}
+          <p className="lot-meta" suppressHydrationWarning>
+            {productSpot}
             {product.tcgplayer_id ? ` · TCP ${product.tcgplayer_id}` : ""}
           </p>
         </div>
-        {user ? (
+        {authLoading ? (
+          <p className="lot-meta">{t("sealed_searching")}</p>
+        ) : user ? (
           <form className="sealed-add-form sealed-desk-add" onSubmit={onAdd}>
             <div className="grade-ev-inputs">
               <label>

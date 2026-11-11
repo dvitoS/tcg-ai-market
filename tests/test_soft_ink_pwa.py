@@ -27,9 +27,12 @@ def test_manifest_webmanifest_is_installable() -> None:
 
 def test_service_worker_shell_precaches_offline() -> None:
     sw = (WEB_PUBLIC / "sw.js").read_text(encoding="utf-8")
-    assert "kestrel-shell-v1" in sw
+    assert "kestrel-shell-v2" in sw
     assert "/offline" in sw
     assert 'url.pathname.startsWith("/api/")' in sw
+    # Navigations + Next chunks stay network-first (avoid React #418 vs stale shell).
+    assert 'url.pathname.startsWith("/_next/")' in sw
+    assert 'req.mode === "navigate"' in sw
     assert (WEB_PUBLIC / "icons" / "icon-192.png").is_file()
     assert (WEB_PUBLIC / "icons" / "icon-512.png").is_file()
     assert (WEB_PUBLIC / "icons" / "apple-touch-icon.png").is_file()

@@ -1,5 +1,5 @@
-/* Soft Ink offline shell — cache nav + static; never pin live API prices. */
-const CACHE = "kestrel-shell-v1";
+/* Soft Ink offline shell — precache only; never pin live HTML/JS (avoids hydrate 418). */
+const CACHE = "kestrel-shell-v2";
 const PRECACHE = [
   "/",
   "/offline",
@@ -47,25 +47,22 @@ self.addEventListener("fetch", (event) => {
   if (!sameOrigin(url)) return;
   // Live market data must stay network-only.
   if (url.pathname.startsWith("/api/")) return;
-
-  if (req.mode === "navigate") {
+  // App HTML + Next chunks must stay network-first so deploys don't hydrate
+  // against a stale shell (React #418).
+  if (req.mode === "navigate" || url.pathname.startsWith("/_next/")) {
     event.respondWith(
-      fetch(req)
-        .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE).then((cache) => cache.put(req, copy));
-          return res;
-        })
-        .catch(async () => {
+      fetch(req).catch(async () => {
+        if (req.mode === "navigate") {
           const cached = await caches.match(req);
           return cached || caches.match("/offline");
-        }),
+        }
+        return caches.match(req);
+      }),
     );
     return;
   }
 
   const staticAsset =
-    url.pathname.startsWith("/_next/static/") ||
     url.pathname.startsWith("/icons/") ||
     /\.(?:png|svg|webp|jpe?g|gif|ico|woff2?)$/i.test(url.pathname);
 
