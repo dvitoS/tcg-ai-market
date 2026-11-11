@@ -48,10 +48,12 @@ export function CardDetailView({
     () => (card.finishes || []).filter(Boolean),
   );
 
-  // Soft Ink client nav can land with empty finishes; refetch + rarity fallback.
+  // Soft Ink client nav can land with empty finishes; refetch only then.
   const finishesKey = (card.finishes || []).join("|");
   useEffect(() => {
-    setFinishes((card.finishes || []).filter(Boolean));
+    const initial = (card.finishes || []).filter(Boolean);
+    setFinishes(initial);
+    if (initial.length > 0) return;
     let alive = true;
     void fetchCardDetail(card.id)
       .then((fresh) => {

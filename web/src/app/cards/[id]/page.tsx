@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { CardDetailView } from "@/components/CardDetailView";
-import { fetchCardDetail } from "@/lib/api";
+import { loadCardDetail } from "@/lib/cardDetail";
 import { cardJsonLd, cardMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +16,7 @@ export async function generateMetadata({
 }: PageProps): Promise<Metadata> {
   const { id } = await params;
   try {
-    const detail = await fetchCardDetail(id);
+    const detail = await loadCardDetail(id);
     return cardMetadata(detail.card);
   } catch {
     return {
@@ -31,7 +31,7 @@ export default async function CardDetailPage({ params }: PageProps) {
 
   let detail;
   try {
-    detail = await fetchCardDetail(id);
+    detail = await loadCardDetail(id);
   } catch (err) {
     if (err instanceof Error && err.message === "NOT_FOUND") notFound();
     notFound();
