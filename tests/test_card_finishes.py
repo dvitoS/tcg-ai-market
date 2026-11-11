@@ -18,6 +18,10 @@ def test_extract_finishes_from_tcgplayer_prices() -> None:
                 "normal": {"market": 1.0},
                 "reverseHolofoil": {"market": 2.0},
                 "holofoil": {"market": 5.0},
+                "1stEditionHolofoil": {"market": 40.0},
+                "1stEditionNormal": {"market": 12.0},
+                "unlimitedHolofoil": {"market": 8.0},
+                "cosmosHolofoil": {"market": 3.0},
             }
         }
     }
@@ -25,7 +29,22 @@ def test_extract_finishes_from_tcgplayer_prices() -> None:
         "Normal",
         "Holofoil",
         "Reverse Holofoil",
+        "1st Edition Normal",
+        "1st Edition Holofoil",
+        "Unlimited Holofoil",
+        "Cosmos Holofoil",
     ]
+
+
+def test_unknown_tcgplayer_key_is_humanized_not_dropped() -> None:
+    card = {
+        "tcgplayer": {
+            "prices": {
+                "mysteryPromoFoil": {"market": 9.0},
+            }
+        }
+    }
+    assert extract_finishes_from_tcgplayer(card) == ["Mystery Promo Foil"]
 
 
 def test_finishes_from_rarity_hint() -> None:
