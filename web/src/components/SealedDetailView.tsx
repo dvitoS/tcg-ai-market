@@ -149,10 +149,33 @@ export function SealedDetailView({ detail }: { detail: SealedDetailResponse }) {
         <Link href="/sealed" className="sealed-detail-back">
           ← {t("sealed_detail_back")}
         </Link>
-        <p className="sealed-detail-eyebrow">
-          {[setName, t("sealed_detail_vs")].filter(Boolean).join(" · ")}
-        </p>
-        <h1 className="sealed-detail-title">{t("sealed_detail_title")}</h1>
+        <div className="sealed-detail-title-row">
+          <div className="sealed-detail-title-copy">
+            <p className="sealed-detail-eyebrow">
+              {[setName, t("sealed_detail_vs")].filter(Boolean).join(" · ")}
+            </p>
+            <h1 className="sealed-detail-title">{t("sealed_detail_title")}</h1>
+          </div>
+          {!authLoading ? (
+            user ? (
+              <button
+                type="submit"
+                form="sealed-detail-add"
+                className="sealed-detail-add-btn"
+                disabled={pending}
+              >
+                {t("sealed_desk_add_lot")}
+              </button>
+            ) : (
+              <Link
+                href={`/signin?next=${encodeURIComponent(`/sealed/${product.tcgplayer_id || ""}`)}`}
+                className="sealed-detail-add-btn"
+              >
+                {t("sealed_desk_signin")}
+              </Link>
+            )
+          ) : null}
+        </div>
       </div>
 
       <div className="sealed-detail-split">
@@ -267,18 +290,20 @@ export function SealedDetailView({ detail }: { detail: SealedDetailResponse }) {
       {error ? <p className="banner-error">{error}</p> : null}
       {note ? <p className="banner-ok">{note}</p> : null}
 
-      <div className="sealed-desk-dock">
-        <div className="sealed-desk-dock-copy">
-          <p className="lot-name">{product.name}</p>
-          <p className="lot-meta" suppressHydrationWarning>
-            {productSpot}
-            {product.tcgplayer_id ? ` · TCP ${product.tcgplayer_id}` : ""}
-          </p>
-        </div>
-        {authLoading ? (
-          <p className="lot-meta">{t("sealed_searching")}</p>
-        ) : user ? (
-          <form className="sealed-add-form sealed-desk-add" onSubmit={onAdd}>
+      {user ? (
+        <div className="sealed-desk-dock sealed-detail-dock">
+          <div className="sealed-desk-dock-copy">
+            <p className="lot-name">{product.name}</p>
+            <p className="lot-meta" suppressHydrationWarning>
+              {productSpot}
+              {product.tcgplayer_id ? ` · TCP ${product.tcgplayer_id}` : ""}
+            </p>
+          </div>
+          <form
+            id="sealed-detail-add"
+            className="sealed-add-form sealed-desk-add"
+            onSubmit={onAdd}
+          >
             <div className="grade-ev-inputs">
               <label>
                 <span>{t("add_lot_qty")}</span>
@@ -301,19 +326,9 @@ export function SealedDetailView({ detail }: { detail: SealedDetailResponse }) {
                 />
               </label>
             </div>
-            <button type="submit" className="btn-primary" disabled={pending}>
-              {t("sealed_add_btn")}
-            </button>
           </form>
-        ) : (
-          <Link
-            href={`/signin?next=${encodeURIComponent(`/sealed/${product.tcgplayer_id || ""}`)}`}
-            className="btn-primary"
-          >
-            {t("sealed_desk_signin")}
-          </Link>
-        )}
-      </div>
+        </div>
+      ) : null}
     </section>
   );
 }
