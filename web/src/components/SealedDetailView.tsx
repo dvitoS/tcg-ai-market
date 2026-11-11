@@ -49,11 +49,11 @@ function HitTile({
         name={card.name}
         image={image}
         foil={foil}
-        width={compact ? 96 : 160}
-        height={compact ? 134 : 224}
+        width={compact ? 110 : 160}
+        height={compact ? 154 : 224}
         sizes={
           compact
-            ? "(max-width: 720px) 18vw, 72px"
+            ? "(max-width: 720px) 20vw, 88px"
             : "(max-width: 720px) 28vw, 120px"
         }
         className="sealed-hit-holo"

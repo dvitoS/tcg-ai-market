@@ -1812,8 +1812,8 @@ a {
 }
 
 .sealed-sir-grid {
-  /* ~40% smaller than the previous 120px SIR tiles. */
-  grid-template-columns: repeat(auto-fit, minmax(72px, 96px));
+  /* Compact SIR strip — bumped +15% after the first shrink pass. */
+  grid-template-columns: repeat(auto-fit, minmax(83px, 110px));
   justify-content: start;
   gap: 0.5rem 0.45rem;
 }
@@ -1828,7 +1828,7 @@ a {
 }
 
 .sealed-hit-tile.is-compact {
-  max-width: 96px;
+  max-width: 110px;
 }
 
 .sealed-hit-tile.is-compact .sealed-hit-price {
