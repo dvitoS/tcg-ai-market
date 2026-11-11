@@ -23,10 +23,6 @@ export function SealedDesk({
   const [items, setItems] = useState<SealedQuoteItem[]>(
     () => initial?.items ?? [],
   );
-  const [source, setSource] = useState<string>(() => initial?.source ?? "");
-  const [justtcg, setJusttcg] = useState(() =>
-    Boolean(initial?.justtcg_configured),
-  );
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [booted, setBooted] = useState(ssrBoot);
@@ -41,8 +37,6 @@ export function SealedDesk({
             limit: 48,
           });
           setItems(payload.items);
-          setSource(payload.source);
-          setJusttcg(Boolean(payload.justtcg_configured));
           if (q && !payload.items.length) {
             setError(payload.error || t("sealed_empty"));
           }
@@ -90,25 +84,13 @@ export function SealedDesk({
         </button>
       </form>
 
-      {source === "justtcg" && !submitted ? (
-        <p className="lot-meta">{t("sealed_desk_live")}</p>
-      ) : null}
-      {source === "demo" && !submitted ? (
-        <p className="lot-meta">
-          {justtcg ? t("sealed_desk_seed_fast") : t("sealed_demo_note")}
-        </p>
-      ) : null}
-      {source === "demo" && submitted ? (
-        <p className="lot-meta">{t("sealed_desk_demo_live")}</p>
-      ) : null}
       {submitted ? (
         <p className="lot-meta">
           {t("sealed_desk_results", { q: submitted, n: items.length })}
         </p>
       ) : (
-        <p className="lot-meta">{t("sealed_desk_showcase")}</p>
+        <p className="lot-meta">{t("sealed_desk_disclaimer")}</p>
       )}
-      <p className="lot-meta">{t("sealed_desk_disclaimer")}</p>
 
       {error ? <p className="banner-error">{error}</p> : null}
 
@@ -146,7 +128,7 @@ export function SealedDesk({
                 <div className="explore-card-copy">
                   <div className="explore-card-name">{hit.name}</div>
                   <div className="explore-card-meta">
-                    {[hit.set_name, hit.tcgplayer_id].filter(Boolean).join(" · ")}
+                    {hit.set_name || ""}
                   </div>
                 </div>
               </Link>
