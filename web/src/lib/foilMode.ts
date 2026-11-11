@@ -39,6 +39,7 @@ export function foilModeFromRarity(rarity: string | null | undefined): FoilMode 
     .toLowerCase();
   if (!text) return null;
   if (text.includes("reverse")) return "reverse";
+  // SV+ desk labels (Double / Ultra Rare) are foil even without "holo" in the string.
   if (
     text.includes("holo") ||
     text.includes("foil") ||
@@ -46,7 +47,28 @@ export function foilModeFromRarity(rarity: string | null | undefined): FoilMode 
     text.includes("amazing") ||
     text.includes("illustration") ||
     text.includes("hyper") ||
-    text.includes("secret")
+    text.includes("secret") ||
+    text.includes("ultra rare") ||
+    text.includes("double rare") ||
+    text.includes("shiny") ||
+    text.includes("radiant") ||
+    text.includes("ace spec")
+  ) {
+    return "holo";
+  }
+  return null;
+}
+
+/** Name cue for chase foils when rarity is Promo / blank. */
+export function foilModeFromName(name: string | null | undefined): FoilMode {
+  const text = String(name || "")
+    .trim()
+    .toLowerCase();
+  if (!text) return null;
+  if (
+    /\b(ex|gx|v|vmax|vstar)\b/.test(text) ||
+    text.includes("lv.x") ||
+    text.includes("lv. x")
   ) {
     return "holo";
   }
@@ -56,6 +78,11 @@ export function foilModeFromRarity(rarity: string | null | undefined): FoilMode 
 export function resolveFoilMode(
   finishes: string[] | null | undefined,
   rarity?: string | null,
+  name?: string | null,
 ): FoilMode {
-  return foilModeFromFinishes(finishes) || foilModeFromRarity(rarity);
+  return (
+    foilModeFromFinishes(finishes) ||
+    foilModeFromRarity(rarity) ||
+    foilModeFromName(name)
+  );
 }

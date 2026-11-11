@@ -50,7 +50,10 @@ def test_unknown_tcgplayer_key_is_humanized_not_dropped() -> None:
 def test_finishes_from_rarity_hint() -> None:
     assert finishes_from_rarity("Rare Holo") == ["Holofoil"]
     assert finishes_from_rarity("Rare Reverse Holo") == ["Reverse Holofoil"]
+    assert finishes_from_rarity("Double Rare") == ["Holofoil"]
+    assert finishes_from_rarity("Ultra Rare") == ["Holofoil"]
     assert finishes_from_rarity("Common") == []
+    assert finishes_from_rarity("Promo") == []
 
 
 def test_row_to_card_includes_finishes_hint() -> None:
@@ -60,6 +63,10 @@ def test_row_to_card_includes_finishes_hint() -> None:
         {"id": "sv1-1", "name": "Sprigatito", "rarity": "Rare Holo", "price": 4.0}
     )
     assert holo["finishes"] == ["Holofoil"]
+    ultra = row_to_card(
+        {"id": "sv3-210", "name": "Eiscue ex", "rarity": "Ultra Rare", "price": 20.0}
+    )
+    assert ultra["finishes"] == ["Holofoil"]
     reverse = row_to_card(
         {
             "id": "sv1-2",

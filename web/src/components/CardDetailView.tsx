@@ -93,7 +93,7 @@ export function CardDetailView({
     day_change_pct: detail.history?.day_change_pct ?? fromPoints.day_change_pct,
     points: detail.history?.points || fromPoints.points,
   };
-  const foil = resolveFoilMode(finishes, card.rarity);
+  const foil = resolveFoilMode(finishes, card.rarity, card.name);
   const meta = [card.set_name, card.rarity, card.id].filter(Boolean).join(" · ");
   const image = resolveCardImageUrl(card.id, card.image_url);
   const dayChange = history.day_change_pct;
