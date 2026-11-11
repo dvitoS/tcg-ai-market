@@ -29,22 +29,33 @@ function usdSpot(value?: number | null): string {
   return formatMoney(value, "USD");
 }
 
-function HitTile({ card }: { card: CatalogCard }) {
+function HitTile({
+  card,
+  compact = false,
+}: {
+  card: CatalogCard;
+  /** SIR strip — ~40% smaller than the IR hit grid tiles. */
+  compact?: boolean;
+}) {
   const foil = resolveFoilMode(card.finishes, card.rarity, card.name);
   const image = resolveCardImageUrl(card.id, card.image_url);
   return (
     <Link
       href={`/cards/${encodeURIComponent(card.id)}`}
-      className="sealed-hit-tile"
+      className={`sealed-hit-tile${compact ? " is-compact" : ""}`}
     >
       <HoloCardArt
         cardId={card.id}
         name={card.name}
         image={image}
         foil={foil}
-        width={160}
-        height={224}
-        sizes="(max-width: 720px) 28vw, 120px"
+        width={compact ? 96 : 160}
+        height={compact ? 134 : 224}
+        sizes={
+          compact
+            ? "(max-width: 720px) 18vw, 72px"
+            : "(max-width: 720px) 28vw, 120px"
+        }
         className="sealed-hit-holo"
       />
       <span className="sealed-hit-price" suppressHydrationWarning>
@@ -265,7 +276,7 @@ export function SealedDetailView({ detail }: { detail: SealedDetailResponse }) {
           <div className="sealed-sir-grid">
             {(sir.featured.length ? sir.featured : detail.hits.slice(0, 3)).map(
               (card) => (
-                <HitTile key={`sir-${card.id}`} card={card} />
+                <HitTile key={`sir-${card.id}`} card={card} compact />
               ),
             )}
           </div>
