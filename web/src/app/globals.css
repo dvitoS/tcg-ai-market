@@ -1812,7 +1812,10 @@ a {
 }
 
 .sealed-sir-grid {
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  /* ~40% smaller than the previous 120px SIR tiles. */
+  grid-template-columns: repeat(auto-fit, minmax(72px, 96px));
+  justify-content: start;
+  gap: 0.5rem 0.45rem;
 }
 
 .sealed-hit-tile {
@@ -1822,6 +1825,18 @@ a {
   color: inherit;
   text-decoration: none;
   min-width: 0;
+}
+
+.sealed-hit-tile.is-compact {
+  max-width: 96px;
+}
+
+.sealed-hit-tile.is-compact .sealed-hit-price {
+  font-size: 0.7rem;
+}
+
+.sealed-hit-tile.is-compact .sealed-hit-name {
+  font-size: 0.62rem;
 }
 
 .sealed-hit-tile:hover .sealed-hit-price,
