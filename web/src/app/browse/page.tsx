@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { BrowseMarket } from "@/components/BrowseMarket";
 import { fetchCatalog } from "@/lib/api";
 import { absoluteUrl } from "@/lib/seo";
-import type { CatalogMeta } from "@/lib/types";
+import type { CatalogMeta, CatalogMode } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -23,14 +23,49 @@ const EMPTY_META: CatalogMeta = {
   source: "empty",
 };
 
-export default async function BrowsePage() {
+type PageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+function first(
+  value: string | string[] | undefined,
+): string {
+  if (Array.isArray(value)) return String(value[0] || "").trim();
+  return String(value || "").trim();
+}
+
+export default async function BrowsePage({ searchParams }: PageProps) {
+  const sp = await searchParams;
+  const q = first(sp.q);
+  const setName = first(sp.set);
+  const signal = first(sp.signal);
+  const min = first(sp.min);
+  const max = first(sp.max);
+  const modeRaw = first(sp.mode).toLowerCase();
+  const mode: CatalogMode = modeRaw === "signals" ? "signals" : "browse";
+
   let items = [] as Awaited<ReturnType<typeof fetchCatalog>>["items"];
   let total = 0;
   let meta = EMPTY_META;
   let error: string | null = null;
 
+  const minPrice = min ? Number(min) : undefined;
+  const maxPrice = max ? Number(max) : undefined;
+
   try {
-    const data = await fetchCatalog({ mode: "browse", limit: 24, offset: 0 });
+    const data = await fetchCatalog({
+      mode,
+      limit: 24,
+      offset: 0,
+      q: q || undefined,
+      set: setName || undefined,
+      signal: mode === "signals" ? signal || undefined : undefined,
+      min_price:
+        minPrice != null && Number.isFinite(minPrice) ? minPrice : undefined,
+      max_price:
+        maxPrice != null && Number.isFinite(maxPrice) ? maxPrice : undefined,
+      sort: mode === "signals" ? "change_desc" : "price_desc",
+    });
     items = data.items;
     total = data.total;
     meta = data.meta;
@@ -47,6 +82,12 @@ export default async function BrowsePage() {
       initialTotal={total}
       initialMeta={meta}
       initialError={error}
+      initialQuery={q}
+      initialSet={setName}
+      initialSignal={signal}
+      initialMin={min}
+      initialMax={max}
+      initialMode={mode}
     />
   );
 }

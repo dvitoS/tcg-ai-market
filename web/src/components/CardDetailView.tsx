@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { AddLotForm } from "@/components/AddLotForm";
@@ -14,6 +15,7 @@ import { PriceChart } from "@/components/PriceChart";
 import { WatchToggle } from "@/components/WatchToggle";
 import { WrongSpotReport } from "@/components/WrongSpotReport";
 import { fetchCardDetail, formatChange } from "@/lib/api";
+import { readBrowseReturn } from "@/lib/browseReturn";
 import { resolveCardImageUrl } from "@/lib/cardImage";
 import { cardmarketSearchUrl } from "@/lib/cardmarket";
 import { resolveFoilMode } from "@/lib/foilMode";
@@ -42,11 +44,17 @@ export function CardDetailView({
   points: HistoryPoint[];
 }) {
   const { locale, t } = useLocale();
+  const router = useRouter();
   const { formatSpot, currency, usdEur, fxFallback } = useCurrency();
   const { card, pred_lo_pct, pred_hi_pct, explain } = detail;
   const [finishes, setFinishes] = useState<string[]>(
     () => (card.finishes || []).filter(Boolean),
   );
+  const [browseBackHref, setBrowseBackHref] = useState("/browse");
+
+  useEffect(() => {
+    setBrowseBackHref(readBrowseReturn("/browse"));
+  }, []);
 
   // Soft Ink client nav can land with empty finishes; refetch only then.
   const finishesKey = (card.finishes || []).join("|");
@@ -119,7 +127,26 @@ export function CardDetailView({
 
   return (
     <article className="detail-page">
-      <Link href="/browse" className="detail-back">
+      <Link
+        href={browseBackHref}
+        className="detail-back"
+        onClick={(event) => {
+          // Prefer history when we came from the same Soft Ink browse search.
+          try {
+            const ref = document.referrer ? new URL(document.referrer) : null;
+            if (
+              ref &&
+              ref.origin === window.location.origin &&
+              ref.pathname.startsWith("/browse")
+            ) {
+              event.preventDefault();
+              router.back();
+            }
+          } catch {
+            /* follow href */
+          }
+        }}
+      >
         {t("detail_back")}
       </Link>
 

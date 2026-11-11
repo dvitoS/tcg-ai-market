@@ -9,12 +9,14 @@ import {
   useState,
   useTransition,
 } from "react";
+import { useRouter } from "next/navigation";
 
 import { CardSkeletonGrid } from "@/components/CardSkeletonGrid";
 import { ExploreCard } from "@/components/ExploreCard";
 import { useLocale } from "@/components/LocaleProvider";
 import { SearchSuggest } from "@/components/SearchSuggest";
 import { fetchCatalog } from "@/lib/api";
+import { buildBrowseHref, saveBrowseReturn } from "@/lib/browseReturn";
 import { signalLabel, type MessageKey } from "@/lib/i18n/messages";
 import { pushRecentSearch } from "@/lib/searchRecent";
 import type { CatalogCard, CatalogMeta, CatalogMode } from "@/lib/types";
@@ -65,6 +67,12 @@ type Props = {
   initialTotal: number;
   initialMeta: CatalogMeta;
   initialError?: string | null;
+  initialQuery?: string;
+  initialSet?: string;
+  initialSignal?: string;
+  initialMin?: string;
+  initialMax?: string;
+  initialMode?: CatalogMode;
 };
 
 export function BrowseMarket({
@@ -72,16 +80,23 @@ export function BrowseMarket({
   initialTotal,
   initialMeta,
   initialError = null,
+  initialQuery = "",
+  initialSet = "",
+  initialSignal = "",
+  initialMin = "",
+  initialMax = "",
+  initialMode = "browse",
 }: Props) {
   const { locale, t } = useLocale();
-  const [mode, setMode] = useState<CatalogMode>("browse");
-  const [query, setQuery] = useState("");
-  const [submittedQuery, setSubmittedQuery] = useState("");
-  const [setName, setSetName] = useState("");
+  const router = useRouter();
+  const [mode, setMode] = useState<CatalogMode>(initialMode);
+  const [query, setQuery] = useState(initialQuery);
+  const [submittedQuery, setSubmittedQuery] = useState(initialQuery);
+  const [setName, setSetName] = useState(initialSet);
   const [setNeedle, setSetNeedle] = useState("");
-  const [signal, setSignal] = useState("");
-  const [minPrice, setMinPrice] = useState("");
-  const [maxPrice, setMaxPrice] = useState("");
+  const [signal, setSignal] = useState(initialSignal);
+  const [minPrice, setMinPrice] = useState(initialMin);
+  const [maxPrice, setMaxPrice] = useState(initialMax);
   const [railOpen, setRailOpen] = useState(false);
   const [items, setItems] = useState(initialItems);
   const [total, setTotal] = useState(initialTotal);
@@ -122,6 +137,33 @@ export function BrowseMarket({
   useEffect(() => {
     setHydrated(true);
   }, []);
+
+  // Keep /browse?q=… in the URL so detail → back restores the same search.
+  useEffect(() => {
+    if (!hydrated) return;
+    const href = buildBrowseHref({
+      q: submittedQuery,
+      set: setName,
+      signal: mode === "signals" ? signal : "",
+      min: minPrice,
+      max: maxPrice,
+      mode,
+    });
+    saveBrowseReturn(href);
+    const current = `${window.location.pathname}${window.location.search}`;
+    if (current !== href) {
+      router.replace(href, { scroll: false });
+    }
+  }, [
+    hydrated,
+    submittedQuery,
+    setName,
+    signal,
+    minPrice,
+    maxPrice,
+    mode,
+    router,
+  ]);
 
   useEffect(() => {
     if (!hydrated) return;
