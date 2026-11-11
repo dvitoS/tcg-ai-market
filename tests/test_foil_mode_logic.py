@@ -42,3 +42,21 @@ def test_foil_cosmos() -> None:
 def test_foil_none() -> None:
     assert foil_mode(["Normal"]) is None
     assert foil_mode([]) is None
+
+
+def foil_from_rarity(rarity: str) -> str | None:
+    text = rarity.strip().lower()
+    if "reverse" in text:
+        return "reverse"
+    if any(
+        n in text
+        for n in ("holo", "foil", "rainbow", "amazing", "illustration", "hyper", "secret")
+    ):
+        return "holo"
+    return None
+
+
+def test_foil_from_rarity_fallback() -> None:
+    assert foil_from_rarity("Rare Holo") == "holo"
+    assert foil_from_rarity("Illustration Rare") == "holo"
+    assert foil_from_rarity("Common") is None
