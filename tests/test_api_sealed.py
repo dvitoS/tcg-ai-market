@@ -122,6 +122,82 @@ def test_token_overlap_seed_sniff() -> None:
     )
 
 
+def test_normalize_sealed_set_name() -> None:
+    from api.sealed_service import normalize_sealed_set_name
+
+    assert normalize_sealed_set_name("SV10: Destined Rivals") == "Destined Rivals"
+    assert (
+        normalize_sealed_set_name("SV01: Scarlet & Violet Base Set")
+        == "Scarlet & Violet"
+    )
+    assert normalize_sealed_set_name("Destined Rivals") == "Destined Rivals"
+
+
+def test_sealed_detail_prefers_seed_set_over_justtcg_prefix(monkeypatch) -> None:
+    from api import sealed_service
+
+    monkeypatch.setattr("justtcg_client.justtcg_api_key", lambda: "test-key")
+    monkeypatch.setattr(sealed_service, "demo_mode", lambda: False)
+
+    def fake_quote(*, tcgplayer_id=None, **_kwargs):
+        return [
+            {
+                "card_id": f"sealed:{tcgplayer_id}",
+                "name": "Destined Rivals Booster Box",
+                "set_name": "SV10: Destined Rivals",
+                "tcgplayer_id": str(tcgplayer_id),
+                "spot_usd": 381.0,
+                "image_url": None,
+                "source": "justtcg",
+                "kind": "sealed",
+            }
+        ]
+
+    monkeypatch.setattr("justtcg_sealed.quote_sealed", fake_quote)
+    monkeypatch.setattr(
+        sealed_service,
+        "_set_hits",
+        lambda set_name, limit=48: (
+            (
+                [
+                    {
+                        "id": "sv10-231",
+                        "name": "Team Rocket's Mewtwo ex",
+                        "set_name": set_name,
+                        "rarity": "Special Illustration Rare",
+                        "finishes": ["Holofoil"],
+                        "price": 300.0,
+                        "market_price": 300.0,
+                        "image_url": None,
+                    }
+                ]
+                if set_name == "Destined Rivals"
+                else []
+            ),
+            (
+                [
+                    {
+                        "key": "sir",
+                        "label": "Special Illustration Rares",
+                        "count": 1,
+                        "total_usd": 300.0,
+                        "featured": [],
+                    }
+                ]
+                if set_name == "Destined Rivals"
+                else []
+            ),
+        ),
+    )
+
+    payload = sealed_service.sealed_product_detail("624679")
+    assert payload is not None
+    assert payload["set_name"] == "Destined Rivals"
+    assert payload["product"]["set_name"] == "Destined Rivals"
+    assert len(payload["hits"]) == 1
+    assert len(payload["shelf"]) >= 1
+
+
 def test_live_showcase_sniff_keeps_matching_seeds(monkeypatch) -> None:
     from api import sealed_service
 
