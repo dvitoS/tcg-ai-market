@@ -5947,6 +5947,47 @@ a {
   line-height: 1.35;
 }
 
+.landing-trust {
+  width: min(40rem, 100%);
+  padding: 0.15rem 0 0.45rem;
+  animation: landing-rise 0.8s ease both;
+  animation-delay: 0.14s;
+}
+
+.landing-trust-list {
+  margin: 0.85rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.landing-trust-list li {
+  position: relative;
+  padding: 0.55rem 0.75rem 0.55rem 0.9rem;
+  border-left: 2px solid rgba(192, 122, 58, 0.55);
+  color: rgba(244, 241, 234, 0.88);
+  font-size: 0.92rem;
+  line-height: 1.45;
+  background: rgba(8, 7, 6, 0.35);
+}
+
+.landing-trust-links {
+  margin: 0.85rem 0 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.landing-trust-links a {
+  color: var(--accent-2);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.landing-trust-links a:hover {
+  color: var(--text);
+}
+
 .landing-guides {
   width: min(40rem, 100%);
   padding: 0.15rem 0 0.35rem;
