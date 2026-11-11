@@ -669,7 +669,7 @@ const en = {
   detail_points: "Points",
   detail_finishes: "Finish · {finishes}",
   detail_finishes_hint:
-    "Printings this card has on TCGPlayer. Board spot is one NM lane — pick Normal / Reverse / Holo when you log a lot.",
+    "Every TCGPlayer printing for this card (Normal, Holofoil, Reverse, 1st Edition, Unlimited, Cosmos, …). Board spot is one NM lane — pick finish when you log a lot.",
   detail_spot_source: "Spot · US market board (not Cardmarket EUR)",
   detail_spot_source_asof:
     "Spot · US market board · as of {date} (not Cardmarket EUR)",
@@ -1571,7 +1571,7 @@ const hr: Dictionary = {
   detail_points: "Točke",
   detail_finishes: "Finish · {finishes}",
   detail_finishes_hint:
-    "Printinzi koje ova karta ima na TCGPlayeru. Board spot je jedan NM lane — pri lotu biraj Normal / Reverse / Holo.",
+    "Svi TCGPlayer printinzi za ovu kartu (Normal, Holofoil, Reverse, 1st Edition, Unlimited, Cosmos, …). Board spot je jedan NM lane — finish biraš pri lotu.",
   detail_spot_source: "Spot · US market board (ne Cardmarket EUR)",
   detail_spot_source_asof:
     "Spot · US market board · as of {date} (ne Cardmarket EUR)",
