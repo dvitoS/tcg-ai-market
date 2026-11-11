@@ -13,24 +13,33 @@ import {
   ensureSealedCard,
   fetchSealedQuote,
 } from "@/lib/api";
-import type { SealedQuoteItem } from "@/lib/types";
+import type { SealedQuoteItem, SealedQuoteResponse } from "@/lib/types";
 
-export function SealedDesk() {
+export function SealedDesk({
+  initial = null,
+}: {
+  initial?: SealedQuoteResponse | null;
+}) {
   const { t } = useLocale();
   const { formatSpot } = useCurrency();
   const { user } = useAuth();
+  const ssrBoot = Boolean(initial?.items?.length);
   const [query, setQuery] = useState("");
   const [submitted, setSubmitted] = useState("");
-  const [items, setItems] = useState<SealedQuoteItem[]>([]);
-  const [source, setSource] = useState<string>("");
-  const [justtcg, setJusttcg] = useState(false);
+  const [items, setItems] = useState<SealedQuoteItem[]>(
+    () => initial?.items ?? [],
+  );
+  const [source, setSource] = useState<string>(() => initial?.source ?? "");
+  const [justtcg, setJusttcg] = useState(() =>
+    Boolean(initial?.justtcg_configured),
+  );
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [selected, setSelected] = useState<SealedQuoteItem | null>(null);
   const [qty, setQty] = useState(1);
   const [cost, setCost] = useState(0);
   const [pending, startTransition] = useTransition();
-  const [booted, setBooted] = useState(false);
+  const [booted, setBooted] = useState(ssrBoot);
 
   const load = useCallback(
     (q: string) => {
@@ -60,8 +69,10 @@ export function SealedDesk() {
   );
 
   useEffect(() => {
+    // RSC already painted the curated showcase — skip the empty-desk round-trip.
+    if (ssrBoot) return;
     load("");
-  }, [load]);
+  }, [load, ssrBoot]);
 
   function onSearch(event: FormEvent) {
     event.preventDefault();
@@ -131,10 +142,13 @@ export function SealedDesk() {
       {source === "justtcg" && !submitted ? (
         <p className="lot-meta">{t("sealed_desk_live")}</p>
       ) : null}
-      {source === "demo" ? (
+      {source === "demo" && !submitted ? (
         <p className="lot-meta">
-          {justtcg ? t("sealed_desk_demo_live") : t("sealed_demo_note")}
+          {justtcg ? t("sealed_desk_seed_fast") : t("sealed_demo_note")}
         </p>
+      ) : null}
+      {source === "demo" && submitted ? (
+        <p className="lot-meta">{t("sealed_desk_demo_live")}</p>
       ) : null}
       {submitted ? (
         <p className="lot-meta">
