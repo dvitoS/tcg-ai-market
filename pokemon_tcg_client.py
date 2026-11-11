@@ -705,6 +705,9 @@ def clean_cards(
             continue
 
         from justtcg_client import extract_tcgplayer_product_id
+        from services.card_finishes import extract_finishes_from_tcgplayer, finishes_blob
+
+        finishes = finishes_blob(extract_finishes_from_tcgplayer(card))
 
         cleaned.append(
             {
@@ -715,6 +718,7 @@ def clean_cards(
                 "set_name": set_info.get("name") or set_info.get("id"),
                 "market_price": market_price,
                 "tcgplayer_id": extract_tcgplayer_product_id(card),
+                "finishes": finishes,
                 "image_url": image_url,
             }
         )

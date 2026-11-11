@@ -198,6 +198,8 @@ class CatalogCard(BaseModel):
     name: str
     set_name: str | None = None
     rarity: str | None = None
+    finishes: list[str] = Field(default_factory=list)
+    finishes_source: str | None = None
     supertype: str | None = None
     price: float | None = None
     market_price: float | None = None

@@ -67,6 +67,7 @@ export function CardDetailView({
     day_change_pct: detail.history?.day_change_pct ?? fromPoints.day_change_pct,
     points: detail.history?.points || fromPoints.points,
   };
+  const finishes = (card.finishes || []).filter(Boolean);
   const meta = [card.set_name, card.rarity, card.id].filter(Boolean).join(" · ");
   const image = resolveCardImageUrl(card.id, card.image_url);
   const dayChange = history.day_change_pct;
@@ -147,6 +148,11 @@ export function CardDetailView({
             <div className="detail-hero-copy">
               <h1 className="detail-name">{card.name}</h1>
               <p className="detail-meta">{meta}</p>
+              {finishes.length > 0 ? (
+                <p className="detail-finishes" title={t("detail_finishes_hint")}>
+                  {t("detail_finishes", { finishes: finishes.join(" · ") })}
+                </p>
+              ) : null}
               <div className="detail-price">
                 {formatSpot(history.last_price ?? card.price, 2)}
               </div>

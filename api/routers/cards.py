@@ -40,6 +40,65 @@ def _pred_band(row) -> tuple[float | None, float | None]:
     return pred_lo_f, pred_hi_f
 
 
+def _enrich_finishes(card: CatalogCard) -> CatalogCard:
+    """Attach Normal / Holofoil / Reverse Holofoil labels for the detail hero."""
+    from services.card_finishes import (
+        extract_finishes_from_tcgplayer,
+        finishes_blob,
+        resolve_finishes,
+    )
+
+    stored = None
+    rarity = card.rarity
+    update_card_finishes = None
+    try:
+        from database import get_card, update_card_finishes as _update_finishes
+
+        update_card_finishes = _update_finishes
+        db_card = get_card(str(card.id))
+        if db_card is not None:
+            stored = getattr(db_card, "finishes", None)
+            rarity = rarity or getattr(db_card, "rarity", None)
+    except Exception:
+        pass
+
+    # Prefer stored inventory; otherwise live TCGPlayer keys; rarity is last-resort hint.
+    finishes = resolve_finishes(stored=stored)
+    if finishes:
+        source: str | None = "catalog"
+    else:
+        pokemon_card = None
+        try:
+            from pokemon_tcg_client import fetch_pokemon_card
+
+            pokemon_card = fetch_pokemon_card(str(card.id), quiet=True)
+        except Exception:
+            pokemon_card = None
+        live = extract_finishes_from_tcgplayer(pokemon_card)
+        finishes = resolve_finishes(
+            stored=None, rarity=rarity, pokemon_card=pokemon_card
+        )
+        if live:
+            source = "tcgplayer"
+            blob = finishes_blob(live)
+            if blob and update_card_finishes is not None:
+                try:
+                    update_card_finishes(str(card.id), blob)
+                except Exception:
+                    pass
+        elif finishes:
+            source = "rarity"
+        else:
+            source = None
+
+    payload = card.model_dump()
+    payload["finishes"] = finishes
+    payload["finishes_source"] = source if finishes else None
+    if rarity and not payload.get("rarity"):
+        payload["rarity"] = rarity
+    return CatalogCard(**payload)
+
+
 @router.get("/{card_id}", response_model=CardDetailResponse)
 def card_detail(card_id: str) -> CardDetailResponse:
     board, source = load_board()
@@ -49,7 +108,7 @@ def card_detail(card_id: str) -> CardDetailResponse:
     if hits.empty:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found.")
     row = hits.iloc[0]
-    card = CatalogCard(**row_to_card(row))
+    card = _enrich_finishes(CatalogCard(**row_to_card(row)))
     pred_lo_f, pred_hi_f = _pred_band(row)
     points = load_card_history(card_id, limit=180)
     stats = history_stats(points)

@@ -81,6 +81,7 @@ class Card:
     market_price: float | None = None
     pokewallet_id: str | None = None
     tcgplayer_id: str | None = None
+    finishes: str | None = None
     image_url: str | None = None
 
 
@@ -466,6 +467,7 @@ def _as_iso_date(value: Any) -> str:
 
 def _card_from_row(row: dict[str, Any]) -> Card:
     price = row.get("market_price")
+    finishes = row.get("finishes")
     return Card(
         id=str(row["id"]),
         name=row.get("name"),
@@ -475,6 +477,7 @@ def _card_from_row(row: dict[str, Any]) -> Card:
         market_price=float(price) if price is not None else None,
         pokewallet_id=row.get("pokewallet_id"),
         tcgplayer_id=row.get("tcgplayer_id"),
+        finishes=str(finishes).strip() if finishes else None,
         image_url=row.get("image_url"),
     )
 

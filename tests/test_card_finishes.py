@@ -1,0 +1,160 @@
+"""TCGPlayer finish labels for Soft Ink card descriptions."""
+
+from __future__ import annotations
+
+from services.card_finishes import (
+    extract_finishes_from_tcgplayer,
+    finishes_from_rarity,
+    parse_finishes_blob,
+    resolve_finishes,
+)
+from pokemon_tcg_client import clean_cards
+
+
+def test_extract_finishes_from_tcgplayer_prices() -> None:
+    card = {
+        "tcgplayer": {
+            "prices": {
+                "normal": {"market": 1.0},
+                "reverseHolofoil": {"market": 2.0},
+                "holofoil": {"market": 5.0},
+            }
+        }
+    }
+    assert extract_finishes_from_tcgplayer(card) == [
+        "Normal",
+        "Holofoil",
+        "Reverse Holofoil",
+    ]
+
+
+def test_finishes_from_rarity_hint() -> None:
+    assert finishes_from_rarity("Rare Holo") == ["Holofoil"]
+    assert finishes_from_rarity("Rare Reverse Holo") == ["Reverse Holofoil"]
+    assert finishes_from_rarity("Common") == []
+
+
+def test_resolve_prefers_stored_then_live_then_rarity() -> None:
+    assert resolve_finishes(stored="Holofoil, Normal") == ["Normal", "Holofoil"]
+    live = {
+        "tcgplayer": {"prices": {"reverseHolofoil": {"market": 1.2}}},
+    }
+    assert resolve_finishes(pokemon_card=live) == ["Reverse Holofoil"]
+    assert resolve_finishes(rarity="Rare Holo") == ["Holofoil"]
+
+
+def test_parse_finishes_blob_accepts_lot_aliases() -> None:
+    assert parse_finishes_blob("Reverse, Holo") == ["Holofoil", "Reverse Holofoil"]
+
+
+def test_clean_cards_includes_finishes() -> None:
+    raw = [
+        {
+            "id": "sv1-1",
+            "name": "Sprigatito",
+            "supertype": "Pokémon",
+            "rarity": "Common",
+            "set": {"id": "sv1", "name": "Scarlet & Violet"},
+            "images": {"small": "https://example.com/x.png"},
+            "tcgplayer": {
+                "prices": {
+                    "normal": {"market": 0.2},
+                    "reverseHolofoil": {"market": 0.5},
+                }
+            },
+        }
+    ]
+    out = clean_cards(raw, min_price=None)
+    assert out[0]["finishes"] == "Normal, Reverse Holofoil"
+
+
+def test_card_detail_enrich_finishes(monkeypatch) -> None:
+    import pandas as pd
+    from fastapi.testclient import TestClient
+
+    from api.catalog_service import clear_board_cache
+    from api.main import app
+
+    clear_board_cache()
+    board = pd.DataFrame(
+        [
+            {
+                "id": "sv1-1",
+                "name": "Sprigatito",
+                "set_name": "Scarlet & Violet",
+                "rarity": "Common",
+                "price": 0.25,
+                "market_price": 0.25,
+                "predicted_price": 0.3,
+                "expected_change_pct": 5.0,
+                "signal": "HOLD",
+                "confidence_ok": True,
+                "conformal_ok": True,
+                "history_points": 30,
+                "image_url": "https://example.com/x.png",
+            }
+        ]
+    )
+    monkeypatch.setattr(
+        "api.routers.cards.load_board",
+        lambda: (board, "demo"),
+    )
+    monkeypatch.setattr(
+        "api.routers.cards.load_card_history",
+        lambda *_a, **_k: [],
+    )
+    monkeypatch.setattr(
+        "api.routers.cards.history_stats",
+        lambda *_a, **_k: {
+            "points": 0,
+            "min_price": None,
+            "max_price": None,
+            "last_price": 0.25,
+            "previous_price": None,
+            "day_change_pct": None,
+            "first_date": None,
+            "last_date": None,
+        },
+    )
+    monkeypatch.setattr(
+        "api.routers.cards.build_card_explain",
+        lambda **_k: {
+            "confidence_level": "med",
+            "confidence_ok": True,
+            "confidence_reason": "ok",
+            "hold_band_pct": 3.0,
+            "horizon_days": 7,
+            "rows": [],
+        },
+    )
+    monkeypatch.setattr(
+        "database.get_card",
+        lambda *_a, **_k: None,
+    )
+    monkeypatch.setattr(
+        "pokemon_tcg_client.fetch_pokemon_card",
+        lambda *_a, **_k: {
+            "tcgplayer": {
+                "prices": {
+                    "normal": {"market": 0.2},
+                    "holofoil": {"market": 1.0},
+                    "reverseHolofoil": {"market": 0.4},
+                }
+            }
+        },
+    )
+    monkeypatch.setattr(
+        "database.update_card_finishes",
+        lambda *_a, **_k: False,
+    )
+
+    client = TestClient(app)
+    res = client.get("/api/cards/sv1-1")
+    assert res.status_code == 200
+    body = res.json()
+    assert body["card"]["finishes"] == [
+        "Normal",
+        "Holofoil",
+        "Reverse Holofoil",
+    ]
+    assert body["card"]["finishes_source"] == "tcgplayer"
