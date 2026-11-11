@@ -1998,10 +1998,18 @@ a {
 }
 
 .detail-meta {
-  margin: 0.4rem 0 0.85rem;
+  margin: 0.4rem 0 0.35rem;
   color: var(--muted);
   font-size: 0.86rem;
   line-height: 1.4;
+}
+
+.detail-finishes {
+  margin: 0 0 0.85rem;
+  color: var(--ink);
+  font-size: 0.9rem;
+  line-height: 1.35;
+  font-weight: 600;
 }
 
 .detail-price {

@@ -667,6 +667,9 @@ const en = {
   detail_range_min: "Range min",
   detail_range_max: "Range max",
   detail_points: "Points",
+  detail_finishes: "Finish · {finishes}",
+  detail_finishes_hint:
+    "Printings this card has on TCGPlayer. Board spot is one NM lane — pick Normal / Reverse / Holo when you log a lot.",
   detail_spot_source: "Spot · US market board (not Cardmarket EUR)",
   detail_spot_source_asof:
     "Spot · US market board · as of {date} (not Cardmarket EUR)",
@@ -1566,6 +1569,9 @@ const hr: Dictionary = {
   detail_range_min: "Raspon min",
   detail_range_max: "Raspon max",
   detail_points: "Točke",
+  detail_finishes: "Finish · {finishes}",
+  detail_finishes_hint:
+    "Printinzi koje ova karta ima na TCGPlayeru. Board spot je jedan NM lane — pri lotu biraj Normal / Reverse / Holo.",
   detail_spot_source: "Spot · US market board (ne Cardmarket EUR)",
   detail_spot_source_asof:
     "Spot · US market board · as of {date} (ne Cardmarket EUR)",

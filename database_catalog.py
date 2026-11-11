@@ -29,9 +29,15 @@ SCHEMA_SQL = (Path(__file__).resolve().parent / "supabase_schema.sql").read_text
 
 # PostgREST schema cache: None = još nije provjereno.
 _TCGPLAYER_ID_COLUMN: bool | None = None
+_FINISHES_COLUMN: bool | None = None
 
 TCGPLAYER_ID_MIGRATE_SQL = (
     "alter table public.cards add column if not exists tcgplayer_id text;\n"
+    "notify pgrst, 'reload schema';"
+)
+
+FINISHES_MIGRATE_SQL = (
+    "alter table public.cards add column if not exists finishes text;\n"
     "notify pgrst, 'reload schema';"
 )
 
@@ -326,11 +332,51 @@ def cards_have_tcgplayer_id_column(*, force: bool = False) -> bool:
     return bool(_TCGPLAYER_ID_COLUMN)
 
 
+def cards_have_finishes_column(*, force: bool = False) -> bool:
+    """True ako PostgREST vidi cards.finishes (nakon ALTER + reload cache)."""
+    global _FINISHES_COLUMN
+    if not force and _FINISHES_COLUMN is True:
+        return True
+    client = get_supabase()
+    try:
+        client.table("cards").select("finishes").limit(1).execute()
+        _FINISHES_COLUMN = True
+    except Exception as exc:
+        text = str(exc).lower()
+        if "finishes" in text or "pgrst204" in text or "42703" in text:
+            _FINISHES_COLUMN = False
+            print(
+                "Note: cards.finishes is missing in Supabase.\n"
+                "Run in SQL Editor:\n"
+                f"{FINISHES_MIGRATE_SQL}"
+            )
+        else:
+            raise
+    return bool(_FINISHES_COLUMN)
+
+
+def update_card_finishes(card_id: str, finishes: str | None) -> bool:
+    """Best-effort write of finishes blob when the column exists."""
+    if not cards_have_finishes_column():
+        return False
+    blob = str(finishes or "").strip() or None
+    if not blob:
+        return False
+    try:
+        client = get_supabase()
+        client.table("cards").update({"finishes": blob}).eq("id", str(card_id)).execute()
+        return True
+    except Exception as exc:
+        LOG.warning("update_card_finishes(%s) failed: %s", card_id, exc)
+        return False
+
+
 def upsert_cards(cards: list[dict[str, Any]]) -> int:
     if not cards:
         return 0
     client = get_supabase()
     include_tcp = cards_have_tcgplayer_id_column()
+    include_finishes = cards_have_finishes_column()
     payload = []
     for card in cards:
         row: dict[str, Any] = {
@@ -345,6 +391,8 @@ def upsert_cards(cards: list[dict[str, Any]]) -> int:
         }
         if include_tcp and card.get("tcgplayer_id"):
             row["tcgplayer_id"] = card.get("tcgplayer_id")
+        if include_finishes and card.get("finishes"):
+            row["finishes"] = card.get("finishes")
         payload.append(row)
     for batch in _chunked(payload):
         client.table("cards").upsert(batch, on_conflict="id").execute()

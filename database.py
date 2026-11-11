@@ -9,6 +9,7 @@ from __future__ import annotations
 from config import _secret
 
 from database_catalog import (
+    FINISHES_MIGRATE_SQL,
     TCGPLAYER_ID_MIGRATE_SQL,
     _TCGPLAYER_ID_COLUMN,
     _apply_schema_via_postgres,
@@ -16,6 +17,7 @@ from database_catalog import (
     _fetch_price_history_rows,
     _verify_tables,
     card_counts_by_set_id,
+    cards_have_finishes_column,
     cards_have_tcgplayer_id_column,
     cards_summary,
     clear_card_market_price,
@@ -36,6 +38,7 @@ from database_catalog import (
     load_cards_frame,
     load_history_frame,
     replace_card_history,
+    update_card_finishes,
     update_card_market_price,
     update_card_pokewallet_id,
     update_card_tcgplayer_id,
@@ -81,6 +84,7 @@ from database_user import (
 __all__ = [
     "PAGE",
     "Card",
+    "FINISHES_MIGRATE_SQL",
     "TCGPLAYER_ID_MIGRATE_SQL",
     "_TCGPLAYER_ID_COLUMN",
     "_apply_schema_via_postgres",
@@ -98,6 +102,7 @@ __all__ = [
     "add_portfolio_position",
     "add_watchlist_card",
     "card_counts_by_set_id",
+    "cards_have_finishes_column",
     "cards_have_tcgplayer_id_column",
     "cards_summary",
     "clear_card_market_price",
@@ -138,6 +143,7 @@ __all__ = [
     "sell_portfolio_position",
     "table_count",
     "table_has_rows",
+    "update_card_finishes",
     "update_card_market_price",
     "update_card_pokewallet_id",
     "update_card_tcgplayer_id",

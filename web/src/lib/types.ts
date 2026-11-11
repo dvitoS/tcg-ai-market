@@ -3,6 +3,8 @@ export type CatalogCard = {
   name: string;
   set_name?: string | null;
   rarity?: string | null;
+  finishes?: string[];
+  finishes_source?: string | null;
   supertype?: string | null;
   price?: number | null;
   market_price?: number | null;
