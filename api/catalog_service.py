@@ -332,12 +332,18 @@ def row_to_card(row: pd.Series | dict[str, Any]) -> dict[str, Any]:
         text = str(val).strip()
         return text or None
 
+    # Soft Ink foil tilt needs finishes on board/radar rows (stored → rarity hint).
+    from services.card_finishes import resolve_finishes
+
     card_id = str(get("id") or get("card_id") or "")
+    rarity = _s("rarity")
+    finishes = resolve_finishes(stored=get("finishes"), rarity=rarity)
     return {
         "id": card_id,
         "name": str(get("name") or ""),
         "set_name": _s("set_name"),
-        "rarity": _s("rarity"),
+        "rarity": rarity,
+        "finishes": finishes,
         "supertype": _s("supertype"),
         "price": _f("price"),
         "market_price": _f("market_price"),
