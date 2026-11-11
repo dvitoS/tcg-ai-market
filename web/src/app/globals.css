@@ -1661,10 +1661,51 @@ a {
   line-height: 1.05;
 }
 
+.sealed-detail-lot-inline {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-end;
+  gap: 0.4rem;
+  margin-top: 0.2rem;
+  max-width: 100%;
+}
+
+.sealed-detail-lot-field {
+  display: grid;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.sealed-detail-lot-field span {
+  color: var(--sealed-muted);
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sealed-detail-lot-field input {
+  width: 3.1rem;
+  box-sizing: border-box;
+  padding: 0.28rem 0.35rem;
+  border: 1px solid rgba(232, 197, 106, 0.28);
+  border-radius: 4px;
+  background: rgba(8, 10, 16, 0.72);
+  color: var(--sealed-ink);
+  font: inherit;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  color-scheme: dark;
+}
+
+.sealed-detail-lot-cost input {
+  width: 4.6rem;
+}
+
 .sealed-detail-add-btn {
   flex: 0 0 auto;
-  margin-top: 0.15rem;
-  padding: 0.35rem 0.7rem;
+  align-self: flex-end;
+  padding: 0.32rem 0.65rem;
   border: 1px solid rgba(232, 197, 106, 0.45);
   border-radius: 4px;
   background: rgba(232, 197, 106, 0.12);
@@ -1689,8 +1730,15 @@ a {
   cursor: wait;
 }
 
-.sealed-detail-dock {
-  margin-top: 1rem;
+@media (max-width: 560px) {
+  .sealed-detail-title-row {
+    flex-wrap: wrap;
+  }
+
+  .sealed-detail-lot-inline {
+    width: 100%;
+    justify-content: flex-start;
+  }
 }
 
 /* Hit tiles are links — use normal pointer, not holo crosshair (+). */
