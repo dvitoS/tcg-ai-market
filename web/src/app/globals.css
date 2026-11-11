@@ -5405,6 +5405,7 @@ a {
   background: rgba(8, 7, 6, 0.55);
   min-width: 0;
   overflow: hidden;
+  cursor: help;
 }
 
 .landing-pulse-stats dt {

@@ -206,21 +206,21 @@ export function MarketPulse({
       ) : null}
 
       <dl className="landing-pulse-stats">
-        <div>
+        <div title={t("landing_pulse_sure_under_tip")}>
           <dt>{t("landing_pulse_sure_under")}</dt>
           <dd className="is-buy landing-pulse-stat-num">{pulse.sure_under}</dd>
         </div>
-        <div>
+        <div title={t("landing_pulse_sure_over_tip")}>
           <dt>{t("landing_pulse_sure_over")}</dt>
           <dd className="is-sell landing-pulse-stat-num">{pulse.sure_over}</dd>
         </div>
-        <div>
+        <div title={t("landing_pulse_median_7d_tip")}>
           <dt>{t("landing_pulse_median_7d")}</dt>
           <dd className={`${medianTone} landing-pulse-stat-num`}>
             {formatChange(pulse.median_change_7d_pct)}
           </dd>
         </div>
-        <div>
+        <div title={t("landing_pulse_breadth_tip")}>
           <dt>{t("landing_pulse_breadth")}</dt>
           <dd className="landing-pulse-stat-num landing-pulse-breadth">
             <span className="is-buy landing-pulse-breadth-main">

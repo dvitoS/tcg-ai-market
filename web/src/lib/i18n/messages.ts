@@ -169,9 +169,17 @@ const en = {
   landing_pulse_story_mixed:
     "Mixed market — {under} cheaper than fair · {over} richer than fair. Price vs fair value still matters.",
   landing_pulse_sure_under: "Cheaper than fair",
+  landing_pulse_sure_under_tip:
+    "How many cards look clearly cheaper than Kestrel’s fair value — stronger buy candidates.",
   landing_pulse_sure_over: "Richer than fair",
+  landing_pulse_sure_over_tip:
+    "How many cards look clearly more expensive than fair value — lean pass or sell.",
   landing_pulse_median_7d: "Typical week",
+  landing_pulse_median_7d_tip:
+    "The middle week-over-week price change across the board — half of cards moved more, half less.",
   landing_pulse_breadth: "Up · flat · down",
+  landing_pulse_breadth_tip:
+    "Count of cards that rose, barely moved, or fell over the past week (tiny moves count as flat).",
   landing_trends_rising: "Rising · past week",
   landing_trends_falling: "Falling · past week",
   landing_pulse_browse: "Browse cards →",
@@ -1116,9 +1124,17 @@ const hr: Dictionary = {
   landing_pulse_story_mixed:
     "Miješano tržište — {under} jeftinije od fair · {over} skuplje od fair. Cijena vs fair i dalje bitna.",
   landing_pulse_sure_under: "Jeftinije od fair",
+  landing_pulse_sure_under_tip:
+    "Koliko karti izgleda jasno jeftinije od Kestrelove fair vrijednosti — jači kandidati za kupnju.",
   landing_pulse_sure_over: "Skuplje od fair",
+  landing_pulse_sure_over_tip:
+    "Koliko karti izgleda jasno skuplje od fair vrijednosti — nagib passu ili prodaji.",
   landing_pulse_median_7d: "Tipičan tjedan",
+  landing_pulse_median_7d_tip:
+    "Srednji tjedni pomak cijene na boardu — pola karti se pomaknulo više, pola manje.",
   landing_pulse_breadth: "Gore · mirno · dolje",
+  landing_pulse_breadth_tip:
+    "Broj karti koje su porasle, jedva se pomaknule ili pale u zadnjih tjedan dana (mali pomaci = mirno).",
   landing_trends_rising: "Raste · prošli tjedan",
   landing_trends_falling: "Pada · prošli tjedan",
   landing_pulse_browse: "Pregledaj karte →",
