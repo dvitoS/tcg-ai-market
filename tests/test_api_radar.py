@@ -68,19 +68,32 @@ def test_radar_bootstrap_locked_skips_board() -> None:
 
 
 def test_radar_preview_public_under_only() -> None:
+    from services.spot_sanity import RADAR_MAX_UNDER_EDGE_PCT, RADAR_MIN_UNDER_SPOT
+
     client = TestClient(app)
     res = client.get("/api/radar/preview", params={"limit": 5})
     assert res.status_code == 200
     body = res.json()
     assert "underpriced" in body
     assert "overpriced" not in body
+    assert "relaxed" in body
     assert len(body["underpriced"]) <= 5
+    edge_cap = (
+        RADAR_MAX_UNDER_EDGE_PCT
+        if body.get("relaxed")
+        else SHARE_SAFE_MAX_UNDER_EDGE_PCT
+    )
+    spot_floor = (
+        RADAR_MIN_UNDER_SPOT if body.get("relaxed") else SHARE_SAFE_MIN_UNDER_SPOT
+    )
     for row in body["underpriced"]:
         assert row["side"] == "UNDER"
         assert float(row["edge_pct"]) > 0
-        assert float(row["edge_pct"]) <= SHARE_SAFE_MAX_UNDER_EDGE_PCT
+        assert float(row["edge_pct"]) <= edge_cap
         spot = row.get("spot") if row.get("spot") is not None else row.get("price")
-        assert float(spot) >= SHARE_SAFE_MIN_UNDER_SPOT
+        assert float(spot) >= spot_floor
+        if body.get("relaxed"):
+            continue
         rarity = str(row.get("rarity") or "").lower()
         set_name = str(row.get("set_name") or "").lower()
         assert "promo" not in rarity
@@ -99,6 +112,48 @@ def test_radar_preview_deal_of_day_limit_one() -> None:
         assert top["side"] == "UNDER"
         assert top.get("image_url") is not None or top.get("name")
         assert float(top["edge_pct"]) > 0
+
+
+def test_radar_preview_falls_back_when_share_safe_empty(monkeypatch) -> None:
+    from api.routers import radar as radar_router
+
+    calls: list[bool] = []
+
+    def _fake_build(*, min_edge=0, limit=5, share_safe=True, **_k):
+        calls.append(bool(share_safe))
+        if share_safe:
+            return {
+                "forecast_days": 7,
+                "under_total": 0,
+                "underpriced": [],
+                "source": "supabase",
+            }
+        return {
+            "forecast_days": 7,
+            "under_total": 1,
+            "underpriced": [
+                {
+                    "id": "sv1-1",
+                    "name": "Sprigatito",
+                    "side": "UNDER",
+                    "edge_pct": 12.0,
+                    "spot": 4.0,
+                    "price": 4.0,
+                    "image_url": "https://example.com/x.png",
+                }
+            ],
+            "source": "supabase",
+        }
+
+    monkeypatch.setattr(radar_router, "build_radar", _fake_build)
+    client = TestClient(app)
+    res = client.get("/api/radar/preview", params={"limit": 5})
+    assert res.status_code == 200
+    body = res.json()
+    assert calls == [True, False]
+    assert body["relaxed"] is True
+    assert len(body["underpriced"]) == 1
+    assert body["underpriced"][0]["id"] == "sv1-1"
 
 
 def test_radar_board_returns_sides() -> None:

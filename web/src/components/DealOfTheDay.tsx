@@ -89,11 +89,15 @@ export function DealOfTheDay({
   const capped = Math.max(1, Math.min(8, Math.floor(limit) || 1));
 
   useEffect(() => {
-    // Trust SSR payload for the free teaser; only client-fetch when missing.
-    if (initialPreview) return;
+    // Trust SSR when it already has UNDER rows; refetch when missing/empty.
+    if ((initialPreview?.underpriced || []).length > 0) {
+      setPreview(initialPreview);
+      setLoading(false);
+      return;
+    }
     let alive = true;
     setLoading(true);
-    void fetchRadarPreview(capped)
+    void fetchRadarPreview(capped, { cache: "no-store" })
       .then((payload) => {
         if (!alive) return;
         setPreview(payload);
@@ -101,7 +105,7 @@ export function DealOfTheDay({
       })
       .catch((err) => {
         if (!alive) return;
-        setPreview(null);
+        setPreview(initialPreview);
         setError(
           err instanceof Error
             ? err.message

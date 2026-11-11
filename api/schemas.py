@@ -668,6 +668,8 @@ class RadarPreviewResponse(BaseModel):
     under_total: int = 0
     underpriced: list[RadarCard] = Field(default_factory=list)
     source: Literal["supabase", "demo", "empty"] = "empty"
+    # True when share-safe desk was empty and we fell back to sure UNDER.
+    relaxed: bool = False
 
 
 class TradeLineIn(BaseModel):

@@ -368,6 +368,8 @@ export type RadarPreviewResponse = {
   under_total: number;
   underpriced: RadarCard[];
   source: "supabase" | "demo" | "empty";
+  /** True when share-safe desk was empty and preview fell back to sure UNDER. */
+  relaxed?: boolean;
 };
 
 export type MarketMover = {
