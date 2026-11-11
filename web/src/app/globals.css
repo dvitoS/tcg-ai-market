@@ -6382,6 +6382,64 @@ a {
   overflow: hidden;
 }
 
+.identify-viewport.is-live {
+  cursor: crosshair;
+  touch-action: manipulation;
+}
+
+.identify-focus-hint {
+  position: absolute;
+  left: 50%;
+  top: 0.75rem;
+  z-index: 2;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid rgba(192, 122, 58, 0.4);
+  background: rgba(12, 10, 8, 0.72);
+  color: var(--accent-2);
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.identify-focus-ring {
+  position: absolute;
+  z-index: 3;
+  width: 3.2rem;
+  height: 3.2rem;
+  margin: -1.6rem 0 0 -1.6rem;
+  border: 2px solid var(--accent-2);
+  border-radius: 6px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  animation: identify-focus-pulse 0.85s ease-out forwards;
+}
+
+@keyframes identify-focus-pulse {
+  0% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .identify-focus-ring {
+    animation: none;
+    opacity: 0.85;
+  }
+}
+
 .identify-video,
 .identify-preview {
   display: block;
