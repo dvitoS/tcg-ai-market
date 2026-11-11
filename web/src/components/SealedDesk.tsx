@@ -40,7 +40,7 @@ export function SealedDesk() {
         try {
           const payload = await fetchSealedQuote({
             q: q || undefined,
-            limit: 12,
+            limit: 48,
           });
           setItems(payload.items);
           setSource(payload.source);
@@ -154,36 +154,74 @@ export function SealedDesk() {
         <p className="empty-state">{t("sealed_empty")}</p>
       ) : (
         <div className={`explore-grid sealed-desk-grid ${pending ? "is-pending" : ""}`}>
-          {items.map((hit) => (
-            <button
-              key={hit.card_id}
-              type="button"
-              className={`sealed-desk-card ${selected?.card_id === hit.card_id ? "is-selected" : ""}`}
-              onClick={() => pick(hit)}
-            >
-              <div className="sealed-desk-art">
-                <Image
-                  src={hit.image_url || "/kestrel-logo.png"}
-                  alt={hit.name}
-                  width={245}
-                  height={245}
-                  className="sealed-desk-img"
-                  sizes="(max-width: 640px) 45vw, 180px"
-                />
-                <div className="explore-card-readout">
-                  <span className="explore-card-price">
-                    {formatSpot(hit.spot_usd)}
-                  </span>
-                </div>
+          {items.map((hit) => {
+            const detailHref = hit.tcgplayer_id
+              ? `/sealed/${encodeURIComponent(hit.tcgplayer_id)}`
+              : null;
+            return (
+              <div
+                key={hit.card_id}
+                className={`sealed-desk-card ${selected?.card_id === hit.card_id ? "is-selected" : ""}`}
+              >
+                {detailHref ? (
+                  <Link href={detailHref} className="sealed-desk-card-link">
+                    <div className="sealed-desk-art">
+                      <Image
+                        src={hit.image_url || "/kestrel-logo.png"}
+                        alt={hit.name}
+                        width={245}
+                        height={245}
+                        className="sealed-desk-img"
+                        sizes="(max-width: 640px) 45vw, 180px"
+                      />
+                      <div className="explore-card-readout">
+                        <span className="explore-card-price">
+                          {formatSpot(hit.spot_usd)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="explore-card-copy">
+                      <div className="explore-card-name">{hit.name}</div>
+                      <div className="explore-card-meta">
+                        {[hit.set_name, hit.tcgplayer_id].filter(Boolean).join(" · ")}
+                      </div>
+                    </div>
+                  </Link>
+                ) : (
+                  <button type="button" className="sealed-desk-card-link" onClick={() => pick(hit)}>
+                    <div className="sealed-desk-art">
+                      <Image
+                        src={hit.image_url || "/kestrel-logo.png"}
+                        alt={hit.name}
+                        width={245}
+                        height={245}
+                        className="sealed-desk-img"
+                        sizes="(max-width: 640px) 45vw, 180px"
+                      />
+                      <div className="explore-card-readout">
+                        <span className="explore-card-price">
+                          {formatSpot(hit.spot_usd)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="explore-card-copy">
+                      <div className="explore-card-name">{hit.name}</div>
+                      <div className="explore-card-meta">
+                        {[hit.set_name, hit.tcgplayer_id].filter(Boolean).join(" · ")}
+                      </div>
+                    </div>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="sealed-desk-add-chip"
+                  onClick={() => pick(hit)}
+                >
+                  {t("sealed_desk_add_lot")}
+                </button>
               </div>
-              <div className="explore-card-copy">
-                <div className="explore-card-name">{hit.name}</div>
-                <div className="explore-card-meta">
-                  {[hit.set_name, hit.tcgplayer_id].filter(Boolean).join(" · ")}
-                </div>
-              </div>
-            </button>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -194,6 +232,14 @@ export function SealedDesk() {
             <p className="lot-meta">
               {t("sealed_selected", { name: selected.name })} ·{" "}
               {formatSpot(selected.spot_usd)}
+              {selected.tcgplayer_id ? (
+                <>
+                  {" · "}
+                  <Link href={`/sealed/${encodeURIComponent(selected.tcgplayer_id)}`}>
+                    {t("sealed_desk_open_detail")}
+                  </Link>
+                </>
+              ) : null}
             </p>
           </div>
           {user ? (
