@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 
 import { AddLotForm } from "@/components/AddLotForm";
@@ -8,13 +7,15 @@ import { useCurrency } from "@/components/CurrencyProvider";
 import { DeferredMount } from "@/components/DeferredMount";
 import { EbayComps } from "@/components/EbayComps";
 import { GradingEvPanel } from "@/components/GradingEvPanel";
+import { HoloCardArt } from "@/components/HoloCardArt";
 import { useLocale } from "@/components/LocaleProvider";
 import { PriceChart } from "@/components/PriceChart";
 import { WatchToggle } from "@/components/WatchToggle";
 import { WrongSpotReport } from "@/components/WrongSpotReport";
 import { formatChange } from "@/lib/api";
-import { onCardImageError, resolveCardImageUrl } from "@/lib/cardImage";
+import { resolveCardImageUrl } from "@/lib/cardImage";
 import { cardmarketSearchUrl } from "@/lib/cardmarket";
+import { foilModeFromFinishes } from "@/lib/foilMode";
 import { decisionOneLiner, signalLabel } from "@/lib/i18n/messages";
 import type { CardDetailResponse, HistoryPoint } from "@/lib/types";
 
@@ -68,6 +69,7 @@ export function CardDetailView({
     points: detail.history?.points || fromPoints.points,
   };
   const finishes = (card.finishes || []).filter(Boolean);
+  const foil = foilModeFromFinishes(finishes);
   const meta = [card.set_name, card.rarity, card.id].filter(Boolean).join(" · ");
   const image = resolveCardImageUrl(card.id, card.image_url);
   const dayChange = history.day_change_pct;
@@ -100,16 +102,12 @@ export function CardDetailView({
           <section className="detail-hero-card">
             <div className="detail-hero-left">
               <div className="detail-hero-art">
-                <Image
-                  src={image}
-                  alt={card.name}
-                  width={420}
-                  height={586}
+                <HoloCardArt
+                  cardId={card.id}
+                  name={card.name}
+                  image={image}
+                  foil={foil}
                   priority
-                  className="detail-hero-img"
-                  sizes="(max-width: 720px) 55vw, 200px"
-                  style={{ width: "100%", height: "auto" }}
-                  onError={(event) => onCardImageError(event, card.id)}
                 />
               </div>
               <aside className="detail-hero-under" aria-label={t("detail_ai_under_title")}>
@@ -152,6 +150,11 @@ export function CardDetailView({
                 <p className="detail-finishes" title={t("detail_finishes_hint")}>
                   {t("detail_finishes", { finishes: finishes.join(" · ") })}
                 </p>
+              ) : null}
+              {foil === "holo" ? (
+                <p className="detail-foil-tip">{t("detail_foil_holo")}</p>
+              ) : foil === "reverse" ? (
+                <p className="detail-foil-tip">{t("detail_foil_reverse")}</p>
               ) : null}
               <div className="detail-price">
                 {formatSpot(history.last_price ?? card.price, 2)}

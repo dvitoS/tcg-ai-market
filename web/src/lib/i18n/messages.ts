@@ -669,7 +669,9 @@ const en = {
   detail_points: "Points",
   detail_finishes: "Finish · {finishes}",
   detail_finishes_hint:
-    "Every TCGPlayer printing for this card (Normal, Holofoil, Reverse, 1st Edition, Unlimited, Cosmos, …). Board spot is one NM lane — pick finish when you log a lot.",
+    "Every TCGPlayer printing for this card (Normal, Holofoil, Reverse, 1st Edition, Unlimited, Cosmos, …). Board spot is one NM lane — pick finish when you log a lot. Drag the art for Soft Ink foil tilt when Holofoil / Reverse apply.",
+  detail_foil_holo: "Art holofoil tilt — move pointer over the card",
+  detail_foil_reverse: "Reverse holofoil tilt — move pointer over the card",
   detail_spot_source: "Spot · US market board (not Cardmarket EUR)",
   detail_spot_source_asof:
     "Spot · US market board · as of {date} (not Cardmarket EUR)",
@@ -1571,7 +1573,9 @@ const hr: Dictionary = {
   detail_points: "Točke",
   detail_finishes: "Finish · {finishes}",
   detail_finishes_hint:
-    "Svi TCGPlayer printinzi za ovu kartu (Normal, Holofoil, Reverse, 1st Edition, Unlimited, Cosmos, …). Board spot je jedan NM lane — finish biraš pri lotu.",
+    "Svi TCGPlayer printinzi za ovu kartu (Normal, Holofoil, Reverse, 1st Edition, Unlimited, Cosmos, …). Board spot je jedan NM lane — finish biraš pri lotu. Povuci art za Soft Ink foil tilt kad ima Holofoil / Reverse.",
+  detail_foil_holo: "Art holofoil tilt — pomakni pointer preko karte",
+  detail_foil_reverse: "Reverse holofoil tilt — pomakni pointer preko karte",
   detail_spot_source: "Spot · US market board (ne Cardmarket EUR)",
   detail_spot_source_asof:
     "Spot · US market board · as of {date} (ne Cardmarket EUR)",
