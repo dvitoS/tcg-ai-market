@@ -41,20 +41,19 @@ def _pred_band(row) -> tuple[float | None, float | None]:
 
 
 def _enrich_finishes(card: CatalogCard) -> CatalogCard:
-    """Attach Normal / Holofoil / Reverse Holofoil labels for the detail hero."""
-    from services.card_finishes import (
-        extract_finishes_from_tcgplayer,
-        finishes_blob,
-        resolve_finishes,
-    )
+    """Attach finish labels for Soft Ink foil — never block on live pokemontcg.io.
+
+    Live TCGPlayer enrichment used ``fetch_pokemon_card`` with up to ~90s rate-limit
+    sleeps; that made card detail feel hung after Browse clicks. Prefer catalog /
+    rarity hints only on the request path.
+    """
+    from services.card_finishes import parse_finishes_blob, resolve_finishes
 
     stored = None
     rarity = card.rarity
-    update_card_finishes = None
     try:
-        from database import get_card, update_card_finishes as _update_finishes
+        from database import get_card
 
-        update_card_finishes = _update_finishes
         db_card = get_card(str(card.id))
         if db_card is not None:
             stored = getattr(db_card, "finishes", None)
@@ -62,34 +61,13 @@ def _enrich_finishes(card: CatalogCard) -> CatalogCard:
     except Exception:
         pass
 
-    # Prefer stored inventory; otherwise live TCGPlayer keys; rarity is last-resort hint.
-    finishes = resolve_finishes(stored=stored)
-    if finishes:
+    finishes = resolve_finishes(stored=stored, rarity=rarity)
+    if parse_finishes_blob(stored):
         source: str | None = "catalog"
+    elif finishes:
+        source = "rarity"
     else:
-        pokemon_card = None
-        try:
-            from pokemon_tcg_client import fetch_pokemon_card
-
-            pokemon_card = fetch_pokemon_card(str(card.id), quiet=True)
-        except Exception:
-            pokemon_card = None
-        live = extract_finishes_from_tcgplayer(pokemon_card)
-        finishes = resolve_finishes(
-            stored=None, rarity=rarity, pokemon_card=pokemon_card
-        )
-        if live:
-            source = "tcgplayer"
-            blob = finishes_blob(live)
-            if blob and update_card_finishes is not None:
-                try:
-                    update_card_finishes(str(card.id), blob)
-                except Exception:
-                    pass
-        elif finishes:
-            source = "rarity"
-        else:
-            source = None
+        source = None
 
     payload = card.model_dump()
     payload["finishes"] = finishes

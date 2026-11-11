@@ -115,7 +115,8 @@ def test_clean_cards_includes_finishes() -> None:
     assert out[0]["finishes"] == "Normal, Reverse Holofoil"
 
 
-def test_card_detail_enrich_finishes(monkeypatch) -> None:
+def test_card_detail_enrich_finishes_from_catalog(monkeypatch) -> None:
+    """Detail uses stored finishes — never blocks on live pokemontcg.io."""
     import pandas as pd
     from fastapi.testclient import TestClient
 
@@ -174,25 +175,20 @@ def test_card_detail_enrich_finishes(monkeypatch) -> None:
             "rows": [],
         },
     )
+
+    class _Card:
+        finishes = "Normal, Holofoil, Reverse Holofoil"
+        rarity = "Common"
+
+    live_calls = {"n": 0}
+
     monkeypatch.setattr(
         "database.get_card",
-        lambda *_a, **_k: None,
+        lambda *_a, **_k: _Card(),
     )
     monkeypatch.setattr(
         "pokemon_tcg_client.fetch_pokemon_card",
-        lambda *_a, **_k: {
-            "tcgplayer": {
-                "prices": {
-                    "normal": {"market": 0.2},
-                    "holofoil": {"market": 1.0},
-                    "reverseHolofoil": {"market": 0.4},
-                }
-            }
-        },
-    )
-    monkeypatch.setattr(
-        "database.update_card_finishes",
-        lambda *_a, **_k: False,
+        lambda *_a, **_k: live_calls.__setitem__("n", live_calls["n"] + 1) or {},
     )
 
     client = TestClient(app)
@@ -204,4 +200,73 @@ def test_card_detail_enrich_finishes(monkeypatch) -> None:
         "Holofoil",
         "Reverse Holofoil",
     ]
-    assert body["card"]["finishes_source"] == "tcgplayer"
+    assert body["card"]["finishes_source"] == "catalog"
+    assert live_calls["n"] == 0
+
+
+def test_card_detail_enrich_finishes_rarity_hint_no_live(monkeypatch) -> None:
+    import pandas as pd
+    from fastapi.testclient import TestClient
+
+    from api.catalog_service import clear_board_cache
+    from api.main import app
+
+    clear_board_cache()
+    board = pd.DataFrame(
+        [
+            {
+                "id": "sv3-210",
+                "name": "Eiscue ex",
+                "set_name": "Obsidian Flames",
+                "rarity": "Ultra Rare",
+                "price": 1.5,
+                "predicted_price": 1.6,
+                "expected_change_pct": 5.0,
+                "signal": "BUY",
+                "confidence_ok": True,
+                "conformal_ok": True,
+                "history_points": 40,
+                "image_url": "https://example.com/x.png",
+            }
+        ]
+    )
+    monkeypatch.setattr("api.routers.cards.load_board", lambda: (board, "demo"))
+    monkeypatch.setattr("api.routers.cards.load_card_history", lambda *_a, **_k: [])
+    monkeypatch.setattr(
+        "api.routers.cards.history_stats",
+        lambda *_a, **_k: {
+            "points": 0,
+            "min_price": None,
+            "max_price": None,
+            "last_price": 1.5,
+            "previous_price": None,
+            "day_change_pct": None,
+            "first_date": None,
+            "last_date": None,
+        },
+    )
+    monkeypatch.setattr(
+        "api.routers.cards.build_card_explain",
+        lambda **_k: {
+            "confidence_level": "high",
+            "confidence_ok": True,
+            "confidence_reason": "ok",
+            "hold_band_pct": 3.0,
+            "horizon_days": 7,
+            "rows": [],
+        },
+    )
+    live_calls = {"n": 0}
+    monkeypatch.setattr("database.get_card", lambda *_a, **_k: None)
+    monkeypatch.setattr(
+        "pokemon_tcg_client.fetch_pokemon_card",
+        lambda *_a, **_k: live_calls.__setitem__("n", live_calls["n"] + 1) or {},
+    )
+
+    client = TestClient(app)
+    res = client.get("/api/cards/sv3-210")
+    assert res.status_code == 200
+    body = res.json()
+    assert body["card"]["finishes"] == ["Holofoil"]
+    assert body["card"]["finishes_source"] == "rarity"
+    assert live_calls["n"] == 0
