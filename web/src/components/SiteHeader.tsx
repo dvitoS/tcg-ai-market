@@ -31,12 +31,12 @@ export function SiteHeader() {
   const moreMenuId = useId();
   const moreRef = useRef<HTMLDivElement>(null);
 
-  // Decision desk first — secondary tools stay available but stop crowding cold visitors.
+  // Browse first (look-up a card) → decision desks → account/upgrade.
   const primaryNav = useMemo<NavItem[]>(
     () => [
+      { href: "/browse", labelKey: "nav_browse" },
       { href: "/radar", labelKey: "nav_radar" },
       { href: "/trade", labelKey: "nav_trade" },
-      { href: "/browse", labelKey: "nav_browse" },
       { href: "/portfolio", labelKey: "nav_portfolio" },
       { href: "/pro", labelKey: "nav_pro" },
     ],
