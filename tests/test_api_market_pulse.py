@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import pandas as pd
 from fastapi.testclient import TestClient
 
 from api.catalog_service import clear_board_cache
 from api.main import app
+from api.market_pulse_service import _movers
+from services.spot_sanity import RADAR_MAX_ABS_7D_CHANGE_PCT
 
 
 def setup_function() -> None:
@@ -30,3 +33,33 @@ def test_market_pulse_shape() -> None:
         assert mover["id"]
         assert mover["name"]
         assert "price_change_7d_pct" in mover
+        chg = mover.get("price_change_7d_pct")
+        if chg is not None:
+            assert abs(float(chg)) <= float(RADAR_MAX_ABS_7D_CHANGE_PCT)
+
+
+def test_movers_skip_poison_7d_jumps() -> None:
+    frame = pd.DataFrame(
+        [
+            {
+                "id": "ecard2-H32",
+                "name": "Umbreon",
+                "set_name": "Aquapolis",
+                "price": 3850.0,
+                "price_change_7d_pct": 29768.1,
+                "signal": "HOLD",
+            },
+            {
+                "id": "bw10-16",
+                "name": "Blastoise",
+                "set_name": "Plasma Storm",
+                "price": 988.0,
+                "price_change_7d_pct": 120.0,
+                "signal": "HOLD",
+            },
+        ]
+    )
+    risers = _movers(frame, ascending=False, limit=5)
+    ids = {row["id"] for row in risers}
+    assert "ecard2-H32" not in ids
+    assert "bw10-16" in ids

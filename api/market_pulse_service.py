@@ -8,10 +8,17 @@ import pandas as pd
 
 from api.catalog_service import load_board, row_to_card
 from api.radar_service import build_radar
+from services.spot_sanity import RADAR_MAX_ABS_7D_CHANGE_PCT
 
 
 def _f(series: pd.Series) -> pd.Series:
     return pd.to_numeric(series, errors="coerce")
+
+
+def _sane_7d(series: pd.Series) -> pd.Series:
+    """Drop poison 7d jumps (e.g. Aquapolis Umbreon +29768% from a ~$0 prior)."""
+    vals = _f(series)
+    return vals[vals.abs() <= float(RADAR_MAX_ABS_7D_CHANGE_PCT)]
 
 
 def _movers(frame: pd.DataFrame, *, ascending: bool, limit: int) -> list[dict[str, Any]]:
@@ -21,8 +28,11 @@ def _movers(frame: pd.DataFrame, *, ascending: bool, limit: int) -> list[dict[st
     if col not in frame.columns:
         return []
     scoped = frame.dropna(subset=[col]).copy()
+    scoped = scoped[_f(scoped[col]).abs() <= float(RADAR_MAX_ABS_7D_CHANGE_PCT)]
     if "price" in scoped.columns:
         scoped = scoped[_f(scoped["price"]).fillna(0) >= 5.0]
+    if "spot_quarantine" in scoped.columns:
+        scoped = scoped[~scoped["spot_quarantine"].fillna(False).astype(bool)]
     if scoped.empty:
         return []
     scoped = scoped.sort_values(col, ascending=ascending, na_position="last")
@@ -75,7 +85,8 @@ def build_market_pulse(*, mover_limit: int = 5) -> dict[str, Any]:
         if "price_change_7d_pct" in board.columns
         else pd.Series(dtype=float)
     )
-    observed = change.dropna()
+    # Breadth/median ignore absurd history jumps so the desk isn't dominated by poison.
+    observed = _sane_7d(change)
     rising_n = int((observed > 0.15).sum()) if not observed.empty else 0
     falling_n = int((observed < -0.15).sum()) if not observed.empty else 0
     flat_n = int(len(observed) - rising_n - falling_n) if not observed.empty else 0
