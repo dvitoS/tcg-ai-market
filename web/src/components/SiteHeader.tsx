@@ -31,26 +31,24 @@ export function SiteHeader() {
   const moreMenuId = useId();
   const moreRef = useRef<HTMLDivElement>(null);
 
-  // Browse first (look-up a card) → decision desks → account/upgrade.
-  const primaryNav = useMemo<NavItem[]>(
+  // Free tools first — Pro desks live under More; Pro CTA sits with auth.
+  const freeNav = useMemo<NavItem[]>(
     () => [
       { href: "/browse", labelKey: "nav_browse" },
-      { href: "/radar", labelKey: "nav_radar" },
-      { href: "/trade", labelKey: "nav_trade" },
+      { href: "/identify", labelKey: "nav_identify" },
+      { href: "/sealed", labelKey: "nav_sealed" },
+      { href: "/binder", labelKey: "nav_binder" },
       { href: "/portfolio", labelKey: "nav_portfolio" },
-      { href: "/pro", labelKey: "nav_pro" },
     ],
     [],
   );
 
-  const moreNav = useMemo<NavItem[]>(
+  const proNav = useMemo<NavItem[]>(
     () => [
-      { href: "/identify", labelKey: "nav_identify" },
+      { href: "/radar", labelKey: "nav_radar" },
+      { href: "/trade", labelKey: "nav_trade" },
       { href: "/scanner", labelKey: "nav_scanner" },
-      { href: "/sealed", labelKey: "nav_sealed" },
-      { href: "/binder", labelKey: "nav_binder" },
       { href: "/dealer", labelKey: "nav_dealer" },
-      { href: "/browse#signals", labelKey: "nav_signals" },
     ],
     [],
   );
@@ -98,19 +96,18 @@ export function SiteHeader() {
     <header className={`site-header${open ? " is-nav-open" : ""}`}>
       <Link href="/" className="brand" aria-label="Kestrel home" title={t("brand_tagline")}>
         <Image
-          src="/kestrel-logo.png"
+          src="/kestrel-mark.png"
           alt=""
           width={40}
           height={40}
           className="brand-mark"
           priority
-          style={{ width: 36, height: 36, objectFit: "contain" }}
         />
         <span className="brand-name">Kestrel</span>
       </Link>
 
       <nav className="site-nav site-nav-desktop" aria-label={t("nav_primary")}>
-        {primaryNav.map((item) => (
+        {freeNav.map((item) => (
           <Link
             key={item.href}
             href={item.href}
@@ -138,9 +135,10 @@ export function SiteHeader() {
               id={moreMenuId}
               className="nav-more-menu"
               role="menu"
-              aria-label={t("nav_more")}
+              aria-label={t("nav_pro_section")}
             >
-              {moreNav.map((item) => (
+              <p className="nav-more-label">{t("nav_pro_section")}</p>
+              {proNav.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
@@ -159,6 +157,12 @@ export function SiteHeader() {
       <div className="header-actions">
         <LocaleSwitcher />
         <CurrencySwitcher />
+        <Link
+          href="/pro"
+          className={`btn-ghost header-pro${linkActive(pathname, "/pro") ? " is-active" : ""}`}
+        >
+          {t("nav_pro")}
+        </Link>
         {user ? (
           <button type="button" className="btn-ghost header-auth" onClick={logout}>
             {user.email || t("auth_sign_out")}
@@ -188,7 +192,8 @@ export function SiteHeader() {
         hidden={!open}
       >
         <nav className="site-nav-mobile" aria-label={t("nav_mobile")}>
-          {primaryNav.map((item) => (
+          <p className="nav-mobile-section">{t("nav_free_section")}</p>
+          {freeNav.map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -198,8 +203,8 @@ export function SiteHeader() {
               {t(item.labelKey)}
             </Link>
           ))}
-          <p className="nav-mobile-section">{t("nav_more")}</p>
-          {moreNav.map((item) => (
+          <p className="nav-mobile-section">{t("nav_pro_section")}</p>
+          {proNav.map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -213,36 +218,45 @@ export function SiteHeader() {
             <LocaleSwitcher />
             <CurrencySwitcher />
           </div>
-          {user ? (
-            <button
-              type="button"
-              className="btn-ghost nav-mobile-auth"
-              onClick={() => {
-                setOpen(false);
-                logout();
-              }}
+          <div className="nav-mobile-auth-row">
+            <Link
+              href="/pro"
+              className="btn-ghost header-pro"
+              onClick={() => setOpen(false)}
             >
-              {t("auth_sign_out")}
-              {user.email ? ` · ${user.email}` : ""}
-            </button>
-          ) : (
-            <div className="nav-mobile-auth-row">
-              <Link
-                href="/signin"
-                className="btn-primary"
-                onClick={() => setOpen(false)}
+              {t("nav_pro")}
+            </Link>
+            {user ? (
+              <button
+                type="button"
+                className="btn-ghost nav-mobile-auth"
+                onClick={() => {
+                  setOpen(false);
+                  logout();
+                }}
               >
-                {t("auth_sign_in")}
-              </Link>
-              <Link
-                href="/signin?auth=signup"
-                className="btn-ghost"
-                onClick={() => setOpen(false)}
-              >
-                {t("auth_create_account")}
-              </Link>
-            </div>
-          )}
+                {t("auth_sign_out")}
+                {user.email ? ` · ${user.email}` : ""}
+              </button>
+            ) : (
+              <>
+                <Link
+                  href="/signin"
+                  className="btn-primary"
+                  onClick={() => setOpen(false)}
+                >
+                  {t("auth_sign_in")}
+                </Link>
+                <Link
+                  href="/signin?auth=signup"
+                  className="btn-ghost"
+                  onClick={() => setOpen(false)}
+                >
+                  {t("auth_create_account")}
+                </Link>
+              </>
+            )}
+          </div>
         </nav>
       </div>
       {open ? (
