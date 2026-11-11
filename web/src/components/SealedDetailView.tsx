@@ -169,14 +169,41 @@ export function SealedDetailView({ detail }: { detail: SealedDetailResponse }) {
           </div>
           {!authLoading ? (
             user ? (
-              <button
-                type="submit"
-                form="sealed-detail-add"
-                className="sealed-detail-add-btn"
-                disabled={pending}
+              <form
+                id="sealed-detail-add"
+                className="sealed-detail-lot-inline"
+                onSubmit={onAdd}
               >
-                {t("sealed_desk_add_lot")}
-              </button>
+                <label className="sealed-detail-lot-field">
+                  <span>{t("add_lot_qty")}</span>
+                  <input
+                    type="number"
+                    min={1}
+                    step={1}
+                    value={qty}
+                    onChange={(e) => setQty(Number(e.target.value) || 1)}
+                    aria-label={t("add_lot_qty")}
+                  />
+                </label>
+                <label className="sealed-detail-lot-field sealed-detail-lot-cost">
+                  <span>{t("add_lot_cost")}</span>
+                  <input
+                    type="number"
+                    min={0.01}
+                    step={0.01}
+                    value={cost}
+                    onChange={(e) => setCost(Number(e.target.value) || 0)}
+                    aria-label={t("add_lot_cost")}
+                  />
+                </label>
+                <button
+                  type="submit"
+                  className="sealed-detail-add-btn"
+                  disabled={pending}
+                >
+                  {t("sealed_desk_add_lot")}
+                </button>
+              </form>
             ) : (
               <Link
                 href={`/signin?next=${encodeURIComponent(`/sealed/${product.tcgplayer_id || ""}`)}`}
@@ -300,46 +327,6 @@ export function SealedDetailView({ detail }: { detail: SealedDetailResponse }) {
 
       {error ? <p className="banner-error">{error}</p> : null}
       {note ? <p className="banner-ok">{note}</p> : null}
-
-      {user ? (
-        <div className="sealed-desk-dock sealed-detail-dock">
-          <div className="sealed-desk-dock-copy">
-            <p className="lot-name">{product.name}</p>
-            <p className="lot-meta" suppressHydrationWarning>
-              {productSpot}
-              {product.tcgplayer_id ? ` · TCP ${product.tcgplayer_id}` : ""}
-            </p>
-          </div>
-          <form
-            id="sealed-detail-add"
-            className="sealed-add-form sealed-desk-add"
-            onSubmit={onAdd}
-          >
-            <div className="grade-ev-inputs">
-              <label>
-                <span>{t("add_lot_qty")}</span>
-                <input
-                  type="number"
-                  min={1}
-                  step={1}
-                  value={qty}
-                  onChange={(e) => setQty(Number(e.target.value) || 1)}
-                />
-              </label>
-              <label>
-                <span>{t("add_lot_cost")}</span>
-                <input
-                  type="number"
-                  min={0.01}
-                  step={0.01}
-                  value={cost}
-                  onChange={(e) => setCost(Number(e.target.value) || 0)}
-                />
-              </label>
-            </div>
-          </form>
-        </div>
-      ) : null}
     </section>
   );
 }
