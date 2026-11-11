@@ -2,11 +2,21 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 
 import { useCurrency } from "@/components/CurrencyProvider";
 import { useLocale } from "@/components/LocaleProvider";
 import { identifyFromOcrText, formatChange } from "@/lib/api";
+import {
+  enableContinuousFocus,
+  focusAtPoint,
+} from "@/lib/cameraFocus";
 import {
   canvasFromFile,
   canvasFromVideo,
@@ -18,21 +28,35 @@ import type { IdentifyMatch } from "@/lib/types";
 
 type Phase = "idle" | "camera" | "ocr" | "match" | "done";
 
+type FocusRing = { x: number; y: number; key: number };
+
 async function openCameraStream(): Promise<MediaStream> {
   if (!navigator.mediaDevices?.getUserMedia) {
     throw new Error("no-media");
   }
-  // Prefer rear camera; fall back to any video — avoid audio (looks like "recording").
+  // Prefer rear camera + continuous AF when the UA understands focusMode.
+  const withFocus = {
+    audio: false,
+    video: {
+      facingMode: { ideal: "environment" as const },
+      // Not in every TS lib yet — cast keeps runtime constraint.
+      focusMode: { ideal: "continuous" },
+    } as MediaTrackConstraints,
+  };
   try {
-    return await navigator.mediaDevices.getUserMedia({
-      audio: false,
-      video: { facingMode: { ideal: "environment" } },
-    });
+    return await navigator.mediaDevices.getUserMedia(withFocus);
   } catch {
-    return await navigator.mediaDevices.getUserMedia({
-      audio: false,
-      video: true,
-    });
+    try {
+      return await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: { facingMode: { ideal: "environment" } },
+      });
+    } catch {
+      return await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: true,
+      });
+    }
   }
 }
 
@@ -52,11 +76,15 @@ export function IdentifyView() {
   const [number, setNumber] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cameraReady, setCameraReady] = useState(false);
+  const [focusHint, setFocusHint] = useState(false);
+  const [focusRing, setFocusRing] = useState<FocusRing | null>(null);
 
   const stopCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach((tr) => tr.stop());
     streamRef.current = null;
     setCameraReady(false);
+    setFocusHint(false);
+    setFocusRing(null);
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
@@ -83,7 +111,10 @@ export function IdentifyView() {
     video.srcObject = stream;
 
     const markReady = () => {
-      if (!cancelled && video.videoWidth > 0) setCameraReady(true);
+      if (cancelled || video.videoWidth <= 0) return;
+      setCameraReady(true);
+      setFocusHint(true);
+      void enableContinuousFocus(stream);
     };
     video.addEventListener("loadedmetadata", markReady);
     video.addEventListener("playing", markReady);
@@ -107,6 +138,22 @@ export function IdentifyView() {
       video.removeEventListener("playing", markReady);
     };
   }, [phase, stopCamera, t]);
+
+  async function onTapFocus(event: ReactPointerEvent<HTMLDivElement>) {
+    if (phase !== "camera" || !cameraReady || busy) return;
+    const video = videoRef.current;
+    const stream = streamRef.current;
+    if (!video || !stream) return;
+    // Ignore taps on the progress overlay / chrome.
+    if ((event.target as HTMLElement).closest(".identify-progress")) return;
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const xPct = ((event.clientX - rect.left) / rect.width) * 100;
+    const yPct = ((event.clientY - rect.top) / rect.height) * 100;
+    setFocusRing({ x: xPct, y: yPct, key: Date.now() });
+    setFocusHint(true);
+    await focusAtPoint(stream, video, event.clientX, event.clientY);
+  }
 
   async function startCamera() {
     setError(null);
@@ -227,7 +274,10 @@ export function IdentifyView() {
       </header>
 
       <div className="identify-stage">
-        <div className="identify-viewport">
+        <div
+          className={`identify-viewport${phase === "camera" ? " is-live" : ""}`}
+          onPointerUp={phase === "camera" ? (e) => void onTapFocus(e) : undefined}
+        >
           {phase === "camera" ? (
             <video
               ref={videoRef}
@@ -245,6 +295,17 @@ export function IdentifyView() {
               <p>{t("identify_placeholder")}</p>
             </div>
           )}
+          {phase === "camera" && cameraReady && focusHint ? (
+            <p className="identify-focus-hint">{t("identify_tap_focus")}</p>
+          ) : null}
+          {focusRing && phase === "camera" ? (
+            <span
+              key={focusRing.key}
+              className="identify-focus-ring"
+              style={{ left: `${focusRing.x}%`, top: `${focusRing.y}%` }}
+              aria-hidden
+            />
+          ) : null}
           {busy ? (
             <div className="identify-progress" role="status">
               <strong>
