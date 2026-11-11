@@ -18,6 +18,24 @@ import type { IdentifyMatch } from "@/lib/types";
 
 type Phase = "idle" | "camera" | "ocr" | "match" | "done";
 
+async function openCameraStream(): Promise<MediaStream> {
+  if (!navigator.mediaDevices?.getUserMedia) {
+    throw new Error("no-media");
+  }
+  // Prefer rear camera; fall back to any video — avoid audio (looks like "recording").
+  try {
+    return await navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: { facingMode: { ideal: "environment" } },
+    });
+  } catch {
+    return await navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: true,
+    });
+  }
+}
+
 export function IdentifyView() {
   const { t, locale } = useLocale();
   const { formatSpot } = useCurrency();
@@ -39,7 +57,9 @@ export function IdentifyView() {
     streamRef.current?.getTracks().forEach((tr) => tr.stop());
     streamRef.current = null;
     setCameraReady(false);
-    if (videoRef.current) videoRef.current.srcObject = null;
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
   }, []);
 
   useEffect(() => () => stopCamera(), [stopCamera]);
@@ -50,26 +70,56 @@ export function IdentifyView() {
     };
   }, [previewUrl]);
 
+  // Attach stream only after <video> mounts (phase === "camera").
+  useEffect(() => {
+    if (phase !== "camera") return;
+    const video = videoRef.current;
+    const stream = streamRef.current;
+    if (!video || !stream) return;
+
+    let cancelled = false;
+    video.setAttribute("playsinline", "true");
+    video.muted = true;
+    video.srcObject = stream;
+
+    const markReady = () => {
+      if (!cancelled && video.videoWidth > 0) setCameraReady(true);
+    };
+    video.addEventListener("loadedmetadata", markReady);
+    video.addEventListener("playing", markReady);
+
+    void video
+      .play()
+      .then(() => {
+        if (!cancelled) markReady();
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setError(t("identify_camera_error"));
+          stopCamera();
+          setPhase("idle");
+        }
+      });
+
+    return () => {
+      cancelled = true;
+      video.removeEventListener("loadedmetadata", markReady);
+      video.removeEventListener("playing", markReady);
+    };
+  }, [phase, stopCamera, t]);
+
   async function startCamera() {
     setError(null);
     stopCamera();
+    setPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { ideal: "environment" },
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-        },
-        audio: false,
-      });
+      const stream = await openCameraStream();
       streamRef.current = stream;
-      const video = videoRef.current;
-      if (video) {
-        video.srcObject = stream;
-        await video.play();
-      }
+      setCameraReady(false);
       setPhase("camera");
-      setCameraReady(true);
     } catch {
       setError(t("identify_camera_error"));
       setPhase("idle");
@@ -83,7 +133,10 @@ export function IdentifyView() {
     setNumber(null);
     setPhase("ocr");
     setOcrPct(0);
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
     const blob = await new Promise<Blob | null>((resolve) =>
       canvas.toBlob((b) => resolve(b), "image/jpeg", 0.92),
     );
@@ -144,6 +197,8 @@ export function IdentifyView() {
     } catch {
       setError(t("identify_ocr_error"));
       setPhase("idle");
+    } finally {
+      if (fileRef.current) fileRef.current.value = "";
     }
   }
 
@@ -155,8 +210,10 @@ export function IdentifyView() {
     setOcrText("");
     setHints([]);
     setNumber(null);
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setPreviewUrl(null);
+    setPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
   }
 
   const busy = phase === "ocr" || phase === "match";
@@ -178,6 +235,7 @@ export function IdentifyView() {
               playsInline
               muted
               autoPlay
+              controls={false}
             />
           ) : previewUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -207,7 +265,9 @@ export function IdentifyView() {
                 onClick={() => void captureFrame()}
                 disabled={!cameraReady || busy}
               >
-                {t("identify_capture")}
+                {cameraReady
+                  ? t("identify_capture")
+                  : t("identify_camera_warming")}
               </button>
               <button type="button" className="btn-ghost" onClick={reset}>
                 {t("identify_cancel")}
@@ -238,11 +298,11 @@ export function IdentifyView() {
               ) : null}
             </>
           )}
+          {/* No capture= — that forces mobile camera/recording UI on Upload. */}
           <input
             ref={fileRef}
             type="file"
-            accept="image/*"
-            capture="environment"
+            accept="image/*,.jpg,.jpeg,.png,.webp,.heic,.heif"
             className="sr-only"
             onChange={(e) => void onFile(e.target.files?.[0] || null)}
           />
@@ -254,14 +314,10 @@ export function IdentifyView() {
       {phase === "done" && (hints.length > 0 || number) ? (
         <p className="identify-clues">
           {number ? (
-            <span>
-              {t("identify_clue_number", { n: number })}
-            </span>
+            <span>{t("identify_clue_number", { n: number })}</span>
           ) : null}
           {hints[0] ? (
-            <span>
-              {t("identify_clue_name", { name: hints[0] })}
-            </span>
+            <span>{t("identify_clue_name", { name: hints[0] })}</span>
           ) : null}
         </p>
       ) : null}
