@@ -1,23 +1,17 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type PointerEvent as ReactPointerEvent,
-} from "react";
+import { useEffect, useState } from "react";
 
+import { HoloCardArt } from "@/components/HoloCardArt";
 import { useCurrency } from "@/components/CurrencyProvider";
 import { useLocale } from "@/components/LocaleProvider";
 import { formatChange } from "@/lib/api";
-import { onCardImageError, resolveCardImageUrl } from "@/lib/cardImage";
+import { resolveCardImageUrl } from "@/lib/cardImage";
+import { resolveFoilMode } from "@/lib/foilMode";
 import type { RadarCard } from "@/lib/types";
 
 const INTERVAL_MS = 4500;
-const TILT_MAX = 12;
 
 export function HeroCardSlider({ cards }: { cards: RadarCard[] }) {
   const { t } = useLocale();
@@ -25,52 +19,21 @@ export function HeroCardSlider({ cards }: { cards: RadarCard[] }) {
   const slides = cards.filter((c) => c?.id).slice(0, 5);
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
-  const frameRef = useRef<HTMLSpanElement | null>(null);
-  const reduceRef = useRef(false);
+  const [reduceMotion, setReduceMotion] = useState(false);
 
   useEffect(() => {
-    reduceRef.current = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
+    setReduceMotion(
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    );
   }, []);
 
   useEffect(() => {
-    if (slides.length <= 1 || paused) return;
-    if (reduceRef.current) return;
+    if (slides.length <= 1 || paused || reduceMotion) return;
     const id = window.setInterval(() => {
       setIndex((i) => (i + 1) % slides.length);
     }, INTERVAL_MS);
     return () => window.clearInterval(id);
-  }, [slides.length, paused]);
-
-  const resetTilt = useCallback(() => {
-    const frame = frameRef.current;
-    if (!frame) return;
-    frame.style.removeProperty("--rx");
-    frame.style.removeProperty("--ry");
-    frame.style.removeProperty("--gx");
-    frame.style.removeProperty("--gy");
-    frame.style.removeProperty("--go");
-    frame.classList.remove("is-tilting");
-  }, []);
-
-  const onPointerMove = useCallback((event: ReactPointerEvent<HTMLElement>) => {
-    if (reduceRef.current) return;
-    const frame = frameRef.current;
-    if (!frame) return;
-    const rect = frame.getBoundingClientRect();
-    if (rect.width < 1 || rect.height < 1) return;
-    const x = (event.clientX - rect.left) / rect.width;
-    const y = (event.clientY - rect.top) / rect.height;
-    const ry = (x - 0.5) * 2 * TILT_MAX;
-    const rx = (0.5 - y) * 2 * TILT_MAX;
-    frame.classList.add("is-tilting");
-    frame.style.setProperty("--ry", `${ry.toFixed(2)}deg`);
-    frame.style.setProperty("--rx", `${rx.toFixed(2)}deg`);
-    frame.style.setProperty("--gx", `${(x * 100).toFixed(1)}%`);
-    frame.style.setProperty("--gy", `${(y * 100).toFixed(1)}%`);
-    frame.style.setProperty("--go", "1");
-  }, []);
+  }, [slides.length, paused, reduceMotion]);
 
   if (!slides.length) return null;
 
@@ -84,21 +47,18 @@ export function HeroCardSlider({ cards }: { cards: RadarCard[] }) {
       className="landing-hero-slider"
       aria-label={t("landing_hero_slider_aria")}
       onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => {
-        setPaused(false);
-        resetTilt();
-      }}
+      onMouseLeave={() => setPaused(false)}
       onFocusCapture={() => setPaused(true)}
       onBlurCapture={(e) => {
         if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
           setPaused(false);
-          resetTilt();
         }
       }}
     >
       <div className="landing-hero-slider-stage">
         {slides.map((card, i) => {
           const isActive = i === index;
+          const foil = resolveFoilMode(card.finishes, card.rarity);
           return (
             <Link
               key={card.id}
@@ -106,26 +66,20 @@ export function HeroCardSlider({ cards }: { cards: RadarCard[] }) {
               className={`landing-hero-slide${isActive ? " is-active" : ""}`}
               tabIndex={isActive ? 0 : -1}
               aria-hidden={!isActive}
-              onPointerMove={isActive ? onPointerMove : undefined}
-              onPointerLeave={isActive ? resetTilt : undefined}
-              onPointerCancel={isActive ? resetTilt : undefined}
             >
-              <span
-                ref={isActive ? frameRef : undefined}
-                className="landing-hero-slide-frame"
-              >
-                <Image
-                  src={resolveCardImageUrl(card.id, card.image_url)}
-                  alt=""
-                  width={280}
-                  height={392}
-                  className="landing-hero-slide-img"
-                  priority={i === 0}
-                  onError={(event) => onCardImageError(event, card.id)}
-                />
-                <span className="landing-hero-slide-glare" aria-hidden="true" />
-                <span className="landing-hero-slide-sheen" aria-hidden="true" />
-              </span>
+              <HoloCardArt
+                key={`${card.id}-${foil || "none"}`}
+                cardId={card.id}
+                name={card.name}
+                image={resolveCardImageUrl(card.id, card.image_url)}
+                foil={foil}
+                priority={i === 0}
+                width={280}
+                height={392}
+                sizes="280px"
+                fillFrame
+                className="landing-hero-slide-art"
+              />
             </Link>
           );
         })}
@@ -163,10 +117,7 @@ export function HeroCardSlider({ cards }: { cards: RadarCard[] }) {
               aria-selected={i === index}
               aria-label={card.name}
               className={`landing-hero-slide-dot${i === index ? " is-active" : ""}`}
-              onClick={() => {
-                resetTilt();
-                setIndex(i);
-              }}
+              onClick={() => setIndex(i)}
             />
           ))}
         </div>

@@ -53,6 +53,27 @@ def test_finishes_from_rarity_hint() -> None:
     assert finishes_from_rarity("Common") == []
 
 
+def test_row_to_card_includes_finishes_hint() -> None:
+    from api.catalog_service import row_to_card
+
+    holo = row_to_card(
+        {"id": "sv1-1", "name": "Sprigatito", "rarity": "Rare Holo", "price": 4.0}
+    )
+    assert holo["finishes"] == ["Holofoil"]
+    reverse = row_to_card(
+        {
+            "id": "sv1-2",
+            "name": "Floragato",
+            "rarity": "Uncommon",
+            "finishes": "Reverse Holofoil",
+            "price": 1.5,
+        }
+    )
+    assert reverse["finishes"] == ["Reverse Holofoil"]
+    plain = row_to_card({"id": "sv1-3", "name": "Basic", "rarity": "Common", "price": 0.2})
+    assert plain["finishes"] == []
+
+
 def test_resolve_prefers_stored_then_live_then_rarity() -> None:
     assert resolve_finishes(stored="Holofoil, Normal") == ["Normal", "Holofoil"]
     live = {

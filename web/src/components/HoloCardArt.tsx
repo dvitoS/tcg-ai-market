@@ -27,6 +27,8 @@ export function HoloCardArt({
   height = 586,
   sizes = "(max-width: 720px) 55vw, 200px",
   className = "",
+  /** Fill parent frame (landing hero) instead of natural aspect height. */
+  fillFrame = false,
 }: {
   cardId: string;
   name: string;
@@ -37,6 +39,7 @@ export function HoloCardArt({
   height?: number;
   sizes?: string;
   className?: string;
+  fillFrame?: boolean;
 }) {
   const frameRef = useRef<HTMLDivElement | null>(null);
   const reduceRef = useRef(false);
@@ -125,9 +128,13 @@ export function HoloCardArt({
         width={width}
         height={height}
         priority={priority}
-        className="holo-card-art-img"
+        className={`holo-card-art-img${fillFrame ? " is-fill" : ""}`}
         sizes={sizes}
-        style={{ width: "100%", height: "auto" }}
+        style={
+          fillFrame
+            ? { width: "100%", height: "100%", objectFit: "cover" }
+            : { width: "100%", height: "auto" }
+        }
         onError={(event) => onCardImageError(event, cardId)}
       />
       <span className="holo-card-art-foil" aria-hidden="true" />
