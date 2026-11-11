@@ -840,6 +840,8 @@ class SealedQuoteItem(BaseModel):
     demo: bool | None = None
     product_kind: str | None = None
     packs: int | None = None
+    # Showcase teaser: product spot − Illustration Rare set sum (USD).
+    ir_vs_product_usd: float | None = None
 
 
 class SealedQuoteResponse(BaseModel):

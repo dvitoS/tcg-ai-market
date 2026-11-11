@@ -694,6 +694,59 @@ def _sniff_live_showcase(*, limit: int) -> list[dict[str, Any]]:
     return out
 
 
+def _ir_totals_by_set() -> dict[str, float]:
+    """Illustration Rare set sums keyed by normalized set name (board once)."""
+    from api.catalog_service import load_board
+
+    board, _source = load_board()
+    if board is None or board.empty or "set_name" not in board.columns:
+        return {}
+    price_col = "price" if "price" in board.columns else "market_price"
+    if price_col not in board.columns or "rarity" not in board.columns:
+        return {}
+    out: dict[str, float] = {}
+    for set_name, subset in board.groupby(board["set_name"].astype(str), sort=False):
+        key = normalize_sealed_set_name(set_name) or str(set_name).strip()
+        if not key:
+            continue
+        ir = subset[subset["rarity"].map(lambda r: _group_key(r) == "ir")]
+        if ir.empty:
+            continue
+        prices = ir[price_col].dropna()
+        if prices.empty:
+            continue
+        out[key] = float(prices.sum())
+    return out
+
+
+def _attach_ir_teasers(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Add ir_vs_product_usd teaser when board IR totals are available."""
+    if not items:
+        return items
+    try:
+        totals = _ir_totals_by_set()
+    except Exception as exc:
+        LOG.info("sealed ir teaser skipped: %s", exc)
+        return items
+    if not totals:
+        return items
+    out: list[dict[str, Any]] = []
+    for raw in items:
+        row = dict(raw)
+        set_key = normalize_sealed_set_name(row.get("set_name")) or str(
+            row.get("set_name") or ""
+        ).strip()
+        ir_total = totals.get(set_key)
+        try:
+            spot = float(row["spot_usd"]) if row.get("spot_usd") is not None else None
+        except (TypeError, ValueError):
+            spot = None
+        if ir_total is not None and spot is not None and spot > 0:
+            row["ir_vs_product_usd"] = round(spot - float(ir_total), 2)
+        out.append(row)
+    return out
+
+
 def quote_sealed_products(
     *,
     q: str | None = None,
@@ -718,7 +771,7 @@ def quote_sealed_products(
         # Soft Ink /sealed desk: curated seed paints instantly.
         # Live JustTCG is reserved for explicit search + single-SKU detail
         # (sniffing ~40 TCP ids sequentially made /sealed hang for tens of seconds).
-        hits = _filter_demo(None)
+        hits = _attach_ir_teasers(_filter_demo(None))
         return {
             "items": hits[:limit],
             "source": "demo",

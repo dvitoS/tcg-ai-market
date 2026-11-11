@@ -98,11 +98,48 @@ export function ExploreCard({
     card.price_change_3d_pct != null
       ? translate(locale, "card_move_3d")
       : translate(locale, "card_move_7d");
-  // Prefer stronger 30d portfolio model; fall back to board 7d AI when 30d is missing.
+  const spot =
+    card.price != null && Number.isFinite(Number(card.price))
+      ? Number(card.price)
+      : card.market_price != null && Number.isFinite(Number(card.market_price))
+        ? Number(card.market_price)
+        : null;
+  const fair =
+    card.predicted_price != null && Number.isFinite(Number(card.predicted_price))
+      ? Number(card.predicted_price)
+      : null;
+  const gapPct =
+    spot != null && fair != null && fair > 0
+      ? ((fair - spot) / fair) * 100
+      : null;
+  const lean =
+    gapPct == null
+      ? null
+      : Math.abs(gapPct) < 2
+        ? {
+            text: translate(locale, "card_lean_near"),
+            tone: "is-near" as const,
+          }
+        : gapPct > 0
+          ? {
+              text: translate(locale, "card_lean_under", {
+                pct: Math.abs(gapPct) >= 10 ? Math.abs(gapPct).toFixed(0) : Math.abs(gapPct).toFixed(1),
+              }),
+              tone: "is-buy" as const,
+            }
+          : {
+              text: translate(locale, "card_lean_over", {
+                pct: Math.abs(gapPct) >= 10 ? Math.abs(gapPct).toFixed(0) : Math.abs(gapPct).toFixed(1),
+              }),
+              tone: "is-sell" as const,
+            };
+  // Fallback when fair is missing: keep AI move % as a secondary cue.
   const aiMove =
-    card.expected_change_30d_pct != null
-      ? card.expected_change_30d_pct
-      : card.expected_change_pct;
+    fair == null
+      ? card.expected_change_30d_pct != null
+        ? card.expected_change_30d_pct
+        : card.expected_change_pct
+      : null;
   const aiLabel =
     card.expected_change_30d_pct != null
       ? translate(locale, "card_move_ai_30d")
@@ -125,12 +162,24 @@ export function ExploreCard({
           onError={(event) => onCardImageError(event, card.id)}
         />
         <div className="explore-card-readout" aria-hidden={false}>
-          <span className="explore-card-price">{formatSpot(card.price)}</span>
+          <span className="explore-card-price">{formatSpot(spot)}</span>
           <div className="explore-card-moves">
+            {fair != null ? (
+              <span className="explore-card-move explore-card-fair">
+                <span className="explore-card-move-label">
+                  {translate(locale, "card_fair")}
+                </span>
+                <span className="explore-card-move-value">
+                  {formatSpot(fair)}
+                </span>
+              </span>
+            ) : null}
             <MoveRow label={histLabel} value={histMove} />
-            <MoveRow label={aiLabel} value={aiMove} />
+            {aiMove != null ? <MoveRow label={aiLabel} value={aiMove} /> : null}
           </div>
-          {showSignal && card.signal ? (
+          {lean ? (
+            <span className={`explore-card-lean ${lean.tone}`}>{lean.text}</span>
+          ) : showSignal && card.signal ? (
             <span className="explore-card-change flat">
               {signalLabel(locale, card.signal)}
             </span>

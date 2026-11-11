@@ -104,6 +104,17 @@ export function SealedDesk({
             const detailHref = hit.tcgplayer_id
               ? `/sealed/${encodeURIComponent(hit.tcgplayer_id)}`
               : "/sealed";
+            const irDelta = hit.ir_vs_product_usd;
+            const irTeaser =
+              irDelta != null && Number.isFinite(Number(irDelta))
+                ? Number(irDelta) >= 0
+                  ? t("sealed_desk_ir_cheaper", {
+                      delta: formatSpot(Math.abs(Number(irDelta))),
+                    })
+                  : t("sealed_desk_ir_richer", {
+                      delta: formatSpot(Math.abs(Number(irDelta))),
+                    })
+                : t("sealed_desk_ir_teaser");
             return (
               <Link
                 key={hit.card_id}
@@ -129,6 +140,17 @@ export function SealedDesk({
                   <div className="explore-card-name">{hit.name}</div>
                   <div className="explore-card-meta">
                     {hit.set_name || ""}
+                  </div>
+                  <div
+                    className={`sealed-desk-teaser${
+                      irDelta != null && Number(irDelta) >= 0
+                        ? " is-buy"
+                        : irDelta != null
+                          ? " is-sell"
+                          : ""
+                    }`}
+                  >
+                    {irTeaser}
                   </div>
                 </div>
               </Link>
