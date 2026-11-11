@@ -1943,8 +1943,8 @@ a {
 .holo-card-art {
   --rx: 0deg;
   --ry: 0deg;
-  --mx: 50%;
-  --my: 42%;
+  --mx: 42%;
+  --my: 38%;
   --go: 0;
   position: relative;
   display: block;
@@ -1961,6 +1961,11 @@ a {
   cursor: crosshair;
 }
 
+.holo-card-art.is-foil-holo,
+.holo-card-art.is-foil-reverse {
+  --go: 0.42;
+}
+
 .holo-card-art.is-tilting {
   transition: none;
 }
@@ -1971,6 +1976,8 @@ a {
   height: auto;
   position: relative;
   z-index: 0;
+  pointer-events: none;
+  user-select: none;
 }
 
 .holo-card-art-foil,
@@ -2043,6 +2050,21 @@ a {
     #000 55%,
     transparent 100%
   );
+  animation: soft-ink-foil-drift 7.5s ease-in-out infinite alternate;
+}
+
+.holo-card-art.is-foil-holo.is-tilting .holo-card-art-foil,
+.holo-card-art.is-foil-reverse.is-tilting .holo-card-art-foil {
+  animation: none;
+}
+
+@keyframes soft-ink-foil-drift {
+  from {
+    filter: hue-rotate(-8deg) saturate(1.05);
+  }
+  to {
+    filter: hue-rotate(14deg) saturate(1.2);
+  }
 }
 
 /* Reverse holofoil — foil on the frame / text field, not the art window. */
@@ -2079,12 +2101,18 @@ a {
     transparent 48%,
     #000 72%
   );
+  animation: soft-ink-foil-drift 8.5s ease-in-out infinite alternate;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .holo-card-art {
     transform: none;
     cursor: default;
+  }
+
+  .holo-card-art.is-foil-holo .holo-card-art-foil,
+  .holo-card-art.is-foil-reverse .holo-card-art-foil {
+    animation: none;
   }
 
   .holo-card-art-foil,

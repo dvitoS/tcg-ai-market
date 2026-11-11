@@ -180,13 +180,14 @@ export async function fetchCardDetail(
   cardId: string,
   init?: RequestInit,
 ): Promise<CardDetailResponse> {
+  // Finishes / foil mode must not stick on a cold Soft Ink nav cache.
   const res = await fetch(apiUrl(`/api/cards/${encodeURIComponent(cardId)}`), {
     ...init,
+    cache: "no-store",
     headers: {
       Accept: "application/json",
       ...(init?.headers || {}),
     },
-    next: { revalidate: 30 },
   });
   if (res.status === 404) {
     throw new Error("NOT_FOUND");

@@ -47,34 +47,62 @@ export function HoloCardArt({
     ).matches;
   }, []);
 
+  // Idle shine on first paint so Soft Ink client nav shows foil without refresh.
+  useEffect(() => {
+    const frame = frameRef.current;
+    if (!frame) return;
+    if (foil === "holo" || foil === "reverse") {
+      frame.style.setProperty("--go", reduceRef.current ? "0.22" : "0.42");
+      frame.style.setProperty("--mx", "42%");
+      frame.style.setProperty("--my", "38%");
+    } else {
+      frame.style.removeProperty("--go");
+      frame.style.removeProperty("--mx");
+      frame.style.removeProperty("--my");
+    }
+    frame.style.removeProperty("--rx");
+    frame.style.removeProperty("--ry");
+    frame.classList.remove("is-tilting");
+  }, [foil, cardId]);
+
   const resetTilt = useCallback(() => {
     const frame = frameRef.current;
     if (!frame) return;
     frame.style.removeProperty("--rx");
     frame.style.removeProperty("--ry");
-    frame.style.removeProperty("--mx");
-    frame.style.removeProperty("--my");
-    frame.style.removeProperty("--go");
     frame.classList.remove("is-tilting");
-  }, []);
+    // Keep a soft idle foil after pointer leaves (don't kill shine).
+    if (foil === "holo" || foil === "reverse") {
+      frame.style.setProperty("--go", reduceRef.current ? "0.22" : "0.42");
+      frame.style.setProperty("--mx", "48%");
+      frame.style.setProperty("--my", "40%");
+    } else {
+      frame.style.removeProperty("--mx");
+      frame.style.removeProperty("--my");
+      frame.style.removeProperty("--go");
+    }
+  }, [foil]);
 
-  const onPointerMove = useCallback((event: ReactPointerEvent<HTMLElement>) => {
-    if (reduceRef.current) return;
-    const frame = frameRef.current;
-    if (!frame) return;
-    const rect = frame.getBoundingClientRect();
-    if (rect.width < 1 || rect.height < 1) return;
-    const x = (event.clientX - rect.left) / rect.width;
-    const y = (event.clientY - rect.top) / rect.height;
-    const ry = (x - 0.5) * 2 * TILT_MAX;
-    const rx = (0.5 - y) * 2 * TILT_MAX;
-    frame.classList.add("is-tilting");
-    frame.style.setProperty("--ry", `${ry.toFixed(2)}deg`);
-    frame.style.setProperty("--rx", `${rx.toFixed(2)}deg`);
-    frame.style.setProperty("--mx", `${(x * 100).toFixed(1)}%`);
-    frame.style.setProperty("--my", `${(y * 100).toFixed(1)}%`);
-    frame.style.setProperty("--go", "1");
-  }, []);
+  const onPointerMove = useCallback(
+    (event: ReactPointerEvent<HTMLElement>) => {
+      if (reduceRef.current) return;
+      const frame = frameRef.current;
+      if (!frame) return;
+      const rect = frame.getBoundingClientRect();
+      if (rect.width < 1 || rect.height < 1) return;
+      const x = (event.clientX - rect.left) / rect.width;
+      const y = (event.clientY - rect.top) / rect.height;
+      const ry = (x - 0.5) * 2 * TILT_MAX;
+      const rx = (0.5 - y) * 2 * TILT_MAX;
+      frame.classList.add("is-tilting");
+      frame.style.setProperty("--ry", `${ry.toFixed(2)}deg`);
+      frame.style.setProperty("--rx", `${rx.toFixed(2)}deg`);
+      frame.style.setProperty("--mx", `${(x * 100).toFixed(1)}%`);
+      frame.style.setProperty("--my", `${(y * 100).toFixed(1)}%`);
+      frame.style.setProperty("--go", "1");
+    },
+    [],
+  );
 
   const foilClass =
     foil === "holo"

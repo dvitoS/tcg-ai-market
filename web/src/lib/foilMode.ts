@@ -1,4 +1,4 @@
-/** Soft Ink foil mode from catalog finish labels. */
+/** Soft Ink foil mode from catalog finish labels + rarity fallback. */
 
 export type FoilMode = "holo" | "reverse" | null;
 
@@ -30,4 +30,32 @@ export function foilModeFromFinishes(
   if (hasHolo) return "holo";
   if (hasReverse) return "reverse";
   return null;
+}
+
+/** Last-resort hint when finishes array is empty (cold Soft Ink nav). */
+export function foilModeFromRarity(rarity: string | null | undefined): FoilMode {
+  const text = String(rarity || "")
+    .trim()
+    .toLowerCase();
+  if (!text) return null;
+  if (text.includes("reverse")) return "reverse";
+  if (
+    text.includes("holo") ||
+    text.includes("foil") ||
+    text.includes("rainbow") ||
+    text.includes("amazing") ||
+    text.includes("illustration") ||
+    text.includes("hyper") ||
+    text.includes("secret")
+  ) {
+    return "holo";
+  }
+  return null;
+}
+
+export function resolveFoilMode(
+  finishes: string[] | null | undefined,
+  rarity?: string | null,
+): FoilMode {
+  return foilModeFromFinishes(finishes) || foilModeFromRarity(rarity);
 }

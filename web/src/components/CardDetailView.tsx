@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 import { AddLotForm } from "@/components/AddLotForm";
 import { useCurrency } from "@/components/CurrencyProvider";
@@ -12,10 +13,10 @@ import { useLocale } from "@/components/LocaleProvider";
 import { PriceChart } from "@/components/PriceChart";
 import { WatchToggle } from "@/components/WatchToggle";
 import { WrongSpotReport } from "@/components/WrongSpotReport";
-import { formatChange } from "@/lib/api";
+import { fetchCardDetail, formatChange } from "@/lib/api";
 import { resolveCardImageUrl } from "@/lib/cardImage";
 import { cardmarketSearchUrl } from "@/lib/cardmarket";
-import { foilModeFromFinishes } from "@/lib/foilMode";
+import { resolveFoilMode } from "@/lib/foilMode";
 import { decisionOneLiner, signalLabel } from "@/lib/i18n/messages";
 import type { CardDetailResponse, HistoryPoint } from "@/lib/types";
 
@@ -43,6 +44,30 @@ export function CardDetailView({
   const { locale, t } = useLocale();
   const { formatSpot, currency, usdEur, fxFallback } = useCurrency();
   const { card, pred_lo_pct, pred_hi_pct, explain } = detail;
+  const [finishes, setFinishes] = useState<string[]>(
+    () => (card.finishes || []).filter(Boolean),
+  );
+
+  // Soft Ink client nav can land with empty finishes; refetch + rarity fallback.
+  const finishesKey = (card.finishes || []).join("|");
+  useEffect(() => {
+    setFinishes((card.finishes || []).filter(Boolean));
+    let alive = true;
+    void fetchCardDetail(card.id)
+      .then((fresh) => {
+        if (!alive) return;
+        const next = (fresh.card.finishes || []).filter(Boolean);
+        if (next.length) setFinishes(next);
+      })
+      .catch(() => {
+        /* keep SSR / rarity foil */
+      });
+    return () => {
+      alive = false;
+    };
+    // finishesKey tracks SSR payload changes without array identity churn.
+  }, [card.id, card.finishes, finishesKey]);
+
   const prices = points.map((p) => p.price).filter((n) => Number.isFinite(n));
   const fromPoints = {
     points: points.length,
@@ -68,8 +93,7 @@ export function CardDetailView({
     day_change_pct: detail.history?.day_change_pct ?? fromPoints.day_change_pct,
     points: detail.history?.points || fromPoints.points,
   };
-  const finishes = (card.finishes || []).filter(Boolean);
-  const foil = foilModeFromFinishes(finishes);
+  const foil = resolveFoilMode(finishes, card.rarity);
   const meta = [card.set_name, card.rarity, card.id].filter(Boolean).join(" · ");
   const image = resolveCardImageUrl(card.id, card.image_url);
   const dayChange = history.day_change_pct;
@@ -103,6 +127,7 @@ export function CardDetailView({
             <div className="detail-hero-left">
               <div className="detail-hero-art">
                 <HoloCardArt
+                  key={`${card.id}-${foil || "none"}`}
                   cardId={card.id}
                   name={card.name}
                   image={image}
