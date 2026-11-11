@@ -73,7 +73,8 @@ export function SearchSuggest({
   const [recent, setRecent] = useState<string[]>([]);
   const [catalogHits, setCatalogHits] = useState<CatalogCard[]>([]);
   const [loading, setLoading] = useState(false);
-  const [active, setActive] = useState(0);
+  /** -1 = no highlight — Enter submits the typed query, not the first suggest. */
+  const [active, setActive] = useState(-1);
 
   useEffect(() => {
     setMounted(true);
@@ -195,7 +196,7 @@ export function SearchSuggest({
   }, []);
 
   useEffect(() => {
-    setActive(0);
+    setActive(-1);
   }, [value, open, catalogHits.length, localHits.length, recentHits.length]);
 
   function commitQuery(raw: string) {
@@ -204,6 +205,7 @@ export function SearchSuggest({
     if (next) setRecent(pushRecentSearch(recentScope, next));
     onCommit(next);
     setOpen(false);
+    setActive(-1);
   }
 
   function pick(hit: Hit) {
@@ -233,21 +235,36 @@ export function SearchSuggest({
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
-    if (!open || hits.length === 0) {
-      if (event.key === "Escape") setOpen(false);
+    if (event.key === "Escape") {
+      setOpen(false);
+      setActive(-1);
       return;
     }
     if (event.key === "ArrowDown") {
+      if (!open || hits.length === 0) return;
       event.preventDefault();
-      setActive((i) => (i + 1) % hits.length);
-    } else if (event.key === "ArrowUp") {
+      setActive((i) => (i < 0 ? 0 : (i + 1) % hits.length));
+      return;
+    }
+    if (event.key === "ArrowUp") {
+      if (!open || hits.length === 0) return;
       event.preventDefault();
-      setActive((i) => (i - 1 + hits.length) % hits.length);
-    } else if (event.key === "Enter" && open && hits[active]) {
+      setActive((i) => {
+        if (i < 0) return hits.length - 1;
+        if (i === 0) return -1;
+        return i - 1;
+      });
+      return;
+    }
+    if (event.key === "Enter") {
+      // Prefer typed query unless the user explicitly highlighted a suggest.
+      if (open && active >= 0 && hits[active]) {
+        event.preventDefault();
+        pick(hits[active]);
+        return;
+      }
       event.preventDefault();
-      pick(hits[active]);
-    } else if (event.key === "Escape") {
-      setOpen(false);
+      commitQuery(value);
     }
   }
 
