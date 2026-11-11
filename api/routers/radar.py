@@ -42,13 +42,24 @@ def _radar_status_payload(user: dict[str, Any]) -> RadarStatus:
 def radar_preview(
     limit: int = Query(default=5, ge=1, le=8),
 ) -> RadarPreviewResponse:
-    """Public Kestrel Pro teaser — share-safe UNDER edges only (Deal of the Day)."""
+    """Public teaser for Soft Ink hero + Deal of the Day.
+
+    Prefer share-safe UNDER deals. If that desk is empty (common after a
+    quarantine sweep), fall back to sure UNDER so the landing hero is never blank.
+    """
     payload = build_radar(min_edge=0, limit=int(limit), share_safe=True)
+    under = list(payload.get("underpriced") or [])
+    relaxed = False
+    if not under:
+        payload = build_radar(min_edge=0, limit=int(limit), share_safe=False)
+        under = list(payload.get("underpriced") or [])
+        relaxed = bool(under)
     return RadarPreviewResponse(
         forecast_days=int(payload.get("forecast_days") or 7),
         under_total=int(payload.get("under_total") or 0),
-        underpriced=payload.get("underpriced") or [],
+        underpriced=under,
         source=payload.get("source") or "empty",
+        relaxed=relaxed,
     )
 
 

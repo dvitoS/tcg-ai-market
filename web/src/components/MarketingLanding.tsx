@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { DealOfTheDay } from "@/components/DealOfTheDay";
 import { HeroCardSlider } from "@/components/HeroCardSlider";
 import { MarketPulse } from "@/components/MarketPulse";
 import { SoftInkWash } from "@/components/SoftInkWash";
 import { useLocale } from "@/components/LocaleProvider";
+import { fetchRadarPreview } from "@/lib/api";
 import { trackFunnel } from "@/lib/funnel";
 import type {
   MarketPulseResponse,
@@ -22,10 +23,28 @@ export function MarketingLanding({
   initialPulse?: MarketPulseResponse | null;
 }) {
   const { t } = useLocale();
+  const [dotd, setDotd] = useState<RadarPreviewResponse | null>(initialDotd);
 
   useEffect(() => {
     trackFunnel("landing_view", undefined, { once: true });
   }, []);
+
+  // Hero must not stay blank when SSR preview was empty / share-safe desk cold.
+  useEffect(() => {
+    if ((dotd?.underpriced || []).length > 0) return;
+    let alive = true;
+    void fetchRadarPreview(5, { cache: "no-store" })
+      .then((payload) => {
+        if (!alive) return;
+        if ((payload.underpriced || []).length > 0) setDotd(payload);
+      })
+      .catch(() => {
+        /* keep SSR empty — DoTD shows its own empty copy */
+      });
+    return () => {
+      alive = false;
+    };
+  }, [dotd]);
 
   return (
     <div className="landing">
@@ -68,7 +87,7 @@ export function MarketingLanding({
               </Link>
             </div>
           </div>
-          <HeroCardSlider cards={initialDotd?.underpriced || []} />
+          <HeroCardSlider cards={dotd?.underpriced || []} />
         </div>
       </section>
 
@@ -77,7 +96,7 @@ export function MarketingLanding({
         <DealOfTheDay
           limit={5}
           variant="landing"
-          initialPreview={initialDotd}
+          initialPreview={dotd}
         />
       </div>
 
