@@ -19,6 +19,7 @@ import type {
   RadarPreviewResponse,
   RadarResponse,
   RadarStatus,
+  SealedDetailResponse,
   SealedQuoteItem,
   SealedQuoteResponse,
   TrustResponse,
@@ -494,6 +495,30 @@ export async function fetchSealedQuote(input: {
   if (!res.ok) {
     const detail = await res.text().catch(() => "");
     throw new Error(detail || `Sealed quote failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function fetchSealedDetail(
+  tcgplayerId: string,
+  init?: RequestInit,
+): Promise<SealedDetailResponse> {
+  const tid = encodeURIComponent(String(tcgplayerId || "").trim());
+  const res = await fetch(apiUrl(`/api/sealed/${tid}`), {
+    ...init,
+    headers: {
+      Accept: "application/json",
+      ...(init?.headers || {}),
+      ...authHeaders(),
+    },
+    cache: "no-store",
+  });
+  if (res.status === 404) {
+    throw new Error("NOT_FOUND");
+  }
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    throw new Error(detail || `Sealed detail failed (${res.status})`);
   }
   return res.json();
 }

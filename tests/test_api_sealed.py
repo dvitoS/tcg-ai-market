@@ -1,4 +1,4 @@
-"""Sealed product quote + ensure (demo seed)."""
+"""Sealed product quote + ensure + detail (demo seed)."""
 
 from __future__ import annotations
 
@@ -6,6 +6,54 @@ from fastapi.testclient import TestClient
 
 from api.main import app
 from api.sealed_service import ensure_sealed_card, quote_sealed_products
+
+
+KNOWN_SHOWCASE_IDS = {
+    "624679",
+    "624676",
+    "625670",
+    "624681",
+    "610931",
+    "610930",
+    "610953",
+    "565606",
+    "565630",
+    "565629",
+    "600518",
+    "593355",
+    "622770",
+    "557354",
+    "557350",
+    "543846",
+    "543845",
+    "536225",
+    "532848",
+    "541017",
+    "528040",
+    "528771",
+    "502005",
+    "502000",
+    "503313",
+    "552999",
+    "553031",
+    "476452",
+    "493975",
+    "493974",
+    "501257",
+    "501264",
+    "512821",
+    "512813",
+    "630686",
+    "630431",
+    "630689",
+    "630696",
+    "644279",
+    "644300",
+    "654137",
+    "654136",
+    "668496",
+    "453470",
+}
 
 
 def test_sealed_quote_demo_seed() -> None:
@@ -23,29 +71,42 @@ def test_sealed_quote_demo_seed() -> None:
 
 def test_sealed_quote_showcase_without_query() -> None:
     client = TestClient(app)
-    res = client.get("/api/sealed/quote")
+    res = client.get("/api/sealed/quote", params={"limit": 48})
     assert res.status_code == 200
     body = res.json()
     assert body["source"] in {"demo", "justtcg"}
-    assert len(body["items"]) >= 1
+    assert len(body["items"]) >= 8
     assert body["items"][0]["card_id"].startswith("sealed:")
     # Showcase uses verified Pokémon TCP ids → CDN art URLs (demo path).
     with_art = [row for row in body["items"] if row.get("image_url")]
     assert len(with_art) >= 1
-    known = {
-        "565630",
-        "600518",
-        "593355",
-        "502005",
-        "528040",
-        "557350",
-        "543845",
-        "532848",
-    }
-    assert {str(row.get("tcgplayer_id")) for row in body["items"]} <= known
+    assert {str(row.get("tcgplayer_id")) for row in body["items"]} <= KNOWN_SHOWCASE_IDS
     if body["source"] == "demo":
-        assert len(with_art) >= 3
+        assert len(with_art) >= 8
         assert "tcgplayer-cdn.tcgplayer.com" in str(with_art[0]["image_url"])
+        assert any(str(row.get("tcgplayer_id")) == "624679" for row in body["items"])
+
+
+def test_sealed_detail_destined_rivals_box() -> None:
+    client = TestClient(app)
+    res = client.get("/api/sealed/624679")
+    assert res.status_code == 200
+    body = res.json()
+    assert body["product"]["tcgplayer_id"] == "624679"
+    assert body["product"]["set_name"] == "Destined Rivals"
+    assert body["product"]["image_url"]
+    assert "tcgplayer-cdn.tcgplayer.com" in body["product"]["image_url"]
+    assert isinstance(body["hits"], list)
+    assert isinstance(body["groups"], list)
+    assert isinstance(body["shelf"], list)
+    assert len(body["shelf"]) >= 1
+    assert all(row["set_name"] == "Destined Rivals" for row in body["shelf"])
+
+
+def test_sealed_detail_unknown_404() -> None:
+    client = TestClient(app)
+    res = client.get("/api/sealed/999999999")
+    assert res.status_code == 404
 
 
 def test_token_overlap_seed_sniff() -> None:
@@ -104,6 +165,7 @@ def test_live_showcase_sniff_keeps_matching_seeds(monkeypatch) -> None:
     payload = sealed_service.quote_sealed_products(allow_showcase=True, limit=8)
     assert payload["source"] == "justtcg"
     ids = {str(row.get("tcgplayer_id")) for row in payload["items"]}
+    # Live sniff walks the expanded seed; only 565630 matches name sniff.
     assert ids == {"565630"}
     assert payload["items"][0]["image_url"]
 

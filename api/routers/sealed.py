@@ -7,8 +7,16 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from api.deps import optional_user, require_user
-from api.schemas import SealedEnsureRequest, SealedQuoteItem, SealedQuoteResponse
-from api.sealed_service import ensure_sealed_card, quote_sealed_products
+from api.schemas import (
+    CatalogCard,
+    SealedDetailResponse,
+    SealedDetailSummary,
+    SealedEnsureRequest,
+    SealedQuoteItem,
+    SealedQuoteResponse,
+    SealedRarityGroup,
+)
+from api.sealed_service import ensure_sealed_card, quote_sealed_products, sealed_product_detail
 
 router = APIRouter(prefix="/sealed", tags=["sealed"])
 
@@ -19,7 +27,7 @@ def sealed_quote(
     q: str | None = Query(default=None, max_length=120),
     tcgplayer_id: str | None = Query(default=None, max_length=64),
     gtin: str | None = Query(default=None, max_length=32),
-    limit: int = Query(default=8, ge=1, le=20),
+    limit: int = Query(default=8, ge=1, le=48),
 ) -> SealedQuoteResponse:
     """Public Soft Ink sealed desk — search or empty showcase (demo seed).
 
@@ -38,6 +46,33 @@ def sealed_quote(
         source=payload.get("source") or "empty",
         justtcg_configured=bool(payload.get("justtcg_configured")),
         error=payload.get("error"),
+    )
+
+
+@router.get("/{tcgplayer_id}", response_model=SealedDetailResponse)
+def sealed_detail(
+    tcgplayer_id: str,
+    user: Annotated[dict | None, Depends(optional_user)] = None,
+    hits_limit: int = Query(default=48, ge=1, le=72),
+) -> SealedDetailResponse:
+    """Sealed product detail — price + set chase singles (box vs hits)."""
+    del user
+    payload = sealed_product_detail(tcgplayer_id, hits_limit=hits_limit)
+    if not payload or not payload.get("product"):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Sealed product not found.",
+        )
+    summary_raw = payload.get("summary")
+    return SealedDetailResponse(
+        product=SealedQuoteItem(**payload["product"]),
+        shelf=[SealedQuoteItem(**row) for row in payload.get("shelf") or []],
+        hits=[CatalogCard(**row) for row in payload.get("hits") or []],
+        groups=[SealedRarityGroup(**row) for row in payload.get("groups") or []],
+        summary=SealedDetailSummary(**summary_raw) if summary_raw else None,
+        source=payload.get("source") or "empty",
+        justtcg_configured=bool(payload.get("justtcg_configured")),
+        set_name=payload.get("set_name"),
     )
 
 

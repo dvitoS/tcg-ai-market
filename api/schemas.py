@@ -838,6 +838,8 @@ class SealedQuoteItem(BaseModel):
     kind: Literal["sealed"] = "sealed"
     ensured: bool | None = None
     demo: bool | None = None
+    product_kind: str | None = None
+    packs: int | None = None
 
 
 class SealedQuoteResponse(BaseModel):
@@ -845,6 +847,30 @@ class SealedQuoteResponse(BaseModel):
     source: Literal["justtcg", "demo", "empty"] = "empty"
     justtcg_configured: bool = False
     error: str | None = None
+
+
+class SealedRarityGroup(BaseModel):
+    key: str
+    label: str
+    count: int = 0
+    total_usd: float = 0.0
+    featured: list[CatalogCard] = Field(default_factory=list)
+
+
+class SealedDetailSummary(BaseModel):
+    ir_vs_product_usd: float | None = None
+    sir_boxes: float | None = None
+
+
+class SealedDetailResponse(BaseModel):
+    product: SealedQuoteItem
+    shelf: list[SealedQuoteItem] = Field(default_factory=list)
+    hits: list[CatalogCard] = Field(default_factory=list)
+    groups: list[SealedRarityGroup] = Field(default_factory=list)
+    summary: SealedDetailSummary | None = None
+    source: Literal["justtcg", "demo", "empty"] = "empty"
+    justtcg_configured: bool = False
+    set_name: str | None = None
 
 
 class SealedEnsureRequest(BaseModel):

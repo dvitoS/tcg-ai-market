@@ -153,6 +153,8 @@ export type SealedQuoteItem = {
   kind: "sealed";
   ensured?: boolean | null;
   demo?: boolean | null;
+  product_kind?: string | null;
+  packs?: number | null;
 };
 
 export type SealedQuoteResponse = {
@@ -160,6 +162,30 @@ export type SealedQuoteResponse = {
   source: "justtcg" | "demo" | "empty";
   justtcg_configured: boolean;
   error?: string | null;
+};
+
+export type SealedRarityGroup = {
+  key: string;
+  label: string;
+  count: number;
+  total_usd: number;
+  featured: CatalogCard[];
+};
+
+export type SealedDetailSummary = {
+  ir_vs_product_usd?: number | null;
+  sir_boxes?: number | null;
+};
+
+export type SealedDetailResponse = {
+  product: SealedQuoteItem;
+  shelf: SealedQuoteItem[];
+  hits: CatalogCard[];
+  groups: SealedRarityGroup[];
+  summary?: SealedDetailSummary | null;
+  source: "justtcg" | "demo" | "empty";
+  justtcg_configured: boolean;
+  set_name?: string | null;
 };
 
 export type AuthUser = {
