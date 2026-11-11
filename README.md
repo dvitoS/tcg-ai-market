@@ -49,6 +49,7 @@ Run SQL **once, in order** (SQL Editor), then **Project Settings → API → Rel
 4. `supabase_model_artifacts.sql` — persisted XGBoost  
 5. `supabase_market_quotes.sql` — fast catalog boot (+ encodings + 7d price move)  
 6. `supabase_ebay_liquidity.sql` — daily eBay active-depth snapshots for model features  
+7. `supabase_card_finishes.sql` — `cards.finishes` (Normal / Holofoil / Reverse Holofoil labels on Soft Ink detail)  
 7. `supabase_pro_entitlements.sql` — Kestrel Pro grants from Creem webhooks  
 
 Never set `AUTH_DISABLED=1` in production. After a model feature change, trigger a **nightly retrain** (or wait for schedule) so `market_quotes` match `FEATURE_COLUMNS`.
