@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 
 import { SealedDesk } from "@/components/SealedDesk";
+import { fetchSealedQuote } from "@/lib/api";
 import { absoluteUrl } from "@/lib/seo";
+import type { SealedQuoteResponse } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +14,12 @@ export const metadata: Metadata = {
   alternates: { canonical: absoluteUrl("/sealed") },
 };
 
-export default function SealedPage() {
-  return <SealedDesk />;
+export default async function SealedPage() {
+  let initial: SealedQuoteResponse | null = null;
+  try {
+    initial = await fetchSealedQuote({ limit: 48 });
+  } catch {
+    initial = null;
+  }
+  return <SealedDesk initial={initial} />;
 }

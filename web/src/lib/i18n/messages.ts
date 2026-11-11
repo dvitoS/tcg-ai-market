@@ -328,9 +328,11 @@ const en = {
     "Open a sealed product for box-vs-singles detail — chase cards tilt with Soft Ink foil, then add lots when signed in.",
   sealed_desk_showcase: "Featured sealed seed — tap a product for set hits, or search a name / TCP id / UPC.",
   sealed_desk_demo_live:
-    "Curated seed with illustrative spots — search to pull live JustTCG quotes.",
+    "Curated seed spots for a fast desk — search a name/TCP/UPC for live JustTCG quotes.",
   sealed_desk_live:
     "Live JustTCG spots on sniffed TCP seeds — wrong matches are dropped.",
+  sealed_desk_seed_fast:
+    "Curated seed loads instantly — search for a live JustTCG quote on one SKU.",
   sealed_desk_results: "{n} hit(s) for “{q}”",
   sealed_desk_signin: "Sign in to add lot",
   sealed_desk_disclaimer:
@@ -1270,9 +1272,11 @@ const hr: Dictionary = {
     "Otvori sealed proizvod za box-vs-singles detail — chase karte s Soft Ink foil tiltom, pa dodaj lotove kad si prijavljen.",
   sealed_desk_showcase: "Featured sealed seed — tapni proizvod za set hitove, ili traži ime / TCP id / UPC.",
   sealed_desk_demo_live:
-    "Curated seed s ilustrativnim spotovima — traži za live JustTCG quoteove.",
+    "Curated seed spotovi za brzi desk — traži ime/TCP/UPC za live JustTCG quote.",
   sealed_desk_live:
     "Live JustTCG spotovi na sniffanim TCP seedovima — krivi matchovi se odbacuju.",
+  sealed_desk_seed_fast:
+    "Curated seed se loada odmah — traži za live JustTCG quote na jednom SKU-u.",
   sealed_desk_results: "{n} hit(ova) za “{q}”",
   sealed_desk_signin: "Prijavi se da dodaš lot",
   sealed_desk_disclaimer:

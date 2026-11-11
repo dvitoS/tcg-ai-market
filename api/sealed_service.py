@@ -715,17 +715,9 @@ def quote_sealed_products(
                 "justtcg_configured": has_key,
                 "error": "Provide q, tcgplayer_id, or gtin.",
             }
-        # Soft Ink /sealed desk: live-sniff curated TCP seeds when JustTCG is up;
-        # otherwise show illustrative demo spots with verified CDN art only.
-        if has_key and not demo_mode():
-            live = _sniff_live_showcase(limit=limit)
-            if live:
-                return {
-                    "items": live[:limit],
-                    "source": "justtcg",
-                    "justtcg_configured": True,
-                }
-            LOG.info("sealed showcase sniff empty — falling back to demo seed")
+        # Soft Ink /sealed desk: curated seed paints instantly.
+        # Live JustTCG is reserved for explicit search + single-SKU detail
+        # (sniffing ~40 TCP ids sequentially made /sealed hang for tens of seconds).
         hits = _filter_demo(None)
         return {
             "items": hits[:limit],

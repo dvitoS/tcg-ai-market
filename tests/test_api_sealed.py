@@ -74,17 +74,15 @@ def test_sealed_quote_showcase_without_query() -> None:
     res = client.get("/api/sealed/quote", params={"limit": 48})
     assert res.status_code == 200
     body = res.json()
-    assert body["source"] in {"demo", "justtcg"}
+    # Empty showcase stays on curated seed (no sequential JustTCG sniff).
+    assert body["source"] == "demo"
     assert len(body["items"]) >= 8
     assert body["items"][0]["card_id"].startswith("sealed:")
-    # Showcase uses verified Pokémon TCP ids → CDN art URLs (demo path).
     with_art = [row for row in body["items"] if row.get("image_url")]
-    assert len(with_art) >= 1
+    assert len(with_art) >= 8
     assert {str(row.get("tcgplayer_id")) for row in body["items"]} <= KNOWN_SHOWCASE_IDS
-    if body["source"] == "demo":
-        assert len(with_art) >= 8
-        assert "tcgplayer-cdn.tcgplayer.com" in str(with_art[0]["image_url"])
-        assert any(str(row.get("tcgplayer_id")) == "624679" for row in body["items"])
+    assert "tcgplayer-cdn.tcgplayer.com" in str(with_art[0]["image_url"])
+    assert any(str(row.get("tcgplayer_id")) == "624679" for row in body["items"])
 
 
 def test_sealed_detail_destined_rivals_box() -> None:
@@ -198,13 +196,24 @@ def test_sealed_detail_prefers_seed_set_over_justtcg_prefix(monkeypatch) -> None
     assert len(payload["shelf"]) >= 1
 
 
+def test_showcase_skips_live_sniff_even_with_key(monkeypatch) -> None:
+    from api import sealed_service
+
+    monkeypatch.setattr("justtcg_client.justtcg_api_key", lambda: "test-key")
+    monkeypatch.setattr(sealed_service, "demo_mode", lambda: False)
+
+    def boom(**_kwargs):
+        raise AssertionError("showcase must not call JustTCG sniff")
+
+    monkeypatch.setattr(sealed_service, "_sniff_live_showcase", boom)
+    payload = sealed_service.quote_sealed_products(allow_showcase=True, limit=8)
+    assert payload["source"] == "demo"
+    assert len(payload["items"]) >= 1
+
+
 def test_live_showcase_sniff_keeps_matching_seeds(monkeypatch) -> None:
     from api import sealed_service
 
-    monkeypatch.setattr(
-        "justtcg_client.justtcg_api_key",
-        lambda: "test-key",
-    )
     monkeypatch.setattr(sealed_service, "demo_mode", lambda: False)
 
     def fake_quote(*, tcgplayer_id=None, **_kwargs):
@@ -238,12 +247,11 @@ def test_live_showcase_sniff_keeps_matching_seeds(monkeypatch) -> None:
         return []
 
     monkeypatch.setattr("justtcg_sealed.quote_sealed", fake_quote)
-    payload = sealed_service.quote_sealed_products(allow_showcase=True, limit=8)
-    assert payload["source"] == "justtcg"
-    ids = {str(row.get("tcgplayer_id")) for row in payload["items"]}
-    # Live sniff walks the expanded seed; only 565630 matches name sniff.
+    # Helper still used by ops/tests — desk showcase no longer calls it.
+    rows = sealed_service._sniff_live_showcase(limit=8)
+    ids = {str(row.get("tcgplayer_id")) for row in rows}
     assert ids == {"565630"}
-    assert payload["items"][0]["image_url"]
+    assert rows[0]["image_url"]
 
 
 def test_normalize_skips_cdn_without_external_tcp() -> None:
