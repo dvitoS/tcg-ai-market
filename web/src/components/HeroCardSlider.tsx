@@ -58,7 +58,7 @@ export function HeroCardSlider({ cards }: { cards: RadarCard[] }) {
       <div className="landing-hero-slider-stage">
         {slides.map((card, i) => {
           const isActive = i === index;
-          const foil = resolveFoilMode(card.finishes, card.rarity);
+          const foil = resolveFoilMode(card.finishes, card.rarity, card.name);
           return (
             <Link
               key={card.id}

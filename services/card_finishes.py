@@ -156,7 +156,18 @@ def finishes_from_rarity(rarity: str | None) -> list[str]:
         return ["Amazing Rare"]
     if "gold" in text:
         return ["Gold"]
-    if "holo" in text or "foil" in text:
+    if (
+        "holo" in text
+        or "foil" in text
+        or "ultra rare" in text
+        or "double rare" in text
+        or "illustration" in text
+        or "hyper" in text
+        or "secret" in text
+        or "shiny" in text
+        or "radiant" in text
+        or "ace spec" in text
+    ):
         return ["Holofoil"]
     return []
 

@@ -50,8 +50,30 @@ def foil_from_rarity(rarity: str) -> str | None:
         return "reverse"
     if any(
         n in text
-        for n in ("holo", "foil", "rainbow", "amazing", "illustration", "hyper", "secret")
+        for n in (
+            "holo",
+            "foil",
+            "rainbow",
+            "amazing",
+            "illustration",
+            "hyper",
+            "secret",
+            "ultra rare",
+            "double rare",
+            "shiny",
+            "radiant",
+            "ace spec",
+        )
     ):
+        return "holo"
+    return None
+
+
+def foil_from_name(name: str) -> str | None:
+    text = name.strip().lower()
+    if any(tok in f" {text} " for tok in (" ex ", " gx ", " v ", " vmax ", " vstar ")):
+        return "holo"
+    if "lv.x" in text or "lv. x" in text:
         return "holo"
     return None
 
@@ -59,4 +81,13 @@ def foil_from_rarity(rarity: str) -> str | None:
 def test_foil_from_rarity_fallback() -> None:
     assert foil_from_rarity("Rare Holo") == "holo"
     assert foil_from_rarity("Illustration Rare") == "holo"
+    assert foil_from_rarity("Double Rare") == "holo"
+    assert foil_from_rarity("Ultra Rare") == "holo"
     assert foil_from_rarity("Common") is None
+    assert foil_from_rarity("Promo") is None
+
+
+def test_foil_from_name_chase() -> None:
+    assert foil_from_name("Arceus LV.X") == "holo"
+    assert foil_from_name("N's Zoroark ex") == "holo"
+    assert foil_from_name("Pikachu") is None
