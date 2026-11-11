@@ -7,6 +7,7 @@ import { DealOfTheDay } from "@/components/DealOfTheDay";
 import { HeroCardSlider } from "@/components/HeroCardSlider";
 import { MarketPulse } from "@/components/MarketPulse";
 import { SoftInkWash } from "@/components/SoftInkWash";
+import { TrustProof } from "@/components/TrustProof";
 import { useLocale } from "@/components/LocaleProvider";
 import { fetchRadarPreview } from "@/lib/api";
 import { trackFunnel } from "@/lib/funnel";
@@ -120,6 +121,8 @@ export function MarketingLanding({
           </Link>
         </nav>
       </section>
+
+      <TrustProof />
 
       <section className="landing-guides" aria-labelledby="landing-guides-title">
         <h2 id="landing-guides-title" className="landing-path-title">
