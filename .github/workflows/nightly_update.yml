@@ -159,10 +159,30 @@ jobs:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: python nightly_update.py
 
+      # Nightly itself may succeed while Actions artifact CDN returns HTML 5xx —
+      # never fail the job on log upload alone (run 43089054965: SLO ok, upload flake).
+      - name: Pack automation.log
+        if: always()
+        continue-on-error: true
+        run: |
+          if [ -f automation.log ]; then
+            # Cap + gzip so CreateArtifact is less likely to time out / HTML-fail.
+            tail -c 32M automation.log > automation.tail.log
+            gzip -9 -c automation.tail.log > automation.log.gz
+            ls -lh automation.log automation.log.gz || true
+          else
+            echo "No automation.log to pack"
+          fi
+
       - name: Upload automation.log
         if: always()
-        uses: actions/upload-artifact@v6
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
         with:
           name: nightly-automation-log
-          path: automation.log
+          path: |
+            automation.log.gz
+            automation.log
           if-no-files-found: ignore
+          compression-level: 9
+          retention-days: 14
