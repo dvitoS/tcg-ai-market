@@ -3,7 +3,7 @@
 import { forwardRef } from "react";
 
 import { useLocale } from "@/components/LocaleProvider";
-import { resolveCardImageUrl } from "@/lib/cardImage";
+import { onCardImageError, resolveCardImageUrl } from "@/lib/cardImage";
 import { formatRadarShareFilters, type RadarShareFilters } from "@/lib/radarShare";
 import type { RadarCard } from "@/lib/types";
 
@@ -71,6 +71,9 @@ export const RadarShareCard = forwardRef<
               alt=""
               width={140}
               height={196}
+              crossOrigin="anonymous"
+              decoding="async"
+              onError={(event) => onCardImageError(event, topUnder.id)}
             />
           </div>
           <div className="dotd-share-copy">
