@@ -2,6 +2,8 @@
 
 **Gate:** paid marketing stays locked until this pack passes.
 
+**Status:** **Green** as of 2026-11-12 — ops reports sniff pack good **3 nights in a row** (`g0_ready`). Keep nightly auto G0 on; re-open the gate if a nightly fails or fail count spikes.
+
 **When:** after a green nightly (quotes + sure_rows). Nightly already runs auto G0 — manual click is only for leftovers / mid-day checks.
 
 ## Nightly (default — no ops click)
