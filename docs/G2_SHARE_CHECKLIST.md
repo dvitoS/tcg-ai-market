@@ -2,7 +2,7 @@
 
 **Gate:** ≥1 **real human** post per week outside the team, using a Kestrel share card (PNG and/or Discord paste + deep link).
 
-**Status:** In progress — product share kit is live; weekly organic post still required.
+**Status:** **Green** (2026-11-12) — ops posted externally on **Twitter/X** + **Discord** (DOTD share). Keep ≥1 real share/week; re-open if a week passes with zero external posts.
 
 **When:** after G0/G1 are green (copy + spots trusted enough to show outsiders).
 

@@ -2,7 +2,7 @@
 
 **Positioning:** Collectr tracks *what you own*. PriceCharting shows *what sold*. TCGplayer is *where you buy*. **Kestrel** is the desk that answers *should I buy / sell / trade / grade — with conformal AI, not vibes*.
 
-Last updated: 2026-11-12 (G0 green). Living doc — ship order can move; the wedge should not.
+Last updated: 2026-11-12 (G0–G2 green). Living doc — ship order can move; the wedge should not.
 
 **North star:** make the wedge obvious in ~10 seconds for a non-Pro visitor (*fair / not fair — here’s why*), then earn Pro with shareable verdicts and trustworthy spots — **not** by becoming another binder scanner.
 
@@ -41,7 +41,7 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 | --- | --- | --- |
 | **G0 Trust** | **Green** (2026-11-12) | Sniff pack good **3 nights** in a row — `docs/G0_SNIFF_CHECKLIST.md`; methodology live |
 | **G1 10s wedge** | **Green** (2026-11-12) | Ops cold-user check **4/5** pass — `docs/G1_COLD_USER_CHECKLIST.md` |
-| **G2 Share loop** | In progress | Share kit live; ops weekly post — `docs/G2_SHARE_CHECKLIST.md` + `docs/ORGANIC_SOFT_LAUNCH.md` |
+| **G2 Share loop** | **Green** (2026-11-12) | Twitter/X + Discord DOTD posts — `docs/G2_SHARE_CHECKLIST.md`; keep ≥1/week |
 | **G3 Metrics** | Required before CAC | Funnel + trial strip live; Data Health **G3 trust gate**; &lt;2% cancel/refund cites “wrong prices” (`docs/G3_METRICS_CHECKLIST.md`) |
 
 ### Phases
@@ -99,8 +99,8 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 
 ### Suggested next 3
 
-1. **G2 organic** *(ops)* — first external post this week (`docs/G2_SHARE_CHECKLIST.md`)  
-2. **G3 trust week** *(ops)* — `docs/G3_METRICS_CHECKLIST.md` then **M4.5** spend unlock  
+1. **G3 trust week** *(ops)* — `docs/G3_METRICS_CHECKLIST.md` then **M4.5** spend unlock  
+2. Keep **G2** cadence — ≥1 Twitter / Discord / Reddit share per week  
 3. Keep nightly **auto G0** green — reopen G0 if sniff fails
 
 ### Just shipped (ops / infra)
