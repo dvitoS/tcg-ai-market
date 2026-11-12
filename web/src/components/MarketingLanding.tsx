@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 import { DealOfTheDay } from "@/components/DealOfTheDay";
 import { HeroCardSlider } from "@/components/HeroCardSlider";
@@ -16,6 +17,20 @@ import type {
   RadarPreviewResponse,
 } from "@/lib/types";
 
+/** Temporary picker — swap DEFAULT or use `?bg=a|b|c|d|e|svg`. */
+const LANDING_HERO_OPTIONS = {
+  a: "/landing-bg/a-desk-lamp.jpg",
+  b: "/landing-bg/b-card-rail.jpg",
+  c: "/landing-bg/c-ink-field.jpg",
+  d: "/landing-bg/d-lgs-counter.jpg",
+  e: "/landing-bg/e-warm-binder.jpg",
+  svg: "/kestrel-hero.svg",
+} as const;
+
+type LandingHeroKey = keyof typeof LANDING_HERO_OPTIONS;
+
+const DEFAULT_LANDING_HERO: LandingHeroKey = "e";
+
 export function MarketingLanding({
   initialDotd = null,
   initialPulse = null,
@@ -24,7 +39,21 @@ export function MarketingLanding({
   initialPulse?: MarketPulseResponse | null;
 }) {
   const { t } = useLocale();
+  const searchParams = useSearchParams();
   const [dotd, setDotd] = useState<RadarPreviewResponse | null>(initialDotd);
+
+  const heroKey = useMemo((): LandingHeroKey => {
+    const raw = String(searchParams.get("bg") || "")
+      .trim()
+      .toLowerCase();
+    if (raw && raw in LANDING_HERO_OPTIONS) {
+      return raw as LandingHeroKey;
+    }
+    return DEFAULT_LANDING_HERO;
+  }, [searchParams]);
+
+  const heroSrc = LANDING_HERO_OPTIONS[heroKey];
+  const photoHero = heroKey !== "svg";
 
   useEffect(() => {
     trackFunnel("landing_view", undefined, { once: true });
@@ -52,7 +81,7 @@ export function MarketingLanding({
       <section className="landing-hero" aria-label="Kestrel">
         <div className="landing-hero-plane" aria-hidden>
           <img
-            src="/kestrel-hero.svg"
+            src={heroSrc}
             alt=""
             className="landing-hero-img"
             width={1920}
@@ -60,9 +89,11 @@ export function MarketingLanding({
             decoding="async"
             fetchPriority="high"
           />
-          <div className="landing-hero-veil" />
-          {/* Above the veil so copper motion stays visible. */}
-          <SoftInkWash />
+          <div
+            className={`landing-hero-veil${photoHero ? " is-photo" : ""}`}
+          />
+          {/* Soft wash only on the old SVG plane — photos already carry atmosphere. */}
+          {photoHero ? null : <SoftInkWash />}
         </div>
 
         <div className="landing-hero-stage">
