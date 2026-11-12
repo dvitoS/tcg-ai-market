@@ -9,7 +9,6 @@ import {
   useState,
 } from "react";
 
-import { useLocale } from "@/components/LocaleProvider";
 import { apiUrl, formatMoney as formatMoneyRaw } from "@/lib/api";
 
 export type SpotCurrency = "USD" | "EUR";
@@ -43,8 +42,8 @@ function readStoredCurrency(localeDefault: SpotCurrency): SpotCurrency {
 }
 
 export function CurrencyProvider({ children }: { children: React.ReactNode }) {
-  const { locale } = useLocale();
-  const localeDefault: SpotCurrency = locale === "hr" ? "EUR" : "USD";
+  // Soft launch: USD is the desk default (spots are US board). EUR remains a
+  // display toggle; do not auto-switch from locale.
   const [currency, setCurrencyState] = useState<SpotCurrency>("USD");
   const [hydrated, setHydrated] = useState(false);
   const [usdEur, setUsdEur] = useState<number | null>(null);
@@ -52,9 +51,9 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   const [fxAsOf, setFxAsOf] = useState<string | null>(null);
 
   useEffect(() => {
-    setCurrencyState(readStoredCurrency(localeDefault));
+    setCurrencyState(readStoredCurrency("USD"));
     setHydrated(true);
-  }, [localeDefault]);
+  }, []);
 
   useEffect(() => {
     if (!hydrated) return;
