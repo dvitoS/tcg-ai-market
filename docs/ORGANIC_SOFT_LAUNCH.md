@@ -47,6 +47,7 @@ Funnel events (process-local, Data Health → Soft-launch funnel):
 - `share_png` — image export (`surface` + clipboard success)
 
 G2 weekly check: at least one real human post outside the team, not just event counts.
+Ops playbook + fastest first post: `docs/G2_SHARE_CHECKLIST.md`.
 
 ## Explicit non-goals
 
