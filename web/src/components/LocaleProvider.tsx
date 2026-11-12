@@ -10,7 +10,8 @@ import {
 } from "react";
 
 import {
-  isLocale,
+  DEFAULT_LOCALE,
+  isPublicLocale,
   LOCALE_STORAGE_KEY,
   translate,
   type Locale,
@@ -26,13 +27,14 @@ type LocaleContextValue = {
 const LocaleContext = createContext<LocaleContextValue | null>(null);
 
 function readStoredLocale(): Locale {
-  if (typeof window === "undefined") return "en";
+  if (typeof window === "undefined") return DEFAULT_LOCALE;
   const raw = window.localStorage.getItem(LOCALE_STORAGE_KEY);
-  return isLocale(raw) ? raw : "en";
+  // Soft launch: ignore stored HR (and any non-public locale).
+  return isPublicLocale(raw) ? raw : DEFAULT_LOCALE;
 }
 
 export function LocaleProvider({ children }: { children: React.ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>("en");
+  const [locale, setLocaleState] = useState<Locale>(DEFAULT_LOCALE);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -47,7 +49,7 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
   }, [locale, hydrated]);
 
   const setLocale = useCallback((next: Locale) => {
-    setLocaleState(next);
+    setLocaleState(isPublicLocale(next) ? next : DEFAULT_LOCALE);
   }, []);
 
   const t = useCallback(

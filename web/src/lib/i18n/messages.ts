@@ -1,6 +1,12 @@
 export type Locale = "en" | "hr";
 
+/** All bundled dictionaries (HR kept for future — not exposed in UI). */
 export const LOCALES: Locale[] = ["en", "hr"];
+
+/** Public Soft Ink language picker — EN only for launch. */
+export const PUBLIC_LOCALES: Locale[] = ["en"];
+
+export const DEFAULT_LOCALE: Locale = "en";
 
 export const LOCALE_STORAGE_KEY = "kestrel_locale";
 
@@ -1958,6 +1964,14 @@ export const MESSAGES: Record<Locale, Dictionary> = { en, hr };
 
 export function isLocale(value: string | null | undefined): value is Locale {
   return value === "en" || value === "hr";
+}
+
+export function isPublicLocale(
+  value: string | null | undefined,
+): value is Locale {
+  return (
+    isLocale(value) && (PUBLIC_LOCALES as readonly string[]).includes(value)
+  );
 }
 
 export function translate(

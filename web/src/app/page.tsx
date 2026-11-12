@@ -58,7 +58,7 @@ const jsonLd = {
       name: "Kestrel",
       description: DESCRIPTION,
       publisher: { "@id": `${SITE_URL}/#organization` },
-      inLanguage: ["en", "hr"],
+      inLanguage: ["en"],
     },
     {
       "@type": "Organization",
