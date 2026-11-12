@@ -111,13 +111,27 @@ a {
   max-width: 100%;
 }
 
-/* Landing: kill the dead band under the sticky nav — hero starts flush. */
+/* Landing: full-bleed shell — no 100vw breakout math (that was shifting the page). */
 .app-shell:has(> main .landing) {
-  padding-top: 0;
+  width: 100%;
+  max-width: 100%;
+  padding: 0 0 3.5rem;
 }
 
 .app-shell:has(> main .landing) .site-header {
-  margin-bottom: 0;
+  width: min(1180px, calc(100% - 2rem));
+  margin: 0 auto;
+}
+
+.app-shell:has(> main .landing) .site-header::before {
+  left: 0;
+  width: 100%;
+}
+
+.app-shell:has(> main .landing) > main {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: clip;
 }
 
 .site-header {
@@ -5150,9 +5164,17 @@ a {
 /* —— Marketing landing (public first viewport) —— */
 .landing {
   display: grid;
+  grid-template-columns: 1fr min(1180px, calc(100% - 2rem)) 1fr;
   gap: 1.75rem;
-  /* Critical: default min-width:auto lets Market Pulse rails inflate the shell,
-     which breaks hero full-bleed (margin: 50% - 50vw) and clips copy on phones. */
+  width: 100%;
+  /* Critical: default min-width:auto lets Market Pulse rails inflate the shell. */
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+.landing > * {
+  grid-column: 2;
   min-width: 0;
   max-width: 100%;
 }
@@ -5166,10 +5188,9 @@ a {
 
 .landing-hero {
   position: relative;
-  width: 100vw;
-  max-width: 100vw;
-  margin-left: calc(50% - 50vw);
-  margin-right: calc(50% - 50vw);
+  grid-column: 1 / -1;
+  width: 100%;
+  max-width: 100%;
   /* Flush under sticky header; stage padding clears the nav chrome. */
   min-height: min(78vh, 720px);
   display: grid;
