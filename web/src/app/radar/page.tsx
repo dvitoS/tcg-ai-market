@@ -23,7 +23,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   return {
     title: "Kestrel Radar — sure underpriced Pokémon cards",
     description:
-      "Kestrel Radar lists Pokémon TCG singles selling under or over the sure AI fair band — clear buy/pass calls.",
+      "Kestrel Radar lists Pokémon TCG singles selling under or over the fair range — clear buy/pass leans.",
     alternates: { canonical: absoluteUrl("/radar") },
     openGraph: {
       type: "website",

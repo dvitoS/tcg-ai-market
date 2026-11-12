@@ -66,7 +66,7 @@ export function OgShell({
           color: "#9a9288",
         }}
       >
-        <div>Spot. Signal. Act.</div>
+        <div>Market · Fair · Call</div>
         <div style={{ color: "#e0b483" }}>{footer}</div>
       </div>
     </div>

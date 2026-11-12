@@ -10,7 +10,7 @@ import type {
 
 const TITLE = "Kestrel — Pokémon TCG fair value: buy, pass, or trade";
 const DESCRIPTION =
-  "Price trackers show the market ask. Kestrel scores Pokémon TCG cards against AI fair value — buy, sell, trade, or grade with a clear call.";
+  "Price trackers show the market ask. Kestrel puts market price next to fair value so you can buy, sell, trade, or grade with a clear read.";
 
 export const metadata: Metadata = {
   title: {

@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Trade Analyzer — fair Pokémon TCG trades",
   description:
-    "Score two-sided Pokémon TCG trades against spot and Kestrel AI fair value. Fair, you-ahead, or them-ahead in seconds.",
+    "Score two-sided Pokémon TCG trades against market and Kestrel fair value. Fair, you-ahead, or them-ahead in seconds.",
   alternates: { canonical: absoluteUrl("/trade") },
 };
 

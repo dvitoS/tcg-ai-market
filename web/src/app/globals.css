@@ -5203,9 +5203,10 @@ a {
   width: 100%;
   height: 100%;
   display: block;
-  opacity: 1;
-  filter: blur(10px) saturate(1.25) contrast(1.05);
-  mix-blend-mode: screen;
+  /* Quieter atmosphere — less “generative wash” on first paint. */
+  opacity: 0.42;
+  filter: blur(14px) saturate(1.05);
+  mix-blend-mode: soft-light;
   transform: translateZ(0);
 }
 
@@ -5872,18 +5873,7 @@ a {
 }
 
 .landing-cta.btn-primary::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    110deg,
-    transparent 25%,
-    rgba(255, 235, 210, 0.14) 45%,
-    transparent 65%
-  );
-  transform: translateX(-120%);
-  animation: landing-sheen 3.8s ease-in-out 1.2s infinite;
-  pointer-events: none;
+  content: none;
 }
 
 .landing-path {

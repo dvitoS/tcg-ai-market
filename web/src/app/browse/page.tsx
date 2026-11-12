@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Browse Pokémon TCG prices",
   description:
-    "Browse live Pokémon TCG spot prices, Kestrel fair bands, and AI signals.",
+    "Browse live Pokémon TCG market prices next to Kestrel fair value.",
   alternates: { canonical: absoluteUrl("/browse") },
 };
 

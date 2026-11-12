@@ -48,102 +48,50 @@ export function SoftInkWash() {
     let dpr = 1;
     const start = performance.now();
 
+    // Keep the wash calm — two soft ribbons + a couple of plumes, not a generative light show.
     const ribbons: Ribbon[] = [
       {
-        amp: 0.055,
-        thick: 0.2,
-        speed: 0.16,
+        amp: 0.035,
+        thick: 0.18,
+        speed: 0.1,
         phase: 0.4,
-        yBase: 0.42,
+        yBase: 0.48,
         rgb: "192,122,58",
-        alpha: 0.22,
+        alpha: 0.12,
       },
       {
-        amp: 0.07,
+        amp: 0.04,
         thick: 0.14,
-        speed: 0.23,
+        speed: 0.14,
         phase: 1.8,
-        yBase: 0.55,
-        rgb: "224,180,120",
-        alpha: 0.18,
-      },
-      {
-        amp: 0.045,
-        thick: 0.24,
-        speed: 0.12,
-        phase: 2.9,
-        yBase: 0.64,
-        rgb: "140,82,42",
-        alpha: 0.16,
+        yBase: 0.6,
+        rgb: "168,104,55",
+        alpha: 0.09,
       },
     ];
 
     const plumes: Plume[] = [
       {
-        x: 0.72,
-        y: 0.32,
-        r: 0.28,
-        life: 0,
-        speed: 0.055,
-        driftX: 0.03,
-        driftY: 0.02,
-        rgb: "212,165,116",
-        lobes: 3,
-      },
-      {
-        x: 0.58,
-        y: 0.58,
+        x: 0.76,
+        y: 0.38,
         r: 0.22,
-        life: 0.33,
-        speed: 0.042,
-        driftX: -0.025,
-        driftY: 0.015,
-        rgb: "192,122,58",
-        lobes: 4,
-      },
-      {
-        x: 0.86,
-        y: 0.48,
-        r: 0.2,
-        life: 0.66,
-        speed: 0.048,
-        driftX: -0.02,
-        driftY: -0.02,
-        rgb: "232,196,140",
-        lobes: 3,
-      },
-      {
-        x: 0.48,
-        y: 0.28,
-        r: 0.18,
-        life: 0.15,
-        speed: 0.038,
-        driftX: 0.018,
-        driftY: 0.03,
-        rgb: "168,104,55",
-        lobes: 5,
-      },
-      {
-        x: 0.78,
-        y: 0.72,
-        r: 0.24,
-        life: 0.5,
-        speed: 0.05,
-        driftX: 0.022,
-        driftY: -0.018,
-        rgb: "200,140,80",
-        lobes: 4,
-      },
-      {
-        x: 0.64,
-        y: 0.18,
-        r: 0.16,
-        life: 0.82,
-        speed: 0.06,
-        driftX: -0.03,
+        life: 0,
+        speed: 0.028,
+        driftX: 0.015,
         driftY: 0.01,
-        rgb: "224,170,110",
-        lobes: 3,
+        rgb: "192,122,58",
+        lobes: 2,
+      },
+      {
+        x: 0.62,
+        y: 0.58,
+        r: 0.18,
+        life: 0.4,
+        speed: 0.022,
+        driftX: -0.012,
+        driftY: 0.01,
+        rgb: "168,104,55",
+        lobes: 2,
       },
     ];
 
@@ -245,16 +193,15 @@ export function SoftInkWash() {
         h * 0.45,
         Math.max(w, h) * 0.78,
       );
-      field.addColorStop(0, "rgba(192,122,58,0.2)");
-      field.addColorStop(0.5, "rgba(90,58,32,0.08)");
+      field.addColorStop(0, "rgba(192,122,58,0.1)");
+      field.addColorStop(0.5, "rgba(90,58,32,0.04)");
       field.addColorStop(1, "rgba(10,9,8,0)");
       ctx.fillStyle = field;
       ctx.fillRect(0, 0, w, h);
 
-      ctx.globalCompositeOperation = "lighter";
+      ctx.globalCompositeOperation = "source-over";
       for (const r of ribbons) drawRibbon(r, t);
       for (const p of plumes) drawPlume(p, t);
-      ctx.globalCompositeOperation = "source-over";
     }
 
     function loop(now: number) {
