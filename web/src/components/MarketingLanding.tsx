@@ -158,16 +158,6 @@ export function MarketingLanding({
           </Link>
         </nav>
       </section>
-
-      <section className="landing-follow" aria-labelledby="landing-follow-title">
-        <h2 id="landing-follow-title" className="landing-follow-title">
-          {t("landing_follow_title")}
-        </h2>
-        <p className="landing-follow-lede">{t("landing_follow_lede")}</p>
-        <Link href="/trade" className="landing-follow-link">
-          {t("landing_follow_link")}
-        </Link>
-      </section>
     </div>
   );
 }
