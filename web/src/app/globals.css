@@ -5267,6 +5267,28 @@ a {
     linear-gradient(180deg, rgba(10, 9, 8, 0.22) 0%, rgba(10, 9, 8, 0.02) 38%, rgba(10, 9, 8, 0.55) 100%);
 }
 
+/* Cream / set-art heroes: warm ink wash, not a black desk void. */
+.landing-hero:has(.landing-hero-veil.is-bright) .landing-hero-plane {
+  background: #e8dcc8;
+}
+
+.landing-hero-veil.is-photo.is-bright {
+  background:
+    linear-gradient(
+      105deg,
+      rgba(62, 42, 28, 0.55) 0%,
+      rgba(92, 58, 36, 0.22) 38%,
+      rgba(192, 122, 58, 0.06) 72%,
+      transparent 100%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(48, 32, 22, 0.18) 0%,
+      transparent 36%,
+      rgba(42, 28, 18, 0.42) 100%
+    );
+}
+
 .landing-hero-stage {
   position: relative;
   z-index: 4;
@@ -6379,6 +6401,22 @@ a {
     background:
       linear-gradient(105deg, rgba(10, 9, 8, 0.7) 0%, rgba(10, 9, 8, 0.28) 58%, rgba(10, 9, 8, 0.1) 100%),
       linear-gradient(180deg, rgba(10, 9, 8, 0.28) 0%, rgba(10, 9, 8, 0.2) 42%, rgba(10, 9, 8, 0.88) 100%);
+  }
+
+  .landing-hero-veil.is-photo.is-bright {
+    background:
+      linear-gradient(
+        105deg,
+        rgba(56, 38, 26, 0.58) 0%,
+        rgba(86, 54, 34, 0.28) 52%,
+        rgba(192, 122, 58, 0.08) 100%
+      ),
+      linear-gradient(
+        180deg,
+        rgba(48, 32, 22, 0.22) 0%,
+        rgba(42, 28, 18, 0.18) 40%,
+        rgba(36, 24, 16, 0.72) 100%
+      );
   }
 
   .landing-hero-stage {

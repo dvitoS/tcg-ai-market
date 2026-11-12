@@ -17,19 +17,28 @@ import type {
   RadarPreviewResponse,
 } from "@/lib/types";
 
-/** Temporary picker — swap DEFAULT or use `?bg=a|b|c|d|e|svg`. */
+/** Temporary picker — swap DEFAULT or use `?bg=a|…|i|svg`. */
 const LANDING_HERO_OPTIONS = {
   a: "/landing-bg/a-desk-lamp.jpg",
   b: "/landing-bg/b-card-rail.jpg",
   c: "/landing-bg/c-ink-field.jpg",
   d: "/landing-bg/d-lgs-counter.jpg",
   e: "/landing-bg/e-warm-binder.jpg",
+  /** Delta Reign cream fan — playful TCG, not desk-noir. */
+  f: "/landing-bg/f-delta-fan.jpg",
+  g: "/landing-bg/g-delta-float.jpg",
+  h: "/landing-bg/h-delta-binder.jpg",
+  i: "/landing-bg/i-delta-bloom.jpg",
   svg: "/kestrel-hero.svg",
 } as const;
 
 type LandingHeroKey = keyof typeof LANDING_HERO_OPTIONS;
 
-const DEFAULT_LANDING_HERO: LandingHeroKey = "e";
+/** Bright cream + modern set art — less “serious finance desk”. */
+const DEFAULT_LANDING_HERO: LandingHeroKey = "f";
+
+/** Warm paper heroes: keep veil light so cream/copper show through. */
+const BRIGHT_LANDING_HEROES = new Set<LandingHeroKey>(["f", "g", "h", "i", "e"]);
 
 export function MarketingLanding({
   initialDotd = null,
@@ -54,6 +63,7 @@ export function MarketingLanding({
 
   const heroSrc = LANDING_HERO_OPTIONS[heroKey];
   const photoHero = heroKey !== "svg";
+  const brightHero = BRIGHT_LANDING_HEROES.has(heroKey);
 
   useEffect(() => {
     trackFunnel("landing_view", undefined, { once: true });
@@ -90,7 +100,13 @@ export function MarketingLanding({
             fetchPriority="high"
           />
           <div
-            className={`landing-hero-veil${photoHero ? " is-photo" : ""}`}
+            className={[
+              "landing-hero-veil",
+              photoHero ? "is-photo" : "",
+              brightHero ? "is-bright" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
           />
           {/* Soft wash only on the old SVG plane — photos already carry atmosphere. */}
           {photoHero ? null : <SoftInkWash />}
