@@ -104,9 +104,9 @@ const en = {
   landing_guides_trade: "Is this trade fair? →",
   obs_funnel_title: "Soft-launch funnel",
   obs_funnel_caption:
-    "Process-local counts: landing → DOTD → Pro → Radar/Trade (resets on API restart).",
-  obs_funnel_total: "{n} events this process",
-  obs_funnel_empty: "No funnel events recorded yet on this API process.",
+    "Landing → DOTD → Pro → Radar/Trade. Counts persist across API restarts (local + Supabase when available).",
+  obs_funnel_total: "{n} events · source {source}",
+  obs_funnel_empty: "No funnel events recorded yet.",
   obs_trial_title: "Trial → paid (Creem)",
   obs_trial_caption:
     "Entitlement counts from pro_entitlements. Trialing still unlocks Pro; paid_share = active / (active + trialing).",
@@ -1084,9 +1084,9 @@ const hr: Dictionary = {
   landing_guides_trade: "Je li ovaj trade fair? →",
   obs_funnel_title: "Soft-launch funnel",
   obs_funnel_caption:
-    "Process-local brojači: landing → DOTD → Pro → Radar/Trade (reset na API restart).",
-  obs_funnel_total: "{n} eventa na ovom procesu",
-  obs_funnel_empty: "Još nema funnel eventa na ovom API procesu.",
+    "Landing → DOTD → Pro → Radar/Trade. Brojači ostaju nakon API restarta (local + Supabase kad postoji).",
+  obs_funnel_total: "{n} eventa · izvor {source}",
+  obs_funnel_empty: "Još nema funnel eventa.",
   obs_trial_title: "Trial → paid (Creem)",
   obs_trial_caption:
     "Brojevi iz pro_entitlements. Trialing i dalje otključava Pro; paid_share = active / (active + trialing).",

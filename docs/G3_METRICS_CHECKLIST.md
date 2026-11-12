@@ -13,7 +13,7 @@
 | Wrong-price cites | Same strip | Keyword match on cancel/refund reason (&lt;2% target) |
 | Wrong-spot reports | Data Health → Wrong-spot reports + funnel `spot_report` | Soft proxy before refund volume exists |
 
-Process-local counters reset on API restart (soft launch). Entitlement counts come from `pro_entitlements`.
+Funnel counters persist across API restarts (local JSON + Supabase when available). Entitlement counts come from `pro_entitlements`.
 
 ## Pass criteria
 

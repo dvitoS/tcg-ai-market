@@ -26,7 +26,13 @@ function bandLabel(card: RadarCard): string | null {
   return `${formatChange(Number(lo), 1)}…${formatChange(Number(hi), 1)}`;
 }
 
-function TeaserRow({ card }: { card: RadarCard }) {
+function TeaserRow({
+  card,
+  variant,
+}: {
+  card: RadarCard;
+  variant: "landing" | "pro";
+}) {
   const { t } = useLocale();
   const { formatSpot } = useCurrency();
   const fair = formatSpot(card.fair_price ?? card.predicted_price);
@@ -35,6 +41,9 @@ function TeaserRow({ card }: { card: RadarCard }) {
     <Link
       href={`/cards/${encodeURIComponent(card.id)}`}
       className="scan-row radar-row radar-under"
+      onClick={() =>
+        trackFunnel("dotd_card_open", { variant, card_id: card.id })
+      }
     >
       <div className="scan-art">
         <Image
@@ -90,6 +99,26 @@ export function DealOfTheDay({
   const [loading, setLoading] = useState(!initialPreview);
 
   const capped = Math.max(1, Math.min(8, Math.floor(limit) || 1));
+
+  // Soft-launch: count when Deal of the Day actually enters the viewport.
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof IntersectionObserver === "undefined") {
+      return;
+    }
+    const node = document.getElementById("deal-of-day");
+    if (!node) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting && entry.intersectionRatio > 0.35)) {
+          trackFunnel("dotd_view", { variant }, { once: true });
+          observer.disconnect();
+        }
+      },
+      { threshold: [0.35] },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [variant]);
 
   useEffect(() => {
     // Trust SSR when it already has UNDER rows; refetch when missing/empty.
@@ -240,7 +269,7 @@ export function DealOfTheDay({
       {rest.length > 0 ? (
         <div className="scan-list deal-of-day-list">
           {rest.map((card) => (
-            <TeaserRow key={card.id} card={card} />
+            <TeaserRow key={card.id} card={card} variant={variant} />
           ))}
         </div>
       ) : null}

@@ -10,7 +10,7 @@
 
 - At least **one** external share in the last 7 days: Discord (public/LGS), soft Reddit, or WhatsApp/Telegram shop chat with non-team people.
 - Post uses in-app share (Trade / DOTD / Radar / Binder) — not a raw screenshot of internal ops.
-- Funnel may show `share_copy` / `share_png` in Data Health, but **event counts alone do not pass G2**.
+- Funnel may show `share_copy` / `share_png` in Data Health (persisted), but **event counts alone do not pass G2**.
 
 ## Fastest first post (≈5 minutes) — DOTD
 

@@ -1114,6 +1114,8 @@ export type FunnelSummaryResponse = {
   }>;
   uptime_s: number;
   allowed_events: string[];
+  persisted?: boolean;
+  source?: string;
 };
 
 export async function fetchFunnelSummary(): Promise<FunnelSummaryResponse> {
