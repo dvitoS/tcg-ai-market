@@ -6,7 +6,7 @@ export const LOCALE_STORAGE_KEY = "kestrel_locale";
 
 const en = {
   nav_browse: "Browse",
-  nav_signals: "AI signals",
+  nav_signals: "Signals",
   nav_portfolio: "Portfolio",
   nav_binder: "Binder",
   nav_sealed: "Sealed",
@@ -29,7 +29,7 @@ const en = {
   landing_product: "Pokémon TCG fair value",
   landing_headline: "Should you buy this card — or pass?",
   landing_lede:
-    "Two prices: Market = what the board asks. Fair = Kestrel’s AI value. Market lower → lean buy. Market higher → pass.",
+    "Two prices: Market is what the board asks. Fair is Kestrel’s read. Market lower → lean buy. Market higher → pass.",
   landing_cta_market: "See today’s underpriced cards",
   landing_cta_pro: "Kestrel Pro",
   landing_hero_slider_aria: "Today’s underpriced cards",
@@ -40,9 +40,9 @@ const en = {
   landing_dotd_eyebrow: "Deal of the Day",
   landing_dotd_title: "Today’s underpriced picks",
   landing_dotd_lede:
-    "Read the two numbers: Market vs Fair (AI). Market lower = underpriced — buy or pass from that gap.",
+    "Read the two numbers: Market vs Fair. Market lower = underpriced — buy or pass from that gap.",
   landing_dotd_loading: "Loading today’s deal…",
-  landing_dotd_empty: "No underpriced picks on the board yet — check back after the next forecast run.",
+  landing_dotd_empty: "No underpriced picks on the board yet — check back after the next update.",
   landing_dotd_error: "Could not load Deal of the Day.",
   landing_dotd_cta: "Open Kestrel Radar",
   landing_dotd_cta_gated: "Unlock full Kestrel Radar",
@@ -67,9 +67,9 @@ const en = {
   landing_follow_lede:
     "Saw a deal you like? Drop both sides into Trade and get a plain fair / you-ahead / them-ahead call in seconds.",
   landing_follow_link: "Open Trade analyzer →",
-  landing_path_title: "Buy, sell, trade, or grade — with a call",
+  landing_path_title: "Buy, sell, trade, or grade — with a clear read",
   landing_path_lede:
-    "Kestrel scores market price against AI fair value. One place for Radar deals, Trade fairness, and live board prices.",
+    "Kestrel puts market price next to fair value. One desk for Radar deals, Trade fairness, and live board prices.",
   landing_path_radar: "Open Kestrel Radar →",
   landing_path_radar_meta: "Cards clearly cheaper or richer than fair",
   landing_path_trade: "Open Trade Analyzer →",
@@ -78,11 +78,11 @@ const en = {
   landing_path_browse_meta: "Live market, fair value, and price history",
   landing_trust_title: "Why the numbers are trustworthy",
   landing_trust_lede:
-    "Kestrel stays honest about sources — and quiet when the model isn’t sure.",
+    "Kestrel stays honest about sources — and quiet when we aren’t sure enough.",
   landing_trust_p1:
     "Market price comes from US board quotes (TCGplayer-linked) — labeled, not blended with Cardmarket EUR.",
   landing_trust_p2:
-    "Fair is Kestrel’s AI estimate. We only show a clear buy/pass lean when confidence is high enough.",
+    "Fair is Kestrel’s estimate. We only show a clear buy/pass lean when confidence is high enough.",
   landing_trust_p3:
     "If history is thin or the call is unclear, we hold — silence beats a loud wrong tip.",
   landing_trust_p4:
@@ -211,10 +211,10 @@ const en = {
   glossary_edge_tip:
     "How far the market price is from fair value (conservative side of the forecast).",
   glossary_fair: "Fair",
-  glossary_fair_tip: "Kestrel’s AI fair price for this card right now.",
+  glossary_fair_tip: "Kestrel’s fair price for this card right now.",
   glossary_band: "Fair range",
   glossary_band_tip:
-    "The price range where the model is confident enough to call the deal. Outside it we stay quiet.",
+    "The price range where we’re confident enough to call the deal. Outside it we stay quiet.",
   glossary_sure: "Clear call",
   glossary_sure_tip: "Confidence is high enough — we show a buy or pass lean.",
   glossary_unsure: "Unclear",
@@ -222,22 +222,22 @@ const en = {
   decision_under: "Market price is ~{pct}% below fair — lean buy.",
   decision_over: "Market price is ~{pct}% above fair — lean pass.",
   metric_spot: "Market {price}",
-  metric_fair: "Fair (AI) {price}",
+  metric_fair: "Fair {price}",
   metric_edge: "{pct} vs fair",
   card_move_3d: "3 days",
   card_move_7d: "7 days",
-  card_move_ai_7d: "AI 7d",
-  card_move_ai_30d: "AI 30d",
+  card_move_ai_7d: "Fair 7d",
+  card_move_ai_30d: "Fair 30d",
   card_fair: "Fair",
   card_lean_under: "{pct}% below fair",
   card_lean_over: "{pct}% above fair",
   card_lean_near: "Near fair",
   explore_eyebrow: "Browse market",
   explore_title: "Market",
-  explore_lede: "Pokémon TCG market prices with a clear AI fair value call.",
+  explore_lede: "Pokémon TCG market prices with a clear fair-value read.",
   catalog_mode: "Catalog mode",
   catalog_browse: "Browse",
-  catalog_signals: "AI signals",
+  catalog_signals: "Signals",
   explore_search_ph: "Search name, set, or id…",
   explore_search_aria: "Search cards",
   explore_search_btn: "Search",
@@ -339,8 +339,8 @@ const en = {
   kpi_value: "Value",
   kpi_invested: "Invested",
   kpi_pnl: "PnL",
-  kpi_outlook: "AI outlook",
-  kpi_outlook_days: "AI outlook ({days}d)",
+  kpi_outlook: "Fair outlook",
+  kpi_outlook_days: "Fair outlook ({days}d)",
   port_lot_action_add: "ADD",
   port_lot_action_trim: "TRIM",
   port_lot_action_hold: "HOLD",
@@ -430,10 +430,10 @@ const en = {
   port_watch_empty: "Watchlist is empty. Star cards from detail pages.",
   port_perf_title: "Performance",
   port_perf_lede:
-    "Book value vs cost basis over time, with today’s AI fair as a reference.",
-  port_perf_ai_fair: "AI fair (today)",
+    "Book value vs cost basis over time, with today’s fair value as a reference.",
+  port_perf_ai_fair: "Fair (today)",
   port_perf_ai_note:
-    "AI fair {value} is today’s model mark on open lots — not a backtested series.",
+    "Fair {value} is today’s Kestrel mark on open lots — not a backtested series.",
   port_perf_dd_title: "Drawdown {pct}",
   port_perf_dd_trim: "{n} conformal TRIM lot(s) now",
   port_search: "Search",
@@ -459,7 +459,7 @@ const en = {
 
   // Scanner
   scan_eyebrow: "Scanner",
-  scan_title: "AI scan",
+  scan_title: "Card scan",
   scan_lede:
     "Rank the market board by expected {days}d ROI — opportunities and drop warnings.",
   scan_search_ph: "Search name…",
@@ -556,13 +556,13 @@ const en = {
     "Collecting forward tip history — first scores appear ~7 days after nightly snapshots.",
   trust_bt_pending: "{n} tip(s) still inside the forward window",
   trust_bt_tighten:
-    "Forward hit under 55% — fewer / cleaner tips, not chasing a louder AI %.",
+    "Forward hit under 55% — fewer / cleaner tips, not chasing a louder hit %.",
 
   // Trade Analyzer (Kestrel Pro)
   trade_eyebrow: "Kestrel Pro",
   trade_title: "Trade Analyzer",
   trade_lede:
-    "Build both sides of a trade. We score spot value and AI fair value so you see who is ahead before you lock it in.",
+    "Build both sides of a trade. We score market value and fair value so you see who is ahead before you lock it in.",
   trade_signin_lede: "Sign in to score trades against the market board.",
   trade_locked: "Trade Analyzer is a Kestrel Pro surface.",
   trade_locked_lede:
@@ -578,7 +578,7 @@ const en = {
   trade_you_give: "You give",
   trade_them_give: "They give",
   trade_side_empty: "No scored totals yet",
-  trade_side_totals: "{spot} spot · {fair} AI",
+  trade_side_totals: "{spot} spot · {fair} fair",
   trade_add_hint: "Find a card above, then tap a hit to add it here.",
   trade_remove: "Remove",
   trade_score: "Score trade",
@@ -589,7 +589,7 @@ const en = {
   trade_v_you_ahead: "You are ahead",
   trade_v_them_ahead: "They are ahead",
   trade_net_spot: "Spot net {value} ({pct}) for you",
-  trade_net_ai: "AI fair net {value} ({pct}) for you",
+  trade_net_ai: "Fair net {value} ({pct}) for you",
   trade_band_note: "Fair when the gap stays within ±{n}% of your give total",
   trade_seed_you: "Added {n} card(s) to You give from the link.",
   trade_seed_them: "Added {n} card(s) to They give from the link.",
@@ -605,7 +605,7 @@ const en = {
   trade_share_eyebrow: "Shared trade",
   trade_share_title: "Trade verdict",
   trade_share_lede:
-    "Live re-score of a shared trade — spot net, AI fair net, and who is ahead.",
+    "Live re-score of a shared trade — spot net, fair net, and who is ahead.",
   trade_share_organic_note:
     "Desk call — spot vs sure fair band. Share freely; Pro unlocks the full Radar/Trade desk.",
   trade_share_loading: "Loading shared trade…",
@@ -678,7 +678,7 @@ const en = {
   dealer_unknown: "Unknown",
   dealer_qty: "qty {n}",
   dealer_row_unmatched: "unmatched",
-  dealer_ai_move: "AI {pct}",
+  dealer_ai_move: "Fair {pct}",
   dealer_net_edge: "net edge {pct}",
 
   // Pro
@@ -711,13 +711,13 @@ const en = {
   pro_success_active_lede:
     "This account has an active Kestrel Pro entitlement. Open Kestrel Radar, Trade Analyzer, or Dealer.",
   pro_f1: "Kestrel Radar — cards clearly cheaper or richer than fair value",
-  pro_f2: "Trade Analyzer — market + AI fair on both sides of a deal",
+  pro_f2: "Trade Analyzer — market + fair on both sides of a deal",
   pro_f3: "Dealer CSV desk + sure-only alerts",
   pro_demo_eyebrow: "Live Kestrel Radar",
   pro_demo_title: "Top underpriced picks right now",
   pro_demo_lede:
     "Live board teaser. Full Radar (filters + trust) is open during beta — paid Pro starts when we gate.",
-  pro_demo_empty: "No underpriced picks on the board yet — check back after the next forecast run.",
+  pro_demo_empty: "No underpriced picks on the board yet — check back after the next update.",
   pro_demo_loading: "Loading radar teaser…",
   pro_demo_error: "Could not load radar teaser.",
   pro_demo_open: "Open full Kestrel Radar",
@@ -749,15 +749,15 @@ const en = {
   detail_report_busy: "Sending…",
   detail_report_thanks: "Thanks — we’ll check this within 1–2 days.",
   detail_report_error: "Could not send the report",
-  detail_ai_title: "AI prediction",
-  detail_ai_under_title: "AI · 7d outlook",
+  detail_ai_title: "Fair outlook",
+  detail_ai_under_title: "Fair · 7d outlook",
   detail_expected: "Expected move",
-  detail_predicted: "Predicted price",
+  detail_predicted: "Fair price",
   detail_band: "Sure band {band}",
-  detail_horizon: "Horizon forecast from the market board.",
+  detail_horizon: "Outlook from the market board.",
   detail_low_conf: "Unsure call — treat as HOLD until more data lands.",
   detail_confidence: "Confidence {level}",
-  detail_why: "Why this signal",
+  detail_why: "Why this lean",
   detail_explain_need: "Need ~15 history points before feature explain unlocks.",
   grade_ev_title: "Grading EV",
   grade_ev_lede:
@@ -986,7 +986,7 @@ type Dictionary = Record<MessageKey, string>;
 
 const hr: Dictionary = {
   nav_browse: "Pregled",
-  nav_signals: "AI signali",
+  nav_signals: "Signali",
   nav_portfolio: "Portfelj",
   nav_binder: "Binder",
   nav_sealed: "Sealed",
@@ -1009,7 +1009,7 @@ const hr: Dictionary = {
   landing_product: "Pokémon TCG fair value",
   landing_headline: "Kupiti ovu kartu — ili propustiti?",
   landing_lede:
-    "Dvije cijene: Tržište = što board traži. Fair = Kestrelova AI vrijednost. Tržište niže → kupi. Tržište više → propusti.",
+    "Dvije cijene: Tržište je što board traži. Fair je Kestrelov očitaj. Tržište niže → kupi. Tržište više → propusti.",
   landing_cta_market: "Pogledaj današnje podcijenjene",
   landing_cta_pro: "Kestrel Pro",
   landing_hero_slider_aria: "Današnje podcijenjene karte",
@@ -1020,9 +1020,9 @@ const hr: Dictionary = {
   landing_dotd_eyebrow: "Deal of the Day",
   landing_dotd_title: "Današnji podcijenjeni pickovi",
   landing_dotd_lede:
-    "Čitaj dva broja: Tržište vs Fair (AI). Tržište niže = podcijenjeno — kupi ili propusti iz tog jaza.",
+    "Čitaj dva broja: Tržište vs Fair. Tržište niže = podcijenjeno — kupi ili propusti iz tog jaza.",
   landing_dotd_loading: "Učitavam današnji deal…",
-  landing_dotd_empty: "Nema podcijenjenih pickova na boardu — provjeri nakon idućeg forecast runa.",
+  landing_dotd_empty: "Nema podcijenjenih pickova na boardu — provjeri nakon idućeg updatea.",
   landing_dotd_error: "Ne mogu učitati Deal of the Day.",
   landing_dotd_cta: "Otvori Kestrel Radar",
   landing_dotd_cta_gated: "Otključaj cijeli Kestrel Radar",
@@ -1047,9 +1047,9 @@ const hr: Dictionary = {
   landing_follow_lede:
     "Vidiš deal koji ti se sviđa? Ubaci obje strane u Trade i dobiješ jasan fair / ti naprijed / oni naprijed poziv u sekundama.",
   landing_follow_link: "Otvori Trade analyzer →",
-  landing_path_title: "Kupi, prodaj, tradeaj ili gradeaj — s pozivom",
+  landing_path_title: "Kupi, prodaj, tradeaj ili gradeaj — s jasnim očitajem",
   landing_path_lede:
-    "Kestrel mjeri tržišnu cijenu naspram AI fair vrijednosti. Jedno mjesto za Radar dealove, Trade fairness i live cijene.",
+    "Kestrel stavlja tržišnu cijenu uz fair vrijednost. Jedan desk za Radar dealove, Trade fairness i live cijene.",
   landing_path_radar: "Otvori Kestrel Radar →",
   landing_path_radar_meta: "Karte jasno jeftinije ili skuplje od fair",
   landing_path_trade: "Otvori Trade Analyzer →",
@@ -1058,11 +1058,11 @@ const hr: Dictionary = {
   landing_path_browse_meta: "Live tržište, fair vrijednost i povijest cijena",
   landing_trust_title: "Zašto su brojevi pouzdani",
   landing_trust_lede:
-    "Kestrel je iskren oko izvora — i šuti kad model nije dovoljno siguran.",
+    "Kestrel je iskren oko izvora — i šuti kad nismo dovoljno sigurni.",
   landing_trust_p1:
     "Tržišna cijena dolazi iz US board quoteova (TCGplayer) — označena, ne miješana s Cardmarket EUR.",
   landing_trust_p2:
-    "Fair je Kestrelova AI procjena. Jasan buy/pass nagib pokazujemo samo kad smo dovoljno sigurni.",
+    "Fair je Kestrelova procjena. Jasan buy/pass nagib pokazujemo samo kad smo dovoljno sigurni.",
   landing_trust_p3:
     "Ako je povijest tanka ili poziv nejasan, držimo — tišina je bolja od glasnog krivog tipa.",
   landing_trust_p4:
@@ -1190,10 +1190,10 @@ const hr: Dictionary = {
   glossary_edge_tip:
     "Koliko je tržišna cijena udaljena od fair vrijednosti (konzervativna strana procjene).",
   glossary_fair: "Fair",
-  glossary_fair_tip: "Kestrelova AI fair cijena za ovu kartu sada.",
+  glossary_fair_tip: "Kestrelova fair cijena za ovu kartu sada.",
   glossary_band: "Fair raspon",
   glossary_band_tip:
-    "Raspon cijena u kojem je model dovoljno siguran za poziv. Izvan njega šutimo.",
+    "Raspon cijena u kojem smo dovoljno sigurni za poziv. Izvan njega šutimo.",
   glossary_sure: "Jasan poziv",
   glossary_sure_tip: "Dovoljno smo sigurni — prikazujemo buy ili pass nagib.",
   glossary_unsure: "Nejasno",
@@ -1201,22 +1201,22 @@ const hr: Dictionary = {
   decision_under: "Tržišna cijena je ~{pct}% ispod fair — nagib kupnji.",
   decision_over: "Tržišna cijena je ~{pct}% iznad fair — nagib passu.",
   metric_spot: "Tržište {price}",
-  metric_fair: "Fair (AI) {price}",
+  metric_fair: "Fair {price}",
   metric_edge: "{pct} vs fair",
   card_move_3d: "3 dana",
   card_move_7d: "7 dana",
-  card_move_ai_7d: "AI 7d",
-  card_move_ai_30d: "AI 30d",
+  card_move_ai_7d: "Fair 7d",
+  card_move_ai_30d: "Fair 30d",
   card_fair: "Fair",
   card_lean_under: "{pct}% ispod fair",
   card_lean_over: "{pct}% iznad fair",
   card_lean_near: "Blizu fair",
   explore_eyebrow: "Pregled tržišta",
   explore_title: "Tržište",
-  explore_lede: "Pokémon TCG tržišne cijene s jasnim AI fair pozivom.",
+  explore_lede: "Pokémon TCG tržišne cijene s jasnim fair-value očitajem.",
   catalog_mode: "Način kataloga",
   catalog_browse: "Pregled",
-  catalog_signals: "AI signali",
+  catalog_signals: "Signali",
   explore_search_ph: "Traži ime, set ili id…",
   explore_search_aria: "Pretraži karte",
   explore_search_btn: "Traži",
@@ -1317,8 +1317,8 @@ const hr: Dictionary = {
   kpi_value: "Vrijednost",
   kpi_invested: "Uloženo",
   kpi_pnl: "PnL",
-  kpi_outlook: "AI outlook",
-  kpi_outlook_days: "AI outlook ({days}d)",
+  kpi_outlook: "Fair outlook",
+  kpi_outlook_days: "Fair outlook ({days}d)",
   port_lot_action_add: "ADD",
   port_lot_action_trim: "TRIM",
   port_lot_action_hold: "HOLD",
@@ -1411,10 +1411,10 @@ const hr: Dictionary = {
   port_watch_empty: "Watchlist je prazan. Označi karte na detail stranicama.",
   port_perf_title: "Performansa",
   port_perf_lede:
-    "Vrijednost knjige vs nabavna cijena kroz vrijeme, s današnjim AI fair referentom.",
-  port_perf_ai_fair: "AI fair (danas)",
+    "Vrijednost knjige vs nabavna cijena kroz vrijeme, s današnjim fair referentom.",
+  port_perf_ai_fair: "Fair (danas)",
   port_perf_ai_note:
-    "AI fair {value} je današnji model mark na otvorenim lotovima — nije backtest serija.",
+    "Fair {value} je današnji Kestrel mark na otvorenim lotovima — nije backtest serija.",
   port_perf_dd_title: "Drawdown {pct}",
   port_perf_dd_trim: "{n} conformal TRIM lot(ova) sada",
   port_search: "Traži",
@@ -1439,7 +1439,7 @@ const hr: Dictionary = {
   port_clear_filters: "Očisti filtere",
 
   scan_eyebrow: "Skener",
-  scan_title: "AI sken",
+  scan_title: "Sken karte",
   scan_lede:
     "Rangiraj board po očekivanom {days}d ROI — prilike i upozorenja na pad.",
   scan_search_ph: "Traži ime…",
@@ -1534,12 +1534,12 @@ const hr: Dictionary = {
     "Skupljam forward tip povijest — prvi scoreovi ~7 dana nakon nightly snimki.",
   trust_bt_pending: "{n} tip(ova) još unutar forward prozora",
   trust_bt_tighten:
-    "Forward hit ispod 55% — manje / čistiji tipovi, ne jurnjava za glasniji AI %.",
+    "Forward hit ispod 55% — manje / čistiji tipovi, ne jurnjava za glasniji hit %.",
 
   trade_eyebrow: "Kestrel Pro",
   trade_title: "Trade Analyzer",
   trade_lede:
-    "Sastavi obje strane tradea. Bodujemo spot i AI fair vrijednost da vidiš tko je ispred prije dogovora.",
+    "Sastavi obje strane tradea. Bodujemo spot i fair vrijednost da vidiš tko je ispred prije dogovora.",
   trade_signin_lede: "Prijavi se da ocijeniš tradeove prema market boardu.",
   trade_locked: "Trade Analyzer je Kestrel Pro površina.",
   trade_locked_lede:
@@ -1555,7 +1555,7 @@ const hr: Dictionary = {
   trade_you_give: "Ti daješ",
   trade_them_give: "Oni daju",
   trade_side_empty: "Još nema scoranih totala",
-  trade_side_totals: "{spot} spot · {fair} AI",
+  trade_side_totals: "{spot} spot · {fair} fair",
   trade_add_hint: "Nađi kartu gore, pa dodirni rezultat da je dodaš ovdje.",
   trade_remove: "Ukloni",
   trade_score: "Ocijeni trade",
@@ -1566,7 +1566,7 @@ const hr: Dictionary = {
   trade_v_you_ahead: "Ti si ispred",
   trade_v_them_ahead: "Oni su ispred",
   trade_net_spot: "Spot neto {value} ({pct}) za tebe",
-  trade_net_ai: "AI fair neto {value} ({pct}) za tebe",
+  trade_net_ai: "Fair neto {value} ({pct}) za tebe",
   trade_band_note: "Pošteno dok je razlika unutar ±{n}% tvog give totala",
   trade_seed_you: "Dodano {n} kart(a/e) u Ti daješ iz linka.",
   trade_seed_them: "Dodano {n} kart(a/e) u Oni daju iz linka.",
@@ -1582,7 +1582,7 @@ const hr: Dictionary = {
   trade_share_eyebrow: "Podijeljeni trade",
   trade_share_title: "Trade presuda",
   trade_share_lede:
-    "Live re-score podijeljenog tradea — spot neto, AI fair neto i tko je ispred.",
+    "Live re-score podijeljenog tradea — spot neto, fair neto i tko je ispred.",
   trade_share_organic_note:
     "Desk call — spot vs sure fair pojas. Dijeli slobodno; Pro otključava cijeli Radar/Trade desk.",
   trade_share_loading: "Učitavam podijeljeni trade…",
@@ -1653,7 +1653,7 @@ const hr: Dictionary = {
   dealer_unknown: "Nepoznato",
   dealer_qty: "qty {n}",
   dealer_row_unmatched: "unmatched",
-  dealer_ai_move: "AI {pct}",
+  dealer_ai_move: "Fair {pct}",
   dealer_net_edge: "net edge {pct}",
   dealer_download_actionable: "Preuzmi actionable CSV",
 
@@ -1686,13 +1686,13 @@ const hr: Dictionary = {
   pro_success_active_lede:
     "Ovaj račun ima aktivni Kestrel Pro entitlement. Otvori Kestrel Radar, Trade Analyzer ili Dealer.",
   pro_f1: "Kestrel Radar — karte jasno jeftinije ili skuplje od fair vrijednosti",
-  pro_f2: "Trade Analyzer — tržište + AI fair na obje strane tradea",
+  pro_f2: "Trade Analyzer — tržište + fair na obje strane tradea",
   pro_f3: "Dealer CSV stol + sure-only alerti",
   pro_demo_eyebrow: "Live Kestrel Radar",
   pro_demo_title: "Top podcijenjeni pickovi sada",
   pro_demo_lede:
     "Live board teaser. Cijeli Radar (filteri + trust) je otvoren tijekom bete — plaćeni Pro kreće kad zatvorimo gate.",
-  pro_demo_empty: "Nema podcijenjenih pickova na boardu — provjeri nakon idućeg forecast runa.",
+  pro_demo_empty: "Nema podcijenjenih pickova na boardu — provjeri nakon idućeg updatea.",
   pro_demo_loading: "Učitavam radar teaser…",
   pro_demo_error: "Ne mogu učitati radar teaser.",
   pro_demo_open: "Otvori cijeli Kestrel Radar",
@@ -1723,16 +1723,16 @@ const hr: Dictionary = {
   detail_report_busy: "Šaljem…",
   detail_report_thanks: "Hvala — provjerit ćemo u roku od 1–2 dana.",
   detail_report_error: "Nisam uspio poslati prijavu",
-  detail_ai_title: "AI predikcija",
-  detail_ai_under_title: "AI · 7d outlook",
+  detail_ai_title: "Fair outlook",
+  detail_ai_under_title: "Fair · 7d outlook",
   detail_expected: "Očekivani pomak",
-  detail_predicted: "Predviđena cijena",
+  detail_predicted: "Fair cijena",
   detail_band: "Sure pojas {band}",
-  detail_horizon: "Horizon forecast s market boarda.",
+  detail_horizon: "Outlook s market boarda.",
   detail_low_conf: "Nesiguran poziv — tretiraj kao DRŽI dok ne stigne više podataka.",
   detail_confidence: "Pouzdanost {level}",
-  detail_why: "Zašto ovaj signal",
-  detail_explain_need: "Treba ~15 točaka povijesti prije AI explaina.",
+  detail_why: "Zašto ovaj nagib",
+  detail_explain_need: "Treba ~15 točaka povijesti prije objašnjenja featurea.",
   grade_ev_title: "Grading EV",
   grade_ev_lede:
     "Kupi raw, plati grade + ship, prodaj nakon feeova — scenarij net AKO dobiješ PSA 10 vs PSA 9. Nije gem-rate obećanje.",

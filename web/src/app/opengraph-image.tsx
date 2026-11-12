@@ -38,8 +38,8 @@ export default function OpenGraphImage() {
               maxWidth: 820,
             }}
           >
-            Pokémon TCG spot vs a sure AI fair band. Clear calls for buy, sell,
-            trade, and grade.
+            Pokémon TCG market price next to fair value. Clear reads for buy,
+            sell, trade, and grade.
           </div>
           <div
             style={{
