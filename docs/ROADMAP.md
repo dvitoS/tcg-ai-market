@@ -41,7 +41,7 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 | --- | --- | --- |
 | **G0 Trust** | **Green** (2026-11-12) | Sniff pack good **3 nights** in a row — `docs/G0_SNIFF_CHECKLIST.md`; methodology live |
 | **G1 10s wedge** | **Green** (2026-11-12) | Ops cold-user check **4/5** pass — `docs/G1_COLD_USER_CHECKLIST.md` |
-| **G2 Share loop** | In progress | Trade / Radar / binder / DOTD PNG + paste live; organic kit in `docs/ORGANIC_SOFT_LAUNCH.md`; still need ≥1 real Discord share/week |
+| **G2 Share loop** | In progress | Share kit live; ops weekly post — `docs/G2_SHARE_CHECKLIST.md` + `docs/ORGANIC_SOFT_LAUNCH.md` |
 | **G3 Metrics** | Required before CAC | Funnel + trial strip live; Data Health **G3 trust gate**; &lt;2% cancel/refund cites “wrong prices” (`docs/G3_METRICS_CHECKLIST.md`) |
 
 ### Phases
@@ -99,7 +99,7 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 
 ### Suggested next 3
 
-1. **G2 organic** *(ops)* — ≥1 real Discord / Reddit share/week (`docs/ORGANIC_SOFT_LAUNCH.md`)  
+1. **G2 organic** *(ops)* — first external post this week (`docs/G2_SHARE_CHECKLIST.md`)  
 2. **G3 trust week** *(ops)* — `docs/G3_METRICS_CHECKLIST.md` then **M4.5** spend unlock  
 3. Keep nightly **auto G0** green — reopen G0 if sniff fails
 
