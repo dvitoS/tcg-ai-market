@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
 
 import { MarketingLanding } from "@/components/MarketingLanding";
 import { fetchMarketPulse, fetchRadarPreview } from "@/lib/api";
@@ -102,12 +101,10 @@ export default async function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <Suspense fallback={null}>
-        <MarketingLanding
-          initialDotd={initialDotd}
-          initialPulse={initialPulse}
-        />
-      </Suspense>
+      <MarketingLanding
+        initialDotd={initialDotd}
+        initialPulse={initialPulse}
+      />
     </>
   );
 }

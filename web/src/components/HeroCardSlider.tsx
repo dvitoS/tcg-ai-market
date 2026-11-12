@@ -8,6 +8,7 @@ import { useCurrency } from "@/components/CurrencyProvider";
 import { useLocale } from "@/components/LocaleProvider";
 import { formatChange } from "@/lib/api";
 import { resolveCardImageUrl } from "@/lib/cardImage";
+import { resolveFoilMode } from "@/lib/foilMode";
 import type { RadarCard } from "@/lib/types";
 
 const INTERVAL_MS = 4500;
@@ -57,6 +58,7 @@ export function HeroCardSlider({ cards }: { cards: RadarCard[] }) {
       <div className="landing-hero-slider-stage">
         {slides.map((card, i) => {
           const isActive = i === index;
+          const foil = resolveFoilMode(card.finishes, card.rarity, card.name);
           return (
             <Link
               key={card.id}
@@ -66,12 +68,11 @@ export function HeroCardSlider({ cards }: { cards: RadarCard[] }) {
               aria-hidden={!isActive}
             >
               <HoloCardArt
-                key={`${card.id}-landing`}
+                key={`${card.id}-${foil || "none"}`}
                 cardId={card.id}
                 name={card.name}
                 image={resolveCardImageUrl(card.id, card.image_url)}
-                // Landing first paint: real card art, no rainbow foil demo.
-                foil={null}
+                foil={foil}
                 priority={i === 0}
                 width={280}
                 height={392}

@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import { DealOfTheDay } from "@/components/DealOfTheDay";
 import { HeroCardSlider } from "@/components/HeroCardSlider";
@@ -17,29 +16,6 @@ import type {
   RadarPreviewResponse,
 } from "@/lib/types";
 
-/** Temporary picker — swap DEFAULT or use `?bg=a|…|i|svg`. */
-const LANDING_HERO_OPTIONS = {
-  a: "/landing-bg/a-desk-lamp.jpg",
-  b: "/landing-bg/b-card-rail.jpg",
-  c: "/landing-bg/c-ink-field.jpg",
-  d: "/landing-bg/d-lgs-counter.jpg",
-  e: "/landing-bg/e-warm-binder.jpg",
-  /** Delta Reign cream fan — playful TCG, not desk-noir. */
-  f: "/landing-bg/f-delta-fan.jpg",
-  g: "/landing-bg/g-delta-float.jpg",
-  h: "/landing-bg/h-delta-binder.jpg",
-  i: "/landing-bg/i-delta-bloom.jpg",
-  svg: "/kestrel-hero.svg",
-} as const;
-
-type LandingHeroKey = keyof typeof LANDING_HERO_OPTIONS;
-
-/** Bright cream + modern set art — less “serious finance desk”. */
-const DEFAULT_LANDING_HERO: LandingHeroKey = "f";
-
-/** Warm paper heroes: keep veil light so cream/copper show through. */
-const BRIGHT_LANDING_HEROES = new Set<LandingHeroKey>(["f", "g", "h", "i", "e"]);
-
 export function MarketingLanding({
   initialDotd = null,
   initialPulse = null,
@@ -48,22 +24,7 @@ export function MarketingLanding({
   initialPulse?: MarketPulseResponse | null;
 }) {
   const { t } = useLocale();
-  const searchParams = useSearchParams();
   const [dotd, setDotd] = useState<RadarPreviewResponse | null>(initialDotd);
-
-  const heroKey = useMemo((): LandingHeroKey => {
-    const raw = String(searchParams.get("bg") || "")
-      .trim()
-      .toLowerCase();
-    if (raw && raw in LANDING_HERO_OPTIONS) {
-      return raw as LandingHeroKey;
-    }
-    return DEFAULT_LANDING_HERO;
-  }, [searchParams]);
-
-  const heroSrc = LANDING_HERO_OPTIONS[heroKey];
-  const photoHero = heroKey !== "svg";
-  const brightHero = BRIGHT_LANDING_HEROES.has(heroKey);
 
   useEffect(() => {
     trackFunnel("landing_view", undefined, { once: true });
@@ -91,7 +52,7 @@ export function MarketingLanding({
       <section className="landing-hero" aria-label="Kestrel">
         <div className="landing-hero-plane" aria-hidden>
           <img
-            src={heroSrc}
+            src="/kestrel-hero.svg"
             alt=""
             className="landing-hero-img"
             width={1920}
@@ -99,17 +60,9 @@ export function MarketingLanding({
             decoding="async"
             fetchPriority="high"
           />
-          <div
-            className={[
-              "landing-hero-veil",
-              photoHero ? "is-photo" : "",
-              brightHero ? "is-bright" : "",
-            ]
-              .filter(Boolean)
-              .join(" ")}
-          />
-          {/* Soft wash only on the old SVG plane — photos already carry atmosphere. */}
-          {photoHero ? null : <SoftInkWash />}
+          <div className="landing-hero-veil" />
+          {/* Above the veil so copper motion stays visible. */}
+          <SoftInkWash />
         </div>
 
         <div className="landing-hero-stage">
@@ -204,16 +157,6 @@ export function MarketingLanding({
             </span>
           </Link>
         </nav>
-      </section>
-
-      <section className="landing-follow" aria-labelledby="landing-follow-title">
-        <h2 id="landing-follow-title" className="landing-follow-title">
-          {t("landing_follow_title")}
-        </h2>
-        <p className="landing-follow-lede">{t("landing_follow_lede")}</p>
-        <Link href="/trade" className="landing-follow-link">
-          {t("landing_follow_link")}
-        </Link>
       </section>
     </div>
   );
