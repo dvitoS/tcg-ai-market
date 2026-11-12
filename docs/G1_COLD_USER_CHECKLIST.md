@@ -2,6 +2,8 @@
 
 **Gate:** ≥4/5 cold users can explain “spot vs sure fair band / buy or pass” after one screen.
 
+**Status:** **Passed 4/5** on 2026-11-12 (ops). Gate is green — re-run only if landing copy/wedge changes materially.
+
 **When:** after landing desk core is live (hero → pulse → DOTD).
 
 ## Script (5 people, ~2 min each)

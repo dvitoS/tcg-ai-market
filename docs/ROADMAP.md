@@ -2,7 +2,7 @@
 
 **Positioning:** Collectr tracks *what you own*. PriceCharting shows *what sold*. TCGplayer is *where you buy*. **Kestrel** is the desk that answers *should I buy / sell / trade / grade — with conformal AI, not vibes*.
 
-Last updated: 2026-11-08. Living doc — ship order can move; the wedge should not.
+Last updated: 2026-11-12. Living doc — ship order can move; the wedge should not.
 
 **North star:** make the wedge obvious in ~10 seconds for a non-Pro visitor (*fair / not fair — here’s why*), then earn Pro with shareable verdicts and trustworthy spots — **not** by becoming another binder scanner.
 
@@ -40,7 +40,7 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 | Gate | Status target | Exit check |
 | --- | --- | --- |
 | **G0 Trust** | Critical path | 20-card Radar sniff pack vs TCP + eBay sold passes; unmatched-set rate trending down; public `/guides` or methodology page live |
-| **G1 10s wedge** | Mostly shipped | Landing labels spot + sure fair; ≥4/5 cold users pass `docs/G1_COLD_USER_CHECKLIST.md` |
+| **G1 10s wedge** | **Green** (2026-11-12) | Ops cold-user check **4/5** pass — `docs/G1_COLD_USER_CHECKLIST.md` |
 | **G2 Share loop** | In progress | Trade / Radar / binder / DOTD PNG + paste live; organic kit in `docs/ORGANIC_SOFT_LAUNCH.md`; still need ≥1 real Discord share/week |
 | **G3 Metrics** | Required before CAC | Funnel + trial strip live; Data Health **G3 trust gate**; &lt;2% cancel/refund cites “wrong prices” (`docs/G3_METRICS_CHECKLIST.md`) |
 
@@ -99,8 +99,8 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 
 ### Suggested next 3
 
-1. **G2 organic** *(ops)* — ≥1 real Discord / Reddit share/week (`docs/ORGANIC_SOFT_LAUNCH.md`)  
-2. **G1 cold-user check** *(ops)* — `docs/G1_COLD_USER_CHECKLIST.md` (≥4/5)  
+1. **G0 Trust** *(ops)* — green sniff pack / `g0_ready` (`docs/G0_SNIFF_CHECKLIST.md`)  
+2. **G2 organic** *(ops)* — ≥1 real Discord / Reddit share/week (`docs/ORGANIC_SOFT_LAUNCH.md`)  
 3. **G3 trust week** *(ops)* — `docs/G3_METRICS_CHECKLIST.md` then **M4.5** spend unlock
 
 ### Just shipped (ops / infra)
