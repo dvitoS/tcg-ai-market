@@ -3,7 +3,7 @@
 import { forwardRef } from "react";
 
 import { useLocale } from "@/components/LocaleProvider";
-import { resolveCardImageUrl } from "@/lib/cardImage";
+import { onCardImageError, resolveCardImageUrl } from "@/lib/cardImage";
 import type { RadarCard } from "@/lib/types";
 
 export const DotdShareCard = forwardRef<
@@ -40,11 +40,15 @@ export const DotdShareCard = forwardRef<
 
       <div className="dotd-share-body">
         <div className="dotd-share-art">
+          {/* crossOrigin so export can read pixels after CDN CORS fetch. */}
           <img
             src={resolveCardImageUrl(card.id, card.image_url)}
             alt=""
             width={140}
             height={196}
+            crossOrigin="anonymous"
+            decoding="async"
+            onError={(event) => onCardImageError(event, card.id)}
           />
         </div>
         <div className="dotd-share-copy">
