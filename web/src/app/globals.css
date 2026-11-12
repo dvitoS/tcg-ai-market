@@ -6354,6 +6354,12 @@ a {
       radial-gradient(ellipse at 48% 78%, rgba(192, 122, 58, 0.1), transparent 50%);
   }
 
+  .landing-hero-veil.is-photo {
+    background:
+      linear-gradient(105deg, rgba(10, 9, 8, 0.7) 0%, rgba(10, 9, 8, 0.28) 58%, rgba(10, 9, 8, 0.1) 100%),
+      linear-gradient(180deg, rgba(10, 9, 8, 0.28) 0%, rgba(10, 9, 8, 0.2) 42%, rgba(10, 9, 8, 0.88) 100%);
+  }
+
   .landing-hero-stage {
     width: min(1180px, calc(100% - 1.5rem));
     padding: 3.1rem 0 1.85rem;
