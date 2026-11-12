@@ -41,7 +41,7 @@ Attach the PNG when you exported one (Trade / DOTD / Binder / Radar). Prefer the
 
 ## Measurement
 
-Funnel events (process-local, Data Health → Soft-launch funnel):
+Funnel events (Data Health → Soft-launch funnel; persisted across API restarts):
 
 - `share_copy` — clipboard paste pack (`surface`: trade / radar / dotd / binder)
 - `share_png` — image export (`surface` + clipboard success)

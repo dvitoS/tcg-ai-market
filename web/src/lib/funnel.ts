@@ -6,6 +6,7 @@ export type FunnelEventName =
   | "landing_view"
   | "landing_cta_dotd"
   | "landing_cta_pro"
+  | "dotd_view"
   | "dotd_cta"
   | "dotd_card_open"
   | "pro_view"

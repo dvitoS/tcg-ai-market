@@ -652,12 +652,19 @@ export function DataHealthPanel() {
             {funnel ? (
               <>
                 <p className="data-health-cache">
-                  {t("obs_funnel_total", { n: funnel.total })}
+                  {t("obs_funnel_total", {
+                    n: funnel.total,
+                    source: funnel.source || "memory",
+                  })}
                 </p>
                 <div className="data-health-metrics">
-                  {                    (
+                  {(
                     [
                       "landing_view",
+                      "landing_cta_dotd",
+                      "landing_cta_pro",
+                      "dotd_view",
+                      "dotd_card_open",
                       "dotd_cta",
                       "pro_view",
                       "pro_checkout_click",

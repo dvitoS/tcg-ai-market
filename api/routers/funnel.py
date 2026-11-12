@@ -29,6 +29,6 @@ def post_funnel_events(body: FunnelBatchIn, response: Response) -> FunnelBatchOu
 
 @router.get("/summary", response_model=FunnelSummaryResponse)
 def get_funnel_summary(response: Response) -> FunnelSummaryResponse:
-    """Process-local funnel counters for soft-launch ops."""
+    """Soft-launch funnel counters (persisted across API restarts)."""
     response.headers.update(_NO_STORE)
     return FunnelSummaryResponse(**funnel_summary())

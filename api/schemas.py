@@ -947,6 +947,8 @@ class FunnelSummaryResponse(BaseModel):
     recent: list[dict[str, Any]] = Field(default_factory=list)
     uptime_s: float = 0.0
     allowed_events: list[str] = Field(default_factory=list)
+    persisted: bool = False
+    source: str = "memory"
 
 
 class TrialConversionResponse(BaseModel):
