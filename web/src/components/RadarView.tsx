@@ -34,6 +34,7 @@ import {
   downloadRadarSharePng,
   radarShareFilename,
 } from "@/lib/radarExport";
+import { SITE_URL } from "@/lib/seo";
 import {
   buildRadarShareClipboardText,
   buildRadarShareUrl,
@@ -301,7 +302,7 @@ export function RadarView() {
     setError(null);
     try {
       const filters = currentShareFilters();
-      const url = buildRadarShareUrl(window.location.origin, filters);
+      const url = buildRadarShareUrl(SITE_URL, filters);
       const top = data.underpriced[0];
       const text = buildRadarShareClipboardText({
         blurb: t("radar_share_blurb"),
@@ -413,10 +414,8 @@ export function RadarView() {
 
   const shareFilters = currentShareFilters();
   const topUnder = data.underpriced[0] ?? null;
-  const shareUrl =
-    typeof window !== "undefined"
-      ? buildRadarShareUrl(window.location.origin, shareFilters)
-      : null;
+  // Canonical origin on SSR + first client paint (avoid typeof window → #418).
+  const shareUrl = buildRadarShareUrl(SITE_URL, shareFilters);
 
   return (
     <section className="scanner-page radar-page">
