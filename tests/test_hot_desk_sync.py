@@ -30,6 +30,9 @@ def test_list_cards_for_sync_hot_desk_before_missing_history(monkeypatch) -> Non
         "database_catalog.hot_desk_card_ids",
         lambda limit=None: {"hot-cheap", "hot-miss"},
     )
+    # Non-bulk on/off must not reorder ahead of hot desk.
+    monkeypatch.setattr("database_catalog.nonbulk_sync_priority_enabled", lambda: True)
+    monkeypatch.setattr("database_catalog.bulk_sync_max_usd", lambda: 2.0)
 
     ordered = list_cards_for_sync(limit=4)
     assert [c.id for c in ordered] == ["hot-miss", "hot-cheap", "miss-a", "have-b"]
@@ -50,9 +53,65 @@ def test_list_cards_for_sync_can_disable_hot_desk(monkeypatch) -> None:
         lambda: {"have-b", "hot-cheap"},
     )
     monkeypatch.setattr("database_catalog.hot_desk_sync_enabled", lambda: False)
+    monkeypatch.setattr("database_catalog.nonbulk_sync_priority_enabled", lambda: True)
+    monkeypatch.setattr("database_catalog.bulk_sync_max_usd", lambda: 2.0)
 
     ordered = list_cards_for_sync(limit=3)
     assert [c.id for c in ordered] == ["miss-a", "have-b", "hot-cheap"]
+
+
+def test_list_cards_for_sync_nonbulk_before_missing_bulk(monkeypatch) -> None:
+    """Chase with history should refresh before a missing-history $0.25 common."""
+    cards = [
+        _card("miss-bulk", 0.25),
+        _card("have-chase", 80.0),
+        _card("miss-mid", 5.0),
+        _card("hot-x", 1.0),
+    ]
+    monkeypatch.setattr(
+        "database_catalog.list_cards",
+        lambda limit=None, order_price_desc=False: list(cards),
+    )
+    monkeypatch.setattr(
+        "database_catalog.distinct_history_card_ids",
+        lambda: {"have-chase", "hot-x"},
+    )
+    monkeypatch.setattr("database_catalog.hot_desk_sync_enabled", lambda: True)
+    monkeypatch.setattr(
+        "database_catalog.hot_desk_card_ids",
+        lambda limit=None: {"hot-x"},
+    )
+    monkeypatch.setattr("database_catalog.nonbulk_sync_priority_enabled", lambda: True)
+    monkeypatch.setattr("database_catalog.bulk_sync_max_usd", lambda: 2.0)
+
+    ordered = list_cards_for_sync(limit=4)
+    assert [c.id for c in ordered] == [
+        "hot-x",
+        "miss-mid",
+        "have-chase",
+        "miss-bulk",
+    ]
+
+
+def test_list_cards_for_sync_nonbulk_kill_switch_restores_old_order(monkeypatch) -> None:
+    cards = [
+        _card("miss-bulk", 0.25),
+        _card("have-chase", 80.0),
+    ]
+    monkeypatch.setattr(
+        "database_catalog.list_cards",
+        lambda limit=None, order_price_desc=False: list(cards),
+    )
+    monkeypatch.setattr(
+        "database_catalog.distinct_history_card_ids",
+        lambda: {"have-chase"},
+    )
+    monkeypatch.setattr("database_catalog.hot_desk_sync_enabled", lambda: False)
+    monkeypatch.setattr("database_catalog.nonbulk_sync_priority_enabled", lambda: False)
+
+    ordered = list_cards_for_sync(limit=2)
+    # Old ranking: missing history before have-history, even if bulk.
+    assert [c.id for c in ordered] == ["miss-bulk", "have-chase"]
 
 
 def test_hot_desk_card_ids_merges_watchlist_and_quotes(monkeypatch) -> None:

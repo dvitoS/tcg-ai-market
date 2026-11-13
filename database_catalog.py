@@ -205,6 +205,37 @@ def hot_desk_sync_limit() -> int:
         return 600
 
 
+def nonbulk_sync_priority_enabled() -> bool:
+    """When true, JustTCG drip prefers non-bulk cards over cheap commons.
+
+    Does not drop cards — only reorders after hot desk. Kill with
+    ``NIGHTLY_NONBULK_PRIORITY=0`` if a nightly needs the old ranking.
+    """
+    raw = (os.environ.get("NIGHTLY_NONBULK_PRIORITY") or "1").strip().lower()
+    return raw not in {"0", "false", "no", "off"}
+
+
+def bulk_sync_max_usd() -> float:
+    """Spot floor: cards under this USD are bulk for drip ranking (default 2)."""
+    raw = (os.environ.get("NIGHTLY_BULK_MAX_USD") or "2").strip()
+    try:
+        return max(0.0, float(raw))
+    except ValueError:
+        return 2.0
+
+
+def _sync_card_is_bulk(card: Card, *, max_usd: float | None = None) -> bool:
+    """Cheap spot ≈ bulk for nightly ranking (null/0 price counts as bulk)."""
+    floor = float(bulk_sync_max_usd() if max_usd is None else max_usd)
+    try:
+        price = float(card.market_price) if card.market_price is not None else 0.0
+    except (TypeError, ValueError):
+        price = 0.0
+    if price != price:  # NaN
+        price = 0.0
+    return price < floor
+
+
 def _quote_signal_card_ids(signal: str, *, limit: int) -> list[str]:
     """Sure-desk card ids for one BUY/SELL signal, strongest edge first."""
     if limit <= 0:
@@ -267,12 +298,18 @@ def hot_desk_card_ids(*, limit: int | None = None) -> set[str]:
 
 
 def list_cards_for_sync(*, limit: int | None = None) -> list[Card]:
-    """Prefer hot-desk cards, then missing price_history, then higher spot.
+    """Prefer hot-desk cards, then non-bulk, then missing history, then spot.
 
     Order:
     1. Radar sure BUY/SELL + all watchlist ids (when ``NIGHTLY_HOT_DESK`` on)
-    2. Cards still missing history
-    3. Higher ``market_price``
+    2. Non-bulk (spot >= ``NIGHTLY_BULK_MAX_USD``) before cheap bulk commons
+       when ``NIGHTLY_NONBULK_PRIORITY`` is on — chase refresh is not starved by
+       missing-history $0.25 fillers under a tight JustTCG request budget
+    3. Cards still missing history
+    4. Higher ``market_price``
+
+    No cards are dropped; kill-switch ``NIGHTLY_NONBULK_PRIORITY=0`` restores
+    the pre-nonbulk ranking (hot → missing → price).
     """
     cards = list_cards(limit=None, order_price_desc=False)
     if not cards:
@@ -285,9 +322,16 @@ def list_cards_for_sync(*, limit: int | None = None) -> list[Card]:
         except Exception as exc:
             LOG.warning("hot_desk_card_ids failed: %s", exc)
             hot = set()
+    prefer_nonbulk = nonbulk_sync_priority_enabled()
+    bulk_floor = bulk_sync_max_usd() if prefer_nonbulk else 0.0
     cards.sort(
         key=lambda c: (
             0 if str(c.id) in hot else 1,
+            (
+                1
+                if prefer_nonbulk and _sync_card_is_bulk(c, max_usd=bulk_floor)
+                else 0
+            ),
             0 if str(c.id) not in have else 1,
             -(c.market_price or 0.0),
             str(c.id),
