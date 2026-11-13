@@ -14,6 +14,7 @@
 | Wrong-spot reports | Data Health → Wrong-spot reports + funnel `spot_report` | Soft proxy before refund volume exists |
 
 Funnel counters persist across API restarts (local JSON + Supabase when available). Entitlement counts come from `pro_entitlements`.
+`landing_view` / `dotd_view` / activate events fire **once per browser day** (not on every refresh).
 
 ## Pass criteria
 
