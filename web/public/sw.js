@@ -1,7 +1,7 @@
-/* Soft Ink offline shell — precache only; never pin live HTML/JS (avoids hydrate 418). */
-const CACHE = "kestrel-shell-v3";
+/* Soft Ink offline shell — precache static assets only; never pin live HTML/JS
+ * (avoids React #418 when a stale "/" shell hydrates against a new deploy). */
+const CACHE = "kestrel-shell-v4";
 const PRECACHE = [
-  "/",
   "/offline",
   "/manifest.webmanifest",
   "/kestrel-logo.png",

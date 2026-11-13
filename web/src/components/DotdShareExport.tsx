@@ -11,6 +11,7 @@ import {
   downloadDotdSharePng,
 } from "@/lib/dotdExport";
 import { trackFunnel } from "@/lib/funnel";
+import { SITE_URL } from "@/lib/seo";
 import type { RadarCard } from "@/lib/types";
 
 export function DotdShareExport({
@@ -33,10 +34,8 @@ export function DotdShareExport({
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const shareUrl =
-    typeof window !== "undefined"
-      ? buildDotdShareUrl(window.location.origin, card.id)
-      : null;
+  // Canonical origin on SSR + first client paint (avoid typeof window → #418).
+  const shareUrl = buildDotdShareUrl(SITE_URL, card.id);
 
   function clipboardBody(url: string): string {
     return buildDotdShareClipboardText({

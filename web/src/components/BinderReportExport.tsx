@@ -15,6 +15,7 @@ import {
   downloadBinderReportPng,
 } from "@/lib/binderExport";
 import { trackFunnel } from "@/lib/funnel";
+import { SITE_URL } from "@/lib/seo";
 
 export function BinderReportExport({
   snapshot,
@@ -28,10 +29,8 @@ export function BinderReportExport({
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const shareUrl =
-    typeof window !== "undefined"
-      ? buildBinderShareUrl(window.location.origin, snapshot.set_name)
-      : null;
+  // Canonical origin on SSR + first client paint (avoid typeof window → #418).
+  const shareUrl = buildBinderShareUrl(SITE_URL, snapshot.set_name);
 
   function clipboardBody(url: string): string {
     const pct = Math.max(0, Math.min(100, snapshot.pct)).toFixed(0);
