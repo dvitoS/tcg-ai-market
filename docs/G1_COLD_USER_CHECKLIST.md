@@ -1,6 +1,6 @@
 # G1 10-second wedge (ops)
 
-**Gate:** ≥4/5 cold users can explain “spot vs sure fair band / buy or pass” after one screen.
+**Gate:** ≥4/5 cold users can explain “asking price vs good price / maybe buy or maybe skip” after one screen.
 
 **Status:** **Passed 4/5** on 2026-11-12 (ops). Gate is green — re-run only if landing copy/wedge changes materially.
 
@@ -10,13 +10,13 @@
 
 1. Open `https://www.kestreltcg.app` on phone (signed out).
 2. Do **not** coach vocabulary — only “look for ~10 seconds, then tell me what you’d do.”
-3. First screen should already label **spot** and **sure fair** on the hero card + DOTD.
+3. First screen should already label **asking** and **good price** on the hero card + DOTD.
 4. Ask:
-   - What is the **spot** number?
-   - What is the **sure fair** number (or band)?
-   - Would you **buy or pass** on the featured card, and why in one sentence?
-5. Pass if they mention spot vs sure fair (or under/over / buy-pass) without inventing “AI guarantee.”
-6. Fail if they only say “the AI said buy” or confuse Collectr portfolio with fair band.
+   - What is the **asking** number?
+   - What is the **good price** number (or range)?
+   - Would you **maybe buy or maybe skip** on the featured card, and why in one sentence?
+5. Pass if they mention asking vs good price (or looks cheap/expensive / buy-skip) without inventing “AI guarantee.”
+6. Fail if they only say “the AI said buy” or confuse Collectr portfolio with good-price range.
 
 ## Pass criteria
 

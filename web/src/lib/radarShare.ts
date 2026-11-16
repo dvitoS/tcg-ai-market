@@ -132,7 +132,7 @@ export function radarShareSeoTitle(filters: RadarShareFilters | null): string {
   const chips = filters ? formatRadarShareFilters(filters) : [];
   if (chips.length === 1) return `${chips[0]} — Kestrel Radar`;
   if (chips.length > 1) return `Radar lens · ${chips.slice(0, 2).join(" · ")} — Kestrel`;
-  return "Kestrel Radar — sure underpriced Pokémon cards";
+  return "Kestrel deals — Pokémon cards that look cheap";
 }
 
 /** Discord / Reddit unfurl description for a shared Radar lens. */
@@ -141,7 +141,7 @@ export function radarShareSeoDescription(
 ): string {
   const chips = filters ? formatRadarShareFilters(filters) : [];
   const lens = chips.length ? `Filters: ${chips.join(" · ")}. ` : "";
-  return `${lens}Sure UNDER/OVER vs the fair band — desk call, not financial advice. Open with Kestrel Pro.`;
+  return `${lens}Looks cheap / looks expensive vs good price — a price check, not financial advice. Open with Kestrel Pro.`;
 }
 
 /** Multi-line clipboard payload: blurb + filters + board + optional top UNDER + URL. */

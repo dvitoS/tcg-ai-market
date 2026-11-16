@@ -8,9 +8,9 @@ import { absoluteUrl } from "@/lib/seo";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Trade Analyzer — fair Pokémon TCG trades",
+  title: "Trade check — fair Pokémon card trades",
   description:
-    "Score two-sided Pokémon TCG trades against market and Kestrel fair value. Fair, you-ahead, or them-ahead in seconds.",
+    "Score two-sided Pokémon trades on asking price and good price. Fair, you’re ahead, or they’re ahead in seconds.",
   alternates: { canonical: absoluteUrl("/trade") },
 };
 

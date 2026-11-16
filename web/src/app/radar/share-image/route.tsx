@@ -78,7 +78,7 @@ export async function GET(request: Request) {
               OVER
             </div>
             <div style={{ fontSize: 26, color: "#9a9288" }}>
-              vs sure fair band
+              vs good price
             </div>
           </div>
           <div
@@ -89,7 +89,7 @@ export async function GET(request: Request) {
               fontFamily: "ui-sans-serif, system-ui, sans-serif",
             }}
           >
-            Desk call, not financial advice · open live board with Pro
+            Price check, not financial advice · open live list with Pro
           </div>
         </div>
       </OgShell>

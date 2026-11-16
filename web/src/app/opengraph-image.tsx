@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 
 import { OG_SIZE, OgShell } from "@/lib/og";
 
-export const alt = "Kestrel — Pokémon TCG fair value";
+export const alt = "Kestrel — Pokémon card prices";
 export const size = OG_SIZE;
 export const contentType = "image/png";
 
@@ -27,7 +27,7 @@ export default function OpenGraphImage() {
               color: "#f7f1e8",
             }}
           >
-            Should you buy — or pass?
+            Should you buy — or skip?
           </div>
           <div
             style={{
@@ -38,7 +38,7 @@ export default function OpenGraphImage() {
               maxWidth: 820,
             }}
           >
-            Pokémon TCG market price next to fair value. Clear reads for buy,
+            Pokémon asking price next to a good price. Clear reads for buy,
             sell, trade, and grade.
           </div>
           <div
