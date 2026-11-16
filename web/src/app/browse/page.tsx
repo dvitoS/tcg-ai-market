@@ -8,9 +8,9 @@ import type { CatalogMeta, CatalogMode } from "@/lib/types";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Browse Pokémon TCG prices",
+  title: "Browse Pokémon card prices",
   description:
-    "Browse live Pokémon TCG market prices next to Kestrel fair value.",
+    "Browse live Pokémon asking prices next to Kestrel’s good price.",
   alternates: { canonical: absoluteUrl("/browse") },
 };
 

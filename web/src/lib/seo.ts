@@ -45,13 +45,13 @@ export function cardSeoDescription(card: CatalogCard): string {
   const bits = [
     set || null,
     rarity || null,
-    spot ? `spot ${spot}` : null,
-    fair ? `Kestrel fair ${fair}` : null,
+    spot ? `asking ${spot}` : null,
+    fair ? `good ${fair}` : null,
   ].filter(Boolean);
   const lead = bits.length
     ? bits.join(" · ")
-    : "Live Pokémon TCG pricing on Kestrel";
-  return `${card.name}: ${lead}. Fair range, history, and buy/pass lean on Kestrel.`;
+    : "Live Pokémon card prices on Kestrel";
+  return `${card.name}: ${lead}. Good-price range, history, and maybe-buy / maybe-skip on Kestrel.`;
 }
 
 export function cardMetadata(card: CatalogCard): Metadata {
@@ -148,14 +148,14 @@ export function tradeShareSeoDescription(
   const verdict = tradeVerdictLabel(share.verdict);
   const spot =
     share.net_spot_pct != null && Number.isFinite(Number(share.net_spot_pct))
-      ? `${Number(share.net_spot_pct) >= 0 ? "+" : ""}${Number(share.net_spot_pct).toFixed(1)}% spot`
+      ? `${Number(share.net_spot_pct) >= 0 ? "+" : ""}${Number(share.net_spot_pct).toFixed(1)}% asking`
       : null;
   const fair =
     share.net_fair_pct != null && Number.isFinite(Number(share.net_fair_pct))
-      ? `${Number(share.net_fair_pct) >= 0 ? "+" : ""}${Number(share.net_fair_pct).toFixed(1)}% sure fair`
+      ? `${Number(share.net_fair_pct) >= 0 ? "+" : ""}${Number(share.net_fair_pct).toFixed(1)}% good price`
       : null;
   const bits = [verdict, spot, fair].filter(Boolean).join(" · ");
-  return `${bits}. Desk call vs ±${share.fair_band_pct}% fair band — not financial advice.`;
+  return `${bits}. Price check vs ±${share.fair_band_pct}% good-price range — not financial advice.`;
 }
 
 export function tradeShareMetadata(share: TradeShareView): Metadata {

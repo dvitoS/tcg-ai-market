@@ -21,31 +21,31 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
     return radarShareMetadata(filters, token);
   }
   return {
-    title: "Kestrel Radar — sure underpriced Pokémon cards",
+    title: "Kestrel deals — Pokémon cards that look cheap",
     description:
-      "Kestrel Radar lists Pokémon TCG singles selling under or over the fair range — clear buy/pass leans.",
+      "Kestrel lists Pokémon singles that look cheap or expensive vs a good price — clear maybe-buy / maybe-skip leans.",
     alternates: { canonical: absoluteUrl("/radar") },
     openGraph: {
       type: "website",
       url: absoluteUrl("/radar"),
       siteName: "Kestrel",
-      title: "Kestrel Radar — sure underpriced Pokémon cards",
+      title: "Kestrel deals — Pokémon cards that look cheap",
       description:
-        "Sure UNDER/OVER vs the fair band — desk call, not financial advice. Open with Kestrel Pro.",
+        "Looks cheap / looks expensive vs good price — a price check, not financial advice. Open with Kestrel Pro.",
       images: [
         {
           url: absoluteUrl("/radar/opengraph-image"),
           width: 1200,
           height: 630,
-          alt: "Kestrel Radar",
+          alt: "Kestrel deals",
         },
       ],
     },
     twitter: {
       card: "summary_large_image",
-      title: "Kestrel Radar — sure underpriced Pokémon cards",
+      title: "Kestrel deals — Pokémon cards that look cheap",
       description:
-        "Sure UNDER/OVER vs the fair band — desk call, not financial advice.",
+        "Looks cheap / looks expensive vs good price — a price check, not financial advice.",
       images: [absoluteUrl("/radar/opengraph-image")],
     },
   };

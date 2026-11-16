@@ -32,11 +32,11 @@ const googleVerification = (
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.kestreltcg.app"),
   title: {
-    default: "Kestrel — Pokémon TCG fair value",
+    default: "Kestrel — Pokémon card prices",
     template: "%s · Kestrel",
   },
   description:
-    "Kestrel — Pokémon TCG market prices next to fair value, portfolio, Trade Analyzer, and dealer tools.",
+    "Kestrel — Pokémon asking prices next to a good price, plus portfolio, trade checks, and dealer tools.",
   applicationName: "Kestrel",
   manifest: "/manifest.webmanifest",
   appleWebApp: {

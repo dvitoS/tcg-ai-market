@@ -25,30 +25,30 @@ export const GUIDES: Guide[] = [
     slug: "kestrel-methodology",
     title: "Kestrel methodology: where every number comes from",
     description:
-      "How Kestrel builds Pokémon TCG market prices, AI fair value, Radar cheaper/richer calls, and why we refuse to blend opaque prices.",
+      "How Kestrel builds Pokémon asking prices, a good price, deal calls, and why we refuse to blend opaque prices.",
     eyebrow: "Methodology",
     lede:
-      "Collectors trust TCGplayer and eBay sold comps — not mysterious app prices. This page says exactly where Kestrel’s numbers come from, how often they refresh, and what a clear buy/pass lean means before you act.",
+      "Collectors trust TCGplayer and eBay sold comps — not mysterious app prices. This page says exactly where Kestrel’s numbers come from, how often they refresh, and what a clear maybe-buy / maybe-skip lean means before you act.",
     sections: [
       {
-        heading: "Market price",
+        heading: "Asking price",
         body: [
-          "Market price is the Near Mint quote we attach to a catalog card — primarily TCGplayer-linked US board quotes. When a live pull is unavailable, we fall back to the last saved board quote rather than inventing a number.",
+          "Asking price is the Near Mint quote we attach to a catalog card — primarily TCGplayer-linked US seller quotes. When a live pull is unavailable, we fall back to the last saved quote rather than inventing a number.",
           "US and EU views stay labeled. We do not blend Cardmarket EUR into a fake USD “average.” If sources disagree beyond FX noise, treat that as a warning — not a single blended truth.",
         ],
       },
       {
-        heading: "AI fair value + fair range",
+        heading: "Good price + good-price range",
         body: [
-          "A nightly training run fits a price model on history and writes an AI fair estimate plus a fair range — the band where the model is allowed to speak.",
-          "A clear call means confidence gates are green. Then Radar can say cheaper than fair (buy lean) or richer than fair (pass lean). When gates fail, Kestrel stays quiet instead of forcing a tip.",
+          "A nightly training run fits a price model on history and writes a good-price estimate plus a range — the band where the model is allowed to speak.",
+          "A clear call means confidence gates are green. Then deals can say looks cheap (maybe buy) or looks expensive (maybe skip). When gates fail, Kestrel stays quiet instead of forcing a tip.",
         ],
       },
       {
-        heading: "Radar, Deal of the Day, and Trade",
+        heading: "Deals, Deal of the Day, and Trade",
         body: [
-          "Deal of the Day and the public Radar preview show capped underpriced picks. Full Radar adds filters and the full cheaper / richer desk.",
-          "Trade Analyzer scores both sides on market and fair so you see fair / you-ahead / them-ahead — the same vocabulary as the buy/pass desk, not a sticker-sum alone.",
+          "Deal of the Day and the public deals preview show capped “looks cheap” picks. Full deals adds filters and the full cheap / expensive list.",
+          "Trade check scores both sides on asking and good price so you see fair / you’re ahead / they’re ahead — the same vocabulary as the buy/skip desk, not a sticker-sum alone.",
         ],
       },
       {
@@ -62,7 +62,7 @@ export const GUIDES: Guide[] = [
         heading: "Refresh cadence and human checks",
         body: [
           "Catalog updates, history, model retrain, and quote saves run on a nightly schedule. Live detail pulls may refresh prices within API quota limits.",
-          "We also sample clear Radar calls by hand against TCGplayer and eBay sold. A hard fail blocks paid marketing — price trust is the product.",
+          "We also sample clear deal calls by hand against TCGplayer and eBay sold. A hard fail blocks paid marketing — price trust is the product.",
         ],
       },
     ],
@@ -70,10 +70,10 @@ export const GUIDES: Guide[] = [
       {
         question: "Is Kestrel a replacement for TCGplayer?",
         answer:
-          "No. TCGplayer remains the market standard for asks. Kestrel answers whether that market price looks cheap or rich versus AI fair value — then deep-links you back to marketplaces.",
+          "No. TCGplayer remains the market standard for asks. Kestrel answers whether that asking price looks cheap or expensive versus a good price — then deep-links you back to marketplaces.",
       },
       {
-        question: "Why do some cards have no Radar call?",
+        question: "Why do some cards have no deal call?",
         answer:
           "Weak history, weak confidence, or quarantined prices. Silence is intentional — better than a loud wrong tip.",
       },
@@ -83,60 +83,60 @@ export const GUIDES: Guide[] = [
           "No. Sources stay labeled. EUR views use FX conversion for display where configured; they are not averaged into a secret “true” price.",
       },
     ],
-    primaryCta: { href: "/browse", label: "Browse the board →" },
-    secondaryCta: { href: "/radar", label: "Open Kestrel Radar →" },
+    primaryCta: { href: "/browse", label: "Browse cards →" },
+    secondaryCta: { href: "/radar", label: "See deals →" },
   },
   {
     slug: "pokemon-tcg-fair-value",
-    title: "Pokémon TCG fair value: spot vs a sure AI band",
+    title: "Pokémon good price: asking vs a pretty-sure range",
     description:
-      "How Kestrel scores Pokémon TCG fair value — spot price, sure AI fair band, and when a card looks underpriced or overpriced.",
+      "How Kestrel scores a good price — asking price, pretty-sure range, and when a card looks cheap or expensive.",
     eyebrow: "Guide",
     lede:
-      "Collectors and traders often ask “what is this card really worth?” Spot tells you the last market print. Fair value asks whether that print looks cheap or rich versus a model band you can trust.",
+      "Collectors and traders often ask “what is this card really worth?” Asking price tells you what sellers want. Good price asks whether that print looks cheap or expensive versus a range you can trust.",
     sections: [
       {
-        heading: "Spot is not the whole story",
+        heading: "Asking price is not the whole story",
         body: [
-          "Spot (or market) price is the current board quote — useful, but noisy. A single printing, condition, or thin listing can move it without changing the card’s longer outlook.",
-          "Kestrel reads spot next to an AI fair estimate and a conformal “sure” band. When confidence is weak, we stay quiet instead of forcing a buy or sell call.",
+          "Asking (or market) price is the current seller quote — useful, but noisy. A single printing, condition, or thin listing can move it without changing the card’s longer outlook.",
+          "Kestrel reads asking next to a good-price estimate and a pretty-sure range. When confidence is weak, we stay quiet instead of forcing a buy or sell call.",
         ],
       },
       {
-        heading: "What “sure fair band” means",
+        heading: "What “good-price range” means",
         body: [
-          "The sure band is the range where the model is confident enough to speak. Inside it, we treat the deal as roughly fair on that horizon. Outside it — with confidence gates green — Kestrel can label a single underpriced or overpriced.",
-          "That is the wedge versus pure price trackers: not another chart, a clear call when the band and confidence agree.",
+          "The good-price range is where the model is confident enough to speak. Inside it, we treat the deal as roughly fair on that horizon. Outside it — with confidence gates green — Kestrel can label looks cheap or looks expensive.",
+          "That is the wedge versus pure price trackers: not another chart, a clear call when the range and confidence agree.",
         ],
       },
       {
-        heading: "How to use Deal of the Day and Radar",
+        heading: "How to use Deal of the Day and deals",
         body: [
-          "Deal of the Day surfaces a short list of underpriced picks on the public board. Kestrel Radar unlocks the full sure under/over desk with filters.",
-          "Start from the call and the band, then check set, rarity, and liquidity before you buy. Fair value is a decision aid — not a guarantee.",
+          "Deal of the Day surfaces a short list of “looks cheap” picks on the public board. Full deals unlocks the pretty-sure cheap/expensive list with filters.",
+          "Start from the call and the range, then check set, rarity, and liquidity before you buy. Good price is a decision aid — not a guarantee.",
         ],
       },
     ],
     faqs: [
       {
-        question: "Is Kestrel fair value the same as TCGplayer market?",
+        question: "Is Kestrel’s good price the same as TCGplayer market?",
         answer:
-          "No. Spot often tracks market quotes; fair value is Kestrel’s AI estimate plus a sure band. They can disagree — that disagreement is the signal.",
+          "No. Asking often tracks market quotes; good price is Kestrel’s estimate plus a pretty-sure range. They can disagree — that disagreement is the signal.",
       },
       {
         question: "Why do some cards show HOLD or unsure?",
         answer:
-          "When the band or confidence gate is weak, Kestrel stays quiet. Silence beats a loud wrong call.",
+          "When the range or confidence gate is weak, Kestrel stays quiet. Silence beats a loud wrong call.",
       },
     ],
-    primaryCta: { href: "/browse", label: "Browse the board →" },
-    secondaryCta: { href: "/radar", label: "Open Kestrel Radar →" },
+    primaryCta: { href: "/browse", label: "Browse cards →" },
+    secondaryCta: { href: "/radar", label: "See deals →" },
   },
   {
     slug: "should-i-grade",
     title: "Should I grade this Pokémon card?",
     description:
-      "A practical guide to Pokémon TCG grading EV — raw spot, PSA/slab comps, fees, and when Kestrel says grade vs pass.",
+      "A practical guide to Pokémon grading EV — raw asking price, PSA/slab comps, fees, and when Kestrel says grade vs skip.",
     eyebrow: "Guide",
     lede:
       "Grading only pays when the slab premium clears fees, risk, and time. Kestrel’s grading desk compares raw value to graded outcomes so you can decide grade vs hold vs sell raw.",
@@ -144,7 +144,7 @@ export const GUIDES: Guide[] = [
       {
         heading: "Start from raw economics",
         body: [
-          "Write down raw spot, expected grade mix, slab comps, and all-in costs (submission, shipping, insurance). If the optimistic slab path barely clears fees, pass.",
+          "Write down raw asking price, expected grade mix, slab comps, and all-in costs (submission, shipping, insurance). If the optimistic slab path barely clears fees, skip.",
           "Population and liquidity matter: a PSA 10 that never sells is not EV — it is inventory.",
         ],
       },
@@ -152,7 +152,7 @@ export const GUIDES: Guide[] = [
         heading: "Where Kestrel helps",
         body: [
           "On card detail, Kestrel can show grading EV style framing against live board context. Use it with your own condition read — AI does not see whitening or centering the way your eyes do.",
-          "If Radar already flags the raw as underpriced, selling raw can beat a slow grade. If raw looks fair but slabs print a wide premium, grading may be the better desk.",
+          "If deals already flag the raw as looks cheap, selling raw can beat a slow grade. If raw looks near good price but slabs print a wide premium, grading may be the better move.",
         ],
       },
       {
@@ -180,24 +180,24 @@ export const GUIDES: Guide[] = [
   },
   {
     slug: "trade-fairness",
-    title: "Is this Pokémon TCG trade fair?",
+    title: "Is this Pokémon trade fair?",
     description:
-      "How to judge Pokémon card trade fairness with spot totals and Kestrel AI fair value — fair, you-ahead, or them-ahead in Kestrel Trade Analyzer.",
+      "How to judge Pokémon card trade fairness with asking totals and Kestrel good price — fair, you’re ahead, or they’re ahead.",
     eyebrow: "Guide",
     lede:
-      "A trade can look even on sticker prices and still be lopsided on outlook. Kestrel Trade Analyzer scores both sides on spot and AI fair so you see fair / you-ahead / them-ahead in plain language.",
+      "A trade can look even on sticker prices and still be lopsided on outlook. Kestrel trade check scores both sides on asking and good price so you see fair / you’re ahead / they’re ahead in plain language.",
     sections: [
       {
-        heading: "Two ledgers: spot and fair",
+        heading: "Two ledgers: asking and good price",
         body: [
-          "Spot totals answer “who brings more market value today?” Fair totals answer “who brings more model value on the sure band?” Kestrel shows both.",
+          "Asking totals answer “who brings more seller value today?” Good-price totals answer “who brings more model value on the pretty-sure range?” Kestrel shows both.",
           "Within a small band (about ±3% by default), we call the trade fair. Outside it, the verdict names who is ahead.",
         ],
       },
       {
         heading: "Condition and printing matter",
         body: [
-          "NM Normal is the AI board’s home base. Kestrel applies condition and printing adjustments — and live variant spots when JustTCG can resolve them — so a LP holofoil does not pretend to be NM.",
+          "NM Normal is the board’s home base. Kestrel applies condition and printing adjustments — and live variant asks when JustTCG can resolve them — so a LP holofoil does not pretend to be NM.",
           "Always match the physical cards you are handing across the table.",
         ],
       },
@@ -205,7 +205,7 @@ export const GUIDES: Guide[] = [
         heading: "Share the call, not the vibe",
         body: [
           "After you score a trade, Kestrel can copy a share link or export a report image for Discord or a local shop. That keeps the conversation on numbers, not vibes.",
-          "Trade Analyzer is a Kestrel Pro surface — free desks still help you browse and learn the fair-band language first.",
+          "Trade check is a Kestrel Pro surface — free desks still help you browse and learn the asking / good-price language first.",
         ],
       },
     ],
@@ -213,15 +213,15 @@ export const GUIDES: Guide[] = [
       {
         question: "What does YOU_AHEAD mean?",
         answer:
-          "From your seat, the side you receive is worth more than the side you give on the primary ledger Kestrel prefers (AI fair when both sides match).",
+          "From your seat, the side you receive is worth more than the side you give on the primary ledger Kestrel prefers (good price when both sides match).",
       },
       {
-        question: "Can a fair spot trade be a bad AI trade?",
+        question: "Can a fair asking trade be a bad good-price trade?",
         answer:
-          "Yes. Spot can be even while fair totals lean one way — that is often the most useful Kestrel signal.",
+          "Yes. Asking can be even while good-price totals lean one way — that is often the most useful Kestrel signal.",
       },
     ],
-    primaryCta: { href: "/trade", label: "Open Trade Analyzer →" },
+    primaryCta: { href: "/trade", label: "Open trade check →" },
     secondaryCta: { href: "/pro", label: "Unlock with Kestrel Pro →" },
   },
 ];

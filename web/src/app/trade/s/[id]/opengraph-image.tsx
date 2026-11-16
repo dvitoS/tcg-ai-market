@@ -106,20 +106,20 @@ export default async function TradeShareOpenGraphImage({
             }}
           >
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <div style={{ fontSize: 18, color: "#9a9288" }}>You give (spot)</div>
+              <div style={{ fontSize: 18, color: "#9a9288" }}>You give (asking)</div>
               <div style={{ fontSize: 36, color: "#f7f1e8", fontWeight: 650 }}>
                 {youSpot}
               </div>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <div style={{ fontSize: 18, color: "#9a9288" }}>They give (spot)</div>
+              <div style={{ fontSize: 18, color: "#9a9288" }}>They give (asking)</div>
               <div style={{ fontSize: 36, color: "#f7f1e8", fontWeight: 650 }}>
                 {themSpot}
               </div>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <div style={{ fontSize: 18, color: "#9a9288" }}>
-                Net sure fair · band {band}
+                Good-price net · range {band}
               </div>
               <div style={{ fontSize: 36, color: "#e0b483", fontWeight: 650 }}>
                 {netFair}
@@ -134,7 +134,7 @@ export default async function TradeShareOpenGraphImage({
               fontFamily: "ui-sans-serif, system-ui, sans-serif",
             }}
           >
-            Desk call, not financial advice · open on Kestrel Pro
+            Price check, not financial advice · open on Kestrel Pro
           </div>
         </div>
       </OgShell>

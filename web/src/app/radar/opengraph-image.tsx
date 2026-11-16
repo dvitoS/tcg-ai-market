@@ -38,7 +38,7 @@ export default async function RadarOpenGraphImage() {
               color: "#f7f1e8",
             }}
           >
-            Sure UNDER / OVER vs the fair band
+            Looks cheap / expensive vs good price
           </div>
           <div
             style={{
@@ -59,9 +59,9 @@ export default async function RadarOpenGraphImage() {
                 background: "rgba(125, 206, 160, 0.08)",
               }}
             >
-              <div style={{ fontSize: 18, color: "#9a9288" }}>UNDER</div>
+              <div style={{ fontSize: 18, color: "#9a9288" }}>LOOKS CHEAP</div>
               <div style={{ fontSize: 32, color: "#7dcea0", fontWeight: 650 }}>
-                Spot below sure fair
+                Asking below good price
               </div>
             </div>
             <div
@@ -75,9 +75,9 @@ export default async function RadarOpenGraphImage() {
                 background: "rgba(224, 138, 122, 0.08)",
               }}
             >
-              <div style={{ fontSize: 18, color: "#9a9288" }}>OVER</div>
+              <div style={{ fontSize: 18, color: "#9a9288" }}>LOOKS EXPENSIVE</div>
               <div style={{ fontSize: 32, color: "#e08a7a", fontWeight: 650 }}>
-                Spot above sure fair
+                Asking above good price
               </div>
             </div>
           </div>
@@ -89,7 +89,7 @@ export default async function RadarOpenGraphImage() {
               fontFamily: "ui-sans-serif, system-ui, sans-serif",
             }}
           >
-            Desk call, not financial advice · open on Kestrel Pro
+            Price check, not financial advice · open on Kestrel Pro
           </div>
         </div>
       </OgShell>

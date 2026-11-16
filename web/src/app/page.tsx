@@ -8,9 +8,9 @@ import type {
   RadarPreviewResponse,
 } from "@/lib/types";
 
-const TITLE = "Kestrel — Pokémon TCG fair value: buy, pass, or trade";
+const TITLE = "Kestrel — Pokémon card prices: buy, skip, or trade";
 const DESCRIPTION =
-  "Price trackers show the market ask. Kestrel puts market price next to fair value so you can buy, sell, trade, or grade with a clear read.";
+  "Most apps show one asking price. Kestrel shows asking price next to a good price so you can buy, skip, trade, or grade with a clearer read.";
 
 export const metadata: Metadata = {
   title: {
@@ -23,7 +23,8 @@ export const metadata: Metadata = {
   keywords: [
     "Pokémon TCG",
     "Pokemon card prices",
-    "fair value",
+    "good price",
+    "asking price",
     "TCG market",
     "Kestrel",
     "trade analyzer",
