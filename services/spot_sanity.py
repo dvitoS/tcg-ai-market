@@ -38,8 +38,9 @@ POISON_CLUSTER_MIN_SETS = 3
 POISON_CLUSTER_MIN_SPOT = 20.0
 
 # Public Deal of the Day / radar preview — stricter than Pro desk UNDER.
+# Floor at $10 so bulk pennies never land on the landing hero / DOTD.
 SHARE_SAFE_MAX_UNDER_EDGE_PCT = 30.0
-SHARE_SAFE_MIN_UNDER_SPOT = 2.0
+SHARE_SAFE_MIN_UNDER_SPOT = 10.0
 _SHARE_UNSAFE_TOKENS = (
     "promo",
     "black star",
