@@ -288,3 +288,151 @@ def build_radar(
         "under_total": int(under_mask.sum()),
         "over_total": int(over_mask.sum()),
     }
+
+
+def _soft_under_fill(
+    *,
+    need: int,
+    exclude: set[str],
+    min_price: float,
+) -> list[dict[str, Any]]:
+    """Fill DOTD seats with ≥$min_price cards where asking < good price.
+
+    Used when the sure UNDER desk is thin after the public $10 floor — still
+    share-safe gated, but without requiring conformal sure.
+    """
+    if need <= 0:
+        return []
+    board, _source = load_board()
+    if board is None or board.empty:
+        return []
+    scoped = filter_board(board, min_price=float(min_price), mode="browse")
+    if scoped is None or scoped.empty:
+        return []
+
+    spot = pd.to_numeric(scoped.get("price"), errors="coerce")
+    fair = pd.to_numeric(scoped.get("predicted_price"), errors="coerce")
+    edge = ((fair - spot) / spot) * 100.0
+    edge = edge.where(spot.notna() & (spot >= float(min_price)) & fair.notna() & (fair > 0))
+
+    rarities = (
+        scoped["rarity"] if "rarity" in scoped.columns else pd.Series([None] * len(scoped), index=scoped.index)
+    )
+    set_names = (
+        scoped["set_name"]
+        if "set_name" in scoped.columns
+        else pd.Series([None] * len(scoped), index=scoped.index)
+    )
+    names = (
+        scoped["name"] if "name" in scoped.columns else pd.Series([None] * len(scoped), index=scoped.index)
+    )
+    supertypes = (
+        scoped["supertype"]
+        if "supertype" in scoped.columns
+        else pd.Series([None] * len(scoped), index=scoped.index)
+    )
+    chg7 = pd.to_numeric(scoped.get("price_change_7d_pct"), errors="coerce")
+    quarantined = (
+        scoped["spot_quarantine"].fillna(False).astype(bool)
+        if "spot_quarantine" in scoped.columns
+        else pd.Series(False, index=scoped.index)
+    )
+    ids = scoped["id"].astype(str) if "id" in scoped.columns else pd.Series([""] * len(scoped), index=scoped.index)
+
+    ok = []
+    for idx, cid, s, e, r, sn, nm, st, c, qflag in zip(
+        scoped.index.tolist(),
+        ids.tolist(),
+        spot.tolist(),
+        edge.tolist(),
+        rarities.tolist(),
+        set_names.tolist(),
+        names.tolist(),
+        supertypes.tolist(),
+        chg7.tolist(),
+        quarantined.tolist(),
+        strict=False,
+    ):
+        if not cid or cid in exclude:
+            continue
+        if e is None or (isinstance(e, float) and pd.isna(e)) or float(e) <= 0:
+            continue
+        if not share_safe_under_deal(
+            spot=s,
+            edge_pct=e,
+            rarity=r,
+            set_name=sn,
+            name=nm,
+            supertype=st,
+            price_change_7d_pct=c,
+            spot_quarantine=qflag,
+        ):
+            continue
+        ok.append((float(e), idx))
+
+    ok.sort(key=lambda t: t[0], reverse=True)
+    if not ok:
+        return []
+    pick_idx = [idx for _e, idx in ok[: int(need)]]
+    frame = scoped.loc[pick_idx].copy()
+    frame["_edge"] = [e for e, _idx in ok[: int(need)]]
+    return _rows_from_frame(frame, side="UNDER")
+
+
+def build_radar_preview(*, limit: int = 5) -> dict[str, Any]:
+    """Public DOTD / hero: ≥$10 UNDER, top up so seats stay filled.
+
+    Order: share-safe sure → relaxed sure → soft asking-below-good lean.
+    """
+    floor = float(SHARE_SAFE_MIN_UNDER_SPOT)
+    need = max(1, min(8, int(limit)))
+    pool = max(need, min(24, need * 4))
+
+    primary = build_radar(
+        min_edge=0,
+        limit=pool,
+        min_price=floor,
+        share_safe=True,
+    )
+    under = list(primary.get("underpriced") or [])
+    seen = {str(r.get("id")) for r in under if r.get("id")}
+    relaxed = False
+
+    if len(under) < need:
+        secondary = build_radar(
+            min_edge=0,
+            limit=pool,
+            min_price=floor,
+            share_safe=False,
+        )
+        added = 0
+        for row in secondary.get("underpriced") or []:
+            cid = str(row.get("id") or "")
+            if not cid or cid in seen:
+                continue
+            under.append(row)
+            seen.add(cid)
+            added += 1
+            if len(under) >= need:
+                break
+        if added:
+            relaxed = True
+
+    if len(under) < need:
+        soft = _soft_under_fill(
+            need=need - len(under),
+            exclude=seen,
+            min_price=floor,
+        )
+        if soft:
+            under.extend(soft)
+            relaxed = True
+
+    under = under[:need]
+    return {
+        "forecast_days": int(primary.get("forecast_days") or radar_defaults()["forecast_days"]),
+        "under_total": max(int(primary.get("under_total") or 0), len(under)),
+        "underpriced": under,
+        "source": primary.get("source") or "empty",
+        "relaxed": bool(relaxed),
+    }
