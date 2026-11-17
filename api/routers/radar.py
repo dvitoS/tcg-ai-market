@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from api.demo_mode import demo_mode
 from api.deps import require_user
-from api.radar_service import build_radar, radar_defaults
+from api.radar_service import build_radar, build_radar_preview, radar_defaults
 from api.schemas import (
     RadarBootstrapResponse,
     RadarPreviewResponse,
@@ -16,7 +16,6 @@ from api.schemas import (
     RadarStatus,
 )
 from services.pro import is_pro_user, pro_checkout_url, pro_gate_reason
-from services.spot_sanity import SHARE_SAFE_MIN_UNDER_SPOT
 
 router = APIRouter(prefix="/radar", tags=["radar"])
 
@@ -45,34 +44,17 @@ def radar_preview(
 ) -> RadarPreviewResponse:
     """Public teaser for Soft Ink hero + Deal of the Day.
 
-    Prefer share-safe UNDER deals at ≥$10 spot. If that desk is empty
-    (common after a quarantine sweep), fall back to sure UNDER with the same
-    price floor so the landing hero never shows bulk pennies.
+    ≥$10 only. Fills up to ``limit`` by topping up share-safe sure UNDER with
+    relaxed sure, then soft asking-below-good leans — so filtering out bulk
+    never leaves empty DOTD seats when other ≥$10 deals exist.
     """
-    floor = float(SHARE_SAFE_MIN_UNDER_SPOT)
-    payload = build_radar(
-        min_edge=0,
-        limit=int(limit),
-        min_price=floor,
-        share_safe=True,
-    )
-    under = list(payload.get("underpriced") or [])
-    relaxed = False
-    if not under:
-        payload = build_radar(
-            min_edge=0,
-            limit=int(limit),
-            min_price=floor,
-            share_safe=False,
-        )
-        under = list(payload.get("underpriced") or [])
-        relaxed = bool(under)
+    payload = build_radar_preview(limit=int(limit))
     return RadarPreviewResponse(
         forecast_days=int(payload.get("forecast_days") or 7),
         under_total=int(payload.get("under_total") or 0),
-        underpriced=under,
+        underpriced=list(payload.get("underpriced") or []),
         source=payload.get("source") or "empty",
-        relaxed=relaxed,
+        relaxed=bool(payload.get("relaxed")),
     )
 
 

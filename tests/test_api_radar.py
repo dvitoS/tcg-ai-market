@@ -114,10 +114,9 @@ def test_radar_preview_deal_of_day_limit_one() -> None:
 
 
 def test_radar_preview_falls_back_when_share_safe_empty(monkeypatch) -> None:
-    from api.routers import radar as radar_router
+    from api import radar_service
 
     calls: list[bool] = []
-
     floors: list[float | None] = []
 
     def _fake_build(*, min_edge=0, limit=5, share_safe=True, min_price=None, **_k):
@@ -147,7 +146,8 @@ def test_radar_preview_falls_back_when_share_safe_empty(monkeypatch) -> None:
             "source": "supabase",
         }
 
-    monkeypatch.setattr(radar_router, "build_radar", _fake_build)
+    monkeypatch.setattr(radar_service, "build_radar", _fake_build)
+    monkeypatch.setattr(radar_service, "_soft_under_fill", lambda **_k: [])
     client = TestClient(app)
     res = client.get("/api/radar/preview", params={"limit": 5})
     assert res.status_code == 200
@@ -158,6 +158,118 @@ def test_radar_preview_falls_back_when_share_safe_empty(monkeypatch) -> None:
     assert len(body["underpriced"]) == 1
     assert body["underpriced"][0]["id"] == "sv1-1"
     assert float(body["underpriced"][0]["spot"]) >= SHARE_SAFE_MIN_UNDER_SPOT
+
+
+def test_radar_preview_tops_up_partial_share_safe(monkeypatch) -> None:
+    """When share-safe returns fewer than limit, fill remaining seats ≥$10."""
+    from api import radar_service
+
+    def _fake_build(*, min_edge=0, limit=5, share_safe=True, min_price=None, **_k):
+        assert min_price == SHARE_SAFE_MIN_UNDER_SPOT
+        if share_safe:
+            return {
+                "forecast_days": 7,
+                "under_total": 1,
+                "underpriced": [
+                    {
+                        "id": "a-1",
+                        "name": "Alpha",
+                        "side": "UNDER",
+                        "edge_pct": 18.0,
+                        "spot": 22.0,
+                        "price": 22.0,
+                    }
+                ],
+                "source": "supabase",
+            }
+        return {
+            "forecast_days": 7,
+            "under_total": 3,
+            "underpriced": [
+                {
+                    "id": "a-1",
+                    "name": "Alpha",
+                    "side": "UNDER",
+                    "edge_pct": 18.0,
+                    "spot": 22.0,
+                    "price": 22.0,
+                },
+                {
+                    "id": "b-2",
+                    "name": "Beta",
+                    "side": "UNDER",
+                    "edge_pct": 15.0,
+                    "spot": 40.0,
+                    "price": 40.0,
+                },
+                {
+                    "id": "c-3",
+                    "name": "Gamma",
+                    "side": "UNDER",
+                    "edge_pct": 12.0,
+                    "spot": 11.0,
+                    "price": 11.0,
+                },
+            ],
+            "source": "supabase",
+        }
+
+    monkeypatch.setattr(radar_service, "build_radar", _fake_build)
+    monkeypatch.setattr(radar_service, "_soft_under_fill", lambda **_k: [])
+    client = TestClient(app)
+    res = client.get("/api/radar/preview", params={"limit": 3})
+    assert res.status_code == 200
+    body = res.json()
+    ids = [r["id"] for r in body["underpriced"]]
+    assert ids == ["a-1", "b-2", "c-3"]
+    assert body["relaxed"] is True
+    assert all(float(r["spot"]) >= SHARE_SAFE_MIN_UNDER_SPOT for r in body["underpriced"])
+
+
+def test_radar_preview_soft_fill_when_sure_desk_thin(monkeypatch) -> None:
+    """Soft asking-below-good leans backfill DOTD when sure UNDER ≥$10 is scarce."""
+    from api import radar_service
+
+    def _fake_build(*, share_safe=True, **_k):
+        return {
+            "forecast_days": 7,
+            "under_total": 0,
+            "underpriced": [],
+            "source": "supabase",
+        }
+
+    soft_rows = [
+        {
+            "id": "soft-1",
+            "name": "Soft One",
+            "side": "UNDER",
+            "edge_pct": 14.0,
+            "spot": 55.0,
+            "price": 55.0,
+        },
+        {
+            "id": "soft-2",
+            "name": "Soft Two",
+            "side": "UNDER",
+            "edge_pct": 11.0,
+            "spot": 18.0,
+            "price": 18.0,
+        },
+    ]
+
+    monkeypatch.setattr(radar_service, "build_radar", _fake_build)
+    monkeypatch.setattr(
+        radar_service,
+        "_soft_under_fill",
+        lambda **_k: soft_rows,
+    )
+    client = TestClient(app)
+    res = client.get("/api/radar/preview", params={"limit": 2})
+    assert res.status_code == 200
+    body = res.json()
+    assert [r["id"] for r in body["underpriced"]] == ["soft-1", "soft-2"]
+    assert body["relaxed"] is True
+    assert all(float(r["spot"]) >= SHARE_SAFE_MIN_UNDER_SPOT for r in body["underpriced"])
 
 
 def test_radar_board_returns_sides() -> None:
