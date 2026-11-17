@@ -68,7 +68,7 @@ def test_radar_bootstrap_locked_skips_board() -> None:
 
 
 def test_radar_preview_public_under_only() -> None:
-    from services.spot_sanity import RADAR_MAX_UNDER_EDGE_PCT, RADAR_MIN_UNDER_SPOT
+    from services.spot_sanity import RADAR_MAX_UNDER_EDGE_PCT
 
     client = TestClient(app)
     res = client.get("/api/radar/preview", params={"limit": 5})
@@ -83,9 +83,8 @@ def test_radar_preview_public_under_only() -> None:
         if body.get("relaxed")
         else SHARE_SAFE_MAX_UNDER_EDGE_PCT
     )
-    spot_floor = (
-        RADAR_MIN_UNDER_SPOT if body.get("relaxed") else SHARE_SAFE_MIN_UNDER_SPOT
-    )
+    # Preview always floors at share-safe $10 (share-safe + relaxed fallback).
+    spot_floor = SHARE_SAFE_MIN_UNDER_SPOT
     for row in body["underpriced"]:
         assert row["side"] == "UNDER"
         assert float(row["edge_pct"]) > 0
@@ -119,8 +118,11 @@ def test_radar_preview_falls_back_when_share_safe_empty(monkeypatch) -> None:
 
     calls: list[bool] = []
 
-    def _fake_build(*, min_edge=0, limit=5, share_safe=True, **_k):
+    floors: list[float | None] = []
+
+    def _fake_build(*, min_edge=0, limit=5, share_safe=True, min_price=None, **_k):
         calls.append(bool(share_safe))
+        floors.append(min_price)
         if share_safe:
             return {
                 "forecast_days": 7,
@@ -137,8 +139,8 @@ def test_radar_preview_falls_back_when_share_safe_empty(monkeypatch) -> None:
                     "name": "Sprigatito",
                     "side": "UNDER",
                     "edge_pct": 12.0,
-                    "spot": 4.0,
-                    "price": 4.0,
+                    "spot": 14.0,
+                    "price": 14.0,
                     "image_url": "https://example.com/x.png",
                 }
             ],
@@ -151,9 +153,11 @@ def test_radar_preview_falls_back_when_share_safe_empty(monkeypatch) -> None:
     assert res.status_code == 200
     body = res.json()
     assert calls == [True, False]
+    assert floors == [SHARE_SAFE_MIN_UNDER_SPOT, SHARE_SAFE_MIN_UNDER_SPOT]
     assert body["relaxed"] is True
     assert len(body["underpriced"]) == 1
     assert body["underpriced"][0]["id"] == "sv1-1"
+    assert float(body["underpriced"][0]["spot"]) >= SHARE_SAFE_MIN_UNDER_SPOT
 
 
 def test_radar_board_returns_sides() -> None:

@@ -16,6 +16,7 @@ from api.schemas import (
     RadarStatus,
 )
 from services.pro import is_pro_user, pro_checkout_url, pro_gate_reason
+from services.spot_sanity import SHARE_SAFE_MIN_UNDER_SPOT
 
 router = APIRouter(prefix="/radar", tags=["radar"])
 
@@ -44,14 +45,26 @@ def radar_preview(
 ) -> RadarPreviewResponse:
     """Public teaser for Soft Ink hero + Deal of the Day.
 
-    Prefer share-safe UNDER deals. If that desk is empty (common after a
-    quarantine sweep), fall back to sure UNDER so the landing hero is never blank.
+    Prefer share-safe UNDER deals at ≥$10 spot. If that desk is empty
+    (common after a quarantine sweep), fall back to sure UNDER with the same
+    price floor so the landing hero never shows bulk pennies.
     """
-    payload = build_radar(min_edge=0, limit=int(limit), share_safe=True)
+    floor = float(SHARE_SAFE_MIN_UNDER_SPOT)
+    payload = build_radar(
+        min_edge=0,
+        limit=int(limit),
+        min_price=floor,
+        share_safe=True,
+    )
     under = list(payload.get("underpriced") or [])
     relaxed = False
     if not under:
-        payload = build_radar(min_edge=0, limit=int(limit), share_safe=False)
+        payload = build_radar(
+            min_edge=0,
+            limit=int(limit),
+            min_price=floor,
+            share_safe=False,
+        )
         under = list(payload.get("underpriced") or [])
         relaxed = bool(under)
     return RadarPreviewResponse(

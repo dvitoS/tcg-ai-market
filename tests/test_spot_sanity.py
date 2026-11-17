@@ -42,7 +42,9 @@ def test_under_deal_rejects_poisoned_common_spot() -> None:
 
 def test_share_safe_rejects_blank_rarity_high_spot() -> None:
     assert share_safe_under_deal(spot=79.5, edge_pct=25.0, rarity=None) is False
-    assert share_safe_under_deal(spot=9.0, edge_pct=25.0, rarity="") is True
+    # Blank rarity OK only under BLANK_RARITY_SPOT_CAP ($15) and ≥$10 floor.
+    assert share_safe_under_deal(spot=9.0, edge_pct=25.0, rarity="") is False
+    assert share_safe_under_deal(spot=12.0, edge_pct=25.0, rarity="") is True
     assert (
         share_safe_under_deal(
             spot=79.5, edge_pct=25.0, rarity="Illustration Rare"
@@ -62,13 +64,35 @@ def test_share_safe_rejects_energy_high_spot() -> None:
         )
         is False
     )
+    # Energy under ENERGY_SPOT_CAP still fails the public ≥$10 floor.
     assert (
         share_safe_under_deal(
-            spot=2.50,
+            spot=7.0,
             edge_pct=12.0,
             rarity="Common",
             name="Basic Darkness Energy",
             set_name="Shrouded Fable",
+        )
+        is False
+    )
+
+
+def test_share_safe_rejects_sub_10_spot() -> None:
+    assert (
+        share_safe_under_deal(
+            spot=9.99,
+            edge_pct=20.0,
+            rarity="Illustration Rare",
+            set_name="Twilight Masquerade",
+        )
+        is False
+    )
+    assert (
+        share_safe_under_deal(
+            spot=10.0,
+            edge_pct=20.0,
+            rarity="Illustration Rare",
+            set_name="Twilight Masquerade",
         )
         is True
     )
