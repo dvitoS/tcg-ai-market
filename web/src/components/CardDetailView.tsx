@@ -281,27 +281,43 @@ export function CardDetailView({
 
           {explain ? (
             <section className="detail-ai-board">
-              <div className="detail-ai-head">
-                <h2>{t("detail_why")}</h2>
-              </div>
-              <div className="ai-explain">
-                <p className="ai-conf">
-                  {t("detail_confidence", { level: explain.confidence_level })}
-                  {explain.confidence_reason ? ` — ${explain.confidence_reason}` : ""}
-                </p>
-                {explain.rows.length > 0 ? (
-                  <dl className="ai-explain-list">
-                    {explain.rows.map((row) => (
-                      <div key={row.label} className="ai-explain-row">
-                        <dt>{row.label}</dt>
-                        <dd>{row.value}</dd>
-                      </div>
-                    ))}
-                  </dl>
-                ) : (
-                  <p className="ai-board-caption">{t("detail_explain_need")}</p>
-                )}
-              </div>
+              <details className="detail-why-fold">
+                <summary className="detail-why-summary">
+                  <span className="detail-why-summary-text">
+                    <span className="detail-why-title">{t("detail_why")}</span>
+                    <span className="ai-conf">
+                      {t("detail_confidence", {
+                        level: explain.confidence_level,
+                      })}
+                      {explain.confidence_reason
+                        ? ` — ${explain.confidence_reason}`
+                        : ""}
+                    </span>
+                    <span className="detail-why-hint">
+                      {t("detail_why_toggle")}
+                    </span>
+                  </span>
+                  <span className="detail-why-chevron" aria-hidden>
+                    ▾
+                  </span>
+                </summary>
+                <div className="ai-explain">
+                  {explain.rows.length > 0 ? (
+                    <dl className="ai-explain-list">
+                      {explain.rows.map((row) => (
+                        <div key={row.label} className="ai-explain-row">
+                          <dt>{row.label}</dt>
+                          <dd>{row.value}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  ) : (
+                    <p className="ai-board-caption">
+                      {t("detail_explain_need")}
+                    </p>
+                  )}
+                </div>
+              </details>
             </section>
           ) : null}
         </div>

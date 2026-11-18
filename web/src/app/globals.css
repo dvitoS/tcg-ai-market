@@ -2764,6 +2764,82 @@ a {
   font-weight: 600;
 }
 
+.detail-why-fold {
+  margin: 0;
+}
+
+.detail-why-summary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  cursor: pointer;
+  list-style: none;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.65rem;
+  margin-bottom: 0;
+}
+
+.detail-why-summary::-webkit-details-marker {
+  display: none;
+}
+
+.detail-why-summary-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.detail-why-title {
+  font-family: var(--font-display);
+  font-size: 1.08rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.detail-why-summary .ai-conf {
+  margin: 0;
+}
+
+.detail-why-hint {
+  color: var(--accent-2);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.detail-why-chevron {
+  flex: none;
+  margin-top: 0.15rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1;
+  transition: transform 0.18s ease;
+}
+
+.detail-why-fold[open] .detail-why-chevron {
+  transform: rotate(180deg);
+}
+
+.detail-why-fold[open] .detail-why-summary {
+  margin-bottom: 0;
+}
+
+.detail-why-fold[open] .detail-why-hint {
+  display: none;
+}
+
+.detail-why-summary:hover .detail-why-title,
+.detail-why-summary:focus-visible .detail-why-title {
+  color: var(--accent-2);
+}
+
+.detail-why-summary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(184, 115, 51, 0.28);
+  border-radius: 8px;
+}
+
 .ai-move-label,
 .ai-board-price-label {
   margin: 0;
@@ -2814,9 +2890,12 @@ a {
 }
 
 .ai-explain {
-  margin-top: 0.95rem;
-  padding-top: 0.85rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  margin-top: 0.85rem;
+  padding-top: 0.15rem;
+}
+
+.detail-why-fold > .ai-explain {
+  border-top: none;
 }
 
 .ai-conf {

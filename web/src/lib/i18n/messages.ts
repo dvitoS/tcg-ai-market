@@ -764,6 +764,7 @@ const en = {
   detail_low_conf: "Unsure call — treat as HOLD until more data lands.",
   detail_confidence: "Confidence {level}",
   detail_why: "Why this lean",
+  detail_why_toggle: "Show model details",
   detail_explain_need: "Need ~15 history points before feature explain unlocks.",
   grade_ev_title: "Grading EV",
   grade_ev_lede:
@@ -1738,6 +1739,7 @@ const hr: Dictionary = {
   detail_low_conf: "Nesiguran poziv — tretiraj kao DRŽI dok ne stigne više podataka.",
   detail_confidence: "Pouzdanost {level}",
   detail_why: "Zašto ovaj nagib",
+  detail_why_toggle: "Prikaži detalje modela",
   detail_explain_need: "Treba ~15 točaka povijesti prije objašnjenja featurea.",
   grade_ev_title: "Grading EV",
   grade_ev_lede:
