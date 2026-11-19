@@ -376,7 +376,9 @@ def enrich_lots(lots: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "pnl": pnl,
                 "pnl_pct": pnl_pct,
                 "signal": None if is_sealed else quote.get("signal"),
-                "expected_change_pct": None if is_sealed else quote.get("expected_change_pct"),
+                "expected_change_pct": None
+                if is_sealed
+                else quote.get("expected_change_30d_pct"),
                 "predicted_price": predicted_f,
                 "outlook_value": qty * predicted_f,
                 "lot_action": "HOLD",
@@ -405,7 +407,7 @@ def enrich_watch(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "image_url": _image(card_id, row.get("image_url") or quote.get("image_url")),
                 "market_price": float(price) if price is not None else None,
                 "signal": quote.get("signal"),
-                "expected_change_pct": quote.get("expected_change_pct"),
+                "expected_change_pct": quote.get("expected_change_30d_pct"),
                 "predicted_price": quote.get("predicted_price"),
             }
         )

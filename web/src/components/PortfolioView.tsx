@@ -74,7 +74,7 @@ const EMPTY_SUMMARY: PortfolioSummary = {
   pnl_pct: 0,
   outlook_value: 0,
   outlook_pct: 0,
-  outlook_horizon_days: 7,
+  outlook_horizon_days: 30,
 };
 
 function pnlClass(value?: number | null): string {
@@ -410,7 +410,7 @@ export function PortfolioView() {
         <div className={`kpi-chip ${pnlClass(summary.outlook_pct)}`}>
           <span>
             {t("kpi_outlook_days", {
-              days: summary.outlook_horizon_days || 7,
+              days: summary.outlook_horizon_days || 30,
             })}
           </span>
           <strong>

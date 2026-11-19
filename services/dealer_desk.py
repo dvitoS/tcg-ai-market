@@ -329,7 +329,10 @@ def build_dealer_board(
             continue
 
         spot = float(pd.to_numeric(hit.get("price"), errors="coerce") or 0.0)
-        exp = pd.to_numeric(hit.get("expected_change_pct"), errors="coerce")
+        # Soft Ink dealer forecasts use the 30d model only.
+        exp = pd.to_numeric(hit.get("expected_change_30d_pct"), errors="coerce")
+        if pd.isna(exp):
+            exp = pd.NA
         exp_pct = float(exp) if pd.notna(exp) else 0.0
         forecast_spot = spot * (1.0 + exp_pct / 100.0)
         net_now = net_proceeds(spot, fee_pct=fee_pct, ship_usd=ship_usd)

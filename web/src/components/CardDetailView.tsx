@@ -129,9 +129,27 @@ export function CardDetailView({
       : signalKey === "SELL" || signalKey === "PRODAJ"
         ? "OVER"
         : null;
+  const askSpot = history.last_price ?? card.price;
+  const fairSpot =
+    card.predicted_price != null && Number.isFinite(Number(card.predicted_price))
+      ? Number(card.predicted_price)
+      : null;
+  const gapPct =
+    askSpot != null &&
+    Number.isFinite(Number(askSpot)) &&
+    Number(askSpot) > 0 &&
+    fairSpot != null
+      ? ((fairSpot - Number(askSpot)) / Number(askSpot)) * 100
+      : null;
+  /** Soft Ink desks show the 30d model only — no 7d prediction fallback. */
+  const move30d =
+    card.expected_change_30d_pct != null &&
+    Number.isFinite(Number(card.expected_change_30d_pct))
+      ? Number(card.expected_change_30d_pct)
+      : null;
   const decision =
-    showSignal && detailSide
-      ? decisionOneLiner(locale, detailSide, card.expected_change_pct)
+    showSignal && detailSide && gapPct != null
+      ? decisionOneLiner(locale, detailSide, gapPct)
       : null;
 
   const verdictLine = decision
@@ -222,10 +240,10 @@ export function CardDetailView({
             className={`detail-verdict ${signalClass(card.signal)}${showSignal ? "" : " is-unsure"}`}
           >
             {verdictLine}
-            {showSignal && card.expected_change_pct != null ? (
+            {showSignal && move30d != null ? (
               <span className="detail-verdict-move">
                 {" "}
-                · {formatChange(card.expected_change_pct, 1)}
+                · {formatChange(move30d, 1)}
               </span>
             ) : null}
           </p>

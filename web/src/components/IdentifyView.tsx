@@ -416,8 +416,10 @@ export function IdentifyView() {
                       </span>
                     ) : null}
                     <span className="identify-match-price">
-                      {formatSpot(card.price)} ·{" "}
-                      {formatChange(card.expected_change_pct)}
+                      {formatSpot(card.price)}
+                      {card.expected_change_30d_pct != null
+                        ? ` · ${formatChange(card.expected_change_30d_pct)}`
+                        : ""}
                     </span>
                   </div>
                 </Link>

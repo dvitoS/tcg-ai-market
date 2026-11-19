@@ -66,7 +66,11 @@ def build_scanner(
             "min_growth": float(min_growth),
         }
 
-    change = pd.to_numeric(scoped.get("expected_change_pct"), errors="coerce")
+    # Soft Ink scanner ranks on the 30d model only.
+    if "expected_change_30d_pct" in scoped.columns:
+        change = pd.to_numeric(scoped.get("expected_change_30d_pct"), errors="coerce")
+    else:
+        change = pd.to_numeric(scoped.get("expected_change_pct"), errors="coerce")
     scoped = scoped.assign(_roi=change)
     opportunities = (
         scoped.loc[scoped["_roi"].fillna(-999) >= float(min_growth)]
@@ -85,7 +89,7 @@ def build_scanner(
             card = row_to_card(row)
             price = card.get("price")
             predicted = card.get("predicted_price")
-            roi = card.get("expected_change_pct")
+            roi = card.get("expected_change_30d_pct")
             out.append(
                 {
                     **card,

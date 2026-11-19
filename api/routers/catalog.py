@@ -43,13 +43,19 @@ def catalog(
     sort_map = {
         "price_desc": ("price", False),
         "price_asc": ("price", True),
-        "change_desc": ("expected_change_pct", False),
-        "change_asc": ("expected_change_pct", True),
+        # Soft Ink desks rank on the 30d model only (no 7d prediction).
+        "change_desc": ("expected_change_30d_pct", False),
+        "change_asc": ("expected_change_30d_pct", True),
         "name": ("name", True),
     }
     col, ascending = sort_map[sort]
     if col in filtered.columns:
         filtered = filtered.sort_values(col, ascending=ascending, na_position="last")
+    elif col == "expected_change_30d_pct" and "expected_change_pct" in filtered.columns:
+        # Demo boards without the 30d column — avoid empty sorts.
+        filtered = filtered.sort_values(
+            "expected_change_pct", ascending=ascending, na_position="last"
+        )
 
     total = int(len(filtered))
     page = filtered.iloc[offset : offset + limit]
@@ -77,8 +83,12 @@ def signals(limit: int = Query(default=12, ge=1, le=48)) -> SignalBoardResponse:
 
     def _top(sig: str) -> list[CatalogCard]:
         subset = frame[frame["signal"].astype(str).str.upper() == sig]
-        if "expected_change_pct" in subset.columns:
-            ascending = sig == "SELL"
+        ascending = sig == "SELL"
+        if "expected_change_30d_pct" in subset.columns:
+            subset = subset.sort_values(
+                "expected_change_30d_pct", ascending=ascending, na_position="last"
+            )
+        elif "expected_change_pct" in subset.columns:
             subset = subset.sort_values(
                 "expected_change_pct", ascending=ascending, na_position="last"
             )
