@@ -65,23 +65,51 @@ function toChartRows(
   }));
 }
 
+function preferredFinish(finishes: string[]): string | null {
+  if (!finishes.length) return null;
+  const rank = (f: string) => {
+    const v = f.toLowerCase();
+    if (v.includes("reverse")) return 20;
+    if (v.includes("holo") || v === "foil") return 0;
+    if (v === "normal") return 10;
+    return 40;
+  };
+  return [...finishes].sort((a, b) => rank(a) - rank(b))[0] ?? null;
+}
+
 export function PriceChart({
   cardId,
   points,
   predictedPrice,
+  finishes = [],
 }: {
   cardId?: string;
   points: HistoryPoint[];
   predictedPrice?: number | null;
+  finishes?: string[];
 }) {
   const { t, locale } = useLocale();
+  const finishOptions = useMemo(
+    () => finishes.filter(Boolean),
+    [finishes],
+  );
+  const hintFinish = useMemo(
+    () => preferredFinish(finishOptions),
+    [finishOptions],
+  );
   const [range, setRange] = useState<RangeKey>("1m");
   const [market, setMarket] = useState<MarketSource>("tcgplayer");
+  // null = Soft Ink auto (DB / JustTCG / Pkmn with Holofoil preference) — no finish filter credit burn.
+  const [finish, setFinish] = useState<string | null>(null);
   const [sources, setSources] = useState<CardPriceSourcesResponse | null>(null);
   const [loading, setLoading] = useState(Boolean(cardId) && points.length === 0);
   const [error, setError] = useState<string | null>(null);
   const [cmTried, setCmTried] = useState(false);
   const [cmLoading, setCmLoading] = useState(false);
+
+  useEffect(() => {
+    setFinish(null);
+  }, [cardId]);
 
   useEffect(() => {
     if (!cardId) {
@@ -94,7 +122,11 @@ export function PriceChart({
     setSources(null);
     setCmTried(false);
     // ≥365 pts so 1Y toggle has room when DB / Soft Ink history is long enough.
-    fetchCardPriceSources(cardId, { grades: "none", limit: 400 })
+    fetchCardPriceSources(cardId, {
+      grades: "none",
+      limit: 400,
+      printing: finish,
+    })
       .then((data) => {
         if (!cancelled) setSources(data);
       })
@@ -109,7 +141,7 @@ export function PriceChart({
     return () => {
       cancelled = true;
     };
-  }, [cardId, points.length]);
+  }, [cardId, points.length, finish]);
 
   // Lazy Cardmarket EUR series — only when the CM tab opens (PkmnPrices credits).
   useEffect(() => {
@@ -121,6 +153,7 @@ export function PriceChart({
       grades: "none",
       limit: 400,
       cardmarket: true,
+      printing: finish,
     })
       .then((data) => {
         if (cancelled) return;
@@ -161,7 +194,7 @@ export function PriceChart({
     return () => {
       cancelled = true;
     };
-  }, [cardId, market, sources, cmTried]);
+  }, [cardId, market, sources, cmTried, finish]);
 
   // Prefer live Soft Ink NM, else DB / SSR history (TCGplayer-linked).
   const nmAll = sources?.justtcg?.length
@@ -237,6 +270,41 @@ export function PriceChart({
         </div>
       </div>
 
+      {finishOptions.length > 1 ? (
+        <div
+          className="range-toggle chart-finish-toggle"
+          role="tablist"
+          aria-label={t("chart_finish_tabs")}
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={finish == null}
+            className={finish == null ? "is-active" : ""}
+            onClick={() => setFinish(null)}
+            title={
+              hintFinish
+                ? t("chart_finish_auto_hint", { finish: hintFinish })
+                : undefined
+            }
+          >
+            {t("chart_finish_auto")}
+          </button>
+          {finishOptions.map((item) => (
+            <button
+              key={item}
+              type="button"
+              role="tab"
+              aria-selected={finish === item}
+              className={finish === item ? "is-active" : ""}
+              onClick={() => setFinish(item)}
+            >
+              {item}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
       {loading || cmLoading ? (
         <p className="chart-sources-status">
           {cmLoading ? t("chart_cm_loading") : t("chart_loading")}
@@ -247,6 +315,9 @@ export function PriceChart({
       ) : null}
       {isCm && sources?.cardmarket_error && chartData.length === 0 && !cmLoading ? (
         <p className="chart-sources-status">{sources.cardmarket_error}</p>
+      ) : null}
+      {!isCm && sources?.pkmnprices_error && chartData.length === 0 && !loading ? (
+        <p className="chart-sources-status">{sources.pkmnprices_error}</p>
       ) : null}
 
       {cmEmpty && !sources?.cardmarket_error ? (

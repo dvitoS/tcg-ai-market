@@ -860,6 +860,9 @@ const en = {
   chart_series_psa: "PSA 10",
   chart_series_psa9: "PSA 9",
   chart_market_tabs: "Chart marketplace",
+  chart_finish_tabs: "Chart finish",
+  chart_finish_auto: "Auto",
+  chart_finish_auto_hint: "Soft Ink picks Near Mint · prefers {finish}",
   chart_cm_loading: "Loading Cardmarket NM…",
   chart_cm_empty_title: "No Cardmarket NM history yet",
   chart_cm_empty_lede:
@@ -1927,6 +1930,9 @@ const hr: Dictionary = {
   chart_series_psa: "PSA 10",
   chart_series_psa9: "PSA 9",
   chart_market_tabs: "Chart marketplace",
+  chart_finish_tabs: "Chart finish",
+  chart_finish_auto: "Auto",
+  chart_finish_auto_hint: "Soft Ink bira Near Mint · preferira {finish}",
   chart_cm_loading: "Učitavam Cardmarket NM…",
   chart_cm_empty_title: "Nema Cardmarket NM povijesti još",
   chart_cm_empty_lede:

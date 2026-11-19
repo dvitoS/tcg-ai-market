@@ -235,12 +235,14 @@ export async function fetchCardPriceSources(
     limit?: number;
     grades?: PriceSourcesGrades;
     cardmarket?: boolean;
+    printing?: string | null;
   } = {},
 ): Promise<CardPriceSourcesResponse> {
   const limit = options.limit ?? 400;
   const grades = options.grades ?? "none";
   const cardmarket = Boolean(options.cardmarket);
-  const key = `${cardId}|${limit}|${grades}|cm=${cardmarket ? 1 : 0}`;
+  const printing = (options.printing || "").trim() || "";
+  const key = `${cardId}|${limit}|${grades}|cm=${cardmarket ? 1 : 0}|p=${printing || "-"}`;
   const existing = _priceSourcesInflight.get(key);
   if (existing) return existing;
 
@@ -250,6 +252,7 @@ export async function fetchCardPriceSources(
       grades,
     });
     if (cardmarket) qs.set("cardmarket", "true");
+    if (printing) qs.set("printing", printing);
     const res = await fetch(
       apiUrl(`/api/cards/${encodeURIComponent(cardId)}/sources?${qs}`),
       {

@@ -71,6 +71,59 @@ def test_nm_history_for_tcgplayer_id(monkeypatch) -> None:
     ]
 
 
+def test_nm_history_prefers_holofoil_when_collapsing(monkeypatch) -> None:
+    monkeypatch.setattr(client, "pkmn_api_key", lambda: "pk-test")
+    monkeypatch.setattr(client, "find_card_id_by_tcgplayer_id", lambda _tcp: 7)
+
+    def _fake_get(path, params=None):
+        assert "variant" not in (params or {})
+        return {
+            "data": [
+                {
+                    "date": "2024-04-01",
+                    "avg": 5.0,
+                    "condition": "Near Mint",
+                    "source": "tcgplayer",
+                    "variant": "Normal",
+                },
+                {
+                    "date": "2024-04-01",
+                    "avg": 12.0,
+                    "condition": "Near Mint",
+                    "source": "tcgplayer",
+                    "variant": "Holofoil",
+                },
+            ]
+        }
+
+    monkeypatch.setattr(client, "_get", _fake_get)
+    rows = client.nm_history_for_tcgplayer_id("555")
+    assert rows == [{"date": "2024-04-01", "price": 12.0}]
+
+
+def test_nm_history_filters_variant(monkeypatch) -> None:
+    monkeypatch.setattr(client, "pkmn_api_key", lambda: "pk-test")
+    monkeypatch.setattr(client, "find_card_id_by_tcgplayer_id", lambda _tcp: 7)
+
+    def _fake_get(path, params=None):
+        assert params["variant"] == "Reverse Holofoil"
+        return {
+            "data": [
+                {
+                    "date": "2024-04-02",
+                    "avg": 7.5,
+                    "condition": "Near Mint",
+                    "source": "tcgplayer",
+                    "variant": "Reverse Holofoil",
+                }
+            ]
+        }
+
+    monkeypatch.setattr(client, "_get", _fake_get)
+    rows = client.nm_history_for_tcgplayer_id("555", variant="Reverse")
+    assert rows == [{"date": "2024-04-02", "price": 7.5}]
+
+
 def test_nm_history_cardmarket_eur(monkeypatch) -> None:
     monkeypatch.setattr(client, "pkmn_api_key", lambda: "pk-test")
     monkeypatch.setattr(client, "find_card_id_by_tcgplayer_id", lambda _tcp: 7)

@@ -171,7 +171,7 @@ def test_card_price_sources_cardmarket_opt_in(monkeypatch) -> None:
     )
     monkeypatch.setattr("pkmnprices_client.pkmnprices_configured", lambda: True)
 
-    def _nm(_tcp, *, period="90d", limit=120, currency="usd"):
+    def _nm(_tcp, *, period="90d", limit=120, currency="usd", variant=None):
         if currency == "eur":
             return [
                 {"date": "2024-06-01", "price": 2.4},
@@ -226,7 +226,7 @@ def test_card_price_sources_cardmarket_reuses_usd_cache(monkeypatch) -> None:
 
     calls: list[str] = []
 
-    def _nm(_tcp, *, period="90d", limit=120, currency="usd"):
+    def _nm(_tcp, *, period="90d", limit=120, currency="usd", variant=None):
         calls.append(currency)
         if currency == "eur":
             return [{"date": "2024-06-01", "price": 2.4}]

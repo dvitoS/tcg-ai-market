@@ -146,9 +146,17 @@ def card_price_sources(
         default=False,
         description="Include Cardmarket NM (EUR) history via PkmnPrices. Opt-in to save credits.",
     ),
+    printing: str | None = Query(
+        default=None,
+        description="Soft Ink finish label (Holofoil, Normal, Reverse Holofoil, …) for NM history.",
+    ),
 ) -> CardPriceSourcesResponse:
     payload = build_card_price_sources(
-        str(card_id), limit=limit, grades=grades, cardmarket=bool(cardmarket)
+        str(card_id),
+        limit=limit,
+        grades=grades,
+        cardmarket=bool(cardmarket),
+        printing=printing,
     )
     cache_flag = payload.get("cache")
     grades_mode = payload.get("grades")
@@ -169,6 +177,7 @@ def card_price_sources(
         justtcg_error=payload.get("justtcg_error"),
         cardmarket=[HistoryPoint(**p) for p in payload.get("cardmarket") or []],
         cardmarket_error=payload.get("cardmarket_error"),
+        printing=payload.get("printing"),
         psa10=[HistoryPoint(**p) for p in payload.get("psa10") or []],
         psa10_error=payload.get("psa10_error"),
         psa10_stats=PsaGradeStats(**(payload.get("psa10_stats") or {})),

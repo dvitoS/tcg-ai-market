@@ -423,6 +423,7 @@ class CardPriceSourcesResponse(BaseModel):
     justtcg_error: str | None = None
     cardmarket: list[HistoryPoint] = Field(default_factory=list)
     cardmarket_error: str | None = None
+    printing: str | None = None
     psa10: list[HistoryPoint] = Field(default_factory=list)
     psa10_error: str | None = None
     psa10_stats: PsaGradeStats = Field(default_factory=PsaGradeStats)
