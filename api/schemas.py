@@ -323,6 +323,13 @@ class PsaGradeStats(BaseModel):
 Psa10Stats = PsaGradeStats
 
 
+class PopulationGradeRow(BaseModel):
+    grade: str
+    count: int
+    share_pct: float | None = None
+    percent_higher: float | None = None
+
+
 class CardPopulationStats(BaseModel):
     """PkmnPrices graded population summary for Grading EV gem-rate seeding."""
 
@@ -339,11 +346,59 @@ class CardPopulationStats(BaseModel):
     percent_higher_9: float | None = None
     grades_10: int | None = None
     grades_9: int | None = None
+    grade_rows: list[PopulationGradeRow] = Field(default_factory=list)
     pop_report_url: str | None = None
     updated_at: str | None = None
     last_population_change: str | None = None
     pkmn_card_id: int | None = None
     tcgplayer_id: str | None = None
+
+
+class MarketCompListing(BaseModel):
+    price: float
+    currency: str = "USD"
+    date: str | None = None
+    title: str | None = None
+    url: str | None = None
+    condition: str | None = None
+    graded: bool = False
+    grader: str | None = None
+    grade: str | None = None
+    sale_type: str | None = None
+    variant: str | None = None
+    seller: str | None = None
+    seller_country: str | None = None
+    sell_count: int | float | None = None
+    language: str | None = None
+    quantity: int | float | None = None
+
+
+class MarketCompStats(BaseModel):
+    n: int = 0
+    median: float | None = None
+    low: float | None = None
+    high: float | None = None
+    lowest: float | None = None
+    currency: str | None = None
+    period: str | None = None
+    condition: str | None = None
+    is_sold: bool = False
+
+
+class CardMarketCompsResponse(BaseModel):
+    card_id: str
+    name: str
+    set_name: str | None = None
+    tcgplayer_id: str | None = None
+    pkmnprices_configured: bool = False
+    ebay_sold: list[MarketCompListing] = Field(default_factory=list)
+    ebay_sold_stats: MarketCompStats = Field(default_factory=MarketCompStats)
+    ebay_error: str | None = None
+    cardmarket: list[MarketCompListing] = Field(default_factory=list)
+    cardmarket_stats: MarketCompStats = Field(default_factory=MarketCompStats)
+    cardmarket_error: str | None = None
+    population: CardPopulationStats | None = None
+    population_error: str | None = None
 
 
 class CardPriceSourcesResponse(BaseModel):

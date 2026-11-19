@@ -6,11 +6,13 @@ from fastapi import APIRouter, HTTPException, Query, status
 
 from api.catalog_service import history_stats, load_board, load_card_history, row_to_card
 from api.explain_service import build_card_explain
+from api.market_comps_service import build_market_comps
 from api.price_sources_service import build_card_price_sources
 from api.schemas import (
     CardDetailResponse,
     CardExplain,
     CardHistoryResponse,
+    CardMarketCompsResponse,
     CardPriceSourcesResponse,
     CatalogCard,
     EbayCompsResponse,
@@ -20,6 +22,8 @@ from api.schemas import (
     HistoryPoint,
     HistoryStats,
     CardPopulationStats,
+    MarketCompListing,
+    MarketCompStats,
     PsaGradeStats,
 )
 from services.ebay_listings import build_ebay_detail_payload
@@ -171,6 +175,43 @@ def card_price_sources(
         population_error=payload.get("population_error"),
         grades=grades_mode if grades_mode in ("none", "psa10", "all") else "none",
         cache=cache_flag if cache_flag in ("hit", "miss") else None,
+    )
+
+
+@router.get("/{card_id}/market-comps", response_model=CardMarketCompsResponse)
+def card_market_comps(
+    card_id: str,
+    limit: int = Query(default=10, ge=1, le=20),
+) -> CardMarketCompsResponse:
+    """eBay sold + Cardmarket offers + graded population (PkmnPrices)."""
+    payload = build_market_comps(str(card_id), limit=limit)
+    pop_raw = payload.get("population")
+    return CardMarketCompsResponse(
+        card_id=str(payload["card_id"]),
+        name=str(payload.get("name") or card_id),
+        set_name=payload.get("set_name"),
+        tcgplayer_id=payload.get("tcgplayer_id"),
+        pkmnprices_configured=bool(payload.get("pkmnprices_configured")),
+        ebay_sold=[
+            MarketCompListing(**r)
+            for r in (payload.get("ebay_sold") or [])
+            if isinstance(r, dict)
+        ],
+        ebay_sold_stats=MarketCompStats(**(payload.get("ebay_sold_stats") or {})),
+        ebay_error=payload.get("ebay_error"),
+        cardmarket=[
+            MarketCompListing(**r)
+            for r in (payload.get("cardmarket") or [])
+            if isinstance(r, dict)
+        ],
+        cardmarket_stats=MarketCompStats(
+            **(payload.get("cardmarket_stats") or {})
+        ),
+        cardmarket_error=payload.get("cardmarket_error"),
+        population=(
+            CardPopulationStats(**pop_raw) if isinstance(pop_raw, dict) else None
+        ),
+        population_error=payload.get("population_error"),
     )
 
 
