@@ -95,6 +95,7 @@ export type CardPriceSourcesResponse = {
   justtcg_configured: boolean;
   pkmnprices_configured?: boolean;
   pkmnprices_used?: boolean;
+  pkmnprices_grades_used?: boolean;
   pkmnprices_error?: string | null;
   tcgplayer: HistoryPoint[];
   justtcg: HistoryPoint[];

@@ -149,6 +149,7 @@ def card_price_sources(
         justtcg_configured=bool(payload.get("justtcg_configured")),
         pkmnprices_configured=bool(payload.get("pkmnprices_configured")),
         pkmnprices_used=bool(payload.get("pkmnprices_used")),
+        pkmnprices_grades_used=bool(payload.get("pkmnprices_grades_used")),
         pkmnprices_error=payload.get("pkmnprices_error"),
         tcgplayer=[HistoryPoint(**p) for p in payload.get("tcgplayer") or []],
         justtcg=[HistoryPoint(**p) for p in payload.get("justtcg") or []],

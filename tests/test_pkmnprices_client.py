@@ -96,3 +96,65 @@ def test_nm_spot_prefers_holofoil(monkeypatch) -> None:
         },
     )
     assert client.nm_spot_for_tcgplayer_id(3) == 8.0
+
+
+def test_psa_series_from_comps_median() -> None:
+    points = client.psa_series_from_comps(
+        [
+            {"date": "2024-05-01", "price": 100.0},
+            {"date": "2024-05-01", "price": 120.0},
+            {"date": "2024-05-01", "price": 140.0},
+            {"date": "2024-05-02", "price": 130.0},
+        ]
+    )
+    assert points == [
+        {"date": "2024-05-01", "price": 120.0},
+        {"date": "2024-05-02", "price": 130.0},
+    ]
+
+
+def test_psa_history_for_tcgplayer_id(monkeypatch) -> None:
+    monkeypatch.setattr(client, "find_card_id_by_tcgplayer_id", lambda _tcp: 42)
+
+    def _fake_get(path, params=None):
+        assert path == "/v1/cards/42/listings/ebay"
+        assert params["grader"] == "PSA"
+        assert params["grade"] == "10"
+        return {
+            "data": [
+                {
+                    "grader": "PSA",
+                    "grade": "10",
+                    "currency": "USD",
+                    "price": 50.0,
+                    "sold_at": "2024-06-01",
+                    "title": "PSA 10 Foo",
+                },
+                {
+                    "grader": "PSA",
+                    "grade": "10",
+                    "currency": "USD",
+                    "price": 55.0,
+                    "sold_at": "2024-06-02T12:00:00Z",
+                    "title": "PSA 10 Foo",
+                },
+                {
+                    "grader": "CGC",
+                    "grade": "10",
+                    "currency": "USD",
+                    "price": 99.0,
+                    "sold_at": "2024-06-03",
+                },
+            ]
+        }
+
+    monkeypatch.setattr(client, "_get", _fake_get)
+    points, stats = client.psa_history_for_tcgplayer_id("777", grade=10)
+    assert points == [
+        {"date": "2024-06-01", "price": 50.0},
+        {"date": "2024-06-02", "price": 55.0},
+    ]
+    assert stats["sales_count"] == 2
+    assert stats["price"] == 55.0
+    assert stats["canonical"] == "PSA 10"
+    assert stats["price_status"] == "ebay_comps"
