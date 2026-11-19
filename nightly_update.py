@@ -215,7 +215,8 @@ def refresh_price_history() -> dict[str, int]:
         filled = generate_price_history(replace=False)
         LOG.info(
             "JustTCG: updated=%s skipped=%s saved=%s total_history=%s "
-            "synthetic_new=%s unmatched_sets=%s requests=%s",
+            "synthetic_new=%s unmatched_sets=%s requests=%s "
+            "pkmn_updated=%s pkmn_attempted=%s",
             stats["updated"],
             stats["skipped"],
             stats["saved"],
@@ -223,6 +224,8 @@ def refresh_price_history() -> dict[str, int]:
             filled,
             stats.get("unmatched_sets_count", 0),
             stats.get("justtcg_requests", justtcg_request_count()),
+            stats.get("pkmn_updated", 0),
+            stats.get("pkmn_attempted", 0),
         )
         try:
             from services.spot_qa import build_and_save_snapshot

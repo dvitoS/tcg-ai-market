@@ -2,14 +2,18 @@
 
 Paid Soft Ink tier: 100 cards/req, 50/min, 1000/day, 10k/month.
 Prefer tcgplayer_id batch POSTs (≈1 req / 100 cards) over set pagination.
+
+PkmnPrices (``PKMN_API_KEY``) fills cards JustTCG leaves empty — capped by
+``PKMN_NIGHTLY_MAX_CARDS``. JustTCG stays primary until cutover checklist green.
 """
 
 from __future__ import annotations
 
+import os
 import sys
 from collections import Counter, defaultdict
 
-from config import JUSTTCG_BATCH_SIZE, catalog_sets
+from config import JUSTTCG_BATCH_SIZE, PKMN_NIGHTLY_MAX_CARDS, catalog_sets
 from database import (
     distinct_history_card_ids,
     init_db,
@@ -34,6 +38,16 @@ from justtcg_client import (
     variant_price_usd,
 )
 from services.spot_sanity import is_absurd_spot_jump
+
+
+def pkmn_nightly_card_budget() -> int:
+    """Max cards that may hit PkmnPrices history this nightly (0 = off)."""
+    raw = (os.environ.get("PKMN_NIGHTLY_MAX_CARDS") or "").strip().lower()
+    if raw in {"0", "off", "none"}:
+        return 0
+    if raw.isdigit():
+        return max(0, min(int(raw), 5000))
+    return max(0, int(PKMN_NIGHTLY_MAX_CARDS))
 
 
 def _known_unmatched_set_codes() -> set[str]:
@@ -170,6 +184,107 @@ def _ingest_card_row(
     return "ok", written
 
 
+def _ingest_pkmn_fallback(
+    card,
+    *,
+    have_history: set[str],
+    matched_ids: set[str],
+    forbid_spot_keys: set[float] | None = None,
+) -> tuple[str, int]:
+    """Write NM history from PkmnPrices. Raises PkmnPricesRateLimitError."""
+    if card.id in matched_ids:
+        return "skip_dup", 0
+    tcp = str(getattr(card, "tcgplayer_id", None) or "").strip()
+    if not tcp:
+        return "skip_empty", 0
+
+    from pkmnprices_client import (
+        nm_history_for_tcgplayer_id,
+        pkmnprices_configured,
+    )
+
+    if not pkmnprices_configured():
+        return "skip_no_key", 0
+
+    points = nm_history_for_tcgplayer_id(tcp, period="90d", limit=120)
+    if not points:
+        return "skip_empty", 0
+
+    tip = None
+    try:
+        tip = float(points[-1]["price"])
+    except (TypeError, ValueError, KeyError, IndexError):
+        tip = None
+    price = tip
+    prior = getattr(card, "market_price", None)
+
+    if forbid_spot_keys:
+        banned = {round(float(k), 2) for k in forbid_spot_keys}
+        for candidate in (price, tip):
+            if candidate is None:
+                continue
+            try:
+                if round(float(candidate), 2) in banned:
+                    return "skip_poison", 0
+            except (TypeError, ValueError):
+                pass
+    if is_absurd_spot_jump(price, prior) or is_absurd_spot_jump(tip, prior):
+        return "skip_absurd", 0
+
+    min_points = 7
+    already = str(card.id) in have_history
+    if len(points) < min_points and already:
+        if price is not None:
+            update_card_market_price(card.id, price, tcgplayer_id=tcp)
+        return "skip_weak", 0
+
+    written = replace_card_history(card.id, points)
+    have_history.add(str(card.id))
+    if price is not None:
+        update_card_market_price(card.id, price, tcgplayer_id=tcp)
+    matched_ids.add(card.id)
+    return "ok", written
+
+
+def _try_pkmn_fallback(
+    card,
+    *,
+    have_history: set[str],
+    matched_ids: set[str],
+    pkmn_budget: int,
+    pkmn_used: list[int],
+    forbid_spot_keys: set[float] | None = None,
+) -> tuple[str, int]:
+    """Budget-gated PkmnPrices fallback. Returns (status, written)."""
+    if pkmn_budget <= 0 or pkmn_used[0] >= pkmn_budget:
+        return "skip_budget", 0
+    if card.id in matched_ids:
+        return "skip_dup", 0
+    from pkmnprices_client import PkmnPricesRateLimitError, pkmnprices_configured
+
+    if not pkmnprices_configured():
+        return "skip_no_key", 0
+    pkmn_used[0] += 1
+    try:
+        return _ingest_pkmn_fallback(
+            card,
+            have_history=have_history,
+            matched_ids=matched_ids,
+            forbid_spot_keys=forbid_spot_keys,
+        )
+    except PkmnPricesRateLimitError:
+        print(
+            f"PkmnPrices rate/credit stop after {pkmn_used[0]} cards.",
+            file=sys.stderr,
+        )
+        # Exhaust budget so later cards skip without more HTTP.
+        pkmn_used[0] = pkmn_budget
+        return "skip_rate", 0
+    except Exception as exc:
+        print(f"  PkmnPrices {getattr(card, 'id', '?')}: {exc}", file=sys.stderr)
+        return "skip_empty", 0
+
+
 def sync_justtcg_for_card_ids(
     card_ids: list[str],
     *,
@@ -203,6 +318,9 @@ def sync_justtcg_for_card_ids(
         if str(getattr(c, "tcgplayer_id", None) or "").strip()
     }
     updated = skipped = saved = skip_poison = skip_absurd = 0
+    pkmn_updated = pkmn_saved = 0
+    pkmn_budget = pkmn_nightly_card_budget()
+    pkmn_used = [0]
     matched_ids: set[str] = set()
     have_history = distinct_history_card_ids()
     tcp_ids = list(tcp_to_card.keys())
@@ -215,11 +333,13 @@ def sync_justtcg_for_card_ids(
         except Exception as exc:
             print(f"  heal batch offset={i} greška: {exc}", file=sys.stderr)
             continue
+        seen_tcp: set[str] = set()
         for row in rows:
             tid = card_tcgplayer_id(row) or ""
             card = tcp_to_card.get(tid)
             if card is None:
                 continue
+            seen_tcp.add(tid)
             status, written = _ingest_card_row(
                 card,
                 row,
@@ -230,14 +350,59 @@ def sync_justtcg_for_card_ids(
             if status == "ok":
                 updated += 1
                 saved += written
+            elif status == "skip_empty":
+                p_status, p_written = _try_pkmn_fallback(
+                    card,
+                    have_history=have_history,
+                    matched_ids=matched_ids,
+                    pkmn_budget=pkmn_budget,
+                    pkmn_used=pkmn_used,
+                    forbid_spot_keys=forbid_spot_keys,
+                )
+                if p_status == "ok":
+                    updated += 1
+                    pkmn_updated += 1
+                    saved += p_written
+                    pkmn_saved += p_written
+                else:
+                    skipped += 1
+                    if p_status == "skip_poison":
+                        skip_poison += 1
+                    elif p_status == "skip_absurd":
+                        skip_absurd += 1
             elif status == "skip_poison":
                 skip_poison += 1
                 skipped += 1
             elif status == "skip_absurd":
                 skip_absurd += 1
                 skipped += 1
-            elif status in {"skip_weak", "skip_empty"}:
+            elif status == "skip_weak":
                 skipped += 1
+        for tid in chunk:
+            if tid in seen_tcp:
+                continue
+            card = tcp_to_card.get(tid)
+            if card is None or card.id in matched_ids:
+                continue
+            p_status, p_written = _try_pkmn_fallback(
+                card,
+                have_history=have_history,
+                matched_ids=matched_ids,
+                pkmn_budget=pkmn_budget,
+                pkmn_used=pkmn_used,
+                forbid_spot_keys=forbid_spot_keys,
+            )
+            if p_status == "ok":
+                updated += 1
+                pkmn_updated += 1
+                saved += p_written
+                pkmn_saved += p_written
+            else:
+                skipped += 1
+                if p_status == "skip_poison":
+                    skip_poison += 1
+                elif p_status == "skip_absurd":
+                    skip_absurd += 1
     return {
         "updated": updated,
         "skipped": skipped,
@@ -247,6 +412,9 @@ def sync_justtcg_for_card_ids(
         "targeted": len(wanted),
         "with_tcgplayer_id": len(tcp_ids),
         "justtcg_requests": justtcg_request_count(),
+        "pkmn_updated": pkmn_updated,
+        "pkmn_saved": pkmn_saved,
+        "pkmn_attempted": pkmn_used[0],
     }
 
 
@@ -272,6 +440,9 @@ def sync_justtcg_price_history(*, limit: int | None = None) -> dict[str, int]:
 
     updated = skipped = saved = 0
     batch_updated = 0
+    pkmn_updated = pkmn_saved = 0
+    pkmn_budget = pkmn_nightly_card_budget()
+    pkmn_used = [0]
     set_cache: dict[str, str] = {}
     matched_ids: set[str] = set()
     unmatched_sets: list[dict[str, str]] = []
@@ -290,6 +461,9 @@ def sync_justtcg_price_history(*, limit: int | None = None) -> dict[str, int]:
             "unmatched_sets_count": len(unmatched_sets),
             "justtcg_requests": justtcg_request_count(),
             "batch_updated": batch_updated,
+            "pkmn_updated": pkmn_updated,
+            "pkmn_saved": pkmn_saved,
+            "pkmn_attempted": pkmn_used[0],
         }
 
     # --- Path A: tcgplayer_id batches (≈1 req / 100 cards) ---
@@ -307,7 +481,8 @@ def sync_justtcg_price_history(*, limit: int | None = None) -> dict[str, int]:
     tcp_ids = list(tcp_to_card.keys())
     print(
         f"JustTCG batch sync: {len(tcp_ids)} cards with tcgplayer_id "
-        f"(of {len(targets)} prioritized, batch={JUSTTCG_BATCH_SIZE})"
+        f"(of {len(targets)} prioritized, batch={JUSTTCG_BATCH_SIZE}); "
+        f"PkmnPrices fallback budget={pkmn_budget}"
     )
     for i in range(0, len(tcp_ids), JUSTTCG_BATCH_SIZE):
         if limit is not None and updated >= limit:
@@ -326,11 +501,13 @@ def sync_justtcg_price_history(*, limit: int | None = None) -> dict[str, int]:
             print(f"  batch offset={i} greška: {exc}", file=sys.stderr)
             continue
 
+        seen_tcp: set[str] = set()
         for row in rows:
             tid = card_tcgplayer_id(row) or ""
             card = tcp_to_card.get(tid)
             if card is None:
                 continue
+            seen_tcp.add(tid)
             status, written = _ingest_card_row(
                 card,
                 row,
@@ -342,21 +519,63 @@ def sync_justtcg_price_history(*, limit: int | None = None) -> dict[str, int]:
                 batch_updated += 1
                 saved += written
                 print(f"  OK {card.id} · batch · {written} history pts")
-            elif status in {"skip_weak", "skip_empty", "skip_absurd"}:
+            elif status == "skip_empty":
+                p_status, p_written = _try_pkmn_fallback(
+                    card,
+                    have_history=have_history,
+                    matched_ids=matched_ids,
+                    pkmn_budget=pkmn_budget,
+                    pkmn_used=pkmn_used,
+                )
+                if p_status == "ok":
+                    updated += 1
+                    pkmn_updated += 1
+                    saved += p_written
+                    pkmn_saved += p_written
+                    print(f"  OK {card.id} · pkmn · {p_written} history pts")
+                else:
+                    skipped += 1
+            elif status in {"skip_weak", "skip_absurd"}:
                 skipped += 1
             if limit is not None and updated >= limit:
                 payload = _stats_payload()
                 print(
                     f"JustTCG limit hit via batch: updated={updated} "
-                    f"requests={payload['justtcg_requests']}"
+                    f"requests={payload['justtcg_requests']} "
+                    f"pkmn={payload['pkmn_updated']}"
                 )
                 return payload
+
+        for tid in chunk:
+            if limit is not None and updated >= limit:
+                break
+            if tid in seen_tcp:
+                continue
+            card = tcp_to_card.get(tid)
+            if card is None or card.id in matched_ids:
+                continue
+            p_status, p_written = _try_pkmn_fallback(
+                card,
+                have_history=have_history,
+                matched_ids=matched_ids,
+                pkmn_budget=pkmn_budget,
+                pkmn_used=pkmn_used,
+            )
+            if p_status == "ok":
+                updated += 1
+                pkmn_updated += 1
+                saved += p_written
+                pkmn_saved += p_written
+                print(f"  OK {card.id} · pkmn-miss · {p_written} history pts")
+            else:
+                skipped += 1
 
     if limit is not None and updated >= limit:
         payload = _stats_payload()
         print(
             f"JustTCG gotovo (batch only): updated={updated} "
-            f"requests={payload['justtcg_requests']}"
+            f"requests={payload['justtcg_requests']} "
+            f"pkmn={payload['pkmn_updated']}"
         )
         return payload
 
@@ -490,7 +709,8 @@ def sync_justtcg_price_history(*, limit: int | None = None) -> dict[str, int]:
     print(
         f"JustTCG gotovo: updated={updated} batch={batch_updated} skipped={skipped} "
         f"saved_rows={saved} total_history={payload['total_history']} "
-        f"requests={payload['justtcg_requests']}"
+        f"requests={payload['justtcg_requests']} "
+        f"pkmn_updated={payload['pkmn_updated']} pkmn_attempted={payload['pkmn_attempted']}"
     )
     return payload
 

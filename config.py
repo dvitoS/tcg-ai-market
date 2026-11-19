@@ -254,6 +254,9 @@ PKMN_API_KEY = _secret("PKMN_API_KEY")
 PKMN_API_BASE_URL = "https://api.pkmnprices.com"
 # Soft pace — Scale = 75k credits/day; history costs 1 credit/row.
 PKMN_REQUEST_DELAY_SECONDS = 0.05
+# Nightly: max cards that may call PkmnPrices history (1 credit/row ≈ 90/card).
+# Override with PKMN_NIGHTLY_MAX_CARDS (0 = off).
+PKMN_NIGHTLY_MAX_CARDS = 150
 
 # Soft Ink "All" + nightly replace_card_history use this window.
 # 90d keeps charts useful without the free-tier payload of 180d/1y.
