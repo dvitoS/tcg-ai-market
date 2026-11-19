@@ -425,6 +425,34 @@ def soft_ink_finish_to_pkmn_variant(finish: str | None) -> str | None:
     return text
 
 
+def soft_ink_condition_to_pkmn(
+    condition: str | None,
+    *,
+    currency: str = "usd",
+) -> str:
+    """Map Soft Ink NM/LP/… → PkmnPrices exact ``condition`` for USD or EUR."""
+    from services.lot_price_adjust import normalize_condition
+
+    code = normalize_condition(condition or "NM")
+    cur = str(currency or "usd").strip().lower()
+    if cur == "eur":
+        # Cardmarket labels differ from TCGplayer.
+        return {
+            "NM": "Near Mint",
+            "LP": "Light Played",
+            "MP": "Good",
+            "HP": "Played",
+            "DMG": "Poor",
+        }.get(code, "Near Mint")
+    return {
+        "NM": "Near Mint",
+        "LP": "Lightly Played",
+        "MP": "Moderately Played",
+        "HP": "Heavily Played",
+        "DMG": "Damaged",
+    }.get(code, "Near Mint")
+
+
 def _history_variant_rank(variant: str) -> int:
     """Lower is better when collapsing same-day multi-finish rows (Soft Ink NM)."""
     v = str(variant or "").strip().lower()
@@ -446,10 +474,12 @@ def nm_history_for_tcgplayer_id(
     limit: int = 120,
     currency: str = "usd",
     variant: str | None = None,
+    condition: str | None = None,
 ) -> list[dict[str, Any]]:
-    """Daily Near Mint closes → Soft Ink ``[{date, price}, ...]``.
+    """Daily condition closes → Soft Ink ``[{date, price}, ...]``.
 
     ``currency=usd`` → TCGplayer (USD). ``currency=eur`` → Cardmarket (EUR).
+    ``condition`` Soft Ink code (NM/LP/…) or Pkmn label; default Near Mint.
     ``variant`` (optional) → exact PkmnPrices printing filter (e.g. Holofoil).
     When omitted, same-day rows collapse preferring Holofoil over Normal.
     Credits: 1 per history row returned — keep ``limit`` modest.
@@ -463,12 +493,13 @@ def nm_history_for_tcgplayer_id(
         cur = "usd"
     source_want = "cardmarket" if cur == "eur" else "tcgplayer"
     want_variant = soft_ink_finish_to_pkmn_variant(variant)
+    want_condition = soft_ink_condition_to_pkmn(condition, currency=cur)
 
     per_page = max(1, min(365, int(limit)))
     params: dict[str, Any] = {
         "currency": cur,
         "period": period,
-        "condition": "Near Mint",
+        "condition": want_condition,
         "limit": per_page,
         "page": 1,
     }
@@ -488,7 +519,8 @@ def nm_history_for_tcgplayer_id(
             continue
         if cur == "usd" and row_cur and row_cur not in {"USD", ""}:
             continue
-        if str(row.get("condition") or "") not in {"Near Mint", ""}:
+        row_cond = str(row.get("condition") or "").strip()
+        if row_cond and row_cond != want_condition:
             continue
         row_variant = str(row.get("variant") or "").strip()
         if want_variant and row_variant and row_variant != want_variant:

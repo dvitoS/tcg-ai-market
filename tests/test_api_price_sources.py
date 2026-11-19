@@ -171,7 +171,15 @@ def test_card_price_sources_cardmarket_opt_in(monkeypatch) -> None:
     )
     monkeypatch.setattr("pkmnprices_client.pkmnprices_configured", lambda: True)
 
-    def _nm(_tcp, *, period="90d", limit=120, currency="usd", variant=None):
+    def _nm(
+        _tcp,
+        *,
+        period="90d",
+        limit=120,
+        currency="usd",
+        variant=None,
+        condition=None,
+    ):
         if currency == "eur":
             return [
                 {"date": "2024-06-01", "price": 2.4},
@@ -207,6 +215,45 @@ def test_card_price_sources_cardmarket_opt_in(monkeypatch) -> None:
     assert on["justtcg"][1]["price"] == 3.2
 
 
+def test_card_price_sources_condition_lp(monkeypatch) -> None:
+    """Non-NM condition forces PkmnPrices and must not reuse NM DB series."""
+    monkeypatch.setattr("api.price_sources_service.justtcg_api_key", lambda: "")
+    monkeypatch.setattr(
+        "api.price_sources_service._market_history_is_fresh",
+        lambda _m: True,
+    )
+    monkeypatch.setattr(
+        "api.price_sources_service._resolve_tcp_from_board",
+        lambda _cid: ("Pikachu", "Base", "4242"),
+    )
+    monkeypatch.setattr(
+        "api.price_sources_service.load_card_history",
+        lambda *_a, **_k: [{"date": "2024-06-01", "price": 9.0}],
+    )
+    monkeypatch.setattr("pkmnprices_client.pkmnprices_configured", lambda: True)
+
+    def _nm(_tcp, *, period="90d", limit=120, currency="usd", variant=None, condition=None):
+        assert condition == "LP"
+        return [{"date": "2024-06-01", "price": 6.5}]
+
+    monkeypatch.setattr("pkmnprices_client.nm_history_for_tcgplayer_id", _nm)
+
+    from api.price_sources_service import (
+        build_card_price_sources,
+        clear_price_sources_cache,
+        reset_live_pkmn_nm_budget_for_tests,
+    )
+
+    clear_price_sources_cache()
+    reset_live_pkmn_nm_budget_for_tests()
+    body = build_card_price_sources(
+        "sv3-1", limit=60, grades="none", condition="LP"
+    )
+    assert body["condition"] == "LP"
+    assert body["justtcg"][0]["price"] == 6.5
+    assert body["pkmnprices_used"] is True
+
+
 def test_card_price_sources_cardmarket_reuses_usd_cache(monkeypatch) -> None:
     """Opening the CM tab must not re-fetch USD NM when cm=0 is warm."""
     monkeypatch.setattr("api.price_sources_service.justtcg_api_key", lambda: "")
@@ -226,7 +273,15 @@ def test_card_price_sources_cardmarket_reuses_usd_cache(monkeypatch) -> None:
 
     calls: list[str] = []
 
-    def _nm(_tcp, *, period="90d", limit=120, currency="usd", variant=None):
+    def _nm(
+        _tcp,
+        *,
+        period="90d",
+        limit=120,
+        currency="usd",
+        variant=None,
+        condition=None,
+    ):
         calls.append(currency)
         if currency == "eur":
             return [{"date": "2024-06-01", "price": 2.4}]

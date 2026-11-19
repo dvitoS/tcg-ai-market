@@ -148,7 +148,11 @@ def card_price_sources(
     ),
     printing: str | None = Query(
         default=None,
-        description="Soft Ink finish label (Holofoil, Normal, Reverse Holofoil, …) for NM history.",
+        description="Soft Ink finish label (Holofoil, Normal, Reverse Holofoil, …) for history.",
+    ),
+    condition: str | None = Query(
+        default=None,
+        description="Soft Ink condition code (NM, LP, MP, HP, DMG). Default NM.",
     ),
 ) -> CardPriceSourcesResponse:
     payload = build_card_price_sources(
@@ -157,6 +161,7 @@ def card_price_sources(
         grades=grades,
         cardmarket=bool(cardmarket),
         printing=printing,
+        condition=condition,
     )
     cache_flag = payload.get("cache")
     grades_mode = payload.get("grades")
@@ -178,6 +183,7 @@ def card_price_sources(
         cardmarket=[HistoryPoint(**p) for p in payload.get("cardmarket") or []],
         cardmarket_error=payload.get("cardmarket_error"),
         printing=payload.get("printing"),
+        condition=payload.get("condition"),
         psa10=[HistoryPoint(**p) for p in payload.get("psa10") or []],
         psa10_error=payload.get("psa10_error"),
         psa10_stats=PsaGradeStats(**(payload.get("psa10_stats") or {})),

@@ -105,6 +105,7 @@ export type CardPriceSourcesResponse = {
   cardmarket?: HistoryPoint[];
   cardmarket_error?: string | null;
   printing?: string | null;
+  condition?: string | null;
   psa10: HistoryPoint[];
   psa10_error?: string | null;
   psa10_stats: {
