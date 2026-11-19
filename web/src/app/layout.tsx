@@ -22,6 +22,8 @@ const fraunces = Fraunces({
   subsets: ["latin"],
   variable: "--font-fraunces",
   display: "swap",
+  preload: true,
+  adjustFontFallback: true,
 });
 
 const googleVerification = (

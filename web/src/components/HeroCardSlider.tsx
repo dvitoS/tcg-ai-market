@@ -7,7 +7,7 @@ import { HoloCardArt } from "@/components/HoloCardArt";
 import { useCurrency } from "@/components/CurrencyProvider";
 import { useLocale } from "@/components/LocaleProvider";
 import { formatChange } from "@/lib/api";
-import { resolveCardImageUrl } from "@/lib/cardImage";
+import { resolveCardImageUrl, tcgdexImageUrlLow } from "@/lib/cardImage";
 import { resolveFoilMode } from "@/lib/foilMode";
 import type { RadarCard } from "@/lib/types";
 
@@ -74,7 +74,10 @@ export function HeroCardSlider({ cards }: { cards: RadarCard[] }) {
                 key={`${active.id}-${foil || "none"}`}
                 cardId={active.id}
                 name={active.name}
-                image={resolveCardImageUrl(active.id, active.image_url)}
+                image={
+                  tcgdexImageUrlLow(active.id) ||
+                  resolveCardImageUrl(active.id, active.image_url)
+                }
                 foil={foil}
                 priority
                 width={280}
