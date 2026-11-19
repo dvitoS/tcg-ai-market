@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   CartesianGrid,
+  Legend,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -16,6 +17,10 @@ import { fetchCardPriceSources, formatMoney } from "@/lib/api";
 import type { HistoryPoint } from "@/lib/types";
 
 type RangeKey = "1m" | "3m" | "all";
+type GradeKey = "psa10" | "psa9";
+
+/** Soft Ink board is USD — auto-load graded when NM spot ≥ this. */
+export const GRADED_AUTO_MIN_USD = 50;
 
 const RANGES: { key: RangeKey; label: string; days: number | null }[] = [
   { key: "1m", label: "1M", days: 30 },
@@ -23,7 +28,10 @@ const RANGES: { key: RangeKey; label: string; days: number | null }[] = [
   { key: "all", label: "All", days: null },
 ];
 
-const PSA_COLOR = "#c9a227";
+const GRADE_META: Record<GradeKey, { color: string; dash?: string }> = {
+  psa10: { color: "#c9a227" },
+  psa9: { color: "#8b9dc3", dash: "5 4" },
+};
 
 function clipPoints(points: HistoryPoint[], range: RangeKey): HistoryPoint[] {
   const cfg = RANGES.find((r) => r.key === range);
@@ -46,49 +54,111 @@ function shortDate(value: string, locale: string): string {
   });
 }
 
-export function GradedPriceChart({ cardId }: { cardId: string }) {
+function mergeGradeSeries(
+  psa10: HistoryPoint[],
+  psa9: HistoryPoint[],
+  locale: string,
+): Array<Record<string, string | number | null>> {
+  const byDate = new Map<string, Record<string, string | number | null>>();
+  for (const p of psa10) {
+    byDate.set(p.date, {
+      date: p.date,
+      label: shortDate(p.date, locale),
+      psa10: Number(p.price),
+      psa9: null,
+    });
+  }
+  for (const p of psa9) {
+    const row = byDate.get(p.date) || {
+      date: p.date,
+      label: shortDate(p.date, locale),
+      psa10: null,
+      psa9: null,
+    };
+    row.psa9 = Number(p.price);
+    byDate.set(p.date, row);
+  }
+  return Array.from(byDate.values()).sort((a, b) =>
+    String(a.date).localeCompare(String(b.date)),
+  );
+}
+
+export function GradedPriceChart({
+  cardId,
+  nmSpotUsd,
+}: {
+  cardId: string;
+  /** Board / history NM tip (USD). ≥ $50 auto-loads PSA 9 + 10. */
+  nmSpotUsd?: number | null;
+}) {
   const { t, locale } = useLocale();
-  const [armed, setArmed] = useState(false);
+  const autoArm =
+    nmSpotUsd != null &&
+    Number.isFinite(Number(nmSpotUsd)) &&
+    Number(nmSpotUsd) >= GRADED_AUTO_MIN_USD;
+
+  const [armed, setArmed] = useState(autoArm);
   const [range, setRange] = useState<RangeKey>("3m");
-  const [points, setPoints] = useState<HistoryPoint[]>([]);
-  const [salesCount, setSalesCount] = useState<number | null>(null);
+  const [psa10, setPsa10] = useState<HistoryPoint[]>([]);
+  const [psa9, setPsa9] = useState<HistoryPoint[]>([]);
+  const [sales10, setSales10] = useState<number | null>(null);
+  const [sales9, setSales9] = useState<number | null>(null);
   const [periodKey, setPeriodKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [visible, setVisible] = useState<Record<GradeKey, boolean>>({
+    psa10: true,
+    psa9: true,
+  });
 
   useEffect(() => {
-    setArmed(false);
-    setPoints([]);
-    setSalesCount(null);
+    setArmed(autoArm);
+    setPsa10([]);
+    setPsa9([]);
+    setSales10(null);
+    setSales9(null);
     setPeriodKey(null);
     setError(null);
     setLoading(false);
-  }, [cardId]);
+    setVisible({ psa10: true, psa9: true });
+  }, [cardId, autoArm]);
 
   useEffect(() => {
     if (!armed) return;
     let alive = true;
     setLoading(true);
     setError(null);
-    void fetchCardPriceSources(cardId, { grades: "psa10" })
+    // PSA 9 + 10 — "all graded" comps for Soft Ink detail.
+    void fetchCardPriceSources(cardId, { grades: "all" })
       .then((payload) => {
         if (!alive) return;
-        if (payload.psa10_error) {
+        const err = payload.psa10_error || payload.psa9_error;
+        if (err && !(payload.psa10?.length || payload.psa9?.length)) {
+          setError(err);
+        } else if (payload.psa10_error && !payload.psa10?.length) {
           setError(payload.psa10_error);
         }
-        setPoints(payload.psa10 || []);
-        const sales = payload.psa10_stats?.sales_count;
-        setSalesCount(
-          sales != null && Number.isFinite(Number(sales))
-            ? Number(sales)
-            : null,
+        setPsa10(payload.psa10 || []);
+        setPsa9(payload.psa9 || []);
+        const s10 = payload.psa10_stats?.sales_count;
+        const s9 = payload.psa9_stats?.sales_count;
+        setSales10(
+          s10 != null && Number.isFinite(Number(s10)) ? Number(s10) : null,
         );
-        setPeriodKey(payload.psa10_stats?.period_key || null);
+        setSales9(
+          s9 != null && Number.isFinite(Number(s9)) ? Number(s9) : null,
+        );
+        setPeriodKey(
+          payload.psa10_stats?.period_key ||
+            payload.psa9_stats?.period_key ||
+            null,
+        );
       })
       .catch((err) => {
         if (!alive) return;
         setError(err instanceof Error ? err.message : t("chart_graded_error"));
-        setPoints([]);
+        setPsa10([]);
+        setPsa9([]);
       })
       .finally(() => {
         if (alive) setLoading(false);
@@ -98,26 +168,41 @@ export function GradedPriceChart({ cardId }: { cardId: string }) {
     };
   }, [armed, cardId, t]);
 
-  const clipped = useMemo(() => clipPoints(points, range), [points, range]);
+  const psa10Clip = useMemo(() => clipPoints(psa10, range), [psa10, range]);
+  const psa9Clip = useMemo(() => clipPoints(psa9, range), [psa9, range]);
   const chartData = useMemo(
-    () =>
-      clipped.map((p) => ({
-        date: p.date,
-        label: shortDate(p.date, locale),
-        psa10: Number(p.price),
-      })),
-    [clipped, locale],
+    () => mergeGradeSeries(psa10Clip, psa9Clip, locale),
+    [psa10Clip, psa9Clip, locale],
   );
+  const hasSeries = chartData.length > 0;
+
+  const gradeLabels: Record<GradeKey, string> = {
+    psa10: t("chart_series_psa"),
+    psa9: t("chart_series_psa9"),
+  };
 
   return (
-    <div className="chart-panel chart-panel-graded" aria-label={t("chart_graded_title")}>
+    <div
+      className="chart-panel chart-panel-graded"
+      aria-label={t("chart_graded_title")}
+    >
       <div className="chart-head">
         <div>
           <h2>{t("chart_graded_title")}</h2>
-          <p>{t("chart_graded_subtitle")}</p>
+          <p>
+            {autoArm
+              ? t("chart_graded_subtitle_auto", {
+                  min: String(GRADED_AUTO_MIN_USD),
+                })
+              : t("chart_graded_subtitle")}
+          </p>
         </div>
         {armed ? (
-          <div className="range-toggle" role="tablist" aria-label="Graded chart range">
+          <div
+            className="range-toggle"
+            role="tablist"
+            aria-label="Graded chart range"
+          >
             {RANGES.map((item) => (
               <button
                 key={item.key}
@@ -150,24 +235,50 @@ export function GradedPriceChart({ cardId }: { cardId: string }) {
       {armed && loading ? (
         <p className="chart-sources-status">{t("chart_graded_loading")}</p>
       ) : null}
-      {armed && error && chartData.length === 0 ? (
+      {armed && error && !hasSeries ? (
         <p className="form-error">
-          {/rate.?limit/i.test(error)
-            ? t("chart_psa_rate_limited")
-            : error}
+          {/rate.?limit/i.test(error) ? t("chart_psa_rate_limited") : error}
         </p>
       ) : null}
-      {armed && !loading && !error && chartData.length === 0 ? (
+      {armed && !loading && !error && !hasSeries ? (
         <p className="chart-sources-status">{t("chart_psa_empty")}</p>
       ) : null}
 
-      {armed && chartData.length > 0 ? (
+      {armed && hasSeries ? (
         <>
+          <div
+            className="chart-series-toggles"
+            role="group"
+            aria-label="Graded series"
+          >
+            {(Object.keys(GRADE_META) as GradeKey[]).map((key) => {
+              const meta = GRADE_META[key];
+              const count = key === "psa10" ? psa10Clip.length : psa9Clip.length;
+              const disabled = count === 0;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  className={`chart-series-toggle${visible[key] ? " is-on" : ""}${disabled ? " is-disabled" : ""}`}
+                  style={{ ["--series-color" as string]: meta.color }}
+                  onClick={() =>
+                    !disabled &&
+                    setVisible((prev) => ({ ...prev, [key]: !prev[key] }))
+                  }
+                  disabled={disabled}
+                  aria-pressed={visible[key]}
+                >
+                  <span className="chart-series-swatch" aria-hidden />
+                  {gradeLabels[key]}
+                  <span className="chart-series-count">{count}</span>
+                </button>
+              );
+            })}
+          </div>
           <p className="chart-sources-status">
-            {t("chart_graded_depth", {
-              count: String(clipped.length),
-              sales:
-                salesCount != null ? String(Math.round(salesCount)) : "—",
+            {t("chart_graded_depth_both", {
+              s10: sales10 != null ? String(Math.round(sales10)) : "—",
+              s9: sales9 != null ? String(Math.round(sales9)) : "—",
               window: periodKey || "—",
             })}
           </p>
@@ -201,28 +312,43 @@ export function GradedPriceChart({ cardId }: { cardId: string }) {
                     color: "#f4f4f5",
                   }}
                   labelStyle={{ color: "#a1a1aa" }}
-                  formatter={(value) => [
+                  formatter={(value, name) => [
                     typeof value === "number"
                       ? formatMoney(value, "USD", 2)
                       : "—",
-                    t("chart_series_psa"),
+                    String(name),
                   ]}
                 />
-                <Line
-                  type="monotone"
-                  dataKey="psa10"
-                  name={t("chart_series_psa")}
-                  stroke={PSA_COLOR}
-                  strokeWidth={2.2}
-                  dot={false}
-                  connectNulls
-                  activeDot={{
-                    r: 4,
-                    fill: "#e0c56a",
-                    stroke: "#121212",
-                    strokeWidth: 2,
-                  }}
-                />
+                <Legend />
+                {visible.psa10 && psa10Clip.length > 0 ? (
+                  <Line
+                    type="monotone"
+                    dataKey="psa10"
+                    name={gradeLabels.psa10}
+                    stroke={GRADE_META.psa10.color}
+                    strokeWidth={2.2}
+                    dot={false}
+                    connectNulls
+                    activeDot={{
+                      r: 4,
+                      fill: "#e0c56a",
+                      stroke: "#121212",
+                      strokeWidth: 2,
+                    }}
+                  />
+                ) : null}
+                {visible.psa9 && psa9Clip.length > 0 ? (
+                  <Line
+                    type="monotone"
+                    dataKey="psa9"
+                    name={gradeLabels.psa9}
+                    stroke={GRADE_META.psa9.color}
+                    strokeWidth={2}
+                    strokeDasharray={GRADE_META.psa9.dash}
+                    dot={false}
+                    connectNulls
+                  />
+                ) : null}
               </LineChart>
             </ResponsiveContainer>
           </div>

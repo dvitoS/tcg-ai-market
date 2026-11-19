@@ -330,7 +330,10 @@ export function CardDetailView({
             predictedPrice={card.predicted_price}
           />
           <DeferredMount>
-            <GradedPriceChart cardId={card.id} />
+            <GradedPriceChart
+              cardId={card.id}
+              nmSpotUsd={history.last_price ?? card.price}
+            />
             <GradingEvPanel
               cardId={card.id}
               rawPrice={history.last_price ?? card.price}
