@@ -770,6 +770,35 @@ def _pkmn_sealed_quote(tcgplayer_id: str | None) -> dict[str, Any] | None:
         return None
 
 
+def _pkmn_sealed_search(q: str | None, *, limit: int = 8) -> list[dict[str, Any]]:
+    """Name search via PkmnPrices when JustTCG miss / no key."""
+    text = str(q or "").strip()
+    if len(text) < 2 or _numeric_tcp_query(text):
+        return []
+    try:
+        from pkmnprices_client import pkmnprices_configured, search_sealed_by_name
+
+        if not pkmnprices_configured():
+            return []
+        return search_sealed_by_name(text, limit=limit)
+    except Exception as exc:
+        LOG.info("PkmnPrices sealed search failed (%r): %s", text[:40], exc)
+        return []
+
+
+def _pkmn_sealed_fill_query(
+    *,
+    q: str | None,
+    tcgplayer_id: str | None,
+    limit: int,
+) -> list[dict[str, Any]]:
+    """TCP quote first, then name search — Soft Ink cutover helper."""
+    hit = _pkmn_sealed_quote(tcgplayer_id or _numeric_tcp_query(q))
+    if hit:
+        return [hit]
+    return _pkmn_sealed_search(q, limit=limit)
+
+
 def _fill_sealed_spots_from_pkmn(
     items: list[dict[str, Any]],
 ) -> tuple[list[dict[str, Any]], bool]:
@@ -828,11 +857,11 @@ def quote_sealed_products(
                 "source": "demo",
                 "justtcg_configured": has_key,
             }
-        # No curated seed — try PkmnPrices when we have a TCP id.
-        pkmn_hit = _pkmn_sealed_quote(tcgplayer_id or _numeric_tcp_query(q))
-        if pkmn_hit:
+        # No curated seed — TCP quote or name search via PkmnPrices.
+        pkmn_hits = _pkmn_sealed_fill_query(q=q, tcgplayer_id=tcgplayer_id, limit=limit)
+        if pkmn_hits:
             return {
-                "items": [pkmn_hit],
+                "items": pkmn_hits[:limit],
                 "source": "pkmnprices",
                 "justtcg_configured": has_key,
                 "pkmnprices_used": True,
@@ -861,10 +890,10 @@ def quote_sealed_products(
                 "justtcg_configured": True,
                 "pkmnprices_used": pkmn_used,
             }
-        pkmn_hit = _pkmn_sealed_quote(tcgplayer_id or _numeric_tcp_query(q))
-        if pkmn_hit:
+        pkmn_hits = _pkmn_sealed_fill_query(q=q, tcgplayer_id=tcgplayer_id, limit=limit)
+        if pkmn_hits:
             return {
-                "items": [pkmn_hit],
+                "items": pkmn_hits[:limit],
                 "source": "pkmnprices",
                 "justtcg_configured": True,
                 "pkmnprices_used": True,
@@ -876,10 +905,10 @@ def quote_sealed_products(
         }
     except Exception as exc:
         LOG.info("sealed quote failed: %s", exc)
-        pkmn_hit = _pkmn_sealed_quote(tcgplayer_id or _numeric_tcp_query(q))
-        if pkmn_hit:
+        pkmn_hits = _pkmn_sealed_fill_query(q=q, tcgplayer_id=tcgplayer_id, limit=limit)
+        if pkmn_hits:
             return {
-                "items": [pkmn_hit],
+                "items": pkmn_hits[:limit],
                 "source": "pkmnprices",
                 "justtcg_configured": True,
                 "pkmnprices_used": True,
