@@ -62,7 +62,38 @@ Never set `AUTH_DISABLED=1` in production. After a model feature change, trigger
 | `SUPABASE_KEY` | **service_role** — catalog, nightly, model/quotes write |
 | `SUPABASE_ANON_KEY` | **anon public** — login + portfolio/watchlist JWT/RLS |
 
-Optional: `JUSTTCG_API_KEY`, `PKMN_API_KEY` (PkmnPrices parallel NM fallback — same name on Render), `TCG_API_KEY` (PokéWallet), eBay Browse keys, `EPN_CAMPID` (Partner Network click-out), `SUPABASE_DB_URL` (DDL), `CATALOG_SET_IDS` (pin sets), `CATALOG_ALL_SETS=0` (curated fallback), `CATALOG_MIN_PRICE` (USD floor; default `0` = all cards), `SOFT_INK_URL` (password-reset email links).
+Optional: `JUSTTCG_API_KEY`, `PKMN_API_KEY` (PkmnPrices — Soft Ink NM/PSA/sealed/lot variants + nightly primary when JustTCG is absent; **same secret name** on Render and Actions), `TCG_API_KEY` (PokéWallet), eBay Browse keys, `EPN_CAMPID` (Partner Network click-out), `SUPABASE_DB_URL` (DDL), `CATALOG_SET_IDS` (pin sets), `CATALOG_ALL_SETS=0` (curated fallback), `CATALOG_MIN_PRICE` (USD floor; default `0` = all cards), `SOFT_INK_URL` (password-reset email links).
+
+### PkmnPrices cutover (cancel JustTCG)
+
+JustTCG stays primary while both keys exist. Soft Ink already runs on **`PKMN_API_KEY` alone** for the paths below — cancel JustTCG only after the live checklist is green.
+
+**Already on PkmnPrices (no JustTCG required):**
+
+| Surface | Behavior |
+|---------|----------|
+| Soft Ink NM detail / chart | DB-first; live fill via Pkmn when JustTCG missing/stale (`SOFT_INK_PKMN_NM_DAILY_BUDGET`, default 200) |
+| PSA 10 / Grading EV comps | eBay comps via Pkmn; population seeds gem % (Pro+; 1 credit when grades armed) |
+| Sealed search | TCP + name search (`source: pkmnprices`) |
+| Lot condition/printing spots | JustTCG first if keyed → else Pkmn `prices[]` → NM×multiplier |
+| Nightly drip | With JustTCG: Pkmn fallback. **Without** JustTCG: Pkmn-primary (`PKMN_NIGHTLY_PRIMARY_MAX_CARDS`, default 500) + Path B TCP resolve (`PKMN_NIGHTLY_TCP_RESOLVE_MAX`, default 100) |
+| G0 sniff / heal | Missing TCP → public TCGplayer search, then Pkmn spots |
+
+**Live cancel checklist (Render + one nightly):**
+
+1. Card detail NM chart paints with only `PKMN_API_KEY` (no JustTCG) — response may show `pkmnprices_used: true`.
+2. PSA chart / Grading EV “Load PSA 10 comps” works; population gem seed optional (403 on Free plan is OK).
+3. Sealed search `q=…` returns hits with `source: pkmnprices`.
+4. Nightly Actions log shows `PkmnPrices primary` or `pkmn_updated=` / `tcp_resolved=` (not an empty drip).
+5. G0 / heal does not hard-fail without JustTCG.
+
+Then remove `JUSTTCG_API_KEY` from Render + Actions (or leave blank). Keep `PKMN_API_KEY` on both. Scale plan ~75k credits/day — stay under via the knobs above.
+
+**Still intentional / degraded without JustTCG:**
+
+- Sealed **showcase** stays curated demo (no batch sniff).
+- Lot spots without `tcgplayer_id` stay on multipliers until Path B / backfill lands a TCP id.
+- Population endpoint needs Pkmn **Pro+**; Free → soft miss, EV still uses comps.
 
 ### eBay Partner Network (EPN)
 
@@ -129,16 +160,16 @@ Workflow: [`.github/workflows/nightly_update.yml`](.github/workflows/nightly_upd
 
 This is the **only** supported production runner. `nightly_update.py` refuses to start outside GitHub Actions unless you set `NIGHTLY_ALLOW_LOCAL=1` for a one-off debug. Do not install OS cron / Task Scheduler (`schedule_setup.py` is retired and exits with instructions).
 
-Actions secrets: `SUPABASE_URL`, `SUPABASE_KEY`, preferably `JUSTTCG_API_KEY`. Optional `PKMN_API_KEY` (PkmnPrices; also set on Render). Optional SMTP + `CATALOG_SET_IDS`. Optional legacy `POKEMONTCG_API_KEY` if you already have one (pokemontcg.io is **deprecated** — no new registrations; existing keys work until **2027-03-01**).
+Actions secrets: `SUPABASE_URL`, `SUPABASE_KEY`, preferably `JUSTTCG_API_KEY` **and/or** `PKMN_API_KEY` (PkmnPrices; also set on Render — required for Pkmn-primary nightly after JustTCG cancel). Optional SMTP + `CATALOG_SET_IDS`. Optional legacy `POKEMONTCG_API_KEY` if you already have one (pokemontcg.io is **deprecated** — no new registrations; existing keys work until **2027-03-01**).
 
 **Efficient all-sets strategy** (so the job finishes under the timeout):
 
 1. **Catalog gap-fill** (default) — list every pokemontcg.io set, compare to DB counts, fetch only **missing/incomplete** sets (budget `NIGHTLY_CATALOG_SET_BUDGET`, default 50/night). When the catalog is complete, catalog step is a no-op.
 2. **Unkeyed pace ~2.5s** — aligned with published ~30 req/min without a key (no new keys available). Existing keys can still set `POKEMONTCG_API_KEY` for ~1.5s pace until 2027.
-3. **JustTCG drip** — schedule `NIGHTLY_CARD_LIMIT=8000` with **`JUSTTCG_MAX_REQUESTS=250`** (~7.5k/month; Soft Ink keeps daytime headroom under the 10k tier). **Hot desk first** (Radar sure BUY/SELL + watchlist), then **non-bulk** (spot ≥ `NIGHTLY_BULK_MAX_USD`, default $2) ahead of cheap missing-history commons, then missing history / higher price. Kill-switch: `NIGHTLY_NONBULK_PRIORITY=0`. Retrain always runs. After retrain: desk sweep + auto G0 sniff/heal (`NIGHTLY_AUTO_G0=1`). Soft Ink on **2 GB Render** may live-refresh NM when DB is >3d stale (capped ~120/day) — that does **not** replace the drip (JustTCG monthly quota).
-4. Manual dispatch can still choose `catalog_mode=full` and raise `card_limit` / budget carefully (`NIGHTLY_ALLOW_UNLIMITED_JUSTTCG=1` only for explicit bootstrap).
+3. **Price drip** — with JustTCG: schedule `NIGHTLY_CARD_LIMIT=8000` with **`JUSTTCG_MAX_REQUESTS=250`** (~7.5k/month; Soft Ink keeps daytime headroom under the 10k tier); Pkmn is fallback. **Without JustTCG:** Pkmn-primary drip (`PKMN_NIGHTLY_PRIMARY_MAX_CARDS`, default 500) + missing-TCP resolve (`PKMN_NIGHTLY_TCP_RESOLVE_MAX`, default 100). **Hot desk first** (Radar sure BUY/SELL + watchlist), then **non-bulk** (spot ≥ `NIGHTLY_BULK_MAX_USD`, default $2) ahead of cheap missing-history commons, then missing history / higher price. Kill-switch: `NIGHTLY_NONBULK_PRIORITY=0`. Retrain always runs. After retrain: desk sweep + auto G0 sniff/heal (`NIGHTLY_AUTO_G0=1`). Soft Ink on **2 GB Render** may live-refresh NM when DB is >3d stale (capped ~120/day) — that does **not** replace the drip.
+4. Manual dispatch can still choose `catalog_mode=full` and raise `card_limit` / budget carefully (`NIGHTLY_ALLOW_UNLIMITED_JUSTTCG=1` only for explicit JustTCG bootstrap).
 
-Also backfills `tcgplayer_id` (default 300/night via Actions) so more cards become JustTCG-batchable without raising the JustTCG request budget, refreshes `market_quotes`, emails/Discord digests when configured, purges expired `auth_sessions`. **Fails** if `market_quotes` persist is empty.
+Also backfills `tcgplayer_id` (default 300/night via Actions; plus Path B resolve under Pkmn-primary) so more cards get history without burning JustTCG quota, refreshes `market_quotes`, emails/Discord digests when configured, purges expired `auth_sessions`. **Fails** if `market_quotes` persist is empty.
 
 **Catalog art now:** Soft Ink rewrites known-broken pokemontcg CDN sets to free [TCGdex](https://tcgdex.dev/) assets (`assets.tcgdex.net`, no API key). Sets where TCGdex has no art yet or Soft Ink ids cannot be blind-mapped (e.g. **Delta Reign / me6**, **30th Classic Collection / me55c**) fall back to the public [Scrydex](https://scrydex.com/) CDN (`images.scrydex.com`) — see `tcgdex_client.py`.
 
