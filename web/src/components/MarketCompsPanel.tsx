@@ -74,6 +74,8 @@ export function MarketCompsPanel({
 
   const ebay = data?.ebay_sold || [];
   const ebayStats = data?.ebay_sold_stats;
+  const tcp = data?.tcgplayer || [];
+  const tcpStats = data?.tcgplayer_stats;
   const cm = data?.cardmarket || [];
   const cmStats = data?.cardmarket_stats;
   const pop = data?.population;
@@ -84,6 +86,10 @@ export function MarketCompsPanel({
     tcgplayer: t("comps_sold_title_tcp"),
     cardmarket: t("comps_sold_title_cm"),
   };
+
+  function tcpTotal(row: (typeof tcp)[number]): number {
+    return Number(row.price) + Number(row.shipping_price || 0);
+  }
 
   if (focus === "population") {
     return (
@@ -287,7 +293,58 @@ export function MarketCompsPanel({
           {market === "tcgplayer" ? (
             <div className="comps-block">
               <p className="comps-lede">{t("comps_tcp_lede")}</p>
-              <p className="chart-sources-status">{t("comps_tcp_empty")}</p>
+              {data.tcgplayer_error && tcp.length === 0 ? (
+                <p className="chart-sources-status">{data.tcgplayer_error}</p>
+              ) : null}
+              {tcpStats?.lowest != null ? (
+                <div className="comps-stats">
+                  <div>
+                    <span>{t("comps_lowest")}</span>
+                    <strong>
+                      {formatMoney(tcpStats.lowest, "USD", 2)}
+                    </strong>
+                  </div>
+                  <div>
+                    <span>{t("comps_n")}</span>
+                    <strong>{tcpStats.n}</strong>
+                  </div>
+                </div>
+              ) : null}
+              {tcp.length === 0 && !data.tcgplayer_error ? (
+                <p className="chart-sources-status">{t("comps_tcp_empty")}</p>
+              ) : null}
+              <ul className="comps-list">
+                {tcp.slice(0, 8).map((row, i) => (
+                  <li key={`tcp-${i}`}>
+                    <span className="comps-list-meta">
+                      {[
+                        row.condition,
+                        row.variant,
+                        row.seller,
+                        row.shipping_price
+                          ? t("comps_tcp_ship", {
+                              ship: formatMoney(row.shipping_price, "USD", 2),
+                            })
+                          : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ") || "—"}
+                    </span>
+                    <strong>{formatMoney(tcpTotal(row), "USD", 2)}</strong>
+                    {row.url ? (
+                      <a
+                        href={row.url}
+                        target="_blank"
+                        rel="noopener noreferrer sponsored"
+                      >
+                        TCP ↗
+                      </a>
+                    ) : (
+                      <span className="ebay-link-muted">—</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
             </div>
           ) : null}
 

@@ -371,6 +371,43 @@ def test_ebay_sold_search_url_prefers_completed_search() -> None:
     assert "/itm/" not in url
 
 
+def test_tcgplayer_offers_for_tcgplayer_id(monkeypatch) -> None:
+    monkeypatch.setattr(client, "find_card_id_by_tcgplayer_id", lambda _tcp: 42)
+
+    def _fake_get(path, params=None):
+        assert path == "/v1/cards/42/listings/tcgplayer"
+        assert params["condition"] == "Near Mint"
+        assert params["sort"] == "total_asc"
+        return {
+            "data": [
+                {
+                    "printing": "Holofoil",
+                    "condition": "Near Mint",
+                    "language": "English",
+                    "price": 50.0,
+                    "shipping_price": 0.99,
+                    "seller_name": "ShopA",
+                    "quantity": 2,
+                },
+                {
+                    "printing": "Normal",
+                    "condition": "Near Mint",
+                    "price": 0,
+                    "shipping_price": 0,
+                    "seller_name": "Skip",
+                },
+            ]
+        }
+
+    monkeypatch.setattr(client, "_get", _fake_get)
+    rows = client.tcgplayer_offers_for_tcgplayer_id("888001", limit=8)
+    assert len(rows) == 1
+    assert rows[0]["price"] == 50.0
+    assert rows[0]["shipping_price"] == 0.99
+    assert rows[0]["seller"] == "ShopA"
+    assert rows[0]["url"] == "https://www.tcgplayer.com/product/888001"
+
+
 def test_ebay_sold_listings_drops_shared_and_rewrites_url(monkeypatch) -> None:
     monkeypatch.setattr(client, "find_card_id_by_tcgplayer_id", lambda _tcp: 42)
 
