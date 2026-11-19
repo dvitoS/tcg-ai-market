@@ -1681,6 +1681,19 @@ a {
   gap: 0;
 }
 
+.detail-graded-ev {
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border);
+}
+
+.comps-empty-cta {
+  display: grid;
+  gap: 0.55rem;
+  justify-items: start;
+  margin-bottom: 0.35rem;
+}
+
 .detail-section-chart .chart-panel {
   animation-delay: 0.06s;
 }
