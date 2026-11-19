@@ -93,13 +93,14 @@ def _resolve_tcp(card_id: str) -> tuple[str | None, str, str | None]:
 
 
 def build_market_comps(card_id: str, *, limit: int = 10) -> dict[str, Any]:
-    """Bundle eBay sold + Cardmarket offers + graded population for one card."""
+    """Bundle eBay sold + TCGplayer/CM live offers + graded population."""
     from pkmnprices_client import (
         PkmnPricesRateLimitError,
         cardmarket_offers_for_tcgplayer_id,
         ebay_sold_listings_for_tcgplayer_id,
         pkmnprices_configured,
         population_for_tcgplayer_id,
+        tcgplayer_offers_for_tcgplayer_id,
     )
 
     tcp, name, set_name = _resolve_tcp(str(card_id))
@@ -113,6 +114,9 @@ def build_market_comps(card_id: str, *, limit: int = 10) -> dict[str, Any]:
         "ebay_sold": [],
         "ebay_sold_stats": {},
         "ebay_error": None,
+        "tcgplayer": [],
+        "tcgplayer_stats": {},
+        "tcgplayer_error": None,
         "cardmarket": [],
         "cardmarket_stats": {},
         "cardmarket_error": None,
@@ -121,11 +125,13 @@ def build_market_comps(card_id: str, *, limit: int = 10) -> dict[str, Any]:
     }
     if not pkmnprices_configured():
         payload["ebay_error"] = "PKMN_API_KEY not configured"
+        payload["tcgplayer_error"] = "PKMN_API_KEY not configured"
         payload["cardmarket_error"] = "PKMN_API_KEY not configured"
         payload["population_error"] = "PKMN_API_KEY not configured"
         return payload
     if not tcp:
         payload["ebay_error"] = "No tcgplayer_id for this card"
+        payload["tcgplayer_error"] = "No tcgplayer_id for this card"
         payload["cardmarket_error"] = "No tcgplayer_id for this card"
         payload["population_error"] = "No tcgplayer_id for this card"
         return payload
@@ -158,6 +164,29 @@ def build_market_comps(card_id: str, *, limit: int = 10) -> dict[str, Any]:
     except Exception as exc:
         payload["ebay_error"] = str(exc)[:180]
         LOG.info("market_comps ebay failed for %s: %s", card_id, exc)
+
+    try:
+        tcp_offers = tcgplayer_offers_for_tcgplayer_id(
+            tcp, condition="Near Mint", limit=limit
+        )
+        totals = [
+            float(r["price"]) + float(r.get("shipping_price") or 0)
+            for r in tcp_offers
+        ]
+        payload["tcgplayer"] = tcp_offers
+        payload["tcgplayer_stats"] = {
+            "n": len(tcp_offers),
+            "lowest": min(totals) if totals else None,
+            "currency": "USD",
+            "condition": "Near Mint",
+        }
+    except PkmnPricesRateLimitError:
+        payload["tcgplayer_error"] = (
+            "PkmnPrices rate/credit limited — try again later."
+        )
+    except Exception as exc:
+        payload["tcgplayer_error"] = str(exc)[:180]
+        LOG.info("market_comps tcgplayer failed for %s: %s", card_id, exc)
 
     try:
         offers = cardmarket_offers_for_tcgplayer_id(

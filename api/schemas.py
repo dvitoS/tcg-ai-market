@@ -372,6 +372,7 @@ class MarketCompListing(BaseModel):
     language: str | None = None
     quantity: int | float | None = None
     attribution: str | None = None
+    shipping_price: float | None = None
 
 
 class MarketCompStats(BaseModel):
@@ -395,6 +396,9 @@ class CardMarketCompsResponse(BaseModel):
     ebay_sold: list[MarketCompListing] = Field(default_factory=list)
     ebay_sold_stats: MarketCompStats = Field(default_factory=MarketCompStats)
     ebay_error: str | None = None
+    tcgplayer: list[MarketCompListing] = Field(default_factory=list)
+    tcgplayer_stats: MarketCompStats = Field(default_factory=MarketCompStats)
+    tcgplayer_error: str | None = None
     cardmarket: list[MarketCompListing] = Field(default_factory=list)
     cardmarket_stats: MarketCompStats = Field(default_factory=MarketCompStats)
     cardmarket_error: str | None = None

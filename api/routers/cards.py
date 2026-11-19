@@ -183,7 +183,7 @@ def card_market_comps(
     card_id: str,
     limit: int = Query(default=10, ge=1, le=20),
 ) -> CardMarketCompsResponse:
-    """eBay sold + Cardmarket offers + graded population (PkmnPrices)."""
+    """eBay sold + TCGplayer/CM live offers + graded population (PkmnPrices)."""
     payload = build_market_comps(str(card_id), limit=limit)
     pop_raw = payload.get("population")
     return CardMarketCompsResponse(
@@ -199,6 +199,15 @@ def card_market_comps(
         ],
         ebay_sold_stats=MarketCompStats(**(payload.get("ebay_sold_stats") or {})),
         ebay_error=payload.get("ebay_error"),
+        tcgplayer=[
+            MarketCompListing(**r)
+            for r in (payload.get("tcgplayer") or [])
+            if isinstance(r, dict)
+        ],
+        tcgplayer_stats=MarketCompStats(
+            **(payload.get("tcgplayer_stats") or {})
+        ),
+        tcgplayer_error=payload.get("tcgplayer_error"),
         cardmarket=[
             MarketCompListing(**r)
             for r in (payload.get("cardmarket") or [])

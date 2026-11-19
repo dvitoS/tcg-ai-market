@@ -179,6 +179,7 @@ export type MarketCompListing = {
   language?: string | null;
   quantity?: number | null;
   attribution?: string | null;
+  shipping_price?: number | null;
 };
 
 export type MarketCompStats = {
@@ -202,6 +203,9 @@ export type CardMarketCompsResponse = {
   ebay_sold: MarketCompListing[];
   ebay_sold_stats: MarketCompStats;
   ebay_error?: string | null;
+  tcgplayer: MarketCompListing[];
+  tcgplayer_stats: MarketCompStats;
+  tcgplayer_error?: string | null;
   cardmarket: MarketCompListing[];
   cardmarket_stats: MarketCompStats;
   cardmarket_error?: string | null;

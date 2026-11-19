@@ -630,6 +630,72 @@ def cardmarket_offers_for_tcgplayer_id(
     return out
 
 
+def tcgplayer_offers_for_tcgplayer_id(
+    tcgplayer_id: str | int | None,
+    *,
+    condition: str = "Near Mint",
+    limit: int = 12,
+) -> list[dict[str, Any]]:
+    """Live TCGplayer marketplace offers (USD). 1 credit/row (max 20/page).
+
+    Sorted by ``total_asc`` (price + shipping) to match TCGplayer's own list.
+    These are current asks — not sold comps (eBay covers solds).
+    """
+    pid = find_card_id_by_tcgplayer_id(tcgplayer_id)
+    if pid is None:
+        return []
+    tcp_s = str(tcgplayer_id).strip()
+    params: dict[str, Any] = {
+        "sort": "total_asc",
+        "limit": max(1, min(20, int(limit))),
+        "language": "English",
+    }
+    if condition:
+        params["condition"] = condition
+    try:
+        payload = _get(f"/v1/cards/{int(pid)}/listings/tcgplayer", params)
+    except PkmnPricesError as exc:
+        res = getattr(exc, "response", None)
+        if res is not None and getattr(res, "status_code", None) == 403:
+            return []
+        raise
+    rows = payload.get("data") if isinstance(payload.get("data"), list) else []
+    out: list[dict[str, Any]] = []
+    product_url = (
+        f"https://www.tcgplayer.com/product/{tcp_s}" if tcp_s.isdigit() else None
+    )
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        try:
+            price = float(row.get("price"))
+        except (TypeError, ValueError):
+            continue
+        if price <= 0:
+            continue
+        try:
+            ship = float(row.get("shipping_price") or 0)
+        except (TypeError, ValueError):
+            ship = 0.0
+        if ship < 0:
+            ship = 0.0
+        out.append(
+            {
+                "price": price,
+                "shipping_price": ship,
+                "currency": "USD",
+                "condition": str(row.get("condition") or "").strip() or None,
+                "variant": str(row.get("printing") or "").strip() or None,
+                "seller": str(row.get("seller_name") or "").strip() or None,
+                "language": str(row.get("language") or "").strip() or None,
+                "quantity": row.get("quantity"),
+                "url": product_url,
+                "title": str(row.get("custom_title") or "").strip() or None,
+            }
+        )
+    return out
+
+
 def psa_ebay_comps_for_tcgplayer_id(
     tcgplayer_id: str | int | None,
     *,

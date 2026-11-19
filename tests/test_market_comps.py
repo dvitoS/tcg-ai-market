@@ -82,6 +82,20 @@ def test_build_market_comps_happy(monkeypatch) -> None:
         ],
     )
     monkeypatch.setattr(
+        "pkmnprices_client.tcgplayer_offers_for_tcgplayer_id",
+        lambda *_a, **_k: [
+            {
+                "price": 100.0,
+                "shipping_price": 1.99,
+                "currency": "USD",
+                "condition": "Near Mint",
+                "variant": "Holofoil",
+                "seller": "USSeller",
+                "url": "https://www.tcgplayer.com/product/999",
+            }
+        ],
+    )
+    monkeypatch.setattr(
         "pkmnprices_client.cardmarket_offers_for_tcgplayer_id",
         lambda *_a, **_k: [
             {
@@ -109,6 +123,8 @@ def test_build_market_comps_happy(monkeypatch) -> None:
     out = build_market_comps("skyridge-h30", limit=8)
     assert out["ebay_sold_stats"]["n"] == 2
     assert out["ebay_sold_stats"]["median"] == 110.0
+    assert out["tcgplayer_stats"]["n"] == 1
+    assert out["tcgplayer_stats"]["lowest"] == 101.99
     assert out["cardmarket_stats"]["lowest"] == 95.0
     assert out["population"]["total_population"] == 1000
     assert out["population"]["grade_rows"][0]["grade"] == "10"
