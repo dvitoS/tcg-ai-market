@@ -114,6 +114,83 @@ def test_resolve_uses_justtcg_variant_price(monkeypatch) -> None:
     assert abs(float(out[key]["price_factor"]) - 0.625) < 1e-9
 
 
+def test_resolve_uses_pkmn_when_justtcg_absent(monkeypatch) -> None:
+    clear_variant_spot_cache()
+    monkeypatch.setattr(
+        "services.variant_spot._tcp_for_card",
+        lambda _cid: "219042",
+    )
+    monkeypatch.setattr("justtcg_client.justtcg_api_key", lambda: "")
+    monkeypatch.setattr(
+        "pkmnprices_client.pkmnprices_configured",
+        lambda: True,
+    )
+    monkeypatch.setattr(
+        "pkmnprices_client.batch_variant_spots",
+        lambda _items: {
+            "219042|LP|Normal": {
+                "price": 14.0,
+                "tcgplayer_id": "219042",
+                "condition": "Lightly Played",
+                "variant": "Normal",
+                "pkmn_card_id": 9,
+                "source": "pkmnprices_variant",
+            }
+        },
+    )
+    out = resolve_variant_spots(
+        [
+            {
+                "card_id": "sv3-1",
+                "condition": "LP",
+                "printing": "Normal",
+                "nm_spot": 20.0,
+            }
+        ]
+    )
+    key = spot_key("sv3-1", "LP", "Normal")
+    assert out[key]["source"] == "pkmnprices_variant"
+    assert abs(float(out[key]["price"]) - 14.0) < 1e-9
+    assert abs(float(out[key]["price_factor"]) - 0.7) < 1e-9
+
+
+def test_resolve_pkmn_fills_justtcg_miss(monkeypatch) -> None:
+    clear_variant_spot_cache()
+    monkeypatch.setattr(
+        "services.variant_spot._tcp_for_card",
+        lambda _cid: "219042",
+    )
+    monkeypatch.setattr("justtcg_client.justtcg_api_key", lambda: "test-key")
+    monkeypatch.setattr("justtcg_client.batch_variant_lookups", lambda _items: [])
+    monkeypatch.setattr("pkmnprices_client.pkmnprices_configured", lambda: True)
+    monkeypatch.setattr(
+        "pkmnprices_client.batch_variant_spots",
+        lambda _items: {
+            "219042|LP|Holo": {
+                "price": 9.5,
+                "tcgplayer_id": "219042",
+                "condition": "Lightly Played",
+                "variant": "Holofoil",
+                "pkmn_card_id": 3,
+                "source": "pkmnprices_variant",
+            }
+        },
+    )
+    out = resolve_variant_spots(
+        [
+            {
+                "card_id": "sv3-1",
+                "condition": "LP",
+                "printing": "Holo",
+                "nm_spot": 20.0,
+            }
+        ]
+    )
+    key = spot_key("sv3-1", "LP", "Holo")
+    assert out[key]["source"] == "pkmnprices_variant"
+    assert abs(float(out[key]["price"]) - 9.5) < 1e-9
+
+
 def test_enrich_lots_prefers_variant_spot(monkeypatch) -> None:
     from api.portfolio_service import enrich_lots
 

@@ -1,7 +1,9 @@
-"""JustTCG variant spots for Soft Ink lots (Phase C4).
+"""Variant spots for Soft Ink lots (Phase C4).
 
-Non-NM / non-Normal lots prefer live JustTCG condition×printing prices.
-Falls back to coarse NM multipliers when TCP id / variant / key is missing.
+Non-NM / non-Normal lots prefer live condition×printing prices:
+1. JustTCG batch (when ``JUSTTCG_API_KEY`` is set)
+2. PkmnPrices card.prices[] (when ``PKMN_API_KEY`` is set)
+3. Coarse NM×multiplier fallback
 """
 
 from __future__ import annotations
@@ -66,7 +68,7 @@ def _cache_put(key: str, payload: dict[str, Any]) -> None:
 
 
 def _tcp_for_card(card_id: str) -> str | None:
-    """Best-effort product id from cards table (no live JustTCG search)."""
+    """Best-effort product id from cards table (no live search)."""
     try:
         from database import get_card
 
@@ -96,6 +98,96 @@ def _multiplier_payload(
         "price_factor": factor,
         "tcgplayer_id": None,
     }
+
+
+def _with_factor(hit: dict[str, Any], nm_spot: float | None, *, condition: str, printing: str) -> dict[str, Any]:
+    from services.lot_price_adjust import lot_price_factor
+
+    factor = lot_price_factor(condition=condition, printing=printing)
+    try:
+        if nm_spot is not None and float(nm_spot) > 0 and hit.get("price") is not None:
+            factor = float(hit["price"]) / float(nm_spot)
+    except (TypeError, ValueError, ZeroDivisionError):
+        pass
+    return {**hit, "price_factor": float(factor)}
+
+
+def _fill_from_pkmn(
+    pending: list[dict[str, Any]],
+    out: dict[str, dict[str, Any]],
+) -> None:
+    """Fill unresolved pending rows from PkmnPrices; multiplier for leftovers."""
+    need = [item for item in pending if item["key"] not in out]
+    if not need:
+        return
+
+    try:
+        from pkmnprices_client import (
+            PkmnPricesRateLimitError,
+            batch_variant_spots,
+            pkmnprices_configured,
+        )
+    except Exception as exc:
+        LOG.info("variant_spot pkmn import failed: %s", exc)
+        for item in need:
+            payload = _multiplier_payload(
+                item.get("nm_spot"),
+                condition=item["condition"],
+                printing=item["printing"],
+            )
+            out[item["key"]] = payload
+        return
+
+    if not pkmnprices_configured():
+        for item in need:
+            payload = _multiplier_payload(
+                item.get("nm_spot"),
+                condition=item["condition"],
+                printing=item["printing"],
+            )
+            out[item["key"]] = payload
+        return
+
+    by_tcp_variant: dict[str, dict[str, Any]] = {}
+    try:
+        by_tcp_variant = batch_variant_spots(
+            [
+                {
+                    "tcgplayerId": item["tcgplayerId"],
+                    "condition": item["condition"],
+                    "printing": item["printing"],
+                }
+                for item in need
+            ]
+        )
+    except PkmnPricesRateLimitError:
+        LOG.warning("variant_spot pkmn rate-limited — falling back to multipliers")
+    except Exception as exc:
+        LOG.info("variant_spot pkmn batch failed: %s", exc)
+
+    for item in need:
+        hit = by_tcp_variant.get(item["tcp_key"])
+        if hit is not None:
+            payload = _with_factor(
+                {
+                    "price": float(hit["price"]),
+                    "source": "pkmnprices_variant",
+                    "variant_id": str(hit.get("variant") or "").strip() or None,
+                    "tcgplayer_id": item["tcgplayerId"],
+                },
+                item.get("nm_spot"),
+                condition=item["condition"],
+                printing=item["printing"],
+            )
+            _cache_put(item["key"], payload)
+            out[item["key"]] = payload
+        else:
+            payload = _multiplier_payload(
+                item.get("nm_spot"),
+                condition=item["condition"],
+                printing=item["printing"],
+            )
+            out[item["key"]] = payload
 
 
 def resolve_variant_spots(
@@ -177,6 +269,7 @@ def resolve_variant_spots(
     if not pending_fetch:
         return out
 
+    justtcg_ok = False
     try:
         from justtcg_client import (
             JustTCGRateLimitError,
@@ -186,33 +279,15 @@ def resolve_variant_spots(
             pick_variant,
             variant_price_usd,
         )
+
+        justtcg_ok = bool(justtcg_api_key())
     except Exception as exc:
-        LOG.info("variant_spot import failed: %s", exc)
-        for item in pending_fetch:
-            payload = _multiplier_payload(
-                item.get("nm_spot"),
-                condition=item["condition"],
-                printing=item["printing"],
-            )
-            out[item["key"]] = payload
-        return out
+        LOG.info("variant_spot justtcg import failed: %s", exc)
+        justtcg_ok = False
 
-    if not justtcg_api_key():
+    if justtcg_ok:
+        unique_items: list[dict[str, Any]] = []
         for item in pending_fetch:
-            payload = _multiplier_payload(
-                item.get("nm_spot"),
-                condition=item["condition"],
-                printing=item["printing"],
-            )
-            out[item["key"]] = payload
-        return out
-
-    # Deduplicate by tcp|cond|print for the JustTCG batch body.
-    unique_items: list[dict[str, Any]] = []
-    tcp_to_rows: dict[str, list[dict[str, Any]]] = {}
-    for item in pending_fetch:
-        tcp_to_rows.setdefault(item["tcp_key"], []).append(item)
-        if len(unique_items) < len(seen_tcp_keys):
             if not any(
                 u["tcgplayerId"] == item["tcgplayerId"]
                 and u["condition"] == item["condition"]
@@ -227,73 +302,60 @@ def resolve_variant_spots(
                     }
                 )
 
-    by_tcp_variant: dict[str, dict[str, Any]] = {}
-    batch_size = max(1, int(JUSTTCG_BATCH_SIZE or 20))
-    try:
-        for i in range(0, len(unique_items), batch_size):
-            chunk = unique_items[i : i + batch_size]
-            rows = batch_variant_lookups(chunk)
-            # Index returned cards by tcgplayerId; pick matching variant.
-            by_tcp: dict[str, dict[str, Any]] = {}
-            for row in rows:
-                tid = card_tcgplayer_id(row) or ""
-                if tid:
-                    by_tcp[tid] = row
-            for req in chunk:
-                tid = str(req["tcgplayerId"])
-                card = by_tcp.get(tid)
-                if not card:
-                    continue
-                variant = pick_variant(
-                    list(card.get("variants") or []),
-                    condition=req["condition"],
-                    printing=req["printing"],
-                )
-                price = variant_price_usd(variant)
-                if price is None:
-                    continue
-                variant_id = None
-                if variant:
-                    variant_id = (
-                        str(variant.get("id") or variant.get("uuid") or "").strip()
-                        or None
+        by_tcp_variant: dict[str, dict[str, Any]] = {}
+        batch_size = max(1, int(JUSTTCG_BATCH_SIZE or 20))
+        try:
+            for i in range(0, len(unique_items), batch_size):
+                chunk = unique_items[i : i + batch_size]
+                rows = batch_variant_lookups(chunk)
+                by_tcp: dict[str, dict[str, Any]] = {}
+                for row in rows:
+                    tid = card_tcgplayer_id(row) or ""
+                    if tid:
+                        by_tcp[tid] = row
+                for req in chunk:
+                    tid = str(req["tcgplayerId"])
+                    card = by_tcp.get(tid)
+                    if not card:
+                        continue
+                    variant = pick_variant(
+                        list(card.get("variants") or []),
+                        condition=req["condition"],
+                        printing=req["printing"],
                     )
-                tcp_key = f"{tid}|{req['condition']}|{req['printing']}"
-                by_tcp_variant[tcp_key] = {
-                    "price": float(price),
-                    "source": "justtcg_variant",
-                    "variant_id": variant_id,
-                    "tcgplayer_id": tid,
-                }
-    except JustTCGRateLimitError:
-        LOG.warning("variant_spot rate-limited — falling back to multipliers")
-    except Exception as exc:
-        LOG.info("variant_spot batch failed: %s", exc)
+                    price = variant_price_usd(variant)
+                    if price is None:
+                        continue
+                    variant_id = None
+                    if variant:
+                        variant_id = (
+                            str(variant.get("id") or variant.get("uuid") or "").strip()
+                            or None
+                        )
+                    tcp_key = f"{tid}|{req['condition']}|{req['printing']}"
+                    by_tcp_variant[tcp_key] = {
+                        "price": float(price),
+                        "source": "justtcg_variant",
+                        "variant_id": variant_id,
+                        "tcgplayer_id": tid,
+                    }
+        except JustTCGRateLimitError:
+            LOG.warning("variant_spot rate-limited — trying Pkmn / multipliers")
+        except Exception as exc:
+            LOG.info("variant_spot justtcg batch failed: %s", exc)
 
-    for item in pending_fetch:
-        hit = by_tcp_variant.get(item["tcp_key"])
-        if hit is not None:
-            nm = item.get("nm_spot")
-            factor = lot_price_factor(
-                condition=item["condition"], printing=item["printing"]
-            )
-            try:
-                if nm is not None and float(nm) > 0:
-                    factor = float(hit["price"]) / float(nm)
-            except (TypeError, ValueError, ZeroDivisionError):
-                pass
-            payload = {
-                **hit,
-                "price_factor": float(factor),
-            }
-            _cache_put(item["key"], payload)
-            out[item["key"]] = payload
-        else:
-            payload = _multiplier_payload(
-                item.get("nm_spot"),
-                condition=item["condition"],
-                printing=item["printing"],
-            )
-            out[item["key"]] = payload
+        for item in pending_fetch:
+            hit = by_tcp_variant.get(item["tcp_key"])
+            if hit is not None:
+                payload = _with_factor(
+                    hit,
+                    item.get("nm_spot"),
+                    condition=item["condition"],
+                    printing=item["printing"],
+                )
+                _cache_put(item["key"], payload)
+                out[item["key"]] = payload
 
+    # PkmnPrices fill for misses (or full path when JustTCG key absent).
+    _fill_from_pkmn(pending_fetch, out)
     return out
