@@ -11,6 +11,7 @@ import { EbayComps } from "@/components/EbayComps";
 import { GradingEvPanel } from "@/components/GradingEvPanel";
 import { HoloCardArt } from "@/components/HoloCardArt";
 import { useLocale } from "@/components/LocaleProvider";
+import { GradedPriceChart } from "@/components/GradedPriceChart";
 import { PriceChart } from "@/components/PriceChart";
 import { WatchToggle } from "@/components/WatchToggle";
 import { WrongSpotReport } from "@/components/WrongSpotReport";
@@ -329,6 +330,7 @@ export function CardDetailView({
             predictedPrice={card.predicted_price}
           />
           <DeferredMount>
+            <GradedPriceChart cardId={card.id} />
             <GradingEvPanel
               cardId={card.id}
               rawPrice={history.last_price ?? card.price}
