@@ -128,3 +128,34 @@ def test_build_market_comps_happy(monkeypatch) -> None:
     assert out["cardmarket_stats"]["lowest"] == 95.0
     assert out["population"]["total_population"] == 1000
     assert out["population"]["grade_rows"][0]["grade"] == "10"
+
+
+def test_build_market_comps_surfaces_tcp_resolve_error(monkeypatch) -> None:
+    from pkmnprices_client import PkmnPricesError
+
+    monkeypatch.setattr("pkmnprices_client.pkmnprices_configured", lambda: True)
+    monkeypatch.setattr(
+        "api.market_comps_service._resolve_tcp",
+        lambda _cid: ("999", "Umbreon", "Skyridge"),
+    )
+    monkeypatch.setattr(
+        "pkmnprices_client.ebay_sold_listings_for_tcgplayer_id",
+        lambda *_a, **_k: [],
+    )
+    monkeypatch.setattr(
+        "pkmnprices_client.tcgplayer_offers_for_tcgplayer_id",
+        lambda *_a, **_k: (_ for _ in ()).throw(
+            PkmnPricesError("PkmnPrices has no card for tcgplayer_id=999")
+        ),
+    )
+    monkeypatch.setattr(
+        "pkmnprices_client.cardmarket_offers_for_tcgplayer_id",
+        lambda *_a, **_k: [],
+    )
+    monkeypatch.setattr(
+        "pkmnprices_client.population_for_tcgplayer_id",
+        lambda *_a, **_k: None,
+    )
+    out = build_market_comps("skyridge-h30", limit=5)
+    assert out["tcgplayer"] == []
+    assert "no card" in (out["tcgplayer_error"] or "").lower()
