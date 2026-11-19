@@ -630,6 +630,15 @@ def cardmarket_offers_for_tcgplayer_id(
     return out
 
 
+def _is_near_mint_condition(value: str | None) -> bool:
+    raw = str(value or "").strip().lower()
+    if not raw:
+        return False
+    if raw in {"nm", "near mint", "mint"}:
+        return True
+    return raw.startswith("near mint")
+
+
 def tcgplayer_offers_for_tcgplayer_id(
     tcgplayer_id: str | int | None,
     *,
@@ -640,60 +649,104 @@ def tcgplayer_offers_for_tcgplayer_id(
 
     Sorted by ``total_asc`` (price + shipping) to match TCGplayer's own list.
     These are current asks — not sold comps (eBay covers solds).
+
+    Raises ``PkmnPricesError`` when the TCP id cannot be resolved in PkmnPrices
+    or the plan forbids listings (403) — Soft Ink must not pretend that is an
+    empty marketplace.
     """
-    pid = find_card_id_by_tcgplayer_id(tcgplayer_id)
+    tcp_s = str(tcgplayer_id or "").strip()
+    if not tcp_s.isdigit():
+        raise PkmnPricesError(f"Invalid tcgplayer_id={tcp_s!r}")
+    pid = find_card_id_by_tcgplayer_id(tcp_s)
     if pid is None:
-        return []
-    tcp_s = str(tcgplayer_id).strip()
-    params: dict[str, Any] = {
-        "sort": "total_asc",
-        "limit": max(1, min(20, int(limit))),
-        "language": "English",
-    }
-    if condition:
-        params["condition"] = condition
-    try:
-        payload = _get(f"/v1/cards/{int(pid)}/listings/tcgplayer", params)
-    except PkmnPricesError as exc:
-        res = getattr(exc, "response", None)
-        if res is not None and getattr(res, "status_code", None) == 403:
-            return []
-        raise
-    rows = payload.get("data") if isinstance(payload.get("data"), list) else []
-    out: list[dict[str, Any]] = []
-    product_url = (
-        f"https://www.tcgplayer.com/product/{tcp_s}" if tcp_s.isdigit() else None
-    )
-    for row in rows:
-        if not isinstance(row, dict):
-            continue
-        try:
-            price = float(row.get("price"))
-        except (TypeError, ValueError):
-            continue
-        if price <= 0:
-            continue
-        try:
-            ship = float(row.get("shipping_price") or 0)
-        except (TypeError, ValueError):
-            ship = 0.0
-        if ship < 0:
-            ship = 0.0
-        out.append(
-            {
-                "price": price,
-                "shipping_price": ship,
-                "currency": "USD",
-                "condition": str(row.get("condition") or "").strip() or None,
-                "variant": str(row.get("printing") or "").strip() or None,
-                "seller": str(row.get("seller_name") or "").strip() or None,
-                "language": str(row.get("language") or "").strip() or None,
-                "quantity": row.get("quantity"),
-                "url": product_url,
-                "title": str(row.get("custom_title") or "").strip() or None,
-            }
+        raise PkmnPricesError(
+            f"PkmnPrices has no card for tcgplayer_id={tcp_s}"
         )
-    return out
+    product_url = f"https://www.tcgplayer.com/product/{tcp_s}"
+    limit_n = max(1, min(20, int(limit)))
+    wanted = str(condition or "").strip()
+
+    def _map_rows(rows: list[Any]) -> list[dict[str, Any]]:
+        out: list[dict[str, Any]] = []
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            try:
+                price = float(row.get("price"))
+            except (TypeError, ValueError):
+                continue
+            if price <= 0:
+                continue
+            try:
+                ship = float(row.get("shipping_price") or 0)
+            except (TypeError, ValueError):
+                ship = 0.0
+            if ship < 0:
+                ship = 0.0
+            out.append(
+                {
+                    "price": price,
+                    "shipping_price": ship,
+                    "currency": "USD",
+                    "condition": str(row.get("condition") or "").strip() or None,
+                    "variant": str(row.get("printing") or "").strip() or None,
+                    "seller": str(row.get("seller_name") or "").strip() or None,
+                    "language": str(row.get("language") or "").strip() or None,
+                    "quantity": row.get("quantity"),
+                    "url": product_url,
+                    "title": str(row.get("custom_title") or "").strip() or None,
+                }
+            )
+        return out
+
+    def _load(extra: dict[str, Any]) -> list[dict[str, Any]]:
+        params: dict[str, Any] = {
+            "sort": "total_asc",
+            "limit": limit_n,
+            **extra,
+        }
+        payload = _get(f"/v1/cards/{int(pid)}/listings/tcgplayer", params)
+        rows = payload.get("data") if isinstance(payload.get("data"), list) else []
+        return _map_rows(rows)
+
+    # Prefer NM+English, then relax filters — Pkmn snapshots are EN-first but
+    # condition/language params can over-filter vs TCGplayer.com.
+    attempts: list[dict[str, Any]] = []
+    if wanted:
+        attempts.extend(
+            [
+                {"condition": wanted, "language": "English"},
+                {"condition": wanted},
+                {"language": "English"},
+                {},
+            ]
+        )
+    else:
+        attempts.extend([{"language": "English"}, {}])
+
+    seen: set[tuple[tuple[str, Any], ...]] = set()
+    broadened: list[dict[str, Any]] = []
+    for extra in attempts:
+        key = tuple(sorted(extra.items()))
+        if key in seen:
+            continue
+        seen.add(key)
+        rows = _load(extra)
+        if not rows:
+            continue
+        if wanted:
+            nm = [r for r in rows if _is_near_mint_condition(r.get("condition"))]
+            if nm:
+                return nm
+            if "condition" in extra:
+                # API already filtered by condition — trust that set.
+                return rows
+            # Keep non-NM as last resort after all NM-preferring attempts.
+            if not broadened:
+                broadened = rows
+            continue
+        return rows
+    return broadened
 
 
 def psa_ebay_comps_for_tcgplayer_id(

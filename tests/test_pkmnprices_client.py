@@ -373,10 +373,11 @@ def test_ebay_sold_search_url_prefers_completed_search() -> None:
 
 def test_tcgplayer_offers_for_tcgplayer_id(monkeypatch) -> None:
     monkeypatch.setattr(client, "find_card_id_by_tcgplayer_id", lambda _tcp: 42)
+    calls: list[dict] = []
 
     def _fake_get(path, params=None):
         assert path == "/v1/cards/42/listings/tcgplayer"
-        assert params["condition"] == "Near Mint"
+        calls.append(dict(params or {}))
         assert params["sort"] == "total_asc"
         return {
             "data": [
@@ -406,6 +407,72 @@ def test_tcgplayer_offers_for_tcgplayer_id(monkeypatch) -> None:
     assert rows[0]["shipping_price"] == 0.99
     assert rows[0]["seller"] == "ShopA"
     assert rows[0]["url"] == "https://www.tcgplayer.com/product/888001"
+    assert calls[0]["condition"] == "Near Mint"
+
+
+def test_tcgplayer_offers_missing_pkmn_id_raises(monkeypatch) -> None:
+    monkeypatch.setattr(client, "find_card_id_by_tcgplayer_id", lambda _tcp: None)
+    try:
+        client.tcgplayer_offers_for_tcgplayer_id("888001")
+        assert False, "expected PkmnPricesError"
+    except client.PkmnPricesError as exc:
+        assert "no card" in str(exc).lower()
+
+
+def test_tcgplayer_offers_403_raises(monkeypatch) -> None:
+    import requests
+
+    monkeypatch.setattr(client, "find_card_id_by_tcgplayer_id", lambda _tcp: 42)
+
+    def _fake_get(_path, params=None):
+        res = requests.Response()
+        res.status_code = 403
+        raise client.PkmnPricesError(
+            "PkmnPrices forbidden — plan may lack this endpoint",
+            response=res,
+        )
+
+    monkeypatch.setattr(client, "_get", _fake_get)
+    try:
+        client.tcgplayer_offers_for_tcgplayer_id("888001")
+        assert False, "expected PkmnPricesError"
+    except client.PkmnPricesError as exc:
+        assert getattr(exc.response, "status_code", None) == 403
+
+
+def test_tcgplayer_offers_broadens_when_nm_filter_empty(monkeypatch) -> None:
+    monkeypatch.setattr(client, "find_card_id_by_tcgplayer_id", lambda _tcp: 42)
+    calls: list[dict] = []
+
+    def _fake_get(_path, params=None):
+        p = dict(params or {})
+        calls.append(p)
+        if p.get("condition") == "Near Mint":
+            return {"data": []}
+        return {
+            "data": [
+                {
+                    "printing": "Holofoil",
+                    "condition": "Near Mint",
+                    "price": 44.0,
+                    "shipping_price": 0,
+                    "seller_name": "Desk",
+                },
+                {
+                    "printing": "Holofoil",
+                    "condition": "Lightly Played",
+                    "price": 30.0,
+                    "shipping_price": 0,
+                    "seller_name": "LP",
+                },
+            ]
+        }
+
+    monkeypatch.setattr(client, "_get", _fake_get)
+    rows = client.tcgplayer_offers_for_tcgplayer_id("888001", limit=8)
+    assert len(rows) == 1
+    assert rows[0]["price"] == 44.0
+    assert any("condition" not in c for c in calls)
 
 
 def test_ebay_sold_listings_drops_shared_and_rewrites_url(monkeypatch) -> None:

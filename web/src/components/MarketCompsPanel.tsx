@@ -12,6 +12,7 @@ import {
 import { fetchCardMarketComps, formatMoney } from "@/lib/api";
 import { ebaySoldSearchUrl } from "@/lib/ebaySold";
 import type { MessageKey } from "@/lib/i18n/messages";
+import { tcgplayerSearchUrl } from "@/lib/tcgplayer";
 import type { CardMarketCompsResponse } from "@/lib/types";
 
 type EbayMode = "sold" | "active";
@@ -103,6 +104,10 @@ export function MarketCompsPanel({
     cardmarket: t("comps_sold_title_cm"),
   };
   const ebaySoldCtaUrl = ebaySoldSearchUrl(cardName || "", setName);
+  const tcpProductUrl =
+    data?.tcgplayer_id && /^\d+$/.test(String(data.tcgplayer_id))
+      ? `https://www.tcgplayer.com/product/${data.tcgplayer_id}`
+      : tcgplayerSearchUrl(cardName || "", setName);
 
   function tcpTotal(row: (typeof tcp)[number]): number {
     return Number(row.price) + Number(row.shipping_price || 0);
@@ -354,7 +359,19 @@ export function MarketCompsPanel({
           {market === "tcgplayer" ? (
             <div className="comps-block">
               {data.tcgplayer_error && tcp.length === 0 ? (
-                <p className="chart-sources-status">{data.tcgplayer_error}</p>
+                <div className="comps-empty-cta">
+                  <p className="chart-sources-status">{data.tcgplayer_error}</p>
+                  {tcpProductUrl ? (
+                    <a
+                      className="btn-ghost"
+                      href={tcpProductUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {t("comps_tcp_open_cta")}
+                    </a>
+                  ) : null}
+                </div>
               ) : null}
               {tcpStats?.lowest != null ? (
                 <div className="comps-stats">
@@ -371,7 +388,19 @@ export function MarketCompsPanel({
                 </div>
               ) : null}
               {tcp.length === 0 && !data.tcgplayer_error ? (
-                <p className="chart-sources-status">{t("comps_tcp_empty")}</p>
+                <div className="comps-empty-cta">
+                  <p className="chart-sources-status">{t("comps_tcp_empty")}</p>
+                  {tcpProductUrl ? (
+                    <a
+                      className="btn-ghost"
+                      href={tcpProductUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {t("comps_tcp_open_cta")}
+                    </a>
+                  ) : null}
+                </div>
               ) : null}
               <ul className="comps-list">
                 {tcp.slice(0, 8).map((row, i) => (
