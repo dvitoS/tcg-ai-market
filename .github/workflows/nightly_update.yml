@@ -132,10 +132,12 @@ jobs:
           # Hard-enforced in nightly_update (empty/off ignored unless NIGHTLY_ALLOW_UNLIMITED_JUSTTCG=1).
           # Prevents card_limit=all from burning 1k+ req like the 2026-11-05 cancel storm.
           JUSTTCG_MAX_REQUESTS: "250"
-          # PkmnPrices fills JustTCG-empty TCP cards (history ≈1 credit/row). Cap cards/night.
+          # Soft Ink 1Y chart — JustTCG include=periods.1y,price_history.1y (override 90d if needed).
+          JUSTTCG_HISTORY_DURATION: "1y"
+          # PkmnPrices fills JustTCG-empty TCP cards (1Y ≈1 credit/row × ~365). Cap cards/night.
           PKMN_NIGHTLY_MAX_CARDS: "150"
-          # If JUSTTCG_API_KEY is removed, nightly uses Pkmn as primary drip (higher cap).
-          PKMN_NIGHTLY_PRIMARY_MAX_CARDS: "500"
+          # If JUSTTCG_API_KEY is removed, nightly uses Pkmn as primary drip (1Y credit budget).
+          PKMN_NIGHTLY_PRIMARY_MAX_CARDS: "200"
           # Soft wall-clock SLO (default 150m) before GitHub's 180m hard kill.
           # Fail the job if retrain writes 0 quotes or elapsed exceeds this budget.
           NIGHTLY_SLO_MAX_SECONDS: "9000"

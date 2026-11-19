@@ -101,9 +101,11 @@ def test_pkmn_fallback_on_justtcg_empty(monkeypatch):
 
     pkmn_calls = {"n": 0}
 
-    def fake_pkmn(tcp, **_kwargs):
+    def fake_pkmn(tcp, **kwargs):
         pkmn_calls["n"] += 1
         assert str(tcp) == "999002"
+        assert kwargs.get("period") == "365d"
+        assert kwargs.get("limit") == 365
         return [{"date": f"2026-10-{d:02d}", "price": 3.0 + d * 0.05} for d in range(1, 15)]
 
     monkeypatch.setattr("pkmnprices_client.pkmnprices_configured", lambda: True)

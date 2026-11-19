@@ -542,9 +542,12 @@ def _history_list_from_variant(variant: dict[str, Any]) -> list[Any]:
     for key in (
         "priceHistory",
         "price_history",
+        "priceHistory1y",
+        "price_history_1y",
+        "priceHistory90d",
+        "price_history_90d",
         "priceHistory30d",
         "price_history_30d",
-        "priceHistory90d",
     ):
         raw = variant.get(key)
         if isinstance(raw, list) and raw:

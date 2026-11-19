@@ -229,7 +229,8 @@ def _ingest_pkmn_fallback(
     if not pkmnprices_configured():
         return "skip_no_key", 0
 
-    points = nm_history_for_tcgplayer_id(tcp, period="90d", limit=120)
+    # Match Soft Ink 1Y chart — PkmnPrices period max is 365d (1 credit/row).
+    points = nm_history_for_tcgplayer_id(tcp, period="365d", limit=365)
     if not points:
         return "skip_empty", 0
 
