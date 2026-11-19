@@ -58,7 +58,6 @@ export function CardDetailView({
     setBrowseBackHref(readBrowseReturn("/browse"));
   }, []);
 
-  // Soft Ink client nav can land with empty finishes; refetch only then.
   const finishesKey = (card.finishes || []).join("|");
   useEffect(() => {
     const initial = (card.finishes || []).filter(Boolean);
@@ -77,7 +76,6 @@ export function CardDetailView({
     return () => {
       alive = false;
     };
-    // finishesKey tracks SSR payload changes without array identity churn.
   }, [card.id, card.finishes, finishesKey]);
 
   const prices = points.map((p) => p.price).filter((n) => Number.isFinite(n));
@@ -86,14 +84,12 @@ export function CardDetailView({
     min_price: prices.length ? Math.min(...prices) : null,
     max_price: prices.length ? Math.max(...prices) : null,
     last_price: prices.length ? prices[prices.length - 1] : card.price ?? null,
-    previous_price: prices.length > 1 ? prices[prices.length - 2] : null,
     day_change_pct:
       prices.length > 1 && prices[prices.length - 2]
         ? ((prices[prices.length - 1] - prices[prices.length - 2]) /
             prices[prices.length - 2]) *
           100
         : null,
-    first_date: points[0]?.date ?? null,
     last_date: points[points.length - 1]?.date ?? null,
   };
   const history = {
@@ -103,13 +99,14 @@ export function CardDetailView({
     max_price: detail.history?.max_price ?? fromPoints.max_price,
     last_price: detail.history?.last_price ?? fromPoints.last_price,
     day_change_pct: detail.history?.day_change_pct ?? fromPoints.day_change_pct,
-    points: detail.history?.points || fromPoints.points,
   };
   const foil = resolveFoilMode(finishes, card.rarity, card.name);
   const meta = [card.set_name, card.rarity, card.id].filter(Boolean).join(" · ");
   const image = resolveCardImageUrl(card.id, card.image_url);
   const dayChange = history.day_change_pct;
-  const showSignal = Boolean(card.confidence_ok && card.conformal_ok && card.signal);
+  const showSignal = Boolean(
+    card.confidence_ok && card.conformal_ok && card.signal,
+  );
   const band =
     pred_lo_pct != null && pred_hi_pct != null
       ? `${formatChange(pred_lo_pct, 1)} … ${formatChange(pred_hi_pct, 1)}`
@@ -127,13 +124,18 @@ export function CardDetailView({
       ? decisionOneLiner(locale, detailSide, card.expected_change_pct)
       : null;
 
+  const verdictLine = decision
+    ? decision
+    : showSignal
+      ? signalText
+      : t("detail_low_conf");
+
   return (
-    <article className="detail-page">
+    <article className="detail-page detail-page-desk">
       <Link
         href={browseBackHref}
         className="detail-back"
         onClick={(event) => {
-          // Prefer history when we came from the same Soft Ink browse search.
           try {
             const ref = document.referrer ? new URL(document.referrer) : null;
             if (
@@ -152,207 +154,209 @@ export function CardDetailView({
         {t("detail_back")}
       </Link>
 
-      <div className="detail-layout">
-        <div className="detail-main">
-          <section className="detail-hero-card">
-            <div className="detail-hero-left">
-              <div className="detail-hero-art">
-                <HoloCardArt
-                  key={`${card.id}-${foil || "none"}`}
-                  cardId={card.id}
-                  name={card.name}
-                  image={image}
-                  foil={foil}
-                  priority
-                />
-              </div>
-            </div>
-            <div className="detail-hero-copy">
-              <h1 className="detail-name">{card.name}</h1>
-              <p className="detail-meta">{meta}</p>
-              {finishes.length > 0 ? (
-                <p className="detail-finishes" title={t("detail_finishes_hint")}>
-                  {t("detail_finishes", { finishes: finishes.join(" · ") })}
-                </p>
-              ) : null}
-              <div className="detail-price-row">
-                <div className="detail-price">
-                  {formatSpot(history.last_price ?? card.price, 2)}
-                </div>
-                <div className={`detail-hero-delta ${deltaClass(dayChange)}`}>
-                  {formatChange(dayChange, 2)}
-                </div>
-              </div>
-              <p className="detail-spot-source">
-                {history.last_date
-                  ? t("detail_spot_source_asof", { date: history.last_date })
-                  : t("detail_spot_source")}
-              </p>
-
-              <div className="detail-signal-row">
-                <div className="detail-signal-block">
-                  <p className="detail-under-label">{t("detail_ai_under_title")}</p>
-                  <p
-                    className={`detail-under-move ${deltaClass(card.expected_change_pct)}`}
-                  >
-                    {formatChange(card.expected_change_pct, 2)}
-                  </p>
-                  <p className="detail-under-price">
-                    {t("detail_predicted")}: {formatSpot(card.predicted_price, 2)}
-                  </p>
-                  {band ? (
-                    <p
-                      className="detail-under-caption"
-                      title={t("glossary_band_tip")}
-                    >
-                      {t("detail_band", { band })}
-                    </p>
-                  ) : null}
-                </div>
-                <div className="detail-signal-verdict">
-                  {decision ? (
-                    <p className="decision-line">{decision}</p>
-                  ) : showSignal ? (
-                    <div className={`signal-chip ${signalClass(card.signal)}`}>
-                      {signalText}
-                    </div>
-                  ) : (
-                    <div
-                      className="ai-low-conf"
-                      title={t("glossary_unsure_tip")}
-                    >
-                      {t("detail_low_conf")}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="detail-actions">
-                <WatchToggle cardId={card.id} />
-                <Link
-                  href={`/trade?add=${encodeURIComponent(card.id)}&side=you`}
-                  className="btn-primary"
-                >
-                  {t("detail_trade_you")}
-                </Link>
-                <a
-                  className="btn-ghost"
-                  href={cardmarketSearchUrl(card.name, card.set_name)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {t("detail_cardmarket")}
-                </a>
-                <details className="detail-actions-more">
-                  <summary>{t("detail_more")}</summary>
-                  <div className="detail-actions-more-menu">
-                    <Link href="/portfolio#watchlist" className="btn-ghost">
-                      {t("detail_watchlist")}
-                    </Link>
-                    <Link
-                      href={`/trade?add=${encodeURIComponent(card.id)}&side=them`}
-                      className="btn-ghost"
-                    >
-                      {t("detail_trade_them")}
-                    </Link>
-                  </div>
-                </details>
-              </div>
-              <div className="stat-row">
-                <div className="stat-chip">
-                  <span>{t("detail_range_min")}</span>
-                  <strong>{formatSpot(history.min_price, 0)}</strong>
-                </div>
-                <div className="stat-chip">
-                  <span>{t("detail_range_max")}</span>
-                  <strong>{formatSpot(history.max_price, 0)}</strong>
-                </div>
-              </div>
-              <AddLotForm
-                cardId={card.id}
-                cardName={card.name}
-                defaultPrice={history.last_price ?? card.price}
-              />
-              <WrongSpotReport
-                cardId={card.id}
-                spot={history.last_price ?? card.price}
-              />
-              {currency === "EUR" && usdEur != null ? (
-                <p
-                  className="detail-fx-note"
-                  title={fxFallback ? t("fx_fallback") : undefined}
-                >
-                  {t("fx_rate_tip", { rate: usdEur.toFixed(4) })}
-                </p>
-              ) : null}
-            </div>
-          </section>
-
-          {explain ? (
-            <section className="detail-ai-board">
-              <details className="detail-why-fold">
-                <summary className="detail-why-summary">
-                  <span className="detail-why-summary-text">
-                    <span className="detail-why-title">{t("detail_why")}</span>
-                    <span className="ai-conf">
-                      {t("detail_confidence", {
-                        level: explain.confidence_level,
-                      })}
-                      {explain.confidence_reason
-                        ? ` — ${explain.confidence_reason}`
-                        : ""}
-                    </span>
-                    <span className="detail-why-hint">
-                      {t("detail_why_toggle")}
-                    </span>
-                  </span>
-                  <span className="detail-why-chevron" aria-hidden>
-                    ▾
-                  </span>
-                </summary>
-                <div className="ai-explain">
-                  {explain.rows.length > 0 ? (
-                    <dl className="ai-explain-list">
-                      {explain.rows.map((row) => (
-                        <div key={row.label} className="ai-explain-row">
-                          <dt>{row.label}</dt>
-                          <dd>{row.value}</dd>
-                        </div>
-                      ))}
-                    </dl>
-                  ) : (
-                    <p className="ai-board-caption">
-                      {t("detail_explain_need")}
-                    </p>
-                  )}
-                </div>
-              </details>
-            </section>
-          ) : null}
-        </div>
-
-        <aside className="detail-side">
-          <PriceChart
+      {/* 1 — Hero: art + name + spot + one verdict + 3 CTAs */}
+      <section className="detail-hero-band" aria-labelledby="detail-card-name">
+        <div className="detail-hero-art">
+          <HoloCardArt
+            key={`${card.id}-${foil || "none"}`}
             cardId={card.id}
-            points={points}
-            predictedPrice={card.predicted_price}
+            name={card.name}
+            image={image}
+            foil={foil}
+            priority
           />
-          <DeferredMount>
-            <GradedPriceChart
+        </div>
+        <div className="detail-hero-copy">
+          <h1 id="detail-card-name" className="detail-name">
+            {card.name}
+          </h1>
+          <p className="detail-meta">{meta}</p>
+
+          <div className="detail-price-row">
+            <div className="detail-price">
+              {formatSpot(history.last_price ?? card.price, 2)}
+            </div>
+            <div className={`detail-hero-delta ${deltaClass(dayChange)}`}>
+              {formatChange(dayChange, 2)}
+            </div>
+          </div>
+
+          <p
+            className={`detail-verdict ${signalClass(card.signal)}${showSignal ? "" : " is-unsure"}`}
+          >
+            {verdictLine}
+            {showSignal && card.expected_change_pct != null ? (
+              <span className="detail-verdict-move">
+                {" "}
+                · {formatChange(card.expected_change_pct, 1)}
+              </span>
+            ) : null}
+          </p>
+
+          <div className="detail-actions">
+            <WatchToggle cardId={card.id} />
+            <Link
+              href={`/trade?add=${encodeURIComponent(card.id)}&side=you`}
+              className="btn-primary"
+            >
+              {t("detail_trade_you")}
+            </Link>
+            <a
+              className="btn-ghost"
+              href={cardmarketSearchUrl(card.name, card.set_name)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {t("detail_cardmarket")}
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* 2 — Chart */}
+      <section className="detail-section detail-section-chart">
+        <PriceChart
+          cardId={card.id}
+          points={points}
+          predictedPrice={card.predicted_price}
+        />
+      </section>
+
+      {/* 3 — Sold listings (one market at a time) */}
+      <section className="detail-section">
+        <MarketCompsPanel
+          cardId={card.id}
+          nmSpotUsd={history.last_price ?? card.price}
+        />
+      </section>
+
+      {/* 4 — Below fold: tools collapsed by default */}
+      <div className="detail-below">
+        <details className="detail-fold">
+          <summary className="detail-fold-summary">
+            {t("detail_details_fold")}
+          </summary>
+          <div className="detail-fold-body">
+            {finishes.length > 0 ? (
+              <p className="detail-finishes" title={t("detail_finishes_hint")}>
+                {t("detail_finishes", { finishes: finishes.join(" · ") })}
+              </p>
+            ) : null}
+            {foil === "holo" ? (
+              <p className="detail-foil-tip">{t("detail_foil_holo")}</p>
+            ) : foil === "reverse" ? (
+              <p className="detail-foil-tip">{t("detail_foil_reverse")}</p>
+            ) : null}
+            <p className="detail-spot-source">
+              {history.last_date
+                ? t("detail_spot_source_asof", { date: history.last_date })
+                : t("detail_spot_source")}
+            </p>
+            {band ? (
+              <p className="detail-under-caption" title={t("glossary_band_tip")}>
+                {t("detail_predicted")}: {formatSpot(card.predicted_price, 2)}
+                {" · "}
+                {t("detail_band", { band })}
+              </p>
+            ) : (
+              <p className="detail-under-caption">
+                {t("detail_predicted")}: {formatSpot(card.predicted_price, 2)}
+              </p>
+            )}
+            {currency === "EUR" && usdEur != null ? (
+              <p
+                className="detail-fx-note"
+                title={fxFallback ? t("fx_fallback") : undefined}
+              >
+                {t("fx_rate_tip", { rate: usdEur.toFixed(4) })}
+              </p>
+            ) : (
+              <p className="detail-fx-note">{t("detail_eu_separate")}</p>
+            )}
+            <p className="detail-desk-disclaimer">{t("detail_desk_disclaimer")}</p>
+            <WrongSpotReport
               cardId={card.id}
-              nmSpotUsd={history.last_price ?? card.price}
+              spot={history.last_price ?? card.price}
             />
-            <MarketCompsPanel
+            <div className="detail-fold-actions">
+              <Link href="/portfolio#watchlist" className="btn-ghost">
+                {t("detail_watchlist")}
+              </Link>
+              <Link
+                href={`/trade?add=${encodeURIComponent(card.id)}&side=them`}
+                className="btn-ghost"
+              >
+                {t("detail_trade_them")}
+              </Link>
+            </div>
+          </div>
+        </details>
+
+        {explain ? (
+          <details className="detail-fold">
+            <summary className="detail-fold-summary">
+              {t("detail_why")}
+              <span className="detail-fold-meta">
+                {t("detail_confidence", { level: explain.confidence_level })}
+              </span>
+            </summary>
+            <div className="detail-fold-body">
+              {explain.confidence_reason ? (
+                <p className="ai-conf">{explain.confidence_reason}</p>
+              ) : null}
+              {explain.rows.length > 0 ? (
+                <dl className="ai-explain-list">
+                  {explain.rows.map((row) => (
+                    <div key={row.label} className="ai-explain-row">
+                      <dt>{row.label}</dt>
+                      <dd>{row.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              ) : (
+                <p className="ai-board-caption">{t("detail_explain_need")}</p>
+              )}
+            </div>
+          </details>
+        ) : null}
+
+        <details className="detail-fold">
+          <summary className="detail-fold-summary">{t("detail_lot_fold")}</summary>
+          <div className="detail-fold-body">
+            <AddLotForm
               cardId={card.id}
-              nmSpotUsd={history.last_price ?? card.price}
+              cardName={card.name}
+              defaultPrice={history.last_price ?? card.price}
             />
-            <GradingEvPanel
-              cardId={card.id}
-              rawPrice={history.last_price ?? card.price}
-            />
-            <EbayComps cardId={card.id} cardName={card.name} />
-          </DeferredMount>
-        </aside>
+          </div>
+        </details>
+
+        <DeferredMount>
+          <details className="detail-fold">
+            <summary className="detail-fold-summary">
+              {t("detail_graded_fold")}
+            </summary>
+            <div className="detail-fold-body detail-fold-stack">
+              <GradedPriceChart
+                cardId={card.id}
+                nmSpotUsd={history.last_price ?? card.price}
+              />
+              <GradingEvPanel
+                cardId={card.id}
+                rawPrice={history.last_price ?? card.price}
+              />
+            </div>
+          </details>
+
+          <details className="detail-fold">
+            <summary className="detail-fold-summary">
+              {t("detail_ebay_active_fold")}
+            </summary>
+            <div className="detail-fold-body">
+              <EbayComps cardId={card.id} cardName={card.name} />
+            </div>
+          </details>
+        </DeferredMount>
       </div>
     </article>
   );
