@@ -3168,10 +3168,8 @@ a {
 }
 
 .chart-panel-graded {
-  background:
-    radial-gradient(ellipse 55% 45% at 0% 0%, rgba(201, 162, 39, 0.1), transparent 55%),
-    rgba(26, 26, 26, 0.88);
-  animation-delay: 0.12s;
+  background: transparent;
+  animation: none;
 }
 
 .comps-panel {
