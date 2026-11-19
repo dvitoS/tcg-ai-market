@@ -409,6 +409,7 @@ def _build_card_price_sources_uncached(
             LOG.info("PkmnPrices NM fallback failed for %s: %s", card_id, exc)
 
     # Graded prints are optional — default Soft Ink detail skips them (quota).
+    pkmn_grades_used = False
     if has_key and not rate_limited and grades_mode != "none":
         (
             psa10,
@@ -428,6 +429,67 @@ def _build_card_price_sources_uncached(
         )
         if psa_rate_limited:
             rate_limited = True
+
+    # PkmnPrices PSA fallback — eBay comps → daily median series (JustTCG primary).
+    if pkmn_configured and tcp and grades_mode != "none":
+        try:
+            from pkmnprices_client import (
+                PkmnPricesRateLimitError,
+                psa_history_for_tcgplayer_id,
+            )
+
+            want_psa9 = grades_mode == "all"
+            if not psa10:
+                try:
+                    pts, stats = psa_history_for_tcgplayer_id(tcp, grade=10, period="90d")
+                    psa10 = _points_from_rows(pts)
+                    if psa10:
+                        psa10_stats = dict(stats or {})
+                        psa10_error = None
+                        pkmn_grades_used = True
+                        pkmn_used = True
+                        LOG.info(
+                            "PkmnPrices PSA10 fallback for %s (%s pts, tcp=%s)",
+                            card_id,
+                            len(psa10),
+                            tcp,
+                        )
+                    elif not psa10_error:
+                        psa10_error = "PkmnPrices returned no PSA 10 eBay comps."
+                except PkmnPricesRateLimitError:
+                    if not psa10_error:
+                        psa10_error = "PkmnPrices rate/credit limited — try again later."
+                except Exception as exc:
+                    if not psa10_error:
+                        psa10_error = str(exc)[:180]
+                    LOG.info("PkmnPrices PSA10 fallback failed for %s: %s", card_id, exc)
+
+            if want_psa9 and not psa9:
+                try:
+                    pts, stats = psa_history_for_tcgplayer_id(tcp, grade=9, period="90d")
+                    psa9 = _points_from_rows(pts)
+                    if psa9:
+                        psa9_stats = dict(stats or {})
+                        psa9_error = None
+                        pkmn_grades_used = True
+                        pkmn_used = True
+                        LOG.info(
+                            "PkmnPrices PSA9 fallback for %s (%s pts, tcp=%s)",
+                            card_id,
+                            len(psa9),
+                            tcp,
+                        )
+                    elif not psa9_error:
+                        psa9_error = "PkmnPrices returned no PSA 9 eBay comps."
+                except PkmnPricesRateLimitError:
+                    if not psa9_error:
+                        psa9_error = "PkmnPrices rate/credit limited — try again later."
+                except Exception as exc:
+                    if not psa9_error:
+                        psa9_error = str(exc)[:180]
+                    LOG.info("PkmnPrices PSA9 fallback failed for %s: %s", card_id, exc)
+        except Exception as exc:
+            LOG.info("PkmnPrices graded import failed: %s", exc)
 
     def _grade_stats(raw: dict[str, Any]) -> dict[str, Any]:
         return {
@@ -449,6 +511,7 @@ def _build_card_price_sources_uncached(
         "justtcg_configured": has_key,
         "pkmnprices_configured": pkmn_configured,
         "pkmnprices_used": pkmn_used,
+        "pkmnprices_grades_used": pkmn_grades_used,
         "pkmnprices_error": pkmn_error,
         "tcgplayer": market,
         "justtcg": justtcg,

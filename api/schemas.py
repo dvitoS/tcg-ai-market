@@ -331,6 +331,7 @@ class CardPriceSourcesResponse(BaseModel):
     justtcg_configured: bool = False
     pkmnprices_configured: bool = False
     pkmnprices_used: bool = False
+    pkmnprices_grades_used: bool = False
     pkmnprices_error: str | None = None
     tcgplayer: list[HistoryPoint] = Field(default_factory=list)
     justtcg: list[HistoryPoint] = Field(default_factory=list)

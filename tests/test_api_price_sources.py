@@ -547,3 +547,51 @@ def test_card_price_sources_skips_psa10_after_nm_rate_limit(monkeypatch) -> None
     # Rate-limited responses must not populate the TTL cache.
     again = client.get("/api/cards/rl-card/sources")
     assert again.json()["cache"] == "miss"
+
+
+def test_card_price_sources_pkmnprices_psa10_fallback(monkeypatch) -> None:
+    """When JustTCG PSA10 is empty, PkmnPrices eBay comps fill the series."""
+    monkeypatch.setattr("api.price_sources_service.justtcg_api_key", lambda: "test-key")
+    monkeypatch.setattr(
+        "api.price_sources_service._market_history_is_fresh",
+        lambda _m: False,
+    )
+    monkeypatch.setattr(
+        "api.price_sources_service._resolve_tcp_from_board",
+        lambda _cid: ("Pikachu", "Base", "555"),
+    )
+    monkeypatch.setattr(
+        "justtcg_client.nm_history_for_card",
+        lambda **_kwargs: ([{"date": "2024-01-01", "price": 2.0}], "555"),
+    )
+    monkeypatch.setattr(
+        "justtcg_client.psa_histories_for_card",
+        lambda **_kwargs: ({10.0: ([], {"has_history_series": False})}, "555"),
+    )
+    monkeypatch.setattr("pkmnprices_client.pkmnprices_configured", lambda: True)
+    monkeypatch.setattr(
+        "pkmnprices_client.psa_history_for_tcgplayer_id",
+        lambda *_a, **_k: (
+            [
+                {"date": "2024-04-01", "price": 80.0},
+                {"date": "2024-04-02", "price": 82.0},
+            ],
+            {
+                "has_history_series": True,
+                "sales_count": 2,
+                "price": 82.0,
+                "price_status": "ebay_comps",
+                "canonical": "PSA 10",
+                "period_key": "90d",
+            },
+        ),
+    )
+
+    from api.price_sources_service import build_card_price_sources, clear_price_sources_cache
+
+    clear_price_sources_cache()
+    body = build_card_price_sources("sv3-1", limit=60, grades="psa10")
+    assert body["pkmnprices_grades_used"] is True
+    assert len(body["psa10"]) == 2
+    assert body["psa10"][1]["price"] == 82.0
+    assert body["psa10_stats"]["price_status"] == "ebay_comps"
