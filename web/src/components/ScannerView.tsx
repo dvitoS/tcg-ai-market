@@ -57,7 +57,7 @@ function ScanRow({ card }: { card: ScannerCard }) {
         <strong>{formatMoney(card.current_price ?? card.price)}</strong>
         <span>→ {formatMoney(card.ai_target_price ?? card.predicted_price)}</span>
         <span className={(card.expected_roi_pct ?? 0) >= 0 ? "pnl-up" : "pnl-down"}>
-          {formatChange(card.expected_roi_pct ?? card.expected_change_pct)}
+          {formatChange(card.expected_roi_pct)}
         </span>
       </div>
     </Link>

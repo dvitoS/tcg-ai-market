@@ -133,17 +133,14 @@ export function ExploreCard({
               }),
               tone: "is-sell" as const,
             };
-  // Fallback when fair is missing: keep AI move % as a secondary cue.
+  // Fallback when fair is missing: 30d model only (no 7d prediction).
   const aiMove =
-    fair == null
-      ? card.expected_change_30d_pct != null
-        ? card.expected_change_30d_pct
-        : card.expected_change_pct
+    fair == null &&
+    card.expected_change_30d_pct != null &&
+    Number.isFinite(Number(card.expected_change_30d_pct))
+      ? Number(card.expected_change_30d_pct)
       : null;
-  const aiLabel =
-    card.expected_change_30d_pct != null
-      ? translate(locale, "card_move_ai_30d")
-      : translate(locale, "card_move_ai_7d");
+  const aiLabel = translate(locale, "card_move_ai_30d");
 
   return (
     <Link

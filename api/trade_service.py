@@ -71,9 +71,10 @@ def _line(
     card = row_to_card(row)
     nm_spot = card.get("price")
     fair = card.get("predicted_price")
-    if fair is None and nm_spot is not None and card.get("expected_change_pct") is not None:
+    # Fair fallback from 30d model only — Soft Ink desks dropped 7d prediction.
+    if fair is None and nm_spot is not None and card.get("expected_change_30d_pct") is not None:
         try:
-            fair = float(nm_spot) * (1.0 + float(card["expected_change_pct"]) / 100.0)
+            fair = float(nm_spot) * (1.0 + float(card["expected_change_30d_pct"]) / 100.0)
         except (TypeError, ValueError):
             fair = None
     spot_source = "board"
@@ -123,7 +124,7 @@ def _line(
         "image_url": card.get("image_url"),
         "spot": spot,
         "fair_price": fair,
-        "expected_change_pct": card.get("expected_change_pct"),
+        "expected_change_pct": card.get("expected_change_30d_pct"),
         "pred_lo_pct": lo_f,
         "pred_hi_pct": hi_f,
         "signal": card.get("signal"),
