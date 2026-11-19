@@ -766,6 +766,10 @@ const en = {
   detail_why: "Why this lean",
   detail_why_toggle: "Show model details",
   detail_explain_need: "Need ~15 history points before feature explain unlocks.",
+  detail_details_fold: "Details & notes",
+  detail_lot_fold: "Add to portfolio",
+  detail_graded_fold: "Graded chart & grading EV",
+  detail_ebay_active_fold: "eBay active listings",
   grade_ev_title: "Grading EV",
   grade_ev_lede:
     "Buy raw, pay grade + ship, sell after fees — scenario nets IF you land PSA 10 vs PSA 9. Not a gem-rate promise.",
@@ -1799,6 +1803,10 @@ const hr: Dictionary = {
   detail_why: "Zašto ovaj nagib",
   detail_why_toggle: "Prikaži detalje modela",
   detail_explain_need: "Treba ~15 točaka povijesti prije objašnjenja featurea.",
+  detail_details_fold: "Detalji i bilješke",
+  detail_lot_fold: "Dodaj u portfolio",
+  detail_graded_fold: "Graded chart i grading EV",
+  detail_ebay_active_fold: "eBay aktivni oglasi",
   grade_ev_title: "Grading EV",
   grade_ev_lede:
     "Kupi raw, plati grade + ship, prodaj nakon feeova — scenarij net AKO dobiješ PSA 10 vs PSA 9. Nije gem-rate obećanje.",
