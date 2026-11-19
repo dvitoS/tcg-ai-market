@@ -25,6 +25,8 @@ from api.schemas import (
     MarketCompListing,
     MarketCompStats,
     PsaGradeStats,
+    SpotMatchInfo,
+    SpotReportPublic,
 )
 from services.ebay_listings import build_ebay_detail_payload
 
@@ -102,6 +104,36 @@ def card_detail(card_id: str) -> CardDetailResponse:
         pred_lo_pct=pred_lo_f,
         pred_hi_pct=pred_hi_f,
     )
+    from api.price_sources_service import _resolve_tcp_from_board
+    from services.spot_match import classify_spot_match
+    from services.spot_reports import latest_report_for_card
+
+    _name, _set, tcp = _resolve_tcp_from_board(str(card_id))
+    quarantined = False
+    if "spot_quarantine" in hits.columns:
+        try:
+            quarantined = bool(row.get("spot_quarantine"))
+        except Exception:
+            quarantined = False
+    hist_n = int(card.history_points or len(points) or 0)
+    match = classify_spot_match(
+        tcgplayer_id=tcp,
+        spot_quarantine=quarantined,
+        history_points=hist_n,
+    )
+    report_row = latest_report_for_card(str(card_id))
+    spot_report = None
+    if report_row:
+        st = str(report_row.get("status") or "open")
+        if st not in {"open", "acked", "resolved", "dismissed"}:
+            st = "open"
+        spot_report = SpotReportPublic(
+            id=str(report_row["id"]),
+            status=st,  # type: ignore[arg-type]
+            spot=report_row.get("spot"),
+            created_at=float(report_row.get("created_at") or 0),
+            updated_at=float(report_row.get("updated_at") or 0),
+        )
     return CardDetailResponse(
         card=card,
         pred_lo_pct=pred_lo_f,
@@ -117,6 +149,12 @@ def card_detail(card_id: str) -> CardDetailResponse:
             rows=[ExplainRow(**r) for r in explain_payload["rows"]],
         ),
         source=source,
+        spot_match=SpotMatchInfo(
+            quality=match["quality"],
+            reason=match.get("reason"),
+            tcgplayer_id=match.get("tcgplayer_id"),
+        ),
+        spot_report=spot_report,
     )
 
 

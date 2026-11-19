@@ -291,6 +291,24 @@ class CardExplain(BaseModel):
     rows: list[ExplainRow] = Field(default_factory=list)
 
 
+class SpotMatchInfo(BaseModel):
+    """Asking match-quality badge (T0.1) — TCP link + quarantine, not AI confidence."""
+
+    quality: Literal["high", "med", "low"] = "med"
+    reason: str | None = None
+    tcgplayer_id: str | None = None
+
+
+class SpotReportPublic(BaseModel):
+    """Latest wrong-spot report for this card (T0.2 user-visible closure)."""
+
+    id: str
+    status: Literal["open", "acked", "resolved", "dismissed"]
+    spot: float | None = None
+    created_at: float
+    updated_at: float
+
+
 class CardDetailResponse(BaseModel):
     card: CatalogCard
     pred_lo_pct: float | None = None
@@ -300,6 +318,8 @@ class CardDetailResponse(BaseModel):
     points: list[HistoryPoint] = Field(default_factory=list)
     explain: CardExplain = Field(default_factory=CardExplain)
     source: Literal["supabase", "demo", "empty"] = "empty"
+    spot_match: SpotMatchInfo | None = None
+    spot_report: SpotReportPublic | None = None
 
 
 class CardHistoryResponse(BaseModel):
