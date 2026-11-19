@@ -126,6 +126,27 @@ export type CardPriceSourcesResponse = {
     price?: number | null;
     canonical?: string | null;
   };
+  population?: {
+    source?: string | null;
+    variant?: string | null;
+    total_population?: number | null;
+    total_gems?: number | null;
+    gem_rate?: number | null;
+    psa_total?: number | null;
+    psa_10?: number | null;
+    psa_9?: number | null;
+    psa_gem_rate?: number | null;
+    gem_rate_for_ev?: number | null;
+    percent_higher_9?: number | null;
+    grades_10?: number | null;
+    grades_9?: number | null;
+    pop_report_url?: string | null;
+    updated_at?: string | null;
+    last_population_change?: string | null;
+    pkmn_card_id?: number | null;
+    tcgplayer_id?: string | null;
+  } | null;
+  population_error?: string | null;
   grades?: "none" | "psa10" | "all";
   cache?: "hit" | "miss" | null;
 };

@@ -19,6 +19,7 @@ from api.schemas import (
     ExplainRow,
     HistoryPoint,
     HistoryStats,
+    CardPopulationStats,
     PsaGradeStats,
 )
 from services.ebay_listings import build_ebay_detail_payload
@@ -162,6 +163,12 @@ def card_price_sources(
         psa9=[HistoryPoint(**p) for p in payload.get("psa9") or []],
         psa9_error=payload.get("psa9_error"),
         psa9_stats=PsaGradeStats(**(payload.get("psa9_stats") or {})),
+        population=(
+            CardPopulationStats(**payload["population"])
+            if isinstance(payload.get("population"), dict)
+            else None
+        ),
+        population_error=payload.get("population_error"),
         grades=grades_mode if grades_mode in ("none", "psa10", "all") else "none",
         cache=cache_flag if cache_flag in ("hit", "miss") else None,
     )

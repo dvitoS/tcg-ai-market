@@ -569,6 +569,127 @@ def psa_history_for_tcgplayer_id(
     return points, stats
 
 
+def _population_variant_rank(variant: str) -> float:
+    text = str(variant or "").strip().lower()
+    if "holo" in text and "reverse" not in text:
+        return 3.0
+    if text in {"normal", ""}:
+        return 2.0
+    if "reverse" in text:
+        return 1.0
+    return 0.0
+
+
+def _grade_count(grades: Any, key: str) -> int | None:
+    if not isinstance(grades, dict):
+        return None
+    raw = grades.get(key)
+    if raw is None:
+        return None
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        return None
+
+
+def _summarize_population_variant(row: dict[str, Any]) -> dict[str, Any]:
+    """Collapse one PkmnPrices population variant into Soft Ink grading EV fields."""
+    grades = row.get("grades") if isinstance(row.get("grades"), dict) else {}
+    percent_higher = (
+        row.get("percent_higher")
+        if isinstance(row.get("percent_higher"), dict)
+        else {}
+    )
+    graders = row.get("graders") if isinstance(row.get("graders"), dict) else {}
+    psa = graders.get("PSA") if isinstance(graders.get("PSA"), dict) else {}
+    psa_grades = psa.get("grades") if isinstance(psa.get("grades"), dict) else {}
+
+    def _pct(raw: Any) -> float | None:
+        try:
+            return float(raw)
+        except (TypeError, ValueError):
+            return None
+
+    psa_gem = _pct(psa.get("gem_rate"))
+    overall_gem = _pct(row.get("gem_rate"))
+    # Prefer PSA gem rate for the "PSA 10 hit %" slider; fall back to overall.
+    gem_for_ev = psa_gem if psa_gem is not None else overall_gem
+
+    pop_url = None
+    if psa.get("pop_report_url"):
+        pop_url = str(psa.get("pop_report_url")).strip() or None
+
+    def _int(raw: Any) -> int | None:
+        if raw is None:
+            return None
+        try:
+            return int(raw)
+        except (TypeError, ValueError):
+            return None
+
+    return {
+        "source": "pkmnprices",
+        "variant": str(row.get("variant") or "").strip() or None,
+        "total_population": _int(row.get("total_population")),
+        "total_gems": _int(row.get("total_gems")),
+        "gem_rate": overall_gem,
+        "psa_total": _int(psa.get("total")),
+        "psa_10": _grade_count(psa_grades, "10"),
+        "psa_9": _grade_count(psa_grades, "9"),
+        "psa_gem_rate": psa_gem,
+        "gem_rate_for_ev": gem_for_ev,
+        "percent_higher_9": _pct(percent_higher.get("9")),
+        "grades_10": _grade_count(grades, "10"),
+        "grades_9": _grade_count(grades, "9"),
+        "pop_report_url": pop_url,
+        "updated_at": str(row.get("updated_at") or "").strip() or None,
+        "last_population_change": str(row.get("last_population_change") or "").strip()
+        or None,
+    }
+
+
+def population_for_tcgplayer_id(
+    tcgplayer_id: str | int | None,
+    *,
+    variant: str | None = None,
+) -> dict[str, Any] | None:
+    """Graded population summary for Soft Ink Grading EV (Pro+; 1 credit).
+
+    Picks Holofoil when several printings exist (unless ``variant`` is set).
+    Returns None on empty / unmatched / Free-plan 403.
+    """
+    pid = find_card_id_by_tcgplayer_id(tcgplayer_id)
+    if pid is None:
+        return None
+    params: dict[str, Any] = {}
+    if variant and str(variant).strip():
+        params["variant"] = str(variant).strip()
+    try:
+        payload = _get(f"/v1/cards/{int(pid)}/population", params or None)
+    except PkmnPricesError as exc:
+        # Free plan → 403; treat as soft miss so EV still works on comps alone.
+        res = getattr(exc, "response", None)
+        if res is not None and getattr(res, "status_code", None) == 403:
+            LOG.info("PkmnPrices population forbidden (plan) for tcp=%s", tcgplayer_id)
+            return None
+        raise
+    rows = payload.get("variants") if isinstance(payload.get("variants"), list) else []
+    candidates = [r for r in rows if isinstance(r, dict)]
+    if not candidates:
+        return None
+    candidates.sort(
+        key=lambda r: (
+            _population_variant_rank(str(r.get("variant") or "")),
+            int(r.get("total_population") or 0),
+        ),
+        reverse=True,
+    )
+    summary = _summarize_population_variant(candidates[0])
+    summary["pkmn_card_id"] = int(pid)
+    summary["tcgplayer_id"] = str(tcgplayer_id).strip()
+    return summary
+
+
 def find_sealed_id_by_tcgplayer_id(tcgplayer_id: str | int | None) -> int | None:
     """Resolve TCP product id → PkmnPrices sealed integer id (list has no prices)."""
     if tcgplayer_id is None:
