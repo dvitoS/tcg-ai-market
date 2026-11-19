@@ -889,6 +889,7 @@ const en = {
   comps_ebay_link_tip:
     "Opens eBay sold/completed results for this title. Soft Ink price is the recorded sale, not today’s ask.",
   comps_ebay_sold_link: "Sold ↗",
+  comps_ebay_search_cta: "Search eBay sold ↗",
   comps_ebay_empty: "No recent eBay sold comps.",
   comps_cm_title: "Cardmarket offers",
   comps_cm_lede: "Live Near Mint EUR offers (raw, unsigned).",
@@ -1065,6 +1066,10 @@ const en = {
   fx_loading: "Loading FX…",
   detail_cardmarket: "Cardmarket ↗",
   detail_tcgplayer: "TCGplayer ↗",
+  detail_share_copy: "Copy share",
+  detail_share_busy: "Copying…",
+  detail_share_copied: "Verdict + link copied.",
+  detail_share_copied_fallback: "Clipboard blocked — copy the link below.",
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -1944,6 +1949,7 @@ const hr: Dictionary = {
   comps_ebay_link_tip:
     "Otvara eBay sold/completed rezultate za ovaj naslov. Soft Ink cijena je zabilježena prodaja, ne današnji ask.",
   comps_ebay_sold_link: "Sold ↗",
+  comps_ebay_search_cta: "Traži eBay sold ↗",
   comps_ebay_empty: "Nema recent eBay sold comps.",
   comps_cm_title: "Cardmarket offers",
   comps_cm_lede: "Live Near Mint EUR offers (raw, unsigned).",
@@ -2120,6 +2126,10 @@ const hr: Dictionary = {
   fx_loading: "Učitavam FX…",
   detail_cardmarket: "Cardmarket ↗",
   detail_tcgplayer: "TCGplayer ↗",
+  detail_share_copy: "Kopiraj share",
+  detail_share_busy: "Kopiram…",
+  detail_share_copied: "Verdict + link kopiran.",
+  detail_share_copied_fallback: "Clipboard blokiran — kopiraj link ispod.",
 };
 
 export const MESSAGES: Record<Locale, Dictionary> = { en, hr };

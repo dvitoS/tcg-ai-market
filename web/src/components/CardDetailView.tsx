@@ -21,7 +21,9 @@ import { readBrowseReturn } from "@/lib/browseReturn";
 import { resolveCardImageUrl } from "@/lib/cardImage";
 import { cardmarketSearchUrl } from "@/lib/cardmarket";
 import { resolveFoilMode } from "@/lib/foilMode";
+import { trackFunnel } from "@/lib/funnel";
 import { decisionOneLiner, signalLabel } from "@/lib/i18n/messages";
+import { absoluteUrl, cardPagePath } from "@/lib/seo";
 import { tcgplayerSearchUrl } from "@/lib/tcgplayer";
 import type { CardDetailResponse, HistoryPoint } from "@/lib/types";
 
@@ -57,6 +59,8 @@ export function CardDetailView({
   );
   const [browseBackHref, setBrowseBackHref] = useState("/browse");
   const [deskMode, setDeskMode] = useState<DeskMode>("raw");
+  const [shareBusy, setShareBusy] = useState(false);
+  const [shareNote, setShareNote] = useState<string | null>(null);
 
   useEffect(() => {
     setBrowseBackHref(readBrowseReturn("/browse"));
@@ -163,6 +167,33 @@ export function CardDetailView({
     { key: "graded", label: t("detail_mode_graded") },
     { key: "pop", label: t("detail_mode_pop") },
   ];
+
+  async function onCopyShare() {
+    if (shareBusy) return;
+    setShareBusy(true);
+    setShareNote(null);
+    const url = absoluteUrl(cardPagePath(card.id));
+    const ask = formatSpot(askSpot, 2);
+    const fair =
+      fairSpot != null ? formatSpot(fairSpot, 2) : null;
+    const lines = [
+      [card.name, card.set_name].filter(Boolean).join(" · "),
+      verdictLine,
+      fair ? `Asking ${ask} · Fair ${fair}` : `Asking ${ask}`,
+      move30d != null ? `30d ${formatChange(move30d, 1)}` : null,
+      url,
+    ].filter(Boolean) as string[];
+    const text = lines.join("\n");
+    try {
+      await navigator.clipboard.writeText(text);
+      setShareNote(t("detail_share_copied"));
+      trackFunnel("share_copy", { surface: "detail", card_id: card.id });
+    } catch {
+      setShareNote(`${t("detail_share_copied_fallback")}\n${url}`);
+    } finally {
+      setShareBusy(false);
+    }
+  }
 
   return (
     <article className="detail-page detail-page-desk">
@@ -272,7 +303,16 @@ export function CardDetailView({
             >
               {t("detail_tcgplayer")}
             </a>
+            <button
+              type="button"
+              className="btn-ghost"
+              disabled={shareBusy}
+              onClick={() => void onCopyShare()}
+            >
+              {shareBusy ? t("detail_share_busy") : t("detail_share_copy")}
+            </button>
           </div>
+          {shareNote ? <p className="pro-open-note">{shareNote}</p> : null}
         </div>
       </section>
 
@@ -308,14 +348,29 @@ export function CardDetailView({
               />
             ) : null}
             {deskMode === "graded" ? (
-              <GradedPriceChart
-                cardId={card.id}
-                nmSpotUsd={history.last_price ?? card.price}
-              />
+              <>
+                <GradedPriceChart
+                  cardId={card.id}
+                  nmSpotUsd={history.last_price ?? card.price}
+                />
+                <div className="detail-graded-ev">
+                  <h2 className="detail-side-heading">
+                    {t("detail_grading_ev_fold")}
+                  </h2>
+                  <DeferredMount>
+                    <GradingEvPanel
+                      cardId={card.id}
+                      rawPrice={history.last_price ?? card.price}
+                    />
+                  </DeferredMount>
+                </div>
+              </>
             ) : null}
             {deskMode === "pop" ? (
               <MarketCompsPanel
                 cardId={card.id}
+                cardName={card.name}
+                setName={card.set_name}
                 nmSpotUsd={history.last_price ?? card.price}
                 focus="population"
               />
@@ -325,6 +380,8 @@ export function CardDetailView({
           <section className="detail-section detail-section-sold">
             <MarketCompsPanel
               cardId={card.id}
+              cardName={card.name}
+              setName={card.set_name}
               nmSpotUsd={history.last_price ?? card.price}
               focus="sold"
             />
@@ -380,21 +437,23 @@ export function CardDetailView({
         </aside>
       </div>
 
-      {/* Below fold extras */}
+      {/* Below fold extras — EV lives in Graded tab when that mode is open. */}
       <div className="detail-below">
-        <DeferredMount>
-          <details className="detail-fold">
-            <summary className="detail-fold-summary">
-              {t("detail_grading_ev_fold")}
-            </summary>
-            <div className="detail-fold-body">
-              <GradingEvPanel
-                cardId={card.id}
-                rawPrice={history.last_price ?? card.price}
-              />
-            </div>
-          </details>
-        </DeferredMount>
+        {deskMode !== "graded" ? (
+          <DeferredMount>
+            <details className="detail-fold">
+              <summary className="detail-fold-summary">
+                {t("detail_grading_ev_fold")}
+              </summary>
+              <div className="detail-fold-body">
+                <GradingEvPanel
+                  cardId={card.id}
+                  rawPrice={history.last_price ?? card.price}
+                />
+              </div>
+            </details>
+          </DeferredMount>
+        ) : null}
 
         <details className="detail-fold">
           <summary className="detail-fold-summary">

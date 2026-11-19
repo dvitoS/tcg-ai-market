@@ -9,6 +9,7 @@ import {
   type MarketSource,
 } from "@/components/MarketSourceTabs";
 import { fetchCardMarketComps, formatMoney } from "@/lib/api";
+import { ebaySoldSearchUrl } from "@/lib/ebaySold";
 import type { MessageKey } from "@/lib/i18n/messages";
 import type { CardMarketCompsResponse } from "@/lib/types";
 
@@ -22,10 +23,14 @@ function gradeLabel(
 
 export function MarketCompsPanel({
   cardId,
+  cardName,
+  setName,
   nmSpotUsd,
   focus = "sold",
 }: {
   cardId: string;
+  cardName?: string | null;
+  setName?: string | null;
   nmSpotUsd?: number | null;
   /** Collectr stack: sold listings vs population-only mode. */
   focus?: "sold" | "population";
@@ -86,6 +91,7 @@ export function MarketCompsPanel({
     tcgplayer: t("comps_sold_title_tcp"),
     cardmarket: t("comps_sold_title_cm"),
   };
+  const ebaySoldCtaUrl = ebaySoldSearchUrl(cardName || "", setName);
 
   function tcpTotal(row: (typeof tcp)[number]): number {
     return Number(row.price) + Number(row.shipping_price || 0);
@@ -251,7 +257,19 @@ export function MarketCompsPanel({
                 </div>
               ) : null}
               {ebay.length === 0 && !data.ebay_error ? (
-                <p className="chart-sources-status">{t("comps_ebay_empty")}</p>
+                <div className="comps-empty-cta">
+                  <p className="chart-sources-status">{t("comps_ebay_empty")}</p>
+                  {ebaySoldCtaUrl ? (
+                    <a
+                      className="btn-ghost"
+                      href={ebaySoldCtaUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {t("comps_ebay_search_cta")}
+                    </a>
+                  ) : null}
+                </div>
               ) : null}
               <ul className="comps-list">
                 {ebay.slice(0, 8).map((row, i) => (
