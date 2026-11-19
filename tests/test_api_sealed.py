@@ -304,3 +304,28 @@ def test_sealed_ensure_route() -> None:
     body = res.json()
     assert body["card_id"] == "sealed:demo-test"
     assert body["ensured"] is True
+
+
+def test_sealed_quote_pkmnprices_fallback(monkeypatch) -> None:
+    monkeypatch.setattr("justtcg_client.justtcg_api_key", lambda: "key")
+    monkeypatch.setattr("api.sealed_service.demo_mode", lambda: False)
+    monkeypatch.setattr("justtcg_sealed.quote_sealed", lambda **_k: [])
+    monkeypatch.setattr("pkmnprices_client.pkmnprices_configured", lambda: True)
+    monkeypatch.setattr(
+        "pkmnprices_client.sealed_quote_for_tcgplayer_id",
+        lambda tcp: {
+            "card_id": f"sealed:{tcp}",
+            "name": "Test Box",
+            "set_name": "Test Set",
+            "tcgplayer_id": str(tcp),
+            "gtin": None,
+            "spot_usd": 88.0,
+            "image_url": None,
+            "source": "pkmnprices",
+            "kind": "sealed",
+        },
+    )
+    body = quote_sealed_products(tcgplayer_id="624679", limit=4)
+    assert body["source"] == "pkmnprices"
+    assert body["pkmnprices_used"] is True
+    assert body["items"][0]["spot_usd"] == 88.0

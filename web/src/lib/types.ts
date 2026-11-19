@@ -165,7 +165,8 @@ export type SealedQuoteItem = {
 
 export type SealedQuoteResponse = {
   items: SealedQuoteItem[];
-  source: "justtcg" | "demo" | "empty";
+  source: "justtcg" | "demo" | "empty" | "pkmnprices";
+  pkmnprices_used?: boolean;
   justtcg_configured: boolean;
   error?: string | null;
 };
@@ -189,8 +190,9 @@ export type SealedDetailResponse = {
   hits: CatalogCard[];
   groups: SealedRarityGroup[];
   summary?: SealedDetailSummary | null;
-  source: "justtcg" | "demo" | "empty";
+  source: "justtcg" | "demo" | "empty" | "pkmnprices";
   justtcg_configured: boolean;
+  pkmnprices_used?: boolean;
   set_name?: string | null;
 };
 

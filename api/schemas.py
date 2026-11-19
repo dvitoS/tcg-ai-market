@@ -851,8 +851,9 @@ class SealedQuoteItem(BaseModel):
 
 class SealedQuoteResponse(BaseModel):
     items: list[SealedQuoteItem] = Field(default_factory=list)
-    source: Literal["justtcg", "demo", "empty"] = "empty"
+    source: Literal["justtcg", "demo", "empty", "pkmnprices"] = "empty"
     justtcg_configured: bool = False
+    pkmnprices_used: bool = False
     error: str | None = None
 
 
@@ -875,8 +876,9 @@ class SealedDetailResponse(BaseModel):
     hits: list[CatalogCard] = Field(default_factory=list)
     groups: list[SealedRarityGroup] = Field(default_factory=list)
     summary: SealedDetailSummary | None = None
-    source: Literal["justtcg", "demo", "empty"] = "empty"
+    source: Literal["justtcg", "demo", "empty", "pkmnprices"] = "empty"
     justtcg_configured: bool = False
+    pkmnprices_used: bool = False
     set_name: str | None = None
 
 

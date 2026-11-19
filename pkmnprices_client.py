@@ -374,3 +374,83 @@ def psa_history_for_tcgplayer_id(
         "source": "pkmnprices",
     }
     return points, stats
+
+
+def find_sealed_id_by_tcgplayer_id(tcgplayer_id: str | int | None) -> int | None:
+    """Resolve TCP product id → PkmnPrices sealed integer id (list has no prices)."""
+    if tcgplayer_id is None:
+        return None
+    raw = str(tcgplayer_id).strip()
+    if not raw.isdigit():
+        return None
+    payload = _get("/v1/sealed", {"tcg_player_id": int(raw), "per_page": 1})
+    rows = payload.get("data") if isinstance(payload.get("data"), list) else []
+    if not rows:
+        return None
+    try:
+        return int(rows[0].get("id"))
+    except (TypeError, ValueError):
+        return None
+
+
+def get_sealed(sealed_id: int, *, currency: str = "usd") -> dict[str, Any]:
+    return _get(f"/v1/sealed/{int(sealed_id)}", {"currency": currency})
+
+
+def _sealed_usd_spot(payload: dict[str, Any]) -> float | None:
+    prices = payload.get("prices")
+    if not isinstance(prices, list):
+        return None
+    for row in prices:
+        if not isinstance(row, dict):
+            continue
+        if str(row.get("currency") or "").upper() not in {"USD", ""}:
+            continue
+        if str(row.get("source") or "").lower() not in {"tcgplayer", ""}:
+            continue
+        try:
+            price = float(row.get("market_price"))
+        except (TypeError, ValueError):
+            continue
+        if price > 0:
+            return price
+    return None
+
+
+def sealed_spot_for_tcgplayer_id(tcgplayer_id: str | int | None) -> float | None:
+    """Current TCGPlayer sealed market price via PkmnPrices."""
+    sid = find_sealed_id_by_tcgplayer_id(tcgplayer_id)
+    if sid is None:
+        return None
+    return _sealed_usd_spot(get_sealed(sid, currency="usd"))
+
+
+def sealed_quote_for_tcgplayer_id(tcgplayer_id: str | int | None) -> dict[str, Any] | None:
+    """Normalized Soft Ink sealed hit (same shape as ``justtcg_sealed.normalize_sealed_hit``)."""
+    if tcgplayer_id is None:
+        return None
+    tcp = str(tcgplayer_id).strip()
+    if not tcp.isdigit():
+        return None
+    sid = find_sealed_id_by_tcgplayer_id(tcp)
+    if sid is None:
+        return None
+    payload = get_sealed(sid, currency="usd")
+    spot = _sealed_usd_spot(payload)
+    if spot is None:
+        return None
+    set_obj = payload.get("set") if isinstance(payload.get("set"), dict) else {}
+    set_name = str(set_obj.get("name") or "").strip() or None
+    name = str(payload.get("name") or "").strip() or f"Sealed {tcp}"
+    image = str(payload.get("image_url") or "").strip() or None
+    return {
+        "card_id": f"sealed:{tcp}",
+        "name": name,
+        "set_name": set_name,
+        "tcgplayer_id": tcp,
+        "gtin": None,
+        "spot_usd": float(spot),
+        "image_url": image,
+        "source": "pkmnprices",
+        "kind": "sealed",
+    }

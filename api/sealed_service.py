@@ -747,6 +747,48 @@ def _attach_ir_teasers(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return out
 
 
+def _numeric_tcp_query(q: str | None) -> str | None:
+    raw = str(q or "").strip()
+    # Bare TCP product ids are typically 6–8 digits; 12+ is GTIN territory.
+    if re.fullmatch(r"\d{6,11}", raw):
+        return raw
+    return None
+
+
+def _pkmn_sealed_quote(tcgplayer_id: str | None) -> dict[str, Any] | None:
+    tcp = str(tcgplayer_id or "").strip()
+    if not tcp.isdigit():
+        return None
+    try:
+        from pkmnprices_client import pkmnprices_configured, sealed_quote_for_tcgplayer_id
+
+        if not pkmnprices_configured():
+            return None
+        return sealed_quote_for_tcgplayer_id(tcp)
+    except Exception as exc:
+        LOG.info("PkmnPrices sealed quote failed (%s): %s", tcp, exc)
+        return None
+
+
+def _fill_sealed_spots_from_pkmn(
+    items: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], bool]:
+    """Fill null ``spot_usd`` from PkmnPrices; keep JustTCG identity otherwise."""
+    out: list[dict[str, Any]] = []
+    used = False
+    for row in items:
+        hit = dict(row)
+        if hit.get("spot_usd") is None:
+            pkmn = _pkmn_sealed_quote(str(hit.get("tcgplayer_id") or ""))
+            if pkmn and pkmn.get("spot_usd") is not None:
+                hit["spot_usd"] = pkmn["spot_usd"]
+                if not hit.get("image_url") and pkmn.get("image_url"):
+                    hit["image_url"] = pkmn["image_url"]
+                used = True
+        out.append(hit)
+    return out, used
+
+
 def quote_sealed_products(
     *,
     q: str | None = None,
@@ -780,8 +822,23 @@ def quote_sealed_products(
 
     if not has_key or demo_mode():
         hits = _filter_demo(q or tcgplayer_id or gtin)
+        if hits:
+            return {
+                "items": hits[:limit],
+                "source": "demo",
+                "justtcg_configured": has_key,
+            }
+        # No curated seed — try PkmnPrices when we have a TCP id.
+        pkmn_hit = _pkmn_sealed_quote(tcgplayer_id or _numeric_tcp_query(q))
+        if pkmn_hit:
+            return {
+                "items": [pkmn_hit],
+                "source": "pkmnprices",
+                "justtcg_configured": has_key,
+                "pkmnprices_used": True,
+            }
         return {
-            "items": hits[:limit],
+            "items": [],
             "source": "demo",
             "justtcg_configured": has_key,
         }
@@ -795,13 +852,39 @@ def quote_sealed_products(
             gtin=gtin,
             limit=limit,
         )
+        if items:
+            # Fill null spots from PkmnPrices without replacing live JustTCG rows.
+            filled, pkmn_used = _fill_sealed_spots_from_pkmn(items)
+            return {
+                "items": filled[:limit],
+                "source": "justtcg",
+                "justtcg_configured": True,
+                "pkmnprices_used": pkmn_used,
+            }
+        pkmn_hit = _pkmn_sealed_quote(tcgplayer_id or _numeric_tcp_query(q))
+        if pkmn_hit:
+            return {
+                "items": [pkmn_hit],
+                "source": "pkmnprices",
+                "justtcg_configured": True,
+                "pkmnprices_used": True,
+            }
         return {
-            "items": items[:limit],
-            "source": "justtcg" if items else "empty",
+            "items": [],
+            "source": "empty",
             "justtcg_configured": True,
         }
     except Exception as exc:
         LOG.info("sealed quote failed: %s", exc)
+        pkmn_hit = _pkmn_sealed_quote(tcgplayer_id or _numeric_tcp_query(q))
+        if pkmn_hit:
+            return {
+                "items": [pkmn_hit],
+                "source": "pkmnprices",
+                "justtcg_configured": True,
+                "pkmnprices_used": True,
+                "error": str(exc)[:180],
+            }
         return {
             "items": [],
             "source": "empty",
@@ -956,6 +1039,7 @@ def sealed_product_detail(tcgplayer_id: str, *, hits_limit: int = 48) -> dict[st
     from justtcg_client import justtcg_api_key
 
     has_key = bool(justtcg_api_key())
+    pkmn_used = False
     if has_key and not demo_mode():
         try:
             from justtcg_sealed import quote_sealed, tcgplayer_product_image
@@ -983,10 +1067,49 @@ def sealed_product_detail(tcgplayer_id: str, *, hits_limit: int = 48) -> dict[st
                         hit["product_kind"] = seed.get("product_kind")
                         hit["packs"] = seed.get("packs")
                         hit["name"] = hit.get("name") or seed.get("name")
+                    if hit.get("spot_usd") is None:
+                        filled, used = _fill_sealed_spots_from_pkmn([hit])
+                        hit = filled[0]
+                        pkmn_used = used
                     product = hit
                     source = "justtcg"
         except Exception as exc:
             LOG.info("sealed detail live quote failed (%s): %s", tid, exc)
+
+    # JustTCG miss or null spot — PkmnPrices fill (skip when demo-mode showcase only).
+    need_pkmn = (
+        not pkmn_used
+        and not demo_mode()
+        and (
+            product is None
+            or product.get("spot_usd") is None
+            or (has_key and source != "justtcg")
+        )
+    )
+    if need_pkmn:
+        pkmn = _pkmn_sealed_quote(tid)
+        if pkmn:
+            seed = product
+            hit = dict(pkmn)
+            if seed:
+                hit["set_name"] = seed.get("set_name") or hit.get("set_name")
+                hit["product_kind"] = seed.get("product_kind")
+                hit["packs"] = seed.get("packs")
+                hit["name"] = hit.get("name") or seed.get("name")
+                if not hit.get("image_url"):
+                    hit["image_url"] = seed.get("image_url")
+            hit["set_name"] = normalize_sealed_set_name(hit.get("set_name")) or hit.get(
+                "set_name"
+            )
+            if source == "justtcg" and product is not None:
+                product["spot_usd"] = hit.get("spot_usd")
+                if not product.get("image_url") and hit.get("image_url"):
+                    product["image_url"] = hit.get("image_url")
+                pkmn_used = True
+            else:
+                product = hit
+                source = "pkmnprices"
+                pkmn_used = True
 
     if not product:
         return None
@@ -1032,5 +1155,6 @@ def sealed_product_detail(tcgplayer_id: str, *, hits_limit: int = 48) -> dict[st
         "summary": summary,
         "source": source,
         "justtcg_configured": has_key,
+        "pkmnprices_used": pkmn_used,
         "set_name": set_name or None,
     }
