@@ -1539,6 +1539,7 @@ a {
 
 .detail-page-desk {
   gap: 2rem;
+  max-width: 1180px;
 }
 
 .detail-back {
@@ -1653,6 +1654,97 @@ a {
 
 .detail-section-chart .chart-panel {
   animation-delay: 0.06s;
+}
+
+/* Chart + side rail (collection + active eBay) — Collectr rhythm, Soft Ink */
+.detail-desk-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+  gap: 1.5rem 1.75rem;
+  align-items: start;
+}
+
+.detail-desk-main {
+  min-width: 0;
+}
+
+.detail-desk-side {
+  display: grid;
+  gap: 1rem;
+  position: sticky;
+  top: 1rem;
+}
+
+.detail-side-module {
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 14px;
+  background: rgba(14, 14, 14, 0.72);
+  padding: 0.95rem 1rem 1.05rem;
+}
+
+.detail-side-heading {
+  margin: 0 0 0.65rem;
+  font-family: var(--font-display);
+  font-size: 1.02rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.detail-side-ebay .ebay-block {
+  padding: 0;
+  box-shadow: none;
+}
+
+.detail-side-ebay .ebay-head h2 {
+  font-size: 1.02rem;
+}
+
+.detail-side-ebay .ebay-list {
+  max-height: min(28rem, 55vh);
+  overflow: auto;
+  margin-top: 0.35rem;
+  padding-right: 0.15rem;
+}
+
+.detail-side-ebay .ebay-row {
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  gap: 0.4rem 0.45rem;
+}
+
+.detail-side-ebay .ebay-price {
+  font-size: 0.82rem;
+}
+
+.detail-side-ebay .ebay-link {
+  grid-column: 3;
+  justify-self: end;
+  font-size: 0.72rem;
+}
+
+.detail-side-ebay .ebay-thumb {
+  width: 40px;
+  height: 40px;
+}
+
+.detail-side-module .add-lot-panel > h2,
+.detail-side-module .add-lot-panel > .add-lot-title {
+  display: none;
+}
+
+.ebay-panel-compact .ebay-caption {
+  margin: 0.4rem 0 0.2rem;
+  font-size: 0.78rem;
+}
+
+@media (max-width: 960px) {
+  .detail-desk-split {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-desk-side {
+    position: static;
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Collectr-style Raw | Graded | Pop. — Soft Ink copper, not teal clone */
