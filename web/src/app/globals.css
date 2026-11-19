@@ -82,17 +82,11 @@ body {
   margin: 0;
   color: var(--text);
   font-family: var(--font-ui);
+  /* Soft washes only — no hatch/stripe grain (reads as noise on desks). */
   background:
     radial-gradient(ellipse 80% 50% at 8% -10%, var(--ink-wash), transparent 58%),
     radial-gradient(ellipse 55% 42% at 100% 0%, rgba(255, 248, 235, 0.035), transparent 52%),
     radial-gradient(ellipse 45% 35% at 70% 100%, rgba(192, 122, 58, 0.05), transparent 60%),
-    repeating-linear-gradient(
-      -12deg,
-      transparent,
-      transparent 13px,
-      rgba(255, 255, 255, 0.011) 13px,
-      rgba(255, 255, 255, 0.011) 14px
-    ),
     linear-gradient(180deg, var(--bg1) 0%, var(--bg0) 72%, #080706 100%);
   background-attachment: fixed;
 }
@@ -3914,15 +3908,11 @@ a {
   position: absolute;
   inset: 0;
   opacity: 0.18;
-  background-image:
-    linear-gradient(180deg, rgba(12, 12, 12, 0.15), rgba(12, 12, 12, 0.85)),
-    repeating-linear-gradient(
-      -18deg,
-      transparent,
-      transparent 11px,
-      rgba(255, 255, 255, 0.015) 11px,
-      rgba(255, 255, 255, 0.015) 12px
-    );
+  background-image: linear-gradient(
+    180deg,
+    rgba(12, 12, 12, 0.15),
+    rgba(12, 12, 12, 0.85)
+  );
 }
 
 @keyframes auth-drift {

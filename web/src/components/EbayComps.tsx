@@ -95,7 +95,6 @@ export function EbayComps({
       <div className="ebay-block">
         <div className="ebay-head">
           <h2>{t("ebay_active_title")}</h2>
-          {compact ? null : <p>{t("ebay_active_lede")}</p>}
         </div>
         {loading ? <p className="empty-state">{t("ebay_loading")}</p> : null}
         {!loading &&

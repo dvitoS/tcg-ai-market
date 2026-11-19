@@ -358,16 +358,6 @@ export function CardDetailView({
                 {t("detail_finishes", { finishes: finishes.join(" · ") })}
               </p>
             ) : null}
-            {foil === "holo" ? (
-              <p className="detail-foil-tip">{t("detail_foil_holo")}</p>
-            ) : foil === "reverse" ? (
-              <p className="detail-foil-tip">{t("detail_foil_reverse")}</p>
-            ) : null}
-            <p className="detail-spot-source">
-              {history.last_date
-                ? t("detail_spot_source_asof", { date: history.last_date })
-                : t("detail_spot_source")}
-            </p>
             {band ? (
               <p className="detail-under-caption" title={t("glossary_band_tip")}>
                 {t("detail_predicted")}: {formatSpot(card.predicted_price, 2)}
@@ -386,9 +376,7 @@ export function CardDetailView({
               >
                 {t("fx_rate_tip", { rate: usdEur.toFixed(4) })}
               </p>
-            ) : (
-              <p className="detail-fx-note">{t("detail_eu_separate")}</p>
-            )}
+            ) : null}
             <p className="detail-desk-disclaimer">{t("detail_desk_disclaimer")}</p>
             <WrongSpotReport
               cardId={card.id}

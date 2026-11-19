@@ -96,7 +96,6 @@ export function MarketCompsPanel({
       <section className="comps-panel comps-panel-pop" aria-label={t("comps_pop_title")}>
         <div className="comps-head">
           <h2>{t("comps_pop_title")}</h2>
-          <p>{t("comps_pop_lede")}</p>
         </div>
         {loading ? (
           <p className="chart-sources-status">{t("comps_loading")}</p>
@@ -191,11 +190,6 @@ export function MarketCompsPanel({
       <div className="comps-head comps-head-mkt">
         <div>
           <h2>{titleByMarket[market]}</h2>
-          <p>
-            {autoArm
-              ? t("comps_subtitle_auto", { min: String(GRADED_AUTO_MIN_USD) })
-              : t("comps_subtitle")}
-          </p>
         </div>
         <MarketSourceTabs
           sources={["ebay", "tcgplayer", "cardmarket"]}
@@ -214,7 +208,6 @@ export function MarketCompsPanel({
           >
             {t("comps_load")}
           </button>
-          <span className="lot-meta">{t("comps_load_hint")}</span>
         </p>
       ) : null}
 
@@ -229,7 +222,6 @@ export function MarketCompsPanel({
         <div className="comps-body">
           {market === "ebay" ? (
             <div className="comps-block">
-              <p className="comps-lede">{t("comps_ebay_lede")}</p>
               {data.ebay_error && ebay.length === 0 ? (
                 <p className="chart-sources-status">{data.ebay_error}</p>
               ) : null}
@@ -292,7 +284,6 @@ export function MarketCompsPanel({
 
           {market === "tcgplayer" ? (
             <div className="comps-block">
-              <p className="comps-lede">{t("comps_tcp_lede")}</p>
               {data.tcgplayer_error && tcp.length === 0 ? (
                 <p className="chart-sources-status">{data.tcgplayer_error}</p>
               ) : null}
@@ -350,7 +341,6 @@ export function MarketCompsPanel({
 
           {market === "cardmarket" ? (
             <div className="comps-block">
-              <p className="comps-lede">{t("comps_cm_lede")}</p>
               {data.cardmarket_error && cm.length === 0 ? (
                 <p className="chart-sources-status">{data.cardmarket_error}</p>
               ) : null}

@@ -190,13 +190,6 @@ export function GradedPriceChart({
       <div className="chart-head">
         <div>
           <h2>{t("chart_graded_title")}</h2>
-          <p>
-            {autoArm
-              ? t("chart_graded_subtitle_auto", {
-                  min: String(GRADED_AUTO_MIN_USD),
-                })
-              : t("chart_graded_subtitle")}
-          </p>
         </div>
         {armed ? (
           <div
@@ -229,7 +222,6 @@ export function GradedPriceChart({
           >
             {t("chart_graded_load")}
           </button>
-          <span className="lot-meta">{t("chart_graded_load_hint")}</span>
         </p>
       ) : null}
 
