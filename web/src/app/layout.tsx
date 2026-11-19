@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { DM_Sans, Fraunces } from "next/font/google";
+import type React from "react";
 
 import { AuthProvider } from "@/components/AuthProvider";
 import { CurrencyProvider } from "@/components/CurrencyProvider";
@@ -55,6 +56,10 @@ export const metadata: Metadata = {
   ...(googleVerification
     ? { verification: { google: googleVerification } }
     : {}),
+  // TCGplayer Impact affiliate site verification (crawler expects this name).
+  other: {
+    "impact-site-verification": "3ed663b7-6868-4a21-bd4e-6cc930840c2a",
+  },
   icons: {
     icon: [
       { url: "/icons/favicon-32.png", sizes: "32x32", type: "image/png" },
@@ -77,6 +82,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        {/* Impact’s snippet uses value= (non-standard); cast for their verifier. */}
+        <meta
+          {...({
+            name: "impact-site-verification",
+            value: "3ed663b7-6868-4a21-bd4e-6cc930840c2a",
+          } as React.MetaHTMLAttributes<HTMLMetaElement>)}
+        />
+      </head>
       <body className={`${dmSans.variable} ${fraunces.variable} antialiased`}>
         <LocaleProvider>
           <CurrencyProvider>
