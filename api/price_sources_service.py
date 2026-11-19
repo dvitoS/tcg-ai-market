@@ -322,13 +322,31 @@ def _fetch_psa_pair(
     )
 
 
+def _printing_cache_slug(printing: str | None) -> str:
+    text = str(printing or "").strip().lower()
+    if not text:
+        return "-"
+    slug = "".join(ch if ch.isalnum() else "" for ch in text)
+    return (slug[:40] or "-")
+
+
 def _build_card_price_sources_uncached(
     card_id: str,
     *,
     limit: int,
     grades: str = "none",
+    cardmarket: bool = False,
+    printing: str | None = None,
 ) -> dict[str, Any]:
     grades_mode = normalize_grades_mode(grades)
+    want_cardmarket = bool(cardmarket)
+    finish_label = str(printing or "").strip() or None
+    try:
+        from pkmnprices_client import soft_ink_finish_to_pkmn_variant
+
+        want_variant = soft_ink_finish_to_pkmn_variant(finish_label)
+    except Exception:
+        want_variant = finish_label
     market = _points_from_rows(load_card_history(card_id, limit=limit))
     name, set_name, tcp = _resolve_tcp_from_board(card_id)
     has_key = bool(justtcg_api_key())
@@ -440,11 +458,13 @@ def _build_card_price_sources_uncached(
     except Exception:
         pkmn_configured = False
 
+    # Finish-specific NM must come from PkmnPrices — DB Soft Ink history is finish-blind.
     want_pkmn_nm = bool(
         pkmn_configured
         and tcp
         and (
-            not justtcg
+            bool(want_variant)
+            or not justtcg
             or (not has_key and not use_db_nm and grades_mode == "none")
         )
     )
@@ -456,13 +476,18 @@ def _build_card_price_sources_uncached(
                 justtcg_fallback = True
             elif not justtcg:
                 pkmn_error = "PkmnPrices Soft Ink live NM daily budget exhausted."
+            elif want_variant:
+                pkmn_error = "PkmnPrices Soft Ink live NM daily budget exhausted."
         else:
             try:
                 # Prefer up to 1Y when the caller asks for a long series (chart 1Y).
                 hist_limit = max(1, min(365, int(limit)))
                 hist_period = "365d" if hist_limit > 120 else "90d"
                 points = nm_history_for_tcgplayer_id(
-                    tcp, period=hist_period, limit=hist_limit
+                    tcp,
+                    period=hist_period,
+                    limit=hist_limit,
+                    variant=want_variant,
                 )
                 filled = _points_from_rows(points)
                 if filled:
@@ -471,14 +496,19 @@ def _build_card_price_sources_uncached(
                     justtcg_from_db = False
                     justtcg_fallback = True
                     LOG.info(
-                        "PkmnPrices NM %s for %s (%s pts, tcp=%s)",
+                        "PkmnPrices NM %s for %s (%s pts, tcp=%s, variant=%s)",
                         "primary" if not has_key else "fallback",
                         card_id,
                         len(justtcg),
                         tcp,
+                        want_variant or "auto",
                     )
                 else:
                     pkmn_error = "PkmnPrices returned no Near Mint history."
+                    if want_variant:
+                        pkmn_error = (
+                            f"PkmnPrices returned no Near Mint history for {want_variant}."
+                        )
                     if not justtcg and market:
                         justtcg = list(market)
                         justtcg_from_db = True
@@ -497,6 +527,25 @@ def _build_card_price_sources_uncached(
                     justtcg = list(market)
                     justtcg_from_db = True
                     justtcg_fallback = True
+
+    # Cardmarket NM (EUR) — opt-in so Soft Ink detail does not burn credits until the CM tab opens.
+    cardmarket_series: list[dict[str, Any]] = []
+    cardmarket_error: str | None = None
+    if want_cardmarket:
+        cardmarket_series, cardmarket_error, cm_used = _fetch_cardmarket_series_only(
+            tcp=tcp,
+            limit=limit,
+            pkmn_configured=pkmn_configured,
+            variant=want_variant,
+        )
+        if cm_used:
+            pkmn_used = True
+            LOG.info(
+                "PkmnPrices Cardmarket NM for %s (%s pts, tcp=%s)",
+                card_id,
+                len(cardmarket_series),
+                tcp,
+            )
 
     # Graded prints are optional — default Soft Ink detail skips them (quota).
     pkmn_grades_used = False
@@ -634,6 +683,8 @@ def _build_card_price_sources_uncached(
         "justtcg_fallback": justtcg_fallback,
         "justtcg_from_db": justtcg_from_db,
         "justtcg_error": justtcg_error,
+        "cardmarket": cardmarket_series,
+        "cardmarket_error": cardmarket_error,
         "psa10": psa10,
         "psa10_error": psa10_error,
         "psa10_stats": _grade_stats(psa10_stats),
@@ -643,19 +694,24 @@ def _build_card_price_sources_uncached(
         "population": population,
         "population_error": population_error,
         "grades": grades_mode,
+        "printing": finish_label,
         "cache": "miss",
     }
 
     # Cache DB-first + successful live payloads. Skip 429 / hard NM+PSA10 errors.
     # PSA 9 is additive — a soft PSA 9 miss must not poison the cache entry.
+    # Soft Cardmarket miss is additive too (EUR series is opt-in).
     if not rate_limited and justtcg_error is None and psa10_error is None:
         ttl = (
             _SOURCES_CACHE_TTL_SECONDS
-            if (justtcg or psa10 or psa9 or market)
+            if (justtcg or psa10 or psa9 or market or cardmarket_series)
             else _SOURCES_CACHE_EMPTY_TTL_SECONDS
         )
         _cache_put(
-            cache_key=f"v3|{card_id}|{limit}|{grades_mode}",
+            cache_key=(
+                f"v5|{card_id}|{limit}|{grades_mode}|cm={int(want_cardmarket)}"
+                f"|p={_printing_cache_slug(finish_label)}"
+            ),
             payload={k: v for k, v in payload.items() if k != "cache"},
             ttl=ttl,
         )
@@ -663,21 +719,109 @@ def _build_card_price_sources_uncached(
     return payload
 
 
+def _fetch_cardmarket_series_only(
+    *,
+    tcp: str | None,
+    limit: int,
+    pkmn_configured: bool,
+    variant: str | None = None,
+) -> tuple[list[dict[str, Any]], str | None, bool]:
+    """EUR NM history only — used when Soft Ink already has a cm=0 sources cache hit."""
+    if not pkmn_configured:
+        return [], "PkmnPrices not configured for Cardmarket history.", False
+    if not tcp:
+        return [], "No TCGplayer id to resolve Cardmarket history.", False
+    if not _try_consume_live_pkmn_nm_budget():
+        return [], "PkmnPrices Soft Ink live NM daily budget exhausted.", False
+    try:
+        from pkmnprices_client import (
+            PkmnPricesRateLimitError,
+            nm_history_for_tcgplayer_id,
+        )
+
+        hist_limit = max(1, min(365, int(limit)))
+        hist_period = "365d" if hist_limit > 120 else "90d"
+        cm_points = nm_history_for_tcgplayer_id(
+            tcp,
+            period=hist_period,
+            limit=hist_limit,
+            currency="eur",
+            variant=variant,
+        )
+        series = _points_from_rows(cm_points)
+        if series:
+            return series, None, True
+        if variant:
+            return (
+                [],
+                f"PkmnPrices returned no Cardmarket Near Mint history for {variant}.",
+                False,
+            )
+        return [], "PkmnPrices returned no Cardmarket Near Mint history.", False
+    except PkmnPricesRateLimitError:
+        return [], "PkmnPrices rate/credit limited — try again later.", False
+    except Exception as exc:
+        return [], str(exc)[:180], False
+
+
 def build_card_price_sources(
     card_id: str,
     *,
     limit: int = 180,
     grades: str | None = "none",
+    cardmarket: bool = False,
+    printing: str | None = None,
 ) -> dict[str, Any]:
     card_id = str(card_id).strip()
     limit = max(1, min(int(limit or 180), 365))
     grades_mode = normalize_grades_mode(grades)
-    cache_key = f"v3|{card_id}|{limit}|{grades_mode}"
+    want_cardmarket = bool(cardmarket)
+    finish_label = str(printing or "").strip() or None
+    print_slug = _printing_cache_slug(finish_label)
+    cache_key = (
+        f"v5|{card_id}|{limit}|{grades_mode}|cm={int(want_cardmarket)}|p={print_slug}"
+    )
     cached = _cache_get(cache_key)
     if cached is not None:
         cached["cache"] = "hit"
         record_justtcg_event("cache_hit")
         return cached
+
+    # Soft Ink CM tab: reuse USD sources cache so we do not re-burn Pkmn USD NM credits.
+    if want_cardmarket:
+        base_key = f"v5|{card_id}|{limit}|{grades_mode}|cm=0|p={print_slug}"
+        base = _cache_get(base_key)
+        if base is not None:
+            try:
+                from pkmnprices_client import soft_ink_finish_to_pkmn_variant
+
+                cm_variant = soft_ink_finish_to_pkmn_variant(finish_label)
+            except Exception:
+                cm_variant = finish_label
+            series, cm_err, used = _fetch_cardmarket_series_only(
+                tcp=base.get("tcgplayer_id"),
+                limit=limit,
+                pkmn_configured=bool(base.get("pkmnprices_configured")),
+                variant=cm_variant,
+            )
+            payload = dict(base)
+            payload["cardmarket"] = series
+            payload["cardmarket_error"] = cm_err
+            payload["printing"] = finish_label
+            if used:
+                payload["pkmnprices_used"] = True
+            payload["cache"] = "miss"
+            ttl = (
+                _SOURCES_CACHE_TTL_SECONDS
+                if series
+                else _SOURCES_CACHE_EMPTY_TTL_SECONDS
+            )
+            _cache_put(
+                cache_key=cache_key,
+                payload={k: v for k, v in payload.items() if k != "cache"},
+                ttl=ttl,
+            )
+            return payload
 
     owner = False
     with _SOURCES_INFLIGHT_LOCK:
@@ -699,6 +843,8 @@ def build_card_price_sources(
             card_id,
             limit=limit,
             grades=grades_mode,
+            cardmarket=want_cardmarket,
+            printing=finish_label,
         )
         inflight.set_result({k: v for k, v in payload.items() if k != "cache"})
         return payload

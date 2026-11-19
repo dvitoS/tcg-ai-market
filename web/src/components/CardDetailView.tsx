@@ -344,6 +344,7 @@ export function CardDetailView({
                 cardId={card.id}
                 points={points}
                 predictedPrice={card.predicted_price}
+                finishes={finishes}
               />
             ) : null}
             {deskMode === "graded" ? (

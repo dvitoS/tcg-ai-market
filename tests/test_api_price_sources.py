@@ -151,6 +151,101 @@ def test_card_price_sources_pkmn_primary_without_justtcg(monkeypatch) -> None:
     assert body["pkmnprices_used"] is True
     assert len(body["justtcg"]) == 2
     assert body["justtcg"][1]["price"] == 3.25
+    assert body.get("cardmarket") == []
+
+
+def test_card_price_sources_cardmarket_opt_in(monkeypatch) -> None:
+    """Cardmarket EUR series only when cardmarket=True (lazy Soft Ink CM tab)."""
+    monkeypatch.setattr("api.price_sources_service.justtcg_api_key", lambda: "")
+    monkeypatch.setattr(
+        "api.price_sources_service._market_history_is_fresh",
+        lambda _m: False,
+    )
+    monkeypatch.setattr(
+        "api.price_sources_service._resolve_tcp_from_board",
+        lambda _cid: ("Pikachu", "Base", "4242"),
+    )
+    monkeypatch.setattr(
+        "api.price_sources_service.load_card_history",
+        lambda *_a, **_k: [],
+    )
+    monkeypatch.setattr("pkmnprices_client.pkmnprices_configured", lambda: True)
+
+    def _nm(_tcp, *, period="90d", limit=120, currency="usd", variant=None):
+        if currency == "eur":
+            return [
+                {"date": "2024-06-01", "price": 2.4},
+                {"date": "2024-06-02", "price": 2.6},
+            ]
+        return [
+            {"date": "2024-06-01", "price": 3.0},
+            {"date": "2024-06-02", "price": 3.2},
+        ]
+
+    monkeypatch.setattr("pkmnprices_client.nm_history_for_tcgplayer_id", _nm)
+
+    from api.price_sources_service import (
+        build_card_price_sources,
+        clear_price_sources_cache,
+        reset_live_pkmn_nm_budget_for_tests,
+    )
+
+    clear_price_sources_cache()
+    reset_live_pkmn_nm_budget_for_tests()
+    off = build_card_price_sources("sv3-1", limit=60, grades="none", cardmarket=False)
+    assert off.get("cardmarket") == []
+    assert off.get("cardmarket_error") is None
+
+    clear_price_sources_cache()
+    reset_live_pkmn_nm_budget_for_tests()
+    on = build_card_price_sources("sv3-1", limit=60, grades="none", cardmarket=True)
+    assert len(on["cardmarket"]) == 2
+    assert on["cardmarket"][1]["price"] == 2.6
+    assert on["cardmarket_error"] is None
+    assert on["pkmnprices_used"] is True
+    # EUR must not replace the USD Soft Ink series.
+    assert on["justtcg"][1]["price"] == 3.2
+
+
+def test_card_price_sources_cardmarket_reuses_usd_cache(monkeypatch) -> None:
+    """Opening the CM tab must not re-fetch USD NM when cm=0 is warm."""
+    monkeypatch.setattr("api.price_sources_service.justtcg_api_key", lambda: "")
+    monkeypatch.setattr(
+        "api.price_sources_service._market_history_is_fresh",
+        lambda _m: False,
+    )
+    monkeypatch.setattr(
+        "api.price_sources_service._resolve_tcp_from_board",
+        lambda _cid: ("Pikachu", "Base", "4242"),
+    )
+    monkeypatch.setattr(
+        "api.price_sources_service.load_card_history",
+        lambda *_a, **_k: [],
+    )
+    monkeypatch.setattr("pkmnprices_client.pkmnprices_configured", lambda: True)
+
+    calls: list[str] = []
+
+    def _nm(_tcp, *, period="90d", limit=120, currency="usd", variant=None):
+        calls.append(currency)
+        if currency == "eur":
+            return [{"date": "2024-06-01", "price": 2.4}]
+        return [{"date": "2024-06-01", "price": 3.0}]
+
+    monkeypatch.setattr("pkmnprices_client.nm_history_for_tcgplayer_id", _nm)
+
+    from api.price_sources_service import (
+        build_card_price_sources,
+        clear_price_sources_cache,
+        reset_live_pkmn_nm_budget_for_tests,
+    )
+
+    clear_price_sources_cache()
+    reset_live_pkmn_nm_budget_for_tests()
+    build_card_price_sources("sv3-1", limit=60, grades="none", cardmarket=False)
+    assert calls == ["usd"]
+    build_card_price_sources("sv3-1", limit=60, grades="none", cardmarket=True)
+    assert calls == ["usd", "eur"]
 
 
 def test_card_price_sources_pkmnprices_fallback(monkeypatch) -> None:

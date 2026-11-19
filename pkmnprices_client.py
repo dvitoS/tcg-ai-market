@@ -399,39 +399,99 @@ def _parse_history_date(raw: Any) -> str | None:
             return None
 
 
+def soft_ink_finish_to_pkmn_variant(finish: str | None) -> str | None:
+    """Map Soft Ink finish labels → PkmnPrices exact ``variant`` strings."""
+    text = str(finish or "").strip()
+    if not text:
+        return None
+    aliases = {
+        "normal": "Normal",
+        "nonfoil": "Normal",
+        "non-foil": "Normal",
+        "holofoil": "Holofoil",
+        "holo": "Holofoil",
+        "foil": "Holofoil",
+        "reverse holofoil": "Reverse Holofoil",
+        "reverse holo": "Reverse Holofoil",
+        "reverse": "Reverse Holofoil",
+        "1st edition holofoil": "1st Edition Holofoil",
+        "1st edition": "1st Edition",
+        "cosmos holofoil": "Cosmos Holofoil",
+    }
+    mapped = aliases.get(text.lower())
+    if mapped:
+        return mapped
+    # Already a Pkmn-style label (e.g. "Reverse Holofoil").
+    return text
+
+
+def _history_variant_rank(variant: str) -> int:
+    """Lower is better when collapsing same-day multi-finish rows (Soft Ink NM)."""
+    v = str(variant or "").strip().lower()
+    if not v:
+        return 50
+    if "reverse" in v:
+        return 20
+    if "holo" in v or v == "foil":
+        return 0
+    if v == "normal":
+        return 10
+    return 40
+
+
 def nm_history_for_tcgplayer_id(
     tcgplayer_id: str | int | None,
     *,
     period: str = "90d",
     limit: int = 120,
+    currency: str = "usd",
+    variant: str | None = None,
 ) -> list[dict[str, Any]]:
-    """Daily TCGPlayer Near Mint closes → Soft Ink ``[{date, price}, ...]``.
+    """Daily Near Mint closes → Soft Ink ``[{date, price}, ...]``.
 
+    ``currency=usd`` → TCGplayer (USD). ``currency=eur`` → Cardmarket (EUR).
+    ``variant`` (optional) → exact PkmnPrices printing filter (e.g. Holofoil).
+    When omitted, same-day rows collapse preferring Holofoil over Normal.
     Credits: 1 per history row returned — keep ``limit`` modest.
     """
     pid = find_card_id_by_tcgplayer_id(tcgplayer_id)
     if pid is None:
         return []
 
+    cur = str(currency or "usd").strip().lower()
+    if cur not in {"usd", "eur"}:
+        cur = "usd"
+    source_want = "cardmarket" if cur == "eur" else "tcgplayer"
+    want_variant = soft_ink_finish_to_pkmn_variant(variant)
+
     per_page = max(1, min(365, int(limit)))
-    payload = _get(
-        f"/v1/cards/{int(pid)}/prices/history",
-        {
-            "currency": "usd",
-            "period": period,
-            "condition": "Near Mint",
-            "limit": per_page,
-            "page": 1,
-        },
-    )
+    params: dict[str, Any] = {
+        "currency": cur,
+        "period": period,
+        "condition": "Near Mint",
+        "limit": per_page,
+        "page": 1,
+    }
+    if want_variant:
+        params["variant"] = want_variant
+    payload = _get(f"/v1/cards/{int(pid)}/prices/history", params)
     rows = payload.get("data") if isinstance(payload.get("data"), list) else []
     out: list[dict[str, Any]] = []
     for row in rows:
         if not isinstance(row, dict):
             continue
-        if str(row.get("source") or "").lower() not in {"tcgplayer", ""}:
+        src = str(row.get("source") or "").lower()
+        if src and src not in {source_want, ""}:
+            continue
+        row_cur = str(row.get("currency") or "").upper()
+        if cur == "eur" and row_cur and row_cur not in {"EUR", ""}:
+            continue
+        if cur == "usd" and row_cur and row_cur not in {"USD", ""}:
             continue
         if str(row.get("condition") or "") not in {"Near Mint", ""}:
+            continue
+        row_variant = str(row.get("variant") or "").strip()
+        if want_variant and row_variant and row_variant != want_variant:
             continue
         day = _parse_history_date(row.get("date"))
         if not day:
@@ -445,15 +505,19 @@ def nm_history_for_tcgplayer_id(
             continue
         if price <= 0:
             continue
-        out.append({"date": day, "price": price})
+        out.append({"date": day, "price": price, "variant": row_variant})
 
     # Newest last — match JustTCG Soft Ink series shape.
     out.sort(key=lambda r: r["date"])
-    # Collapse same-day multi-variant rows to the last (prefer later variant order).
-    by_day: dict[str, float] = {}
+    # Collapse same-day multi-variant rows — Soft Ink prefers Holofoil.
+    by_day: dict[str, tuple[float, int]] = {}
     for row in out:
-        by_day[row["date"]] = float(row["price"])
-    return [{"date": d, "price": by_day[d]} for d in sorted(by_day)]
+        day = str(row["date"])
+        rank = _history_variant_rank(str(row.get("variant") or ""))
+        prev = by_day.get(day)
+        if prev is None or rank < prev[1]:
+            by_day[day] = (float(row["price"]), rank)
+    return [{"date": d, "price": by_day[d][0]} for d in sorted(by_day)]
 
 
 def ebay_sold_search_url(
