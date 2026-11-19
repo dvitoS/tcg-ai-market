@@ -78,9 +78,6 @@ export function EbayComps({
   }, [cardId, t]);
 
   const listings = data?.listings || [];
-  const sold = data?.sold || [];
-  const stats = data?.sold_stats;
-  const showSold = Boolean(sold.length && stats?.is_sold);
   const lowest = listings
     .map((r) => r.price)
     .filter((n): n is number => n != null && Number.isFinite(n));
@@ -90,44 +87,7 @@ export function EbayComps({
       className="ebay-panel"
       aria-label={`${t("ebay_title")} · ${cardName}`}
     >
-      {/* True Marketplace Insights solds only — no active Browse proxy duplicate. */}
-      {showSold ? (
-        <div className="ebay-block ebay-sold-block">
-          <div className="ebay-head">
-            <h2>{t("ebay_sold_title")}</h2>
-            <p>{t("ebay_sold_lede")}</p>
-          </div>
-          {stats?.n ? (
-            <div className="ebay-cluster" aria-label={t("ebay_sold_cluster")}>
-              <div className="ebay-cluster-metric">
-                <span>{t("ebay_sold_median")}</span>
-                <strong>
-                  {stats.median != null
-                    ? formatMoney(stats.median, "USD", 2)
-                    : "—"}
-                </strong>
-              </div>
-              <div className="ebay-cluster-metric">
-                <span>{t("ebay_sold_range")}</span>
-                <strong>
-                  {formatMoney(stats.min, "USD", 2)} –{" "}
-                  {formatMoney(stats.max, "USD", 2)}
-                </strong>
-              </div>
-              <div className="ebay-cluster-metric">
-                <span>{t("ebay_sold_n")}</span>
-                <strong>{stats.n}</strong>
-              </div>
-            </div>
-          ) : null}
-          <div className="ebay-list">
-            {sold.map((row, idx) => (
-              <EbayRow key={`${row.item_id || row.url || idx}-s`} row={row} />
-            ))}
-          </div>
-        </div>
-      ) : null}
-
+      {/* Sold comps live in MarketCompsPanel tabs — this panel is active only. */}
       <div className="ebay-block">
         <div className="ebay-head">
           <h2>{t("ebay_active_title")}</h2>

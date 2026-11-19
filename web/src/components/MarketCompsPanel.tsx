@@ -4,6 +4,10 @@ import { useEffect, useState } from "react";
 
 import { GRADED_AUTO_MIN_USD } from "@/components/GradedPriceChart";
 import { useLocale } from "@/components/LocaleProvider";
+import {
+  MarketSourceTabs,
+  type MarketSource,
+} from "@/components/MarketSourceTabs";
 import { fetchCardMarketComps, formatMoney } from "@/lib/api";
 import type { MessageKey } from "@/lib/i18n/messages";
 import type { CardMarketCompsResponse } from "@/lib/types";
@@ -30,6 +34,7 @@ export function MarketCompsPanel({
     Number(nmSpotUsd) >= GRADED_AUTO_MIN_USD;
 
   const [armed, setArmed] = useState(autoArm);
+  const [market, setMarket] = useState<MarketSource>("ebay");
   const [data, setData] = useState<CardMarketCompsResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +44,7 @@ export function MarketCompsPanel({
     setData(null);
     setError(null);
     setLoading(false);
+    setMarket("ebay");
   }, [cardId, autoArm]);
 
   useEffect(() => {
@@ -70,15 +76,29 @@ export function MarketCompsPanel({
   const pop = data?.population;
   const gradeRows = pop?.grade_rows || [];
 
+  const titleByMarket: Record<MarketSource, string> = {
+    ebay: t("comps_sold_title_ebay"),
+    tcgplayer: t("comps_sold_title_tcp"),
+    cardmarket: t("comps_sold_title_cm"),
+  };
+
   return (
     <section className="comps-panel" aria-label={t("comps_title")}>
-      <div className="comps-head">
-        <h2>{t("comps_title")}</h2>
-        <p>
-          {autoArm
-            ? t("comps_subtitle_auto", { min: String(GRADED_AUTO_MIN_USD) })
-            : t("comps_subtitle")}
-        </p>
+      <div className="comps-head comps-head-mkt">
+        <div>
+          <h2>{titleByMarket[market]}</h2>
+          <p>
+            {autoArm
+              ? t("comps_subtitle_auto", { min: String(GRADED_AUTO_MIN_USD) })
+              : t("comps_subtitle")}
+          </p>
+        </div>
+        <MarketSourceTabs
+          sources={["ebay", "tcgplayer", "cardmarket"]}
+          value={market}
+          onChange={setMarket}
+          ariaLabel={t("comps_market_tabs")}
+        />
       </div>
 
       {!armed ? (
@@ -102,103 +122,115 @@ export function MarketCompsPanel({
       ) : null}
 
       {armed && data ? (
-        <div className="comps-grid">
-          <div className="comps-block">
-            <h3>{t("comps_ebay_title")}</h3>
-            <p className="comps-lede">{t("comps_ebay_lede")}</p>
-            {data.ebay_error && ebay.length === 0 ? (
-              <p className="chart-sources-status">{data.ebay_error}</p>
-            ) : null}
-            {ebayStats?.n ? (
-              <div className="comps-stats">
-                <div>
-                  <span>{t("comps_median")}</span>
-                  <strong>
-                    {formatMoney(ebayStats.median, ebayStats.currency || "USD", 2)}
-                  </strong>
+        <div className="comps-body">
+          {market === "ebay" ? (
+            <div className="comps-block">
+              <p className="comps-lede">{t("comps_ebay_lede")}</p>
+              {data.ebay_error && ebay.length === 0 ? (
+                <p className="chart-sources-status">{data.ebay_error}</p>
+              ) : null}
+              {ebayStats?.n ? (
+                <div className="comps-stats">
+                  <div>
+                    <span>{t("comps_median")}</span>
+                    <strong>
+                      {formatMoney(
+                        ebayStats.median,
+                        ebayStats.currency || "USD",
+                        2,
+                      )}
+                    </strong>
+                  </div>
+                  <div>
+                    <span>{t("comps_range")}</span>
+                    <strong>
+                      {formatMoney(ebayStats.low, "USD", 2)} –{" "}
+                      {formatMoney(ebayStats.high, "USD", 2)}
+                    </strong>
+                  </div>
+                  <div>
+                    <span>{t("comps_n")}</span>
+                    <strong>{ebayStats.n}</strong>
+                  </div>
                 </div>
-                <div>
-                  <span>{t("comps_range")}</span>
-                  <strong>
-                    {formatMoney(ebayStats.low, "USD", 2)} –{" "}
-                    {formatMoney(ebayStats.high, "USD", 2)}
-                  </strong>
-                </div>
-                <div>
-                  <span>{t("comps_n")}</span>
-                  <strong>{ebayStats.n}</strong>
-                </div>
-              </div>
-            ) : null}
-            {ebay.length === 0 && !data.ebay_error ? (
-              <p className="chart-sources-status">{t("comps_ebay_empty")}</p>
-            ) : null}
-            <ul className="comps-list">
-              {ebay.slice(0, 8).map((row, i) => (
-                <li key={`ebay-${i}`}>
-                  <span className="comps-list-meta">
-                    {[row.date, row.condition].filter(Boolean).join(" · ") || "—"}
-                  </span>
-                  <strong>
-                    {formatMoney(row.price, row.currency || "USD", 2)}
-                  </strong>
-                  {row.url ? (
-                    <a
-                      href={row.url}
-                      target="_blank"
-                      rel="noopener noreferrer sponsored"
-                    >
-                      eBay ↗
-                    </a>
-                  ) : (
-                    <span className="ebay-link-muted">—</span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
+              ) : null}
+              {ebay.length === 0 && !data.ebay_error ? (
+                <p className="chart-sources-status">{t("comps_ebay_empty")}</p>
+              ) : null}
+              <ul className="comps-list">
+                {ebay.slice(0, 8).map((row, i) => (
+                  <li key={`ebay-${i}`}>
+                    <span className="comps-list-meta">
+                      {[row.date, row.condition].filter(Boolean).join(" · ") ||
+                        "—"}
+                    </span>
+                    <strong>
+                      {formatMoney(row.price, row.currency || "USD", 2)}
+                    </strong>
+                    {row.url ? (
+                      <a
+                        href={row.url}
+                        target="_blank"
+                        rel="noopener noreferrer sponsored"
+                      >
+                        eBay ↗
+                      </a>
+                    ) : (
+                      <span className="ebay-link-muted">—</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
 
-          <div className="comps-block">
-            <h3>{t("comps_cm_title")}</h3>
-            <p className="comps-lede">{t("comps_cm_lede")}</p>
-            {data.cardmarket_error && cm.length === 0 ? (
-              <p className="chart-sources-status">{data.cardmarket_error}</p>
-            ) : null}
-            {cmStats?.lowest != null ? (
-              <div className="comps-stats">
-                <div>
-                  <span>{t("comps_lowest")}</span>
-                  <strong>
-                    {formatMoney(cmStats.lowest, "EUR", 2)}
-                  </strong>
+          {market === "tcgplayer" ? (
+            <div className="comps-block">
+              <p className="comps-lede">{t("comps_tcp_lede")}</p>
+              <p className="chart-sources-status">{t("comps_tcp_empty")}</p>
+            </div>
+          ) : null}
+
+          {market === "cardmarket" ? (
+            <div className="comps-block">
+              <p className="comps-lede">{t("comps_cm_lede")}</p>
+              {data.cardmarket_error && cm.length === 0 ? (
+                <p className="chart-sources-status">{data.cardmarket_error}</p>
+              ) : null}
+              {cmStats?.lowest != null ? (
+                <div className="comps-stats">
+                  <div>
+                    <span>{t("comps_lowest")}</span>
+                    <strong>{formatMoney(cmStats.lowest, "EUR", 2)}</strong>
+                  </div>
+                  <div>
+                    <span>{t("comps_n")}</span>
+                    <strong>{cmStats.n}</strong>
+                  </div>
                 </div>
-                <div>
-                  <span>{t("comps_n")}</span>
-                  <strong>{cmStats.n}</strong>
-                </div>
-              </div>
-            ) : null}
-            {cm.length === 0 && !data.cardmarket_error ? (
-              <p className="chart-sources-status">{t("comps_cm_empty")}</p>
-            ) : null}
-            <ul className="comps-list">
-              {cm.slice(0, 8).map((row, i) => (
-                <li key={`cm-${i}`}>
-                  <span className="comps-list-meta">
-                    {[
-                      row.condition,
-                      row.variant,
-                      row.seller_country,
-                      row.seller,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ") || "—"}
-                  </span>
-                  <strong>{formatMoney(row.price, "EUR", 2)}</strong>
-                </li>
-              ))}
-            </ul>
-          </div>
+              ) : null}
+              {cm.length === 0 && !data.cardmarket_error ? (
+                <p className="chart-sources-status">{t("comps_cm_empty")}</p>
+              ) : null}
+              <ul className="comps-list">
+                {cm.slice(0, 8).map((row, i) => (
+                  <li key={`cm-${i}`}>
+                    <span className="comps-list-meta">
+                      {[
+                        row.condition,
+                        row.variant,
+                        row.seller_country,
+                        row.seller,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ") || "—"}
+                    </span>
+                    <strong>{formatMoney(row.price, "EUR", 2)}</strong>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
 
           <div className="comps-block comps-block-pop">
             <h3>{t("comps_pop_title")}</h3>
