@@ -136,7 +136,6 @@ export function PriceChart({
       <div className="chart-head chart-head-mkt">
         <div>
           <h2>{t("chart_title")}</h2>
-          <p>{t("chart_subtitle")}</p>
         </div>
         <div className="chart-head-controls">
           <MarketSourceTabs
@@ -168,14 +167,10 @@ export function PriceChart({
       {error ? (
         <p className="chart-sources-status">{t("chart_fallback", { error })}</p>
       ) : null}
-      {sources?.justtcg_from_db && market === "tcgplayer" ? (
-        <p className="chart-sources-status">{t("chart_just_from_db")}</p>
-      ) : null}
 
       {market === "cardmarket" ? (
         <div className="chart-market-empty">
           <p className="chart-market-empty-title">{t("chart_cm_empty_title")}</p>
-          <p className="chart-market-empty-lede">{t("chart_cm_empty_lede")}</p>
         </div>
       ) : (
         <div className="chart-canvas">

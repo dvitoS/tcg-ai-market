@@ -233,7 +233,6 @@ export function GradingEvPanel({
       <div className="detail-ai-head">
         <h2>{t("grade_ev_title")}</h2>
       </div>
-      <p className="grade-ev-lede">{t("grade_ev_lede")}</p>
       <p className="grade-ev-honesty">{t("grade_ev_honesty")}</p>
 
       {!armed ? (
@@ -245,7 +244,6 @@ export function GradingEvPanel({
           >
             {t("grade_ev_load")}
           </button>
-          <span className="lot-meta">{t("grade_ev_load_hint")}</span>
         </p>
       ) : null}
 
@@ -433,7 +431,6 @@ export function GradingEvPanel({
 
           <div className="grade-ev-chart-block">
             <h3>{t("grade_ev_sensitivity_title")}</h3>
-            <p className="grade-ev-lede">{t("grade_ev_sensitivity_lede")}</p>
             <GradingSensitivityChart
               points={curve}
               breakevenUsd={ev.breakeven_psa10_usd}

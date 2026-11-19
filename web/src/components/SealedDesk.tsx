@@ -88,9 +88,7 @@ export function SealedDesk({
         <p className="lot-meta">
           {t("sealed_desk_results", { q: submitted, n: items.length })}
         </p>
-      ) : (
-        <p className="lot-meta">{t("sealed_desk_disclaimer")}</p>
-      )}
+      ) : null}
 
       {error ? <p className="banner-error">{error}</p> : null}
 
