@@ -19,7 +19,7 @@ import { fetchCardPriceSources, formatMoney } from "@/lib/api";
 import type { CardPriceSourcesResponse, HistoryPoint } from "@/lib/types";
 
 type RangeKey = "1m" | "3m" | "all";
-type SeriesKey = "tcgplayer" | "justtcg" | "psa10";
+type SeriesKey = "tcgplayer" | "justtcg";
 
 const RANGES: { key: RangeKey; label: string; days: number | null }[] = [
   { key: "1m", label: "1M", days: 30 },
@@ -27,16 +27,9 @@ const RANGES: { key: RangeKey; label: string; days: number | null }[] = [
   { key: "all", label: "All", days: null },
 ];
 
-const SERIES_META: Record<
-  SeriesKey,
-  { color: string; strokeDasharray?: string }
-> = {
+const SERIES_META: Record<SeriesKey, { color: string }> = {
   tcgplayer: { color: "#B87333" },
   justtcg: { color: "#5a9e9e" },
-  psa10: {
-    color: "#c9a227",
-    strokeDasharray: "6 4",
-  },
 };
 
 function clipPoints(points: HistoryPoint[], range: RangeKey): HistoryPoint[] {
@@ -63,7 +56,6 @@ function shortDate(value: string, locale: string): string {
 function mergeSeries(
   tcg: HistoryPoint[],
   just: HistoryPoint[],
-  psa: HistoryPoint[],
   locale: string,
 ): Array<Record<string, string | number | null>> {
   const byDate = new Map<string, Record<string, string | number | null>>();
@@ -73,7 +65,6 @@ function mergeSeries(
       label: shortDate(p.date, locale),
       tcgplayer: Number(p.price),
       justtcg: null,
-      psa10: null,
     });
   }
   for (const p of just) {
@@ -82,20 +73,8 @@ function mergeSeries(
       label: shortDate(p.date, locale),
       tcgplayer: null,
       justtcg: null,
-      psa10: null,
     };
     row.justtcg = Number(p.price);
-    byDate.set(p.date, row);
-  }
-  for (const p of psa) {
-    const row = byDate.get(p.date) || {
-      date: p.date,
-      label: shortDate(p.date, locale),
-      tcgplayer: null,
-      justtcg: null,
-      psa10: null,
-    };
-    row.psa10 = Number(p.price);
     byDate.set(p.date, row);
   }
   return Array.from(byDate.values()).sort((a, b) =>
@@ -115,20 +94,15 @@ export function PriceChart({
   const { t, locale } = useLocale();
   const [range, setRange] = useState<RangeKey>("1m");
   const [sources, setSources] = useState<CardPriceSourcesResponse | null>(null);
-  // SSR points paint immediately; JustTCG/PSA enhance in the background.
   const [loading, setLoading] = useState(Boolean(cardId) && points.length === 0);
   const [error, setError] = useState<string | null>(null);
-  // PSA 10 off by default — live graded JustTCG is the Soft Ink quota burn.
-  // Toggle on only when the desk wants the series (or Grading EV loads it).
   const [visible, setVisible] = useState<Record<SeriesKey, boolean>>({
     tcgplayer: true,
     justtcg: true,
-    psa10: false,
   });
   const seriesLabels: Record<SeriesKey, string> = {
     tcgplayer: t("chart_series_tcg"),
     justtcg: t("chart_series_just"),
-    psa10: t("chart_series_psa"),
   };
 
   useEffect(() => {
@@ -137,11 +111,10 @@ export function PriceChart({
       return;
     }
     let cancelled = false;
-    // Keep chart interactive on SSR history; only show loading if we have nothing yet.
-    // NM/DB first — skip graded JustTCG so browsing many details stays cheap.
     if (points.length === 0) setLoading(true);
     setError(null);
     setSources(null);
+    // NM only — graded series lives in GradedPriceChart (opt-in).
     fetchCardPriceSources(cardId, { grades: "none" })
       .then((data) => {
         if (!cancelled) setSources(data);
@@ -159,45 +132,8 @@ export function PriceChart({
     };
   }, [cardId, points.length]);
 
-  // Deferred PSA 10 only when the series is toggled on — never PSA 9.
-  useEffect(() => {
-    if (!cardId || !sources || !visible.psa10) return;
-    if (sources.grades === "psa10" || sources.grades === "all") return;
-    if ((sources.psa10?.length ?? 0) > 0 || sources.psa10_error) return;
-    let cancelled = false;
-    fetchCardPriceSources(cardId, { grades: "psa10" })
-      .then((graded) => {
-        if (cancelled) return;
-        setSources((prev) => {
-          if (!prev) return graded;
-          return {
-            ...prev,
-            psa10: graded.psa10,
-            psa10_error: graded.psa10_error,
-            psa10_stats: graded.psa10_stats,
-            grades: graded.grades ?? "psa10",
-            tcgplayer: prev.tcgplayer?.length
-              ? prev.tcgplayer
-              : graded.tcgplayer,
-            justtcg: prev.justtcg?.length ? prev.justtcg : graded.justtcg,
-            justtcg_fallback: prev.justtcg_fallback || graded.justtcg_fallback,
-            justtcg_from_db: prev.justtcg_from_db || graded.justtcg_from_db,
-            justtcg_error: prev.justtcg_error ?? graded.justtcg_error,
-            tcgplayer_id: prev.tcgplayer_id ?? graded.tcgplayer_id,
-          };
-        });
-      })
-      .catch(() => {
-        /* soft fail — NM chart still works */
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [cardId, sources, visible.psa10]);
-
   const tcgAll = sources?.tcgplayer?.length ? sources.tcgplayer : points;
   const justAll = sources?.justtcg || [];
-  const psaAll = sources?.psa10 || [];
 
   const tcgPoints = useMemo(
     () => clipPoints(tcgAll, range),
@@ -207,14 +143,10 @@ export function PriceChart({
     () => clipPoints(justAll, range),
     [justAll, range],
   );
-  const psaPoints = useMemo(
-    () => clipPoints(psaAll, range),
-    [psaAll, range],
-  );
 
   const chartData = useMemo(
-    () => mergeSeries(tcgPoints, justPoints, psaPoints, locale),
-    [tcgPoints, justPoints, psaPoints, locale],
+    () => mergeSeries(tcgPoints, justPoints, locale),
+    [tcgPoints, justPoints, locale],
   );
 
   if (!points.length && !chartData.length) {
@@ -259,12 +191,7 @@ export function PriceChart({
       <div className="chart-series-toggles" role="group" aria-label="Price sources">
         {(Object.keys(SERIES_META) as SeriesKey[]).map((key) => {
           const meta = SERIES_META[key];
-          const count =
-            key === "tcgplayer"
-              ? tcgPoints.length
-              : key === "justtcg"
-                ? justPoints.length
-                : psaPoints.length;
+          const count = key === "tcgplayer" ? tcgPoints.length : justPoints.length;
           const disabled = count === 0 && key !== "tcgplayer";
           return (
             <button
@@ -295,20 +222,6 @@ export function PriceChart({
       ) : null}
       {sources?.justtcg_fallback ? (
         <p className="chart-sources-status">{t("chart_just_fallback")}</p>
-      ) : null}
-      {sources?.psa10_error ? (
-        <p className="chart-sources-status">
-          {/rate.?limit/i.test(sources.psa10_error)
-            ? t("chart_psa_rate_limited")
-            : t("chart_psa_unavailable")}
-        </p>
-      ) : null}
-      {!loading &&
-      sources &&
-      !sources.psa10_error &&
-      (sources.psa10?.length ?? 0) === 0 &&
-      (sources.grades === "psa10" || sources.grades === "all") ? (
-        <p className="chart-sources-status">{t("chart_psa_empty")}</p>
       ) : null}
 
       <div className="chart-canvas">
@@ -380,18 +293,6 @@ export function PriceChart({
                 name={seriesLabels.justtcg}
                 stroke={SERIES_META.justtcg.color}
                 strokeWidth={2}
-                dot={false}
-                connectNulls
-              />
-            ) : null}
-            {visible.psa10 && psaPoints.length > 0 ? (
-              <Line
-                type="monotone"
-                dataKey="psa10"
-                name={seriesLabels.psa10}
-                stroke={SERIES_META.psa10.color}
-                strokeWidth={2}
-                strokeDasharray={SERIES_META.psa10.strokeDasharray}
                 dot={false}
                 connectNulls
               />
