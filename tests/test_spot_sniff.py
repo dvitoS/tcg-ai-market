@@ -75,27 +75,15 @@ def test_resolve_missing_tcp_ids(monkeypatch) -> None:
         }
     ]
 
-    def _search(**_kwargs):
-        return {
-            "name": "Arceus LV.X",
-            "number": "1",
-            "set_name": "DP Black Star Promos",
-            "tcgplayer_id": "123456",
-            "variants": [
-                {
-                    "condition": "Near Mint",
-                    "printing": "Normal",
-                    "markets": [{"region": "NA", "price": 100.0, "price_status": "current"}],
-                }
-            ],
-        }
-
-    monkeypatch.setattr("justtcg_client.search_pokemon_card", _search)
+    monkeypatch.setattr(
+        "backfill_tcgplayer_ids.resolve_tcgplayer_id_from_search",
+        lambda **_kwargs: ("123456", 190),
+    )
+    monkeypatch.setattr("justtcg_client.justtcg_api_key", lambda: "")
     stats = spot_sniff._resolve_missing_tcp_ids(items)
     assert stats["tcp_missing"] == 1
     assert stats["tcp_resolved"] == 1
     assert items[0]["tcgplayer_id"] == "123456"
-    assert items[0]["tcp_live"] == 100.0
     assert items[0]["tcp_match_score"] >= 120
     assert "tcgplayer.com/product/123456" in (items[0]["tcgplayer_url"] or "")
 
@@ -128,17 +116,11 @@ def test_reject_weak_tcp_search(monkeypatch) -> None:
         }
     ]
 
-    def _search(**_kwargs):
-        # Wrong card — name mismatch, no number → low score
-        return {
-            "name": "Pikachu VMAX",
-            "number": "999",
-            "set_name": "Other",
-            "tcgplayer_id": "999",
-            "variants": [],
-        }
-
-    monkeypatch.setattr("justtcg_client.search_pokemon_card", _search)
+    monkeypatch.setattr(
+        "backfill_tcgplayer_ids.resolve_tcgplayer_id_from_search",
+        lambda **_kwargs: (None, 40),
+    )
+    monkeypatch.setattr("justtcg_client.justtcg_api_key", lambda: "")
     stats = spot_sniff._resolve_missing_tcp_ids(items)
     assert stats["tcp_resolved"] == 0
     assert stats["tcp_rejected"] == 1

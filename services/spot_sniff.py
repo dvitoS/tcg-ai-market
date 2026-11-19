@@ -107,15 +107,36 @@ _STRICT_TCP_FAIL_SCORE = 150
 
 
 def _resolve_missing_tcp_ids(items: list[dict[str, Any]]) -> dict[str, int]:
-    """Fill blank tcgplayer_id via JustTCG search — only strong name+number hits."""
-    from justtcg_client import (
-        _score_search_row,
-        card_tcgplayer_id,
-        normalize_card_number,
-        pick_nm_variant,
-        search_pokemon_card,
-        variant_price_usd,
-    )
+    """Fill blank tcgplayer_id — TCGplayer public search first (no JustTCG).
+
+    Optional JustTCG search remains as a secondary path when the key is present
+    and public search misses (keeps live ``tcp_live`` when JustTCG finds a card).
+    """
+    from backfill_tcgplayer_ids import resolve_tcgplayer_id_from_search
+
+    justtcg_search = None
+    try:
+        from justtcg_client import (
+            _score_search_row,
+            card_tcgplayer_id,
+            justtcg_api_key,
+            normalize_card_number,
+            pick_nm_variant,
+            search_pokemon_card,
+            variant_price_usd,
+        )
+
+        if justtcg_api_key():
+            justtcg_search = (
+                search_pokemon_card,
+                _score_search_row,
+                card_tcgplayer_id,
+                normalize_card_number,
+                pick_nm_variant,
+                variant_price_usd,
+            )
+    except Exception:
+        justtcg_search = None
 
     missing = 0
     resolved = 0
@@ -129,8 +150,51 @@ def _resolve_missing_tcp_ids(items: list[dict[str, Any]]) -> dict[str, int]:
         name = str(item.get("name") or "")
         set_name = str(item.get("set_name") or "") or None
         number = _card_number_from_id(str(item.get("card_id") or ""))
+
+        resolved_tid: str | None = None
+        score = 0
         try:
-            # Full search (not quick) — number+set disambiguation matters for G0.
+            resolved_tid, score = resolve_tcgplayer_id_from_search(
+                name=name,
+                number=number,
+                set_name=set_name,
+                min_score=_MIN_TCP_MATCH_SCORE,
+            )
+        except Exception:
+            resolved_tid, score = None, 0
+        item["tcp_match_score"] = int(score)
+
+        if resolved_tid:
+            item["tcgplayer_id"] = str(resolved_tid)
+            item["tcgplayer_url"] = _tcp_product_url(resolved_tid)
+            item["tcp_resolved"] = True
+            resolved += 1
+            continue
+
+        if score > 0 and score < _MIN_TCP_MATCH_SCORE:
+            # Public search found something weak — don't Immediately fall through
+            # to JustTCG with a looser bar; mark rejected unless JustTCG confirms.
+            rejected_candidate = True
+        else:
+            rejected_candidate = False
+
+        if justtcg_search is None:
+            if rejected_candidate:
+                item["skip_reason"] = "weak_tcp_match"
+                rejected += 1
+            else:
+                item["skip_reason"] = "no_tcp_id"
+            continue
+
+        (
+            search_pokemon_card,
+            _score_search_row,
+            card_tcgplayer_id,
+            normalize_card_number,
+            pick_nm_variant,
+            variant_price_usd,
+        ) = justtcg_search
+        try:
             card = search_pokemon_card(
                 name=name,
                 number=number,
@@ -140,16 +204,18 @@ def _resolve_missing_tcp_ids(items: list[dict[str, Any]]) -> dict[str, int]:
         except Exception:
             card = None
         if not card:
-            item["skip_reason"] = "no_tcp_id"
+            item["skip_reason"] = "weak_tcp_match" if rejected_candidate else "no_tcp_id"
+            if rejected_candidate:
+                rejected += 1
             continue
-        score = _score_search_row(
+        j_score = _score_search_row(
             card,
             wanted_name=name.strip().lower(),
             wanted_number=normalize_card_number(number) if number else "",
             wanted_set=(set_name or "").strip().lower(),
         )
-        item["tcp_match_score"] = int(score)
-        if score < _MIN_TCP_MATCH_SCORE:
+        item["tcp_match_score"] = int(j_score)
+        if j_score < _MIN_TCP_MATCH_SCORE:
             item["skip_reason"] = "weak_tcp_match"
             rejected += 1
             continue
@@ -228,14 +294,14 @@ def _enrich_live_tcp(items: list[dict[str, Any]]) -> dict[str, Any]:
             summary["auto_skip"] += 1
         return summary
 
-    if key:
-        try:
-            resolve_stats = _resolve_missing_tcp_ids(items)
-            summary["tcp_missing"] = int(resolve_stats.get("tcp_missing") or 0)
-            summary["tcp_resolved"] = int(resolve_stats.get("tcp_resolved") or 0)
-            summary["tcp_rejected"] = int(resolve_stats.get("tcp_rejected") or 0)
-        except Exception as exc:
-            summary["live_error"] = f"resolve:{exc}"[:240]
+    # Resolve missing TCP even without JustTCG (public TCGplayer search).
+    try:
+        resolve_stats = _resolve_missing_tcp_ids(items)
+        summary["tcp_missing"] = int(resolve_stats.get("tcp_missing") or 0)
+        summary["tcp_resolved"] = int(resolve_stats.get("tcp_resolved") or 0)
+        summary["tcp_rejected"] = int(resolve_stats.get("tcp_rejected") or 0)
+    except Exception as exc:
+        summary["live_error"] = f"resolve:{exc}"[:240]
 
     tids = [
         str(item.get("tcgplayer_id") or "").strip()
