@@ -107,18 +107,27 @@ def _score_tcp_hit(
     return score
 
 
-def _tcp_from_tcgplayer_search(
+def resolve_tcgplayer_id_from_search(
     *,
     name: str,
-    number: str | None,
-    set_name: str | None,
-) -> str | None:
-    """Resolve product id via TCGplayer storefront search (no JustTCG quota)."""
+    number: str | None = None,
+    set_name: str | None = None,
+    min_score: int | None = None,
+) -> tuple[str | None, int]:
+    """Resolve product id via TCGplayer storefront search (no JustTCG quota).
+
+    Returns ``(product_id, score)``. Score is 0 when nothing usable matched.
+    """
     wanted_name = (name or "").strip()
     if not wanted_name:
-        return None
+        return None, 0
     wanted_number = _norm_number(number) if number else ""
     wanted_set = (set_name or "").strip()
+    threshold = (
+        int(min_score)
+        if min_score is not None
+        else (100 if wanted_number else 25)
+    )
 
     # Name-only query + set filter works better than "Name 215" (secret rares).
     query = wanted_name
@@ -176,16 +185,33 @@ def _tcp_from_tcgplayer_search(
             best_score = score
 
     # Require a number match when we know the number — avoid wrong secrets/alts.
-    if not best or best_score < (100 if wanted_number else 25):
-        return None
+    if not best or best_score < threshold:
+        return None, int(best_score)
     raw = best.get("productId")
     if raw is None:
-        return None
+        return None, int(best_score)
     try:
-        return str(int(float(raw)))
+        return str(int(float(raw))), int(best_score)
     except (TypeError, ValueError):
         text = str(raw).strip()
-        return text if re.fullmatch(r"\d+", text) else None
+        if re.fullmatch(r"\d+", text):
+            return text, int(best_score)
+        return None, int(best_score)
+
+
+def _tcp_from_tcgplayer_search(
+    *,
+    name: str,
+    number: str | None,
+    set_name: str | None,
+) -> str | None:
+    """Resolve product id via TCGplayer storefront search (no JustTCG quota)."""
+    tid, _score = resolve_tcgplayer_id_from_search(
+        name=name,
+        number=number,
+        set_name=set_name,
+    )
+    return tid
 
 
 def backfill_tcgplayer_ids(
