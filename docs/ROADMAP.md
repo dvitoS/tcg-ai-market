@@ -2,11 +2,78 @@
 
 **Positioning:** Collectr tracks *what you own*. PriceCharting shows *what sold*. TCGplayer is *where you buy*. **Kestrel** is the desk that answers *should I buy / sell / trade / grade — with conformal AI, not vibes*.
 
-Last updated: 2026-11-12 (G0–G2 green). Living doc — ship order can move; the wedge should not.
+Last updated: 2026-11-20 (detail wins shipped; path to 10/10 below). Living doc — ship order can move; the wedge should not.
 
-**North star:** make the wedge obvious in ~10 seconds for a non-Pro visitor (*fair / not fair — here’s why*), then earn Pro with shareable verdicts and trustworthy spots — **not** by becoming another binder scanner.
+**North star:** cold user in ~30s trusts **Asking vs Good** and makes a *maybe buy / maybe skip / trade* call — **not** by becoming another binder scanner.
 
 **Marketing spend unlock:** paid acquisition only after **G0–G3** below are green. Until then: organic soft launch only.
+
+---
+
+## Path to 10/10 (Nov 2026)
+
+Self-score after detail desk pass: **~7.5 / 10**. 10/10 is **trust + cold path**, not more UI.
+
+### Just shipped (detail wins)
+
+| Item | PR |
+| --- | --- |
+| Asking / Good hero + as-of + live-asks labels | #274, #282 |
+| Graded EV under Graded + share paste + eBay sold CTA | #277 |
+| eBay Sold/Active unify + mobile desk order | #278 |
+| TCP live asks no longer fake-empty | #279 |
+| Cardmarket EUR NM history + finish picker | #280 |
+| NM / LP / MP condition tiers on chart | #281 |
+| Kid-simple Asking/Good lexicon on detail | #282 |
+
+### Phases (ship in order)
+
+#### T0 — Trust on detail *(7.5 → 8.5)* — **NEXT**
+
+| ID | Item | Why |
+| --- | --- | --- |
+| T0.1 | **Match-quality badge** next to Asking (high / med / low) | Low match → quieter call, not fake confidence |
+| T0.2 | **Wrong-spot report → heal → “fixed”** visible on detail | Closing the trust loop users already start |
+| T0.3 | Never **fake-empty** comps (TCP/CM pattern) | Empty must mean empty, not silent failure |
+| T0.4 | User-facing “prices checked today” (no ops jargon) | Prove freshness without System status |
+
+#### T1 — Cold path 30s *(8.5 → 9)*
+
+| ID | Item | Why |
+| --- | --- | --- |
+| T1.1 | Soft-nav detail **LCP** — search → card under ~1s | Friction kills the wedge |
+| T1.2 | Share / DOTD / Radar paste = **same numbers** as live detail | Share that lies destroys trust |
+| T1.3 | Landing hero stays **one job** | One card, two prices, one call |
+
+#### T2 — Desk that pays rent *(9 → 9.5)*
+
+| ID | Item | Why |
+| --- | --- | --- |
+| T2.1 | Radar = **sure looks-cheap** only + plain why | Less list, more decision |
+| T2.2 | Trade = **one-screen** fair / you’re ahead / they’re ahead | Viral job-to-be-done |
+| T2.3 | Pro wedge: **daily looks-cheap + alerts** | One reason for €7, not six desks |
+
+#### T3 — Invisible reliability *(9.5 → 10)* — parallel
+
+| ID | Item | Why |
+| --- | --- | --- |
+| T3.1 | Pkmn / JustTCG **budget** so detail never goes blank | Quota ≠ empty chart |
+| T3.2 | Honest empty: what we know + what we don’t | Template from #279 |
+| T3.3 | **US Asking ≠ EUR Asking** — labeled, never blended into Good | EU parity without Collectr |
+
+### Suggested next 3 PRs
+
+1. **T0.1 + T0.2** — match-quality badge + wrong-spot fixed loop on detail  
+2. **T1.1 + T1.2** — soft-nav LCP + share number parity  
+3. **T2.1 + T2.2** — Radar sure-only trim + Trade one-screen verdict  
+
+### Explicit non-goals for 10/10
+
+- Collectr clone / binder social first  
+- More graded history depth for its own sake  
+- Methodology essays in the hero  
+- New desks before Radar / Trade are sharp  
+- Paid ads before wrong-spot rate is boringly low  
 
 ---
 
