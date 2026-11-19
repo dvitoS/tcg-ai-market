@@ -186,3 +186,44 @@ def test_sealed_quote_for_tcgplayer_id(monkeypatch) -> None:
     assert hit["spot_usd"] == 199.5
     assert hit["source"] == "pkmnprices"
     assert hit["set_name"] == "Destined Rivals"
+
+
+def test_search_sealed_by_name(monkeypatch) -> None:
+    calls = {"list": 0, "get": 0}
+
+    def _fake_get(path, params=None):
+        if path == "/v1/sealed":
+            calls["list"] += 1
+            assert params["name"] == "etb"
+            return {
+                "data": [
+                    {
+                        "id": 11,
+                        "tcg_player_id": 624676,
+                        "name": "Destined Rivals ETB",
+                        "image_url": "https://example.com/etb.jpg",
+                        "set": {"id": 1, "name": "Destined Rivals"},
+                    }
+                ]
+            }
+        if path == "/v1/sealed/11":
+            calls["get"] += 1
+            return {
+                "id": 11,
+                "tcg_player_id": 624676,
+                "name": "Destined Rivals Elite Trainer Box",
+                "image_url": "https://example.com/etb.jpg",
+                "set": {"id": 1, "name": "Destined Rivals"},
+                "prices": [
+                    {"source": "tcgplayer", "currency": "USD", "market_price": 106.0}
+                ],
+            }
+        raise AssertionError(path)
+
+    monkeypatch.setattr(client, "_get", _fake_get)
+    hits = client.search_sealed_by_name("etb", limit=4)
+    assert calls == {"list": 1, "get": 1}
+    assert len(hits) == 1
+    assert hits[0]["tcgplayer_id"] == "624676"
+    assert hits[0]["spot_usd"] == 106.0
+    assert hits[0]["source"] == "pkmnprices"

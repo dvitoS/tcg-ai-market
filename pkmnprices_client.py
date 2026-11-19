@@ -425,6 +425,37 @@ def sealed_spot_for_tcgplayer_id(tcgplayer_id: str | int | None) -> float | None
     return _sealed_usd_spot(get_sealed(sid, currency="usd"))
 
 
+def _sealed_hit_from_payload(payload: dict[str, Any], *, tcp_fallback: str | None = None) -> dict[str, Any] | None:
+    spot = _sealed_usd_spot(payload)
+    if spot is None:
+        return None
+    tcp_raw = payload.get("tcg_player_id")
+    if tcp_raw is None:
+        tcp_raw = tcp_fallback
+    tcp = str(tcp_raw or "").strip()
+    if not tcp.isdigit():
+        # Soft Ink card_id needs a stable handle — prefer TCP; else Pkmn sealed id.
+        sid = payload.get("id")
+        if sid is None:
+            return None
+        tcp = f"pkmn{int(sid)}"
+    set_obj = payload.get("set") if isinstance(payload.get("set"), dict) else {}
+    set_name = str(set_obj.get("name") or "").strip() or None
+    name = str(payload.get("name") or "").strip() or f"Sealed {tcp}"
+    image = str(payload.get("image_url") or "").strip() or None
+    return {
+        "card_id": f"sealed:{tcp}",
+        "name": name,
+        "set_name": set_name,
+        "tcgplayer_id": tcp if tcp.isdigit() else None,
+        "gtin": None,
+        "spot_usd": float(spot),
+        "image_url": image,
+        "source": "pkmnprices",
+        "kind": "sealed",
+    }
+
+
 def sealed_quote_for_tcgplayer_id(tcgplayer_id: str | int | None) -> dict[str, Any] | None:
     """Normalized Soft Ink sealed hit (same shape as ``justtcg_sealed.normalize_sealed_hit``)."""
     if tcgplayer_id is None:
@@ -435,22 +466,51 @@ def sealed_quote_for_tcgplayer_id(tcgplayer_id: str | int | None) -> dict[str, A
     sid = find_sealed_id_by_tcgplayer_id(tcp)
     if sid is None:
         return None
-    payload = get_sealed(sid, currency="usd")
-    spot = _sealed_usd_spot(payload)
-    if spot is None:
-        return None
-    set_obj = payload.get("set") if isinstance(payload.get("set"), dict) else {}
-    set_name = str(set_obj.get("name") or "").strip() or None
-    name = str(payload.get("name") or "").strip() or f"Sealed {tcp}"
-    image = str(payload.get("image_url") or "").strip() or None
-    return {
-        "card_id": f"sealed:{tcp}",
-        "name": name,
-        "set_name": set_name,
-        "tcgplayer_id": tcp,
-        "gtin": None,
-        "spot_usd": float(spot),
-        "image_url": image,
-        "source": "pkmnprices",
-        "kind": "sealed",
-    }
+    return _sealed_hit_from_payload(get_sealed(sid, currency="usd"), tcp_fallback=tcp)
+
+
+def search_sealed_by_name(name: str, *, limit: int = 8) -> list[dict[str, Any]]:
+    """Name search → Soft Ink sealed hits (list + per-id spot fetch).
+
+    List endpoint has no prices (1 credit/row); each detail is +1 credit.
+    Cap ``limit`` modestly for Soft Ink desk search.
+    """
+    q = str(name or "").strip()
+    if len(q) < 2:
+        return []
+    per_page = max(1, min(20, int(limit)))
+    payload = _get("/v1/sealed", {"name": q, "per_page": per_page, "page": 1})
+    rows = payload.get("data") if isinstance(payload.get("data"), list) else []
+    out: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        try:
+            sid = int(row.get("id"))
+        except (TypeError, ValueError):
+            continue
+        try:
+            detail = get_sealed(sid, currency="usd")
+        except Exception:
+            continue
+        # Prefer list image/name if detail omits them.
+        if not detail.get("image_url") and row.get("image_url"):
+            detail = {**detail, "image_url": row.get("image_url")}
+        if not detail.get("name") and row.get("name"):
+            detail = {**detail, "name": row.get("name")}
+        if not detail.get("tcg_player_id") and row.get("tcg_player_id") is not None:
+            detail = {**detail, "tcg_player_id": row.get("tcg_player_id")}
+        if not detail.get("set") and isinstance(row.get("set"), dict):
+            detail = {**detail, "set": row.get("set")}
+        hit = _sealed_hit_from_payload(detail)
+        if not hit:
+            continue
+        cid = str(hit["card_id"])
+        if cid in seen:
+            continue
+        seen.add(cid)
+        out.append(hit)
+        if len(out) >= per_page:
+            break
+    return out

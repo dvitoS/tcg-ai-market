@@ -329,3 +329,30 @@ def test_sealed_quote_pkmnprices_fallback(monkeypatch) -> None:
     assert body["source"] == "pkmnprices"
     assert body["pkmnprices_used"] is True
     assert body["items"][0]["spot_usd"] == 88.0
+
+
+def test_sealed_quote_pkmnprices_name_search(monkeypatch) -> None:
+    monkeypatch.setattr("justtcg_client.justtcg_api_key", lambda: "key")
+    monkeypatch.setattr("api.sealed_service.demo_mode", lambda: False)
+    monkeypatch.setattr("justtcg_sealed.quote_sealed", lambda **_k: [])
+    monkeypatch.setattr("pkmnprices_client.pkmnprices_configured", lambda: True)
+    monkeypatch.setattr(
+        "pkmnprices_client.search_sealed_by_name",
+        lambda q, limit=8: [
+            {
+                "card_id": "sealed:624676",
+                "name": f"Match {q}",
+                "set_name": "Destined Rivals",
+                "tcgplayer_id": "624676",
+                "gtin": None,
+                "spot_usd": 99.0,
+                "image_url": None,
+                "source": "pkmnprices",
+                "kind": "sealed",
+            }
+        ],
+    )
+    body = quote_sealed_products(q="destined rivals etb", limit=4)
+    assert body["source"] == "pkmnprices"
+    assert body["pkmnprices_used"] is True
+    assert body["items"][0]["spot_usd"] == 99.0
