@@ -166,38 +166,6 @@ export function CardDetailView({
                   priority
                 />
               </div>
-              <aside className="detail-hero-under" aria-label={t("detail_ai_under_title")}>
-                <p className="detail-under-label">{t("detail_ai_under_title")}</p>
-                <p className={`detail-under-move ${deltaClass(card.expected_change_pct)}`}>
-                  {formatChange(card.expected_change_pct, 2)}
-                </p>
-                <p className="detail-under-price">
-                  {t("detail_predicted")}: {formatSpot(card.predicted_price, 2)}
-                </p>
-                {band ? (
-                  <p className="detail-under-caption" title={t("glossary_band_tip")}>
-                    {t("detail_band", { band })}
-                  </p>
-                ) : (
-                  <p className="detail-under-caption">{t("detail_horizon")}</p>
-                )}
-                {decision ? (
-                  <p className="decision-line">{decision}</p>
-                ) : showSignal ? (
-                  <div className={`signal-chip ${signalClass(card.signal)}`}>
-                    {signalText}
-                  </div>
-                ) : (
-                  <div className="ai-low-conf" title={t("glossary_unsure_tip")}>
-                    {t("detail_low_conf")}
-                  </div>
-                )}
-                <p className="detail-desk-disclaimer">{t("detail_desk_disclaimer")}</p>
-                <WrongSpotReport
-                  cardId={card.id}
-                  spot={history.last_price ?? card.price}
-                />
-              </aside>
             </div>
             <div className="detail-hero-copy">
               <h1 className="detail-name">{card.name}</h1>
@@ -207,31 +175,58 @@ export function CardDetailView({
                   {t("detail_finishes", { finishes: finishes.join(" · ") })}
                 </p>
               ) : null}
-              {foil === "holo" ? (
-                <p className="detail-foil-tip">{t("detail_foil_holo")}</p>
-              ) : foil === "reverse" ? (
-                <p className="detail-foil-tip">{t("detail_foil_reverse")}</p>
-              ) : null}
-              <div className="detail-price">
-                {formatSpot(history.last_price ?? card.price, 2)}
+              <div className="detail-price-row">
+                <div className="detail-price">
+                  {formatSpot(history.last_price ?? card.price, 2)}
+                </div>
+                <div className={`detail-hero-delta ${deltaClass(dayChange)}`}>
+                  {formatChange(dayChange, 2)}
+                </div>
               </div>
               <p className="detail-spot-source">
                 {history.last_date
                   ? t("detail_spot_source_asof", { date: history.last_date })
                   : t("detail_spot_source")}
               </p>
-              {currency === "EUR" && usdEur != null ? (
-                <p className="detail-fx-note" title={fxFallback ? t("fx_fallback") : undefined}>
-                  {t("fx_rate_tip", { rate: usdEur.toFixed(4) })}
-                  {" · "}
-                  {t("detail_fx_not_eu")}
-                </p>
-              ) : (
-                <p className="detail-fx-note">{t("detail_eu_separate")}</p>
-              )}
-              <div className={`detail-hero-delta ${deltaClass(dayChange)}`}>
-                {formatChange(dayChange, 2)}
+
+              <div className="detail-signal-row">
+                <div className="detail-signal-block">
+                  <p className="detail-under-label">{t("detail_ai_under_title")}</p>
+                  <p
+                    className={`detail-under-move ${deltaClass(card.expected_change_pct)}`}
+                  >
+                    {formatChange(card.expected_change_pct, 2)}
+                  </p>
+                  <p className="detail-under-price">
+                    {t("detail_predicted")}: {formatSpot(card.predicted_price, 2)}
+                  </p>
+                  {band ? (
+                    <p
+                      className="detail-under-caption"
+                      title={t("glossary_band_tip")}
+                    >
+                      {t("detail_band", { band })}
+                    </p>
+                  ) : null}
+                </div>
+                <div className="detail-signal-verdict">
+                  {decision ? (
+                    <p className="decision-line">{decision}</p>
+                  ) : showSignal ? (
+                    <div className={`signal-chip ${signalClass(card.signal)}`}>
+                      {signalText}
+                    </div>
+                  ) : (
+                    <div
+                      className="ai-low-conf"
+                      title={t("glossary_unsure_tip")}
+                    >
+                      {t("detail_low_conf")}
+                    </div>
+                  )}
+                </div>
               </div>
+
               <div className="detail-actions">
                 <WatchToggle cardId={card.id} />
                 <Link
@@ -278,6 +273,18 @@ export function CardDetailView({
                 cardName={card.name}
                 defaultPrice={history.last_price ?? card.price}
               />
+              <WrongSpotReport
+                cardId={card.id}
+                spot={history.last_price ?? card.price}
+              />
+              {currency === "EUR" && usdEur != null ? (
+                <p
+                  className="detail-fx-note"
+                  title={fxFallback ? t("fx_fallback") : undefined}
+                >
+                  {t("fx_rate_tip", { rate: usdEur.toFixed(4) })}
+                </p>
+              ) : null}
             </div>
           </section>
 

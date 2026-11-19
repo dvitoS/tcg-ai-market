@@ -56,24 +56,27 @@ export function HeroCardSlider({ cards }: { cards: RadarCard[] }) {
       }}
     >
       <div className="landing-hero-slider-stage">
-        {slides.map((card, i) => {
-          const isActive = i === index;
-          const foil = resolveFoilMode(card.finishes, card.rarity, card.name);
+        {/* One holo stack only — five simultaneous foils tanked landing FPS. */}
+        {(() => {
+          const foil = resolveFoilMode(
+            active.finishes,
+            active.rarity,
+            active.name,
+          );
           return (
             <Link
-              key={card.id}
-              href={`/cards/${encodeURIComponent(card.id)}`}
-              className={`landing-hero-slide${isActive ? " is-active" : ""}`}
-              tabIndex={isActive ? 0 : -1}
-              aria-hidden={!isActive}
+              key={active.id}
+              href={`/cards/${encodeURIComponent(active.id)}`}
+              className="landing-hero-slide is-active"
+              tabIndex={0}
             >
               <HoloCardArt
-                key={`${card.id}-${foil || "none"}`}
-                cardId={card.id}
-                name={card.name}
-                image={resolveCardImageUrl(card.id, card.image_url)}
+                key={`${active.id}-${foil || "none"}`}
+                cardId={active.id}
+                name={active.name}
+                image={resolveCardImageUrl(active.id, active.image_url)}
                 foil={foil}
-                priority={i === 0}
+                priority
                 width={280}
                 height={392}
                 sizes="280px"
@@ -82,7 +85,7 @@ export function HeroCardSlider({ cards }: { cards: RadarCard[] }) {
               />
             </Link>
           );
-        })}
+        })()}
       </div>
 
       <div className="landing-hero-slide-meta">

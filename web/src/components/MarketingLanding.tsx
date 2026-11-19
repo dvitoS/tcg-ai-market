@@ -98,6 +98,7 @@ export function MarketingLanding({
           limit={5}
           variant="landing"
           initialPreview={dotd}
+          skipClientFetch
         />
       </div>
 

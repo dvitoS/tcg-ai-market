@@ -43,9 +43,12 @@ export function SoftInkWash() {
 
     let raf = 0;
     let running = true;
+    let inView = true;
     let w = 0;
     let h = 0;
     let dpr = 1;
+    let lastFrame = 0;
+    const FRAME_MS = 50; // ~20fps — hero atmosphere, not 60fps paint tax
     const start = performance.now();
 
     // Keep the wash calm — two soft ribbons + a couple of plumes, not a generative light show.
@@ -98,7 +101,7 @@ export function SoftInkWash() {
     function resize() {
       const parent = canvas.parentElement;
       if (!parent) return;
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      dpr = Math.min(window.devicePixelRatio || 1, 1.25);
       w = parent.clientWidth;
       h = parent.clientHeight;
       canvas.width = Math.max(1, Math.floor(w * dpr));
@@ -205,27 +208,54 @@ export function SoftInkWash() {
     }
 
     function loop(now: number) {
-      drawFrame(now);
-      if (!reduce && running) raf = window.requestAnimationFrame(loop);
+      if (!running || !inView) return;
+      if (now - lastFrame >= FRAME_MS) {
+        lastFrame = now;
+        drawFrame(now);
+      }
+      if (!reduce && running && inView) raf = window.requestAnimationFrame(loop);
+    }
+
+    function kick() {
+      if (reduce || !running || !inView) return;
+      if (raf) cancelAnimationFrame(raf);
+      raf = window.requestAnimationFrame(loop);
     }
 
     function onVisibility() {
       if (document.hidden) {
         running = false;
         if (raf) cancelAnimationFrame(raf);
+        raf = 0;
       } else {
         running = true;
-        if (!reduce) raf = window.requestAnimationFrame(loop);
-        else drawFrame(performance.now());
+        if (reduce) drawFrame(performance.now());
+        else kick();
       }
     }
 
     resize();
     drawFrame(performance.now());
-    if (!reduce) raf = window.requestAnimationFrame(loop);
+    if (!reduce) kick();
 
     const ro = new ResizeObserver(resize);
     if (canvas.parentElement) ro.observe(canvas.parentElement);
+    const io =
+      typeof IntersectionObserver !== "undefined"
+        ? new IntersectionObserver(
+            (entries) => {
+              inView = entries.some((e) => e.isIntersecting);
+              if (!inView) {
+                if (raf) cancelAnimationFrame(raf);
+                raf = 0;
+              } else if (running && !reduce) {
+                kick();
+              }
+            },
+            { rootMargin: "80px", threshold: 0.05 },
+          )
+        : null;
+    if (io && canvas.parentElement) io.observe(canvas.parentElement);
     document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("resize", resize);
 
@@ -233,6 +263,7 @@ export function SoftInkWash() {
       running = false;
       if (raf) cancelAnimationFrame(raf);
       ro.disconnect();
+      io?.disconnect();
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("resize", resize);
     };

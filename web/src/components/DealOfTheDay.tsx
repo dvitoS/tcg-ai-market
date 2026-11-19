@@ -80,6 +80,7 @@ export function DealOfTheDay({
   variant = "landing",
   className = "",
   initialPreview = null,
+  skipClientFetch = false,
   openBeta = true,
 }: {
   limit?: number;
@@ -87,6 +88,8 @@ export function DealOfTheDay({
   className?: string;
   /** SSR / parent-provided preview — skips the cold client fetch when present. */
   initialPreview?: RadarPreviewResponse | null;
+  /** Parent owns the radar fetch (landing hero + desk share one request). */
+  skipClientFetch?: boolean;
   /** When false, landing CTA says unlock/paywall instead of open Radar. */
   openBeta?: boolean;
 }) {
@@ -121,6 +124,12 @@ export function DealOfTheDay({
   }, [variant]);
 
   useEffect(() => {
+    // Parent-managed (landing): sync only — avoid a second radar round-trip.
+    if (skipClientFetch) {
+      setPreview(initialPreview);
+      setLoading(false);
+      return;
+    }
     // Trust SSR when it already has UNDER rows; refetch when missing/empty.
     if ((initialPreview?.underpriced || []).length > 0) {
       setPreview(initialPreview);
@@ -150,7 +159,7 @@ export function DealOfTheDay({
     return () => {
       alive = false;
     };
-  }, [capped, t, variant, initialPreview]);
+  }, [capped, t, variant, initialPreview, skipClientFetch]);
 
   const rows = preview?.underpriced || [];
   const featured = rows[0] || null;
