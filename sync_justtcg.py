@@ -13,7 +13,12 @@ import os
 import sys
 from collections import Counter, defaultdict
 
-from config import JUSTTCG_BATCH_SIZE, PKMN_NIGHTLY_MAX_CARDS, catalog_sets
+from config import (
+    JUSTTCG_BATCH_SIZE,
+    PKMN_NIGHTLY_MAX_CARDS,
+    PKMN_NIGHTLY_PRIMARY_MAX_CARDS,
+    catalog_sets,
+)
 from database import (
     distinct_history_card_ids,
     init_db,
@@ -40,8 +45,24 @@ from justtcg_client import (
 from services.spot_sanity import is_absurd_spot_jump
 
 
-def pkmn_nightly_card_budget() -> int:
-    """Max cards that may hit PkmnPrices history this nightly (0 = off)."""
+def pkmn_nightly_card_budget(*, primary: bool = False) -> int:
+    """Max cards that may hit PkmnPrices history this nightly (0 = off).
+
+    ``primary=True`` when JustTCG key is absent — uses
+    ``PKMN_NIGHTLY_PRIMARY_MAX_CARDS`` (default 500) unless overridden.
+    """
+    if primary:
+        raw = (os.environ.get("PKMN_NIGHTLY_PRIMARY_MAX_CARDS") or "").strip().lower()
+        if raw in {"0", "off", "none"}:
+            return 0
+        if raw.isdigit():
+            return max(0, min(int(raw), 5000))
+        # Fall through to shared override, then primary default.
+        shared = (os.environ.get("PKMN_NIGHTLY_MAX_CARDS") or "").strip().lower()
+        if shared.isdigit():
+            return max(0, min(int(shared), 5000))
+        return max(0, int(PKMN_NIGHTLY_PRIMARY_MAX_CARDS))
+
     raw = (os.environ.get("PKMN_NIGHTLY_MAX_CARDS") or "").strip().lower()
     if raw in {"0", "off", "none"}:
         return 0
@@ -285,14 +306,85 @@ def _try_pkmn_fallback(
         return "skip_empty", 0
 
 
+def sync_pkmn_price_history(*, limit: int | None = None) -> dict[str, int]:
+    """PkmnPrices-primary NM drip for cards with ``tcgplayer_id`` (no JustTCG).
+
+    Used when ``JUSTTCG_API_KEY`` is absent so nightly still fills ``price_history``.
+    Skips Path B set pagination (PkmnPrices has no set-walk equivalent here).
+    """
+    from pkmnprices_client import pkmnprices_configured
+
+    if not pkmnprices_configured():
+        raise RuntimeError("PKMN_API_KEY nije postavljen.")
+
+    init_db()
+    targets = list_cards_for_sync(limit=limit)
+    with_tcp = [
+        c
+        for c in targets
+        if str(getattr(c, "tcgplayer_id", None) or "").strip()
+    ]
+    updated = skipped = saved = 0
+    pkmn_budget = pkmn_nightly_card_budget(primary=True)
+    pkmn_used = [0]
+    matched_ids: set[str] = set()
+    have_history = distinct_history_card_ids()
+    print(
+        f"PkmnPrices primary sync: {len(with_tcp)} cards with tcgplayer_id "
+        f"(of {len(targets)} prioritized, budget={pkmn_budget})"
+    )
+    for card in with_tcp:
+        if limit is not None and updated >= limit:
+            break
+        if pkmn_used[0] >= pkmn_budget:
+            skipped += 1
+            continue
+        status, written = _try_pkmn_fallback(
+            card,
+            have_history=have_history,
+            matched_ids=matched_ids,
+            pkmn_budget=pkmn_budget,
+            pkmn_used=pkmn_used,
+        )
+        if status == "ok":
+            updated += 1
+            saved += written
+            print(f"  OK {card.id} · pkmn-primary · {written} history pts")
+        else:
+            skipped += 1
+
+    total = table_count("price_history")
+    payload = {
+        "updated": updated,
+        "skipped": skipped,
+        "saved": saved,
+        "total_history": int(total),
+        "unmatched_sets": [],
+        "unmatched_sets_count": 0,
+        "justtcg_requests": 0,
+        "batch_updated": 0,
+        "pkmn_updated": updated,
+        "pkmn_saved": saved,
+        "pkmn_attempted": pkmn_used[0],
+        "pkmn_primary": True,
+    }
+    print(
+        f"PkmnPrices primary gotovo: updated={updated} skipped={skipped} "
+        f"saved_rows={saved} total_history={payload['total_history']} "
+        f"pkmn_attempted={payload['pkmn_attempted']}"
+    )
+    return payload
+
+
 def sync_justtcg_for_card_ids(
     card_ids: list[str],
     *,
     forbid_spot_keys: set[float] | None = None,
 ) -> dict[str, int]:
-    """Targeted JustTCG batch ingest for an explicit card-id allowlist."""
-    if not justtcg_api_key():
-        raise RuntimeError("JUSTTCG_API_KEY nije postavljen.")
+    """Targeted JustTCG batch ingest for an explicit card-id allowlist.
+
+    When JustTCG key is missing, falls back to PkmnPrices for TCP cards (heal cutover).
+    """
     init_db()
     wanted = [str(cid).strip() for cid in card_ids if str(cid).strip()]
     if not wanted:
@@ -319,11 +411,51 @@ def sync_justtcg_for_card_ids(
     }
     updated = skipped = saved = skip_poison = skip_absurd = 0
     pkmn_updated = pkmn_saved = 0
-    pkmn_budget = pkmn_nightly_card_budget()
+    pkmn_budget = pkmn_nightly_card_budget(primary=not bool(justtcg_api_key()))
     pkmn_used = [0]
     matched_ids: set[str] = set()
     have_history = distinct_history_card_ids()
     tcp_ids = list(tcp_to_card.keys())
+
+    if not justtcg_api_key():
+        for tid in tcp_ids:
+            card = tcp_to_card.get(tid)
+            if card is None:
+                continue
+            p_status, p_written = _try_pkmn_fallback(
+                card,
+                have_history=have_history,
+                matched_ids=matched_ids,
+                pkmn_budget=pkmn_budget,
+                pkmn_used=pkmn_used,
+                forbid_spot_keys=forbid_spot_keys,
+            )
+            if p_status == "ok":
+                updated += 1
+                pkmn_updated += 1
+                saved += p_written
+                pkmn_saved += p_written
+            else:
+                skipped += 1
+                if p_status == "skip_poison":
+                    skip_poison += 1
+                elif p_status == "skip_absurd":
+                    skip_absurd += 1
+        return {
+            "updated": updated,
+            "skipped": skipped,
+            "saved": saved,
+            "skip_poison": skip_poison,
+            "skip_absurd": skip_absurd,
+            "targeted": len(wanted),
+            "with_tcgplayer_id": len(tcp_ids),
+            "justtcg_requests": 0,
+            "pkmn_updated": pkmn_updated,
+            "pkmn_saved": pkmn_saved,
+            "pkmn_attempted": pkmn_used[0],
+            "pkmn_primary": True,
+        }
+
     for i in range(0, len(tcp_ids), JUSTTCG_BATCH_SIZE):
         chunk = tcp_ids[i : i + JUSTTCG_BATCH_SIZE]
         try:

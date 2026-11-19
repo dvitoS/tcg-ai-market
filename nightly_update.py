@@ -193,7 +193,7 @@ def refresh_price_history() -> dict[str, int]:
     else:
         limit = int(raw_limit)
 
-    # Preferiraj JustTCG (NM + history); fallback PokéWallet; pa sintetički.
+    # Prefer JustTCG NM drip; if key gone, PkmnPrices-primary; else PokéWallet / synthetic.
     if justtcg_api_key():
         # Always cap nightly (unless NIGHTLY_ALLOW_UNLIMITED_JUSTTCG=1).
         # Pre-budget card_limit=all runs burned 1k+ requests in a single night.
@@ -291,10 +291,50 @@ def refresh_price_history() -> dict[str, int]:
             LOG.warning("Spot QA snapshot failed: %s", qa_exc)
         return stats
 
+    try:
+        from pkmnprices_client import pkmnprices_configured
+    except Exception:
+        pkmnprices_configured = lambda: False  # noqa: E731
+
+    if pkmnprices_configured():
+        from sync_justtcg import sync_pkmn_price_history
+
+        LOG.info(
+            "PkmnPrices primary sync (no JUSTTCG_API_KEY) — card_limit=%s",
+            "all" if limit is None else limit,
+        )
+        stats = sync_pkmn_price_history(limit=limit)
+        filled = generate_price_history(replace=False)
+        LOG.info(
+            "PkmnPrices primary: updated=%s skipped=%s saved=%s total_history=%s "
+            "synthetic_new=%s pkmn_attempted=%s",
+            stats["updated"],
+            stats["skipped"],
+            stats["saved"],
+            stats["total_history"],
+            filled,
+            stats.get("pkmn_attempted", 0),
+        )
+        try:
+            from services.spot_qa import build_and_save_snapshot
+
+            qa = build_and_save_snapshot(
+                unmatched_sets=[],
+                justtcg_stats=stats,
+            )
+            LOG.info(
+                "Spot QA snapshot (pkmn-primary): history_coverage=%s%% fresh=%s%%",
+                qa.get("history_coverage_pct"),
+                qa.get("fresh_history_pct"),
+            )
+        except Exception as qa_exc:
+            LOG.warning("Spot QA snapshot failed: %s", qa_exc)
+        return stats
+
     tcg_key = _secret("TCG_API_KEY")
     if not tcg_key:
         LOG.warning(
-            "JUSTTCG_API_KEY i TCG_API_KEY nisu postavljeni — "
+            "JUSTTCG_API_KEY, PKMN_API_KEY i TCG_API_KEY nisu postavljeni — "
             "koristim lokalni ensure_price_history()."
         )
         ensure_price_history()

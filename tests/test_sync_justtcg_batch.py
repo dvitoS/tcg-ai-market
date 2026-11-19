@@ -213,3 +213,63 @@ def test_pkmn_fallback_when_tcp_missing_from_batch(monkeypatch):
     stats = sync.sync_justtcg_price_history(limit=10)
     assert stats["pkmn_updated"] == 1
     assert stats["updated"] == 1
+
+
+def test_sync_pkmn_price_history_primary(monkeypatch):
+    card = SimpleNamespace(
+        id="sv8-9",
+        name="Mew",
+        set_name="Surging Sparks",
+        tcgplayer_id="999009",
+        market_price=20.0,
+    )
+    monkeypatch.setattr(sync, "init_db", lambda: None)
+    monkeypatch.setattr(sync, "list_cards_for_sync", lambda limit=None: [card])
+    monkeypatch.setattr(sync, "distinct_history_card_ids", lambda: set())
+    monkeypatch.setattr(sync, "table_count", lambda _t: 11)
+    monkeypatch.setattr(sync, "pkmn_nightly_card_budget", lambda primary=False: 50)
+    monkeypatch.setattr("pkmnprices_client.pkmnprices_configured", lambda: True)
+    monkeypatch.setattr(
+        "pkmnprices_client.nm_history_for_tcgplayer_id",
+        lambda *_a, **_k: [
+            {"date": f"2026-08-{d:02d}", "price": 20.0 + d * 0.1} for d in range(1, 12)
+        ],
+    )
+    monkeypatch.setattr(sync, "replace_card_history", lambda *_a, **_k: 11)
+    monkeypatch.setattr(sync, "update_card_market_price", lambda *_a, **_k: None)
+
+    stats = sync.sync_pkmn_price_history(limit=10)
+    assert stats["pkmn_primary"] is True
+    assert stats["updated"] == 1
+    assert stats["pkmn_attempted"] == 1
+    assert stats["justtcg_requests"] == 0
+
+
+def test_heal_card_ids_pkmn_without_justtcg(monkeypatch):
+    card = SimpleNamespace(
+        id="sv8-10",
+        name="Mewtwo",
+        set_name="Surging Sparks",
+        tcgplayer_id="999010",
+        market_price=30.0,
+    )
+    monkeypatch.setattr(sync, "justtcg_api_key", lambda: "")
+    monkeypatch.setattr(sync, "init_db", lambda: None)
+    monkeypatch.setattr(sync, "list_cards", lambda: [card])
+    monkeypatch.setattr(sync, "distinct_history_card_ids", lambda: set())
+    monkeypatch.setattr(sync, "pkmn_nightly_card_budget", lambda primary=False: 20)
+    monkeypatch.setattr("pkmnprices_client.pkmnprices_configured", lambda: True)
+    monkeypatch.setattr(
+        "pkmnprices_client.nm_history_for_tcgplayer_id",
+        lambda *_a, **_k: [
+            {"date": f"2026-07-{d:02d}", "price": 30.0 + d * 0.2} for d in range(1, 10)
+        ],
+    )
+    monkeypatch.setattr(sync, "replace_card_history", lambda *_a, **_k: 9)
+    monkeypatch.setattr(sync, "update_card_market_price", lambda *_a, **_k: None)
+    monkeypatch.setattr(sync, "justtcg_request_count", lambda: 0)
+
+    stats = sync.sync_justtcg_for_card_ids(["sv8-10"])
+    assert stats["pkmn_primary"] is True
+    assert stats["updated"] == 1
+    assert stats["pkmn_updated"] == 1

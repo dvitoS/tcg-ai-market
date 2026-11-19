@@ -208,8 +208,17 @@ def _enrich_live_tcp(items: list[dict[str, Any]]) -> dict[str, Any]:
         key = justtcg_api_key()
     except Exception:
         key = ""
-    summary["live_configured"] = bool(key)
-    if not key:
+    pkmn_ok = False
+    try:
+        from pkmnprices_client import nm_spot_for_tcgplayer_id, pkmnprices_configured
+
+        pkmn_ok = bool(pkmnprices_configured())
+    except Exception:
+        nm_spot_for_tcgplayer_id = None  # type: ignore[assignment]
+        pkmn_ok = False
+
+    summary["live_configured"] = bool(key) or pkmn_ok
+    if not key and not pkmn_ok:
         for item in items:
             item["tcp_live"] = None
             item["tcp_delta_pct"] = None
@@ -219,13 +228,14 @@ def _enrich_live_tcp(items: list[dict[str, Any]]) -> dict[str, Any]:
             summary["auto_skip"] += 1
         return summary
 
-    try:
-        resolve_stats = _resolve_missing_tcp_ids(items)
-        summary["tcp_missing"] = int(resolve_stats.get("tcp_missing") or 0)
-        summary["tcp_resolved"] = int(resolve_stats.get("tcp_resolved") or 0)
-        summary["tcp_rejected"] = int(resolve_stats.get("tcp_rejected") or 0)
-    except Exception as exc:
-        summary["live_error"] = f"resolve:{exc}"[:240]
+    if key:
+        try:
+            resolve_stats = _resolve_missing_tcp_ids(items)
+            summary["tcp_missing"] = int(resolve_stats.get("tcp_missing") or 0)
+            summary["tcp_resolved"] = int(resolve_stats.get("tcp_resolved") or 0)
+            summary["tcp_rejected"] = int(resolve_stats.get("tcp_rejected") or 0)
+        except Exception as exc:
+            summary["live_error"] = f"resolve:{exc}"[:240]
 
     tids = [
         str(item.get("tcgplayer_id") or "").strip()
@@ -234,20 +244,30 @@ def _enrich_live_tcp(items: list[dict[str, Any]]) -> dict[str, Any]:
     ]
     by_tid: dict[str, float] = {}
     try:
-        from justtcg_client import JUSTTCG_BATCH_SIZE
+        if key:
+            from justtcg_client import JUSTTCG_BATCH_SIZE
 
-        chunk = max(1, int(JUSTTCG_BATCH_SIZE or 40))
-        rows: list[dict[str, Any]] = []
-        uniq = list(dict.fromkeys(tids))
-        for i in range(0, len(uniq), chunk):
-            rows.extend(batch_by_tcgplayer_ids(uniq[i : i + chunk]))
-        for row in rows:
-            tid = card_tcgplayer_id(row)
-            if not tid:
-                continue
-            price = variant_price_usd(pick_nm_variant(list(row.get("variants") or [])))
-            if price is not None:
-                by_tid[str(tid)] = float(price)
+            chunk = max(1, int(JUSTTCG_BATCH_SIZE or 40))
+            rows: list[dict[str, Any]] = []
+            uniq = list(dict.fromkeys(tids))
+            for i in range(0, len(uniq), chunk):
+                rows.extend(batch_by_tcgplayer_ids(uniq[i : i + chunk]))
+            for row in rows:
+                tid = card_tcgplayer_id(row)
+                if not tid:
+                    continue
+                price = variant_price_usd(pick_nm_variant(list(row.get("variants") or [])))
+                if price is not None:
+                    by_tid[str(tid)] = float(price)
+        elif pkmn_ok and nm_spot_for_tcgplayer_id is not None:
+            # Cutover: TCP spots via PkmnPrices when JustTCG key is gone.
+            for tid in dict.fromkeys(tids):
+                try:
+                    spot = nm_spot_for_tcgplayer_id(tid)
+                except Exception:
+                    spot = None
+                if spot is not None:
+                    by_tid[str(tid)] = float(spot)
         summary["live_checked"] = True
     except Exception as exc:
         summary["live_error"] = str(exc)[:240]
