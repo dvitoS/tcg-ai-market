@@ -98,6 +98,82 @@ def test_nm_spot_prefers_holofoil(monkeypatch) -> None:
     assert client.nm_spot_for_tcgplayer_id(3) == 8.0
 
 
+def test_variant_spot_for_condition_printing(monkeypatch) -> None:
+    monkeypatch.setattr(client, "find_card_id_by_tcgplayer_id", lambda _tcp: 3)
+    monkeypatch.setattr(
+        client,
+        "get_card",
+        lambda _id, currency="usd": {
+            "prices": [
+                {
+                    "currency": "USD",
+                    "condition": "Near Mint",
+                    "variant": "Normal",
+                    "market_price": 20.0,
+                    "source": "tcgplayer",
+                },
+                {
+                    "currency": "USD",
+                    "condition": "Lightly Played",
+                    "variant": "Reverse Holofoil",
+                    "market_price": 11.5,
+                    "source": "tcgplayer",
+                },
+            ]
+        },
+    )
+    hit = client.variant_spot_for_tcgplayer_id(
+        "999", condition="LP", printing="Reverse"
+    )
+    assert hit is not None
+    assert hit["price"] == 11.5
+    assert hit["variant"] == "Reverse Holofoil"
+    assert hit["pkmn_card_id"] == 3
+
+
+def test_batch_variant_spots_one_get_per_tcp(monkeypatch) -> None:
+    monkeypatch.setattr(client, "pkmnprices_configured", lambda: True)
+    gets: list[int] = []
+
+    def _find(tcp):
+        return 7 if str(tcp) == "100" else None
+
+    def _get_card(pid, currency="usd"):
+        gets.append(int(pid))
+        return {
+            "prices": [
+                {
+                    "currency": "USD",
+                    "condition": "Lightly Played",
+                    "variant": "Normal",
+                    "market_price": 6.0,
+                    "source": "tcgplayer",
+                },
+                {
+                    "currency": "USD",
+                    "condition": "Moderately Played",
+                    "variant": "Holofoil",
+                    "market_price": 4.0,
+                    "source": "tcgplayer",
+                },
+            ]
+        }
+
+    monkeypatch.setattr(client, "find_card_id_by_tcgplayer_id", _find)
+    monkeypatch.setattr(client, "get_card", _get_card)
+    out = client.batch_variant_spots(
+        [
+            {"tcgplayerId": "100", "condition": "LP", "printing": "Normal"},
+            {"tcgplayerId": "100", "condition": "MP", "printing": "Holo"},
+            {"tcgplayerId": "999", "condition": "LP", "printing": "Normal"},
+        ]
+    )
+    assert gets == [7]
+    assert out["100|LP|Normal"]["price"] == 6.0
+    assert out["100|MP|Holo"]["price"] == 4.0
+    assert "999|LP|Normal" not in out
+
+
 def test_psa_series_from_comps_median() -> None:
     points = client.psa_series_from_comps(
         [

@@ -149,18 +149,62 @@ def get_card(card_id: int, *, currency: str = "usd") -> dict[str, Any]:
     return _get(f"/v1/cards/{int(card_id)}", {"currency": currency})
 
 
-def _nm_usd_price(card_payload: dict[str, Any]) -> float | None:
-    prices = card_payload.get("prices")
-    if not isinstance(prices, list):
-        return None
-    nm_rows: list[tuple[float, float]] = []
+# Soft Ink lot labels → PkmnPrices card.prices[] strings (TCGPlayer schema).
+CONDITION_TO_PKMN: dict[str, str] = {
+    "NM": "Near Mint",
+    "LP": "Lightly Played",
+    "MP": "Moderately Played",
+    "HP": "Heavily Played",
+    "DMG": "Damaged",
+}
+PRINTING_TO_PKMN: dict[str, str] = {
+    "Normal": "Normal",
+    "Reverse": "Reverse Holofoil",
+    "Holo": "Holofoil",
+}
+
+
+def _is_usd_tcgplayer_row(row: dict[str, Any]) -> bool:
+    currency = str(row.get("currency") or "").upper()
+    source = str(row.get("source") or "").lower()
+    if currency in {"USD", ""}:
+        return source in {"tcgplayer", ""}
+    return source == "tcgplayer"
+
+
+def _printing_matches_pkmn(api_variant: str, wanted: str) -> bool:
+    a = str(api_variant or "").strip().lower()
+    w = str(wanted or "").strip().lower()
+    if a == w:
+        return True
+    if "reverse" in w:
+        return "reverse" in a
+    if w in {"holofoil", "holo"}:
+        return "holo" in a and "reverse" not in a
+    if w == "normal":
+        return a in {"normal", ""}
+    return False
+
+
+def _pick_usd_price_row(
+    prices: list[Any],
+    *,
+    condition: str = "NM",
+    printing: str = "Normal",
+) -> dict[str, Any] | None:
+    """Pick market_price row matching Soft Ink condition + printing."""
+    from services.lot_price_adjust import normalize_condition, normalize_printing
+
+    cond = normalize_condition(condition)
+    print_ = normalize_printing(printing)
+    wanted_cond = CONDITION_TO_PKMN.get(cond, "Near Mint")
+    wanted_print = PRINTING_TO_PKMN.get(print_, "Normal")
+
+    pool: list[dict[str, Any]] = []
     for row in prices:
         if not isinstance(row, dict):
             continue
-        if str(row.get("currency") or "").upper() not in {"USD", ""}:
-            if str(row.get("source") or "").lower() != "tcgplayer":
-                continue
-        if str(row.get("condition") or "") != "Near Mint":
+        if not _is_usd_tcgplayer_row(row):
             continue
         try:
             price = float(row.get("market_price"))
@@ -168,18 +212,54 @@ def _nm_usd_price(card_payload: dict[str, Any]) -> float | None:
             continue
         if price <= 0:
             continue
-        # Prefer Holofoil / Normal over obscure variants when several NM rows exist.
-        variant = str(row.get("variant") or "").lower()
-        rank = 0.0
-        if "holo" in variant and "reverse" not in variant:
-            rank = 2.0
-        elif variant in {"normal", "holofoil", ""}:
-            rank = 1.0
-        nm_rows.append((rank, price))
-    if not nm_rows:
+        pool.append(row)
+
+    exact = [
+        r
+        for r in pool
+        if str(r.get("condition") or "") == wanted_cond
+        and _printing_matches_pkmn(str(r.get("variant") or ""), wanted_print)
+    ]
+    if exact:
+        return exact[0]
+
+    # Soft fallback: same condition, any printing (prefer Normal then Holo).
+    same_cond = [r for r in pool if str(r.get("condition") or "") == wanted_cond]
+    if not same_cond:
         return None
-    nm_rows.sort(key=lambda t: t[0], reverse=True)
-    return float(nm_rows[0][1])
+
+    def _rank(row: dict[str, Any]) -> float:
+        variant = str(row.get("variant") or "").lower()
+        if variant in {"normal", ""}:
+            return 3.0
+        if "holo" in variant and "reverse" not in variant:
+            return 2.0
+        if "reverse" in variant:
+            return 1.0
+        return 0.0
+
+    same_cond.sort(key=_rank, reverse=True)
+    return same_cond[0]
+
+
+def _nm_usd_price(card_payload: dict[str, Any]) -> float | None:
+    prices = card_payload.get("prices")
+    if not isinstance(prices, list):
+        return None
+    # Prefer Holofoil over Normal for default NM board tip (legacy behavior).
+    holo = _pick_usd_price_row(prices, condition="NM", printing="Holo")
+    if holo is not None:
+        try:
+            return float(holo["market_price"])
+        except (TypeError, ValueError, KeyError):
+            pass
+    normal = _pick_usd_price_row(prices, condition="NM", printing="Normal")
+    if normal is None:
+        return None
+    try:
+        return float(normal["market_price"])
+    except (TypeError, ValueError, KeyError):
+        return None
 
 
 def nm_spot_for_tcgplayer_id(tcgplayer_id: str | int | None) -> float | None:
@@ -189,6 +269,119 @@ def nm_spot_for_tcgplayer_id(tcgplayer_id: str | int | None) -> float | None:
         return None
     card = get_card(pid, currency="usd")
     return _nm_usd_price(card)
+
+
+def variant_spot_for_tcgplayer_id(
+    tcgplayer_id: str | int | None,
+    *,
+    condition: str = "NM",
+    printing: str = "Normal",
+) -> dict[str, Any] | None:
+    """Live condition×printing market price from PkmnPrices card.prices[].
+
+    Returns ``{price, tcgplayer_id, condition, variant, pkmn_card_id}`` or None.
+    """
+    if tcgplayer_id is None:
+        return None
+    tcp = str(tcgplayer_id).strip()
+    if not tcp:
+        return None
+    pid = find_card_id_by_tcgplayer_id(tcp)
+    if pid is None:
+        return None
+    card = get_card(pid, currency="usd")
+    prices = card.get("prices") if isinstance(card, dict) else None
+    if not isinstance(prices, list):
+        return None
+    row = _pick_usd_price_row(prices, condition=condition, printing=printing)
+    if row is None:
+        return None
+    try:
+        price = float(row["market_price"])
+    except (TypeError, ValueError, KeyError):
+        return None
+    return {
+        "price": price,
+        "tcgplayer_id": tcp,
+        "condition": str(row.get("condition") or ""),
+        "variant": str(row.get("variant") or ""),
+        "pkmn_card_id": int(pid),
+    }
+
+
+def batch_variant_spots(
+    items: list[dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    """Resolve many Soft Ink condition/printing spots with one get_card per TCP.
+
+    Each item: ``{tcgplayerId|tcgplayer_id, condition, printing}``.
+    Returns ``tcp|CONDITION|PRINTING`` → variant_spot payload (+ ``source``).
+    """
+    from services.lot_price_adjust import normalize_condition, normalize_printing
+
+    out: dict[str, dict[str, Any]] = {}
+    if not items or not pkmnprices_configured():
+        return out
+
+    by_tcp: dict[str, list[dict[str, Any]]] = {}
+    for raw in items:
+        tcp = str(
+            raw.get("tcgplayerId") or raw.get("tcgplayer_id") or ""
+        ).strip()
+        if not tcp:
+            continue
+        cond = normalize_condition(raw.get("condition") or "NM")
+        print_ = normalize_printing(raw.get("printing") or "Normal")
+        by_tcp.setdefault(tcp, []).append(
+            {"condition": cond, "printing": print_}
+        )
+
+    for tcp, reqs in by_tcp.items():
+        try:
+            pid = find_card_id_by_tcgplayer_id(tcp)
+        except PkmnPricesRateLimitError:
+            raise
+        except Exception as exc:
+            LOG.info("pkmn variant tcp lookup %s: %s", tcp, exc)
+            continue
+        if pid is None:
+            continue
+        try:
+            card = get_card(pid, currency="usd")
+        except PkmnPricesRateLimitError:
+            raise
+        except Exception as exc:
+            LOG.info("pkmn variant get_card %s: %s", tcp, exc)
+            continue
+        prices = card.get("prices") if isinstance(card, dict) else None
+        if not isinstance(prices, list):
+            continue
+        seen: set[str] = set()
+        for req in reqs:
+            key = f"{tcp}|{req['condition']}|{req['printing']}"
+            if key in seen:
+                continue
+            seen.add(key)
+            row = _pick_usd_price_row(
+                prices,
+                condition=req["condition"],
+                printing=req["printing"],
+            )
+            if row is None:
+                continue
+            try:
+                price = float(row["market_price"])
+            except (TypeError, ValueError, KeyError):
+                continue
+            out[key] = {
+                "price": price,
+                "tcgplayer_id": tcp,
+                "condition": str(row.get("condition") or ""),
+                "variant": str(row.get("variant") or ""),
+                "pkmn_card_id": int(pid),
+                "source": "pkmnprices_variant",
+            }
+    return out
 
 
 def _parse_history_date(raw: Any) -> str | None:
