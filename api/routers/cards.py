@@ -93,7 +93,7 @@ def card_detail(card_id: str) -> CardDetailResponse:
     row = hits.iloc[0]
     card = _enrich_finishes(CatalogCard(**row_to_card(row)))
     pred_lo_f, pred_hi_f = _pred_band(row)
-    points = load_card_history(card_id, limit=180)
+    points = load_card_history(card_id, limit=400)
     stats = history_stats(points)
     explain_payload = build_card_explain(
         points=points,
@@ -123,7 +123,7 @@ def card_detail(card_id: str) -> CardDetailResponse:
 @router.get("/{card_id}/history", response_model=CardHistoryResponse)
 def card_history(
     card_id: str,
-    limit: int = Query(default=180, ge=7, le=730),
+    limit: int = Query(default=400, ge=7, le=730),
 ) -> CardHistoryResponse:
     raw = load_card_history(card_id, limit=limit)
     points = [HistoryPoint(**p) for p in raw]
@@ -137,7 +137,7 @@ def card_history(
 @router.get("/{card_id}/sources", response_model=CardPriceSourcesResponse)
 def card_price_sources(
     card_id: str,
-    limit: int = Query(default=180, ge=7, le=730),
+    limit: int = Query(default=400, ge=7, le=730),
     grades: str = Query(
         default="none",
         description="Graded JustTCG prints: none (default), psa10, or all (PSA10+PSA9).",

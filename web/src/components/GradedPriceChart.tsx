@@ -16,7 +16,7 @@ import { useLocale } from "@/components/LocaleProvider";
 import { fetchCardPriceSources, formatMoney } from "@/lib/api";
 import type { HistoryPoint } from "@/lib/types";
 
-type RangeKey = "1m" | "3m" | "all";
+type RangeKey = "1m" | "3m" | "1y" | "all";
 type GradeKey = "psa10" | "psa9";
 
 /** Soft Ink board is USD — auto-load graded when NM spot ≥ this. */
@@ -25,6 +25,7 @@ export const GRADED_AUTO_MIN_USD = 50;
 const RANGES: { key: RangeKey; label: string; days: number | null }[] = [
   { key: "1m", label: "1M", days: 30 },
   { key: "3m", label: "3M", days: 90 },
+  { key: "1y", label: "1Y", days: 365 },
   { key: "all", label: "All", days: null },
 ];
 
