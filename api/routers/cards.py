@@ -142,8 +142,14 @@ def card_price_sources(
         default="none",
         description="Graded JustTCG prints: none (default), psa10, or all (PSA10+PSA9).",
     ),
+    cardmarket: bool = Query(
+        default=False,
+        description="Include Cardmarket NM (EUR) history via PkmnPrices. Opt-in to save credits.",
+    ),
 ) -> CardPriceSourcesResponse:
-    payload = build_card_price_sources(str(card_id), limit=limit, grades=grades)
+    payload = build_card_price_sources(
+        str(card_id), limit=limit, grades=grades, cardmarket=bool(cardmarket)
+    )
     cache_flag = payload.get("cache")
     grades_mode = payload.get("grades")
     return CardPriceSourcesResponse(
@@ -161,6 +167,8 @@ def card_price_sources(
         justtcg_fallback=bool(payload.get("justtcg_fallback")),
         justtcg_from_db=bool(payload.get("justtcg_from_db")),
         justtcg_error=payload.get("justtcg_error"),
+        cardmarket=[HistoryPoint(**p) for p in payload.get("cardmarket") or []],
+        cardmarket_error=payload.get("cardmarket_error"),
         psa10=[HistoryPoint(**p) for p in payload.get("psa10") or []],
         psa10_error=payload.get("psa10_error"),
         psa10_stats=PsaGradeStats(**(payload.get("psa10_stats") or {})),

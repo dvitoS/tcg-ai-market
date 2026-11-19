@@ -71,6 +71,48 @@ def test_nm_history_for_tcgplayer_id(monkeypatch) -> None:
     ]
 
 
+def test_nm_history_cardmarket_eur(monkeypatch) -> None:
+    monkeypatch.setattr(client, "pkmn_api_key", lambda: "pk-test")
+    monkeypatch.setattr(client, "find_card_id_by_tcgplayer_id", lambda _tcp: 7)
+
+    def _fake_get(path, params=None):
+        assert path == "/v1/cards/7/prices/history"
+        assert params["currency"] == "eur"
+        assert params["condition"] == "Near Mint"
+        return {
+            "data": [
+                {
+                    "date": "2024-03-02",
+                    "avg": 9.5,
+                    "condition": "Near Mint",
+                    "source": "cardmarket",
+                    "currency": "EUR",
+                },
+                {
+                    "date": "2024-03-01",
+                    "avg": 8.0,
+                    "condition": "Near Mint",
+                    "source": "cardmarket",
+                    "currency": "EUR",
+                },
+                {
+                    "date": "2024-03-01",
+                    "avg": 99.0,
+                    "condition": "Near Mint",
+                    "source": "tcgplayer",
+                    "currency": "USD",
+                },
+            ]
+        }
+
+    monkeypatch.setattr(client, "_get", _fake_get)
+    rows = client.nm_history_for_tcgplayer_id("555", currency="eur")
+    assert rows == [
+        {"date": "2024-03-01", "price": 8.0},
+        {"date": "2024-03-02", "price": 9.5},
+    ]
+
+
 def test_nm_spot_prefers_holofoil(monkeypatch) -> None:
     monkeypatch.setattr(client, "find_card_id_by_tcgplayer_id", lambda _tcp: 3)
     monkeypatch.setattr(

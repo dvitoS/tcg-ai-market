@@ -31,6 +31,7 @@ const RANGES: { key: RangeKey; label: string; days: number | null }[] = [
 ];
 
 const CHART_COLOR = "#B87333";
+const CM_CHART_COLOR = "#5B7C99";
 
 function clipPoints(points: HistoryPoint[], range: RangeKey): HistoryPoint[] {
   const cfg = RANGES.find((r) => r.key === range);
@@ -79,6 +80,8 @@ export function PriceChart({
   const [sources, setSources] = useState<CardPriceSourcesResponse | null>(null);
   const [loading, setLoading] = useState(Boolean(cardId) && points.length === 0);
   const [error, setError] = useState<string | null>(null);
+  const [cmTried, setCmTried] = useState(false);
+  const [cmLoading, setCmLoading] = useState(false);
 
   useEffect(() => {
     if (!cardId) {
@@ -89,7 +92,8 @@ export function PriceChart({
     if (points.length === 0) setLoading(true);
     setError(null);
     setSources(null);
-    // ≥365 pts so 1Y range has room when DB / Soft Ink history is long enough.
+    setCmTried(false);
+    // ≥365 pts so 1Y toggle has room when DB / Soft Ink history is long enough.
     fetchCardPriceSources(cardId, { grades: "none", limit: 400 })
       .then((data) => {
         if (!cancelled) setSources(data);
@@ -107,6 +111,58 @@ export function PriceChart({
     };
   }, [cardId, points.length]);
 
+  // Lazy Cardmarket EUR series — only when the CM tab opens (PkmnPrices credits).
+  useEffect(() => {
+    if (!cardId || market !== "cardmarket" || !sources || cmTried) return;
+    let cancelled = false;
+    setCmTried(true);
+    setCmLoading(true);
+    fetchCardPriceSources(cardId, {
+      grades: "none",
+      limit: 400,
+      cardmarket: true,
+    })
+      .then((data) => {
+        if (cancelled) return;
+        setSources((prev) =>
+          prev
+            ? {
+                ...prev,
+                cardmarket: data.cardmarket ?? [],
+                cardmarket_error: data.cardmarket_error ?? null,
+                pkmnprices_used: Boolean(
+                  prev.pkmnprices_used || data.pkmnprices_used,
+                ),
+                pkmnprices_configured: Boolean(
+                  prev.pkmnprices_configured || data.pkmnprices_configured,
+                ),
+              }
+            : data,
+        );
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setSources((prev) =>
+          prev
+            ? {
+                ...prev,
+                cardmarket: prev.cardmarket ?? [],
+                cardmarket_error:
+                  err instanceof Error
+                    ? err.message
+                    : "Cardmarket history failed",
+              }
+            : prev,
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setCmLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [cardId, market, sources, cmTried]);
+
   // Prefer live Soft Ink NM, else DB / SSR history (TCGplayer-linked).
   const nmAll = sources?.justtcg?.length
     ? sources.justtcg
@@ -114,13 +170,26 @@ export function PriceChart({
       ? sources.tcgplayer
       : points;
 
-  const clipped = useMemo(() => clipPoints(nmAll, range), [nmAll, range]);
+  const cmAll = sources?.cardmarket?.length ? sources.cardmarket : [];
+  const activeAll = market === "cardmarket" ? cmAll : nmAll;
+  const clipped = useMemo(
+    () => clipPoints(activeAll, range),
+    [activeAll, range],
+  );
   const chartData = useMemo(
     () => toChartRows(clipped, locale),
     [clipped, locale],
   );
 
-  if (!points.length && !chartData.length && market === "tcgplayer") {
+  const isCm = market === "cardmarket";
+  const seriesColor = isCm ? CM_CHART_COLOR : CHART_COLOR;
+  const seriesName = isCm
+    ? t("chart_series_cm_short")
+    : t("chart_series_tcg_short");
+  const moneyCur = isCm ? "EUR" : "USD";
+  const tickPrefix = isCm ? "€" : "$";
+
+  if (!points.length && !chartData.length && market === "tcgplayer" && !loading) {
     return (
       <div className="chart-panel">
         <div className="chart-head">
@@ -130,6 +199,13 @@ export function PriceChart({
       </div>
     );
   }
+
+  const cmEmpty =
+    isCm &&
+    !cmLoading &&
+    !loading &&
+    chartData.length === 0 &&
+    cmTried;
 
   return (
     <div className="chart-panel">
@@ -161,18 +237,24 @@ export function PriceChart({
         </div>
       </div>
 
-      {loading ? (
-        <p className="chart-sources-status">{t("chart_loading")}</p>
+      {loading || cmLoading ? (
+        <p className="chart-sources-status">
+          {cmLoading ? t("chart_cm_loading") : t("chart_loading")}
+        </p>
       ) : null}
       {error ? (
         <p className="chart-sources-status">{t("chart_fallback", { error })}</p>
       ) : null}
+      {isCm && sources?.cardmarket_error && chartData.length === 0 && !cmLoading ? (
+        <p className="chart-sources-status">{sources.cardmarket_error}</p>
+      ) : null}
 
-      {market === "cardmarket" ? (
+      {cmEmpty && !sources?.cardmarket_error ? (
         <div className="chart-market-empty">
           <p className="chart-market-empty-title">{t("chart_cm_empty_title")}</p>
+          <p className="chart-market-empty-lede">{t("chart_cm_empty_lede")}</p>
         </div>
-      ) : (
+      ) : !cmEmpty && !(isCm && chartData.length === 0 && cmLoading) ? (
         <div className="chart-canvas">
           <ResponsiveContainer width="100%" height={300}>
             <ComposedChart
@@ -180,11 +262,17 @@ export function PriceChart({
               margin={{ top: 12, right: 8, left: 0, bottom: 0 }}
             >
               <defs>
-                <linearGradient id="priceFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={CHART_COLOR} stopOpacity={0.35} />
+                <linearGradient
+                  id={isCm ? "cmPriceFill" : "priceFill"}
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="1"
+                >
+                  <stop offset="0%" stopColor={seriesColor} stopOpacity={0.35} />
                   <stop
                     offset="100%"
-                    stopColor={CHART_COLOR}
+                    stopColor={seriesColor}
                     stopOpacity={0.02}
                   />
                 </linearGradient>
@@ -202,7 +290,7 @@ export function PriceChart({
                 axisLine={false}
                 tickLine={false}
                 width={56}
-                tickFormatter={(v) => `$${Number(v).toFixed(2)}`}
+                tickFormatter={(v) => `${tickPrefix}${Number(v).toFixed(2)}`}
                 domain={["auto", "auto"]}
               />
               <Tooltip
@@ -215,29 +303,31 @@ export function PriceChart({
                 labelStyle={{ color: "#a1a1aa" }}
                 formatter={(value) => [
                   typeof value === "number"
-                    ? formatMoney(value, "USD", 4)
+                    ? formatMoney(value, moneyCur, 4)
                     : "—",
-                  t("chart_series_tcg_short"),
+                  seriesName,
                 ]}
               />
               <Legend />
               <Area
                 type="monotone"
                 dataKey="price"
-                name={t("chart_series_tcg_short")}
-                stroke={CHART_COLOR}
+                name={seriesName}
+                stroke={seriesColor}
                 strokeWidth={2.2}
-                fill="url(#priceFill)"
+                fill={`url(#${isCm ? "cmPriceFill" : "priceFill"})`}
                 dot={false}
                 connectNulls
                 activeDot={{
                   r: 4,
-                  fill: "#D4A574",
+                  fill: isCm ? "#8FA8C0" : "#D4A574",
                   stroke: "#121212",
                   strokeWidth: 2,
                 }}
               />
-              {predictedPrice != null && Number.isFinite(predictedPrice) ? (
+              {!isCm &&
+              predictedPrice != null &&
+              Number.isFinite(predictedPrice) ? (
                 <ReferenceLine
                   y={predictedPrice}
                   stroke="#a1a1aa"
@@ -253,7 +343,7 @@ export function PriceChart({
             </ComposedChart>
           </ResponsiveContainer>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

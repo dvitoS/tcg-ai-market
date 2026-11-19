@@ -404,20 +404,27 @@ def nm_history_for_tcgplayer_id(
     *,
     period: str = "90d",
     limit: int = 120,
+    currency: str = "usd",
 ) -> list[dict[str, Any]]:
-    """Daily TCGPlayer Near Mint closes → Soft Ink ``[{date, price}, ...]``.
+    """Daily Near Mint closes → Soft Ink ``[{date, price}, ...]``.
 
+    ``currency=usd`` → TCGplayer (USD). ``currency=eur`` → Cardmarket (EUR).
     Credits: 1 per history row returned — keep ``limit`` modest.
     """
     pid = find_card_id_by_tcgplayer_id(tcgplayer_id)
     if pid is None:
         return []
 
+    cur = str(currency or "usd").strip().lower()
+    if cur not in {"usd", "eur"}:
+        cur = "usd"
+    source_want = "cardmarket" if cur == "eur" else "tcgplayer"
+
     per_page = max(1, min(365, int(limit)))
     payload = _get(
         f"/v1/cards/{int(pid)}/prices/history",
         {
-            "currency": "usd",
+            "currency": cur,
             "period": period,
             "condition": "Near Mint",
             "limit": per_page,
@@ -429,7 +436,13 @@ def nm_history_for_tcgplayer_id(
     for row in rows:
         if not isinstance(row, dict):
             continue
-        if str(row.get("source") or "").lower() not in {"tcgplayer", ""}:
+        src = str(row.get("source") or "").lower()
+        if src and src not in {source_want, ""}:
+            continue
+        row_cur = str(row.get("currency") or "").upper()
+        if cur == "eur" and row_cur and row_cur not in {"EUR", ""}:
+            continue
+        if cur == "usd" and row_cur and row_cur not in {"USD", ""}:
             continue
         if str(row.get("condition") or "") not in {"Near Mint", ""}:
             continue

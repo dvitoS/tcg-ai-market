@@ -421,6 +421,8 @@ class CardPriceSourcesResponse(BaseModel):
     justtcg_fallback: bool = False
     justtcg_from_db: bool = False
     justtcg_error: str | None = None
+    cardmarket: list[HistoryPoint] = Field(default_factory=list)
+    cardmarket_error: str | None = None
     psa10: list[HistoryPoint] = Field(default_factory=list)
     psa10_error: str | None = None
     psa10_stats: PsaGradeStats = Field(default_factory=PsaGradeStats)
