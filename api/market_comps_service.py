@@ -134,6 +134,14 @@ def build_market_comps(card_id: str, *, limit: int = 10) -> dict[str, Any]:
         sold = ebay_sold_listings_for_tcgplayer_id(
             tcp, graded=False, period="90d", limit=limit
         )
+        try:
+            from services.epn import tag_listing_urls
+
+            sold = tag_listing_urls(
+                sold, customid=f"detail-sold-{card_id}"
+            )
+        except Exception:
+            pass
         prices = [float(r["price"]) for r in sold if r.get("currency") == "USD"]
         payload["ebay_sold"] = sold
         payload["ebay_sold_stats"] = {

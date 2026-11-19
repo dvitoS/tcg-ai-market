@@ -371,6 +371,7 @@ class MarketCompListing(BaseModel):
     sell_count: int | float | None = None
     language: str | None = None
     quantity: int | float | None = None
+    attribution: str | None = None
 
 
 class MarketCompStats(BaseModel):

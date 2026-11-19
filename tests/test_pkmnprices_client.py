@@ -357,3 +357,59 @@ def test_search_sealed_by_name(monkeypatch) -> None:
     assert hits[0]["tcgplayer_id"] == "624676"
     assert hits[0]["spot_usd"] == 106.0
     assert hits[0]["source"] == "pkmnprices"
+
+
+def test_ebay_sold_search_url_prefers_completed_search() -> None:
+    url = client.ebay_sold_search_url(
+        title="Mega Rayquaza ex Delta Reign",
+        listing_url="https://www.ebay.com/itm/123456789012",
+    )
+    assert url is not None
+    assert "LH_Sold=1" in url
+    assert "LH_Complete=1" in url
+    assert "Mega+Rayquaza" in url or "Mega%20Rayquaza" in url
+    assert "/itm/" not in url
+
+
+def test_ebay_sold_listings_drops_shared_and_rewrites_url(monkeypatch) -> None:
+    monkeypatch.setattr(client, "find_card_id_by_tcgplayer_id", lambda _tcp: 42)
+
+    def _fake_get(path, params=None):
+        assert path == "/v1/cards/42/listings/ebay"
+        assert params["graded"] == "false"
+        return {
+            "data": [
+                {
+                    "title": "Exact Match Card",
+                    "price": 100.0,
+                    "currency": "USD",
+                    "sold_at": "2026-11-01",
+                    "listing_url": "https://www.ebay.com/itm/111222333444",
+                    "attribution": "exact",
+                    "condition": "Near Mint",
+                },
+                {
+                    "title": "Shared Sibling Printing",
+                    "price": 999.0,
+                    "currency": "USD",
+                    "sold_at": "2026-11-02",
+                    "listing_url": "https://www.ebay.com/itm/999888777666",
+                    "attribution": "shared",
+                },
+                {
+                    "title": "No sale date",
+                    "price": 50.0,
+                    "currency": "USD",
+                    "listing_url": "https://www.ebay.com/itm/555",
+                    "attribution": "exact",
+                },
+            ]
+        }
+
+    monkeypatch.setattr(client, "_get", _fake_get)
+    rows = client.ebay_sold_listings_for_tcgplayer_id("777", limit=10)
+    assert len(rows) == 1
+    assert rows[0]["price"] == 100.0
+    assert rows[0]["title"] == "Exact Match Card"
+    assert rows[0]["url"] and "LH_Sold=1" in rows[0]["url"]
+    assert "/itm/" not in (rows[0]["url"] or "")
