@@ -236,13 +236,16 @@ export async function fetchCardPriceSources(
     grades?: PriceSourcesGrades;
     cardmarket?: boolean;
     printing?: string | null;
+    condition?: string | null;
   } = {},
 ): Promise<CardPriceSourcesResponse> {
   const limit = options.limit ?? 400;
   const grades = options.grades ?? "none";
   const cardmarket = Boolean(options.cardmarket);
   const printing = (options.printing || "").trim() || "";
-  const key = `${cardId}|${limit}|${grades}|cm=${cardmarket ? 1 : 0}|p=${printing || "-"}`;
+  const condition = (options.condition || "").trim().toUpperCase() || "";
+  const condKey = condition && condition !== "NM" ? condition : "-";
+  const key = `${cardId}|${limit}|${grades}|cm=${cardmarket ? 1 : 0}|p=${printing || "-"}|c=${condKey}`;
   const existing = _priceSourcesInflight.get(key);
   if (existing) return existing;
 
@@ -253,6 +256,7 @@ export async function fetchCardPriceSources(
     });
     if (cardmarket) qs.set("cardmarket", "true");
     if (printing) qs.set("printing", printing);
+    if (condition && condition !== "NM") qs.set("condition", condition);
     const res = await fetch(
       apiUrl(`/api/cards/${encodeURIComponent(cardId)}/sources?${qs}`),
       {

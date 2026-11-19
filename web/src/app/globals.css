@@ -3825,6 +3825,14 @@ a {
   color: var(--accent-2);
 }
 
+.chart-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem 0.75rem;
+  align-items: center;
+  margin: 0.35rem 0 0.6rem;
+}
+
 .chart-canvas {
   width: 100%;
   min-height: 320px;

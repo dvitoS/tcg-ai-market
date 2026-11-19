@@ -863,6 +863,7 @@ const en = {
   chart_finish_tabs: "Chart finish",
   chart_finish_auto: "Auto",
   chart_finish_auto_hint: "Soft Ink picks Near Mint · prefers {finish}",
+  chart_condition_tabs: "Chart condition",
   chart_cm_loading: "Loading Cardmarket NM…",
   chart_cm_empty_title: "No Cardmarket NM history yet",
   chart_cm_empty_lede:
@@ -1933,6 +1934,7 @@ const hr: Dictionary = {
   chart_finish_tabs: "Chart finish",
   chart_finish_auto: "Auto",
   chart_finish_auto_hint: "Soft Ink bira Near Mint · preferira {finish}",
+  chart_condition_tabs: "Chart stanje",
   chart_cm_loading: "Učitavam Cardmarket NM…",
   chart_cm_empty_title: "Nema Cardmarket NM povijesti još",
   chart_cm_empty_lede:

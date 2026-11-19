@@ -22,6 +22,7 @@ import { fetchCardPriceSources, formatMoney } from "@/lib/api";
 import type { CardPriceSourcesResponse, HistoryPoint } from "@/lib/types";
 
 type RangeKey = "1m" | "3m" | "1y" | "all";
+type ChartCondition = "NM" | "LP" | "MP";
 
 const RANGES: { key: RangeKey; label: string; days: number | null }[] = [
   { key: "1m", label: "1M", days: 30 },
@@ -29,6 +30,8 @@ const RANGES: { key: RangeKey; label: string; days: number | null }[] = [
   { key: "1y", label: "1Y", days: 365 },
   { key: "all", label: "All", days: null },
 ];
+
+const CONDITIONS: ChartCondition[] = ["NM", "LP", "MP"];
 
 const CHART_COLOR = "#B87333";
 const CM_CHART_COLOR = "#5B7C99";
@@ -101,6 +104,7 @@ export function PriceChart({
   const [market, setMarket] = useState<MarketSource>("tcgplayer");
   // null = Soft Ink auto (DB / JustTCG / Pkmn with Holofoil preference) — no finish filter credit burn.
   const [finish, setFinish] = useState<string | null>(null);
+  const [condition, setCondition] = useState<ChartCondition>("NM");
   const [sources, setSources] = useState<CardPriceSourcesResponse | null>(null);
   const [loading, setLoading] = useState(Boolean(cardId) && points.length === 0);
   const [error, setError] = useState<string | null>(null);
@@ -109,6 +113,7 @@ export function PriceChart({
 
   useEffect(() => {
     setFinish(null);
+    setCondition("NM");
   }, [cardId]);
 
   useEffect(() => {
@@ -126,6 +131,7 @@ export function PriceChart({
       grades: "none",
       limit: 400,
       printing: finish,
+      condition: condition === "NM" ? null : condition,
     })
       .then((data) => {
         if (!cancelled) setSources(data);
@@ -141,7 +147,7 @@ export function PriceChart({
     return () => {
       cancelled = true;
     };
-  }, [cardId, points.length, finish]);
+  }, [cardId, points.length, finish, condition]);
 
   // Lazy Cardmarket EUR series — only when the CM tab opens (PkmnPrices credits).
   useEffect(() => {
@@ -154,6 +160,7 @@ export function PriceChart({
       limit: 400,
       cardmarket: true,
       printing: finish,
+      condition: condition === "NM" ? null : condition,
     })
       .then((data) => {
         if (cancelled) return;
@@ -194,14 +201,20 @@ export function PriceChart({
     return () => {
       cancelled = true;
     };
-  }, [cardId, market, sources, cmTried, finish]);
+  }, [cardId, market, sources, cmTried, finish, condition]);
 
-  // Prefer live Soft Ink NM, else DB / SSR history (TCGplayer-linked).
-  const nmAll = sources?.justtcg?.length
-    ? sources.justtcg
-    : sources?.tcgplayer?.length
-      ? sources.tcgplayer
-      : points;
+  // Prefer live Soft Ink series, else DB / SSR history (TCGplayer-linked).
+  // Non-NM must not fall back to NM DB points — that would lie about condition.
+  const nmAll =
+    condition !== "NM"
+      ? sources?.justtcg?.length
+        ? sources.justtcg
+        : []
+      : sources?.justtcg?.length
+        ? sources.justtcg
+        : sources?.tcgplayer?.length
+          ? sources.tcgplayer
+          : points;
 
   const cmAll = sources?.cardmarket?.length ? sources.cardmarket : [];
   const activeAll = market === "cardmarket" ? cmAll : nmAll;
@@ -270,40 +283,60 @@ export function PriceChart({
         </div>
       </div>
 
-      {finishOptions.length > 1 ? (
+      <div className="chart-filter-row">
         <div
-          className="range-toggle chart-finish-toggle"
+          className="range-toggle chart-condition-toggle"
           role="tablist"
-          aria-label={t("chart_finish_tabs")}
+          aria-label={t("chart_condition_tabs")}
         >
-          <button
-            type="button"
-            role="tab"
-            aria-selected={finish == null}
-            className={finish == null ? "is-active" : ""}
-            onClick={() => setFinish(null)}
-            title={
-              hintFinish
-                ? t("chart_finish_auto_hint", { finish: hintFinish })
-                : undefined
-            }
-          >
-            {t("chart_finish_auto")}
-          </button>
-          {finishOptions.map((item) => (
+          {CONDITIONS.map((item) => (
             <button
               key={item}
               type="button"
               role="tab"
-              aria-selected={finish === item}
-              className={finish === item ? "is-active" : ""}
-              onClick={() => setFinish(item)}
+              aria-selected={condition === item}
+              className={condition === item ? "is-active" : ""}
+              onClick={() => setCondition(item)}
             >
               {item}
             </button>
           ))}
         </div>
-      ) : null}
+        {finishOptions.length > 1 ? (
+          <div
+            className="range-toggle chart-finish-toggle"
+            role="tablist"
+            aria-label={t("chart_finish_tabs")}
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={finish == null}
+              className={finish == null ? "is-active" : ""}
+              onClick={() => setFinish(null)}
+              title={
+                hintFinish
+                  ? t("chart_finish_auto_hint", { finish: hintFinish })
+                  : undefined
+              }
+            >
+              {t("chart_finish_auto")}
+            </button>
+            {finishOptions.map((item) => (
+              <button
+                key={item}
+                type="button"
+                role="tab"
+                aria-selected={finish === item}
+                className={finish === item ? "is-active" : ""}
+                onClick={() => setFinish(item)}
+              >
+                {item}
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </div>
 
       {loading || cmLoading ? (
         <p className="chart-sources-status">
@@ -397,6 +430,7 @@ export function PriceChart({
                 }}
               />
               {!isCm &&
+              condition === "NM" &&
               predictedPrice != null &&
               Number.isFinite(predictedPrice) ? (
                 <ReferenceLine

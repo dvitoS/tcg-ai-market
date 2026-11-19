@@ -101,6 +101,34 @@ def test_nm_history_prefers_holofoil_when_collapsing(monkeypatch) -> None:
     assert rows == [{"date": "2024-04-01", "price": 12.0}]
 
 
+def test_nm_history_condition_lp(monkeypatch) -> None:
+    monkeypatch.setattr(client, "pkmn_api_key", lambda: "pk-test")
+    monkeypatch.setattr(client, "find_card_id_by_tcgplayer_id", lambda _tcp: 7)
+
+    def _fake_get(path, params=None):
+        assert params["condition"] == "Lightly Played"
+        return {
+            "data": [
+                {
+                    "date": "2024-04-03",
+                    "avg": 4.25,
+                    "condition": "Lightly Played",
+                    "source": "tcgplayer",
+                    "variant": "Holofoil",
+                }
+            ]
+        }
+
+    monkeypatch.setattr(client, "_get", _fake_get)
+    rows = client.nm_history_for_tcgplayer_id("555", condition="LP")
+    assert rows == [{"date": "2024-04-03", "price": 4.25}]
+
+
+def test_soft_ink_condition_to_pkmn_eur() -> None:
+    assert client.soft_ink_condition_to_pkmn("LP", currency="eur") == "Light Played"
+    assert client.soft_ink_condition_to_pkmn("MP", currency="usd") == "Moderately Played"
+
+
 def test_nm_history_filters_variant(monkeypatch) -> None:
     monkeypatch.setattr(client, "pkmn_api_key", lambda: "pk-test")
     monkeypatch.setattr(client, "find_card_id_by_tcgplayer_id", lambda _tcp: 7)
