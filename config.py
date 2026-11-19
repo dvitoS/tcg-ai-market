@@ -260,6 +260,9 @@ PKMN_NIGHTLY_MAX_CARDS = 150
 # When JUSTTCG_API_KEY is absent, nightly uses Pkmn as primary drip (higher cap).
 # ~500 × ~90 credits ≈ 45k/day — under Scale 75k. Override: PKMN_NIGHTLY_PRIMARY_MAX_CARDS.
 PKMN_NIGHTLY_PRIMARY_MAX_CARDS = 500
+# Path-B substitute: max cards without TCP to resolve via public TCGplayer search
+# during Pkmn-primary nightly (then ingest). Override: PKMN_NIGHTLY_TCP_RESOLVE_MAX.
+PKMN_NIGHTLY_TCP_RESOLVE_MAX = 100
 
 # Soft Ink "All" + nightly replace_card_history use this window.
 # 90d keeps charts useful without the free-tier payload of 180d/1y.

@@ -243,6 +243,61 @@ def test_sync_pkmn_price_history_primary(monkeypatch):
     assert stats["updated"] == 1
     assert stats["pkmn_attempted"] == 1
     assert stats["justtcg_requests"] == 0
+    assert stats["tcp_resolved"] == 0
+
+
+def test_sync_pkmn_price_history_pathb_tcp_resolve(monkeypatch):
+    """Missing-TCP cards: public search → persist → Pkmn ingest."""
+    card = SimpleNamespace(
+        id="sv8-11",
+        name="Pikachu",
+        set_name="Surging Sparks",
+        tcgplayer_id=None,
+        market_price=5.0,
+    )
+    persisted: list[tuple[str, str]] = []
+
+    monkeypatch.setattr(sync, "init_db", lambda: None)
+    monkeypatch.setattr(sync, "list_cards_for_sync", lambda limit=None: [card])
+    monkeypatch.setattr(sync, "distinct_history_card_ids", lambda: set())
+    monkeypatch.setattr(sync, "table_count", lambda _t: 9)
+    monkeypatch.setattr(sync, "pkmn_nightly_card_budget", lambda primary=False: 50)
+    monkeypatch.setattr(sync, "_pkmn_tcp_resolve_budget", lambda: 10)
+    monkeypatch.setattr(
+        "backfill_tcgplayer_ids.resolve_tcgplayer_id_from_search",
+        lambda **_k: ("555011", 140),
+    )
+    monkeypatch.setattr(
+        sync,
+        "update_card_tcgplayer_id",
+        lambda cid, tid: persisted.append((cid, tid)),
+    )
+    monkeypatch.setattr("pkmnprices_client.pkmnprices_configured", lambda: True)
+    monkeypatch.setattr(
+        "pkmnprices_client.nm_history_for_tcgplayer_id",
+        lambda *_a, **_k: [
+            {"date": f"2026-06-{d:02d}", "price": 5.0 + d * 0.1} for d in range(1, 12)
+        ],
+    )
+    monkeypatch.setattr(sync, "replace_card_history", lambda *_a, **_k: 11)
+    monkeypatch.setattr(sync, "update_card_market_price", lambda *_a, **_k: None)
+
+    stats = sync.sync_pkmn_price_history(limit=10)
+    assert stats["pkmn_primary"] is True
+    assert stats["tcp_resolved"] == 1
+    assert stats["tcp_resolve_failed"] == 0
+    assert stats["updated"] == 1
+    assert stats["pkmn_attempted"] == 1
+    assert persisted == [("sv8-11", "555011")]
+    assert card.tcgplayer_id == "555011"
+
+
+def test_sync_pkmn_tcp_resolve_budget_off(monkeypatch):
+    assert sync._pkmn_tcp_resolve_budget() >= 1
+    monkeypatch.setenv("PKMN_NIGHTLY_TCP_RESOLVE_MAX", "off")
+    assert sync._pkmn_tcp_resolve_budget() == 0
+    monkeypatch.setenv("PKMN_NIGHTLY_TCP_RESOLVE_MAX", "25")
+    assert sync._pkmn_tcp_resolve_budget() == 25
 
 
 def test_heal_card_ids_pkmn_without_justtcg(monkeypatch):

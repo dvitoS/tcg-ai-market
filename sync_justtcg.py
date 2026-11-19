@@ -17,6 +17,7 @@ from config import (
     JUSTTCG_BATCH_SIZE,
     PKMN_NIGHTLY_MAX_CARDS,
     PKMN_NIGHTLY_PRIMARY_MAX_CARDS,
+    PKMN_NIGHTLY_TCP_RESOLVE_MAX,
     catalog_sets,
 )
 from database import (
@@ -27,6 +28,7 @@ from database import (
     replace_card_history,
     table_count,
     update_card_market_price,
+    update_card_tcgplayer_id,
 )
 from justtcg_client import (
     JustTCGRateLimitError,
@@ -306,12 +308,30 @@ def _try_pkmn_fallback(
         return "skip_empty", 0
 
 
-def sync_pkmn_price_history(*, limit: int | None = None) -> dict[str, int]:
-    """PkmnPrices-primary NM drip for cards with ``tcgplayer_id`` (no JustTCG).
+def _pkmn_tcp_resolve_budget() -> int:
+    raw = (os.environ.get("PKMN_NIGHTLY_TCP_RESOLVE_MAX") or "").strip().lower()
+    if raw in {"0", "off", "none"}:
+        return 0
+    if raw.isdigit():
+        return max(0, min(int(raw), 2000))
+    return max(0, int(PKMN_NIGHTLY_TCP_RESOLVE_MAX))
 
-    Used when ``JUSTTCG_API_KEY`` is absent so nightly still fills ``price_history``.
-    Skips Path B set pagination (PkmnPrices has no set-walk equivalent here).
+
+def _card_number_from_id(card_id: str) -> str | None:
+    text = str(card_id or "")
+    if "-" not in text:
+        return None
+    return normalize_card_number(text.rsplit("-", 1)[-1]) or None
+
+
+def sync_pkmn_price_history(*, limit: int | None = None) -> dict[str, int]:
+    """PkmnPrices-primary NM drip (no JustTCG).
+
+    1. Cards that already have ``tcgplayer_id``
+    2. Path-B substitute: resolve missing TCP via public TCGplayer search
+       (capped), persist id, then PkmnPrices history ingest
     """
+    from backfill_tcgplayer_ids import resolve_tcgplayer_id_from_search
     from pkmnprices_client import pkmnprices_configured
 
     if not pkmnprices_configured():
@@ -324,14 +344,23 @@ def sync_pkmn_price_history(*, limit: int | None = None) -> dict[str, int]:
         for c in targets
         if str(getattr(c, "tcgplayer_id", None) or "").strip()
     ]
+    without_tcp = [
+        c
+        for c in targets
+        if not str(getattr(c, "tcgplayer_id", None) or "").strip()
+    ]
     updated = skipped = saved = 0
+    tcp_resolved = tcp_resolve_failed = 0
     pkmn_budget = pkmn_nightly_card_budget(primary=True)
+    tcp_resolve_budget = _pkmn_tcp_resolve_budget()
     pkmn_used = [0]
     matched_ids: set[str] = set()
     have_history = distinct_history_card_ids()
     print(
-        f"PkmnPrices primary sync: {len(with_tcp)} cards with tcgplayer_id "
-        f"(of {len(targets)} prioritized, budget={pkmn_budget})"
+        f"PkmnPrices primary sync: {len(with_tcp)} with tcp, "
+        f"{len(without_tcp)} without "
+        f"(of {len(targets)} prioritized, pkmn_budget={pkmn_budget}, "
+        f"tcp_resolve_budget={tcp_resolve_budget})"
     )
     for card in with_tcp:
         if limit is not None and updated >= limit:
@@ -353,6 +382,60 @@ def sync_pkmn_price_history(*, limit: int | None = None) -> dict[str, int]:
         else:
             skipped += 1
 
+    # Path-B substitute — fill missing TCP then ingest (JustTCG set-walk replacement).
+    for card in without_tcp:
+        if limit is not None and updated >= limit:
+            break
+        if tcp_resolved + tcp_resolve_failed >= tcp_resolve_budget:
+            skipped += 1
+            continue
+        if pkmn_used[0] >= pkmn_budget:
+            skipped += 1
+            continue
+        number = _card_number_from_id(str(card.id))
+        try:
+            tid, score = resolve_tcgplayer_id_from_search(
+                name=str(getattr(card, "name", "") or ""),
+                number=number,
+                set_name=str(getattr(card, "set_name", "") or "") or None,
+                min_score=120,
+            )
+        except Exception as exc:
+            print(f"  TCP resolve {card.id}: {exc}", file=sys.stderr)
+            tid, score = None, 0
+        if not tid:
+            tcp_resolve_failed += 1
+            skipped += 1
+            continue
+        try:
+            update_card_tcgplayer_id(str(card.id), tid)
+        except Exception as exc:
+            print(f"  TCP persist {card.id}: {exc}", file=sys.stderr)
+            tcp_resolve_failed += 1
+            skipped += 1
+            continue
+        try:
+            card.tcgplayer_id = tid
+        except Exception:
+            pass
+        tcp_resolved += 1
+        status, written = _try_pkmn_fallback(
+            card,
+            have_history=have_history,
+            matched_ids=matched_ids,
+            pkmn_budget=pkmn_budget,
+            pkmn_used=pkmn_used,
+        )
+        if status == "ok":
+            updated += 1
+            saved += written
+            print(
+                f"  OK {card.id} · pkmn-pathb tcp={tid} score={score} · "
+                f"{written} history pts"
+            )
+        else:
+            skipped += 1
+
     total = table_count("price_history")
     payload = {
         "updated": updated,
@@ -367,11 +450,14 @@ def sync_pkmn_price_history(*, limit: int | None = None) -> dict[str, int]:
         "pkmn_saved": saved,
         "pkmn_attempted": pkmn_used[0],
         "pkmn_primary": True,
+        "tcp_resolved": tcp_resolved,
+        "tcp_resolve_failed": tcp_resolve_failed,
     }
     print(
         f"PkmnPrices primary gotovo: updated={updated} skipped={skipped} "
         f"saved_rows={saved} total_history={payload['total_history']} "
-        f"pkmn_attempted={payload['pkmn_attempted']}"
+        f"pkmn_attempted={payload['pkmn_attempted']} "
+        f"tcp_resolved={tcp_resolved} tcp_resolve_failed={tcp_resolve_failed}"
     )
     return payload
 
