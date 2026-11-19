@@ -779,7 +779,7 @@ const en = {
   detail_mode_raw: "Raw",
   detail_mode_graded: "Graded",
   detail_mode_pop: "Pop.",
-  detail_side_rail: "Collection and active listings",
+  detail_side_rail: "Why lean and add to portfolio",
   grade_ev_title: "Grading EV",
   grade_ev_lede:
     "Buy raw, pay grade + ship, sell after fees — scenario nets IF you land PSA 10 vs PSA 9. Not a gem-rate promise.",
@@ -896,6 +896,10 @@ const en = {
   comps_cm_empty: "No Cardmarket NM offers right now.",
   comps_market_tabs: "Marketplace comps",
   comps_sold_title_ebay: "Sold · eBay completed",
+  comps_active_title_ebay: "Active · eBay asks",
+  comps_ebay_mode_tabs: "eBay sold or active",
+  comps_ebay_mode_sold: "Sold",
+  comps_ebay_mode_active: "Active",
   comps_sold_title_tcp: "Live asks · TCGplayer",
   comps_sold_title_cm: "Live asks · Cardmarket",
   comps_tcp_lede:
@@ -1839,7 +1843,7 @@ const hr: Dictionary = {
   detail_mode_raw: "Raw",
   detail_mode_graded: "Graded",
   detail_mode_pop: "Pop.",
-  detail_side_rail: "Kolekcija i aktivni oglasi",
+  detail_side_rail: "Zašto lean i dodaj u portfolio",
   grade_ev_title: "Grading EV",
   grade_ev_lede:
     "Kupi raw, plati grade + ship, prodaj nakon feeova — scenarij net AKO dobiješ PSA 10 vs PSA 9. Nije gem-rate obećanje.",
@@ -1956,6 +1960,10 @@ const hr: Dictionary = {
   comps_cm_empty: "Nema Cardmarket NM offers trenutno.",
   comps_market_tabs: "Marketplace comps",
   comps_sold_title_ebay: "Sold · eBay completed",
+  comps_active_title_ebay: "Active · eBay asks",
+  comps_ebay_mode_tabs: "eBay sold ili active",
+  comps_ebay_mode_sold: "Sold",
+  comps_ebay_mode_active: "Active",
   comps_sold_title_tcp: "Live asks · TCGplayer",
   comps_sold_title_cm: "Live asks · Cardmarket",
   comps_tcp_lede:

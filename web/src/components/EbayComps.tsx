@@ -48,11 +48,14 @@ export function EbayComps({
   cardId,
   cardName,
   compact = false,
+  embedded = false,
 }: {
   cardId: string;
   cardName: string;
   /** Side-rail denser list (Collectr-style shop column). */
   compact?: boolean;
+  /** Nested under MarketCompsPanel — skip duplicate heading. */
+  embedded?: boolean;
 }) {
   const { t } = useLocale();
   const [data, setData] = useState<EbayCompsResponse | null>(null);
@@ -88,14 +91,16 @@ export function EbayComps({
 
   return (
     <section
-      className={`ebay-panel${compact ? " ebay-panel-compact" : ""}`}
+      className={`ebay-panel${compact ? " ebay-panel-compact" : ""}${embedded ? " ebay-panel-embedded" : ""}`}
       aria-label={`${t("ebay_active_title")} · ${cardName}`}
     >
       {/* Sold comps live in MarketCompsPanel tabs — this panel is active only. */}
       <div className="ebay-block">
-        <div className="ebay-head">
-          <h2>{t("ebay_active_title")}</h2>
-        </div>
+        {embedded ? null : (
+          <div className="ebay-head">
+            <h2>{t("ebay_active_title")}</h2>
+          </div>
+        )}
         {loading ? <p className="empty-state">{t("ebay_loading")}</p> : null}
         {!loading &&
         (error || (data && !data.configured) || data?.listings_error) ? (

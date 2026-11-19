@@ -7,7 +7,6 @@ import { useEffect, useState } from "react";
 import { AddLotForm } from "@/components/AddLotForm";
 import { useCurrency } from "@/components/CurrencyProvider";
 import { DeferredMount } from "@/components/DeferredMount";
-import { EbayComps } from "@/components/EbayComps";
 import { GradingEvPanel } from "@/components/GradingEvPanel";
 import { HoloCardArt } from "@/components/HoloCardArt";
 import { useLocale } from "@/components/LocaleProvider";
@@ -417,22 +416,13 @@ export function CardDetailView({
             </details>
           ) : null}
 
-          <div className="detail-side-module">
+          <div className="detail-side-module detail-side-lot">
             <h2 className="detail-side-heading">{t("detail_lot_fold")}</h2>
             <AddLotForm
               cardId={card.id}
               cardName={card.name}
               defaultPrice={history.last_price ?? card.price}
             />
-          </div>
-          <div className="detail-side-module detail-side-ebay">
-            <DeferredMount>
-              <EbayComps
-                cardId={card.id}
-                cardName={card.name}
-                compact
-              />
-            </DeferredMount>
           </div>
         </aside>
       </div>

@@ -1799,13 +1799,71 @@ a {
 
 @media (max-width: 960px) {
   .detail-desk-split {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
+    gap: 1.35rem;
+  }
+
+  .detail-desk-main {
+    order: 1;
   }
 
   .detail-desk-side {
+    order: 2;
     position: static;
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
   }
+
+  /* Why lean before collection chrome on narrow desks. */
+  .detail-desk-side .detail-side-why {
+    order: 1;
+  }
+
+  .detail-desk-side .detail-side-lot {
+    order: 2;
+  }
+}
+
+.comps-ebay-modes {
+  display: inline-flex;
+  gap: 0.25rem;
+  margin: 0.55rem 0 0.35rem;
+  padding: 0.18rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(10, 10, 10, 0.45);
+}
+
+.comps-ebay-mode {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 550;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.comps-ebay-mode.is-active {
+  color: var(--accent-2);
+  background: rgba(192, 122, 58, 0.16);
+}
+
+.comps-body-ebay-active .ebay-panel-embedded {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.comps-body-ebay-active .ebay-block {
+  padding: 0;
+  box-shadow: none;
 }
 
 /* Collectr-style Raw | Graded | Pop. — Soft Ink copper, not teal clone */
