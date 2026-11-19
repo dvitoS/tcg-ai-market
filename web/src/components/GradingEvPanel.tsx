@@ -51,6 +51,10 @@ export function GradingEvPanel({
   const [sales10, setSales10] = useState<number | null>(null);
   const [sales9, setSales9] = useState<number | null>(null);
   const [periodKey, setPeriodKey] = useState<string | null>(null);
+  const [popTotal, setPopTotal] = useState<number | null>(null);
+  const [popPsa10, setPopPsa10] = useState<number | null>(null);
+  const [popVariant, setPopVariant] = useState<string | null>(null);
+  const [popGemSeeded, setPopGemSeeded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   /** Opt-in — auto-fetch on every detail mount burned JustTCG PSA quota. */
@@ -71,6 +75,11 @@ export function GradingEvPanel({
     setSales10(null);
     setSales9(null);
     setPeriodKey(null);
+    setPopTotal(null);
+    setPopPsa10(null);
+    setPopVariant(null);
+    setPopGemSeeded(false);
+    setGemRatePct(25);
     setError(null);
     setLoading(false);
   }, [cardId]);
@@ -99,6 +108,31 @@ export function GradingEvPanel({
         setSales10(s10 != null && Number.isFinite(Number(s10)) ? Number(s10) : null);
         setSales9(null);
         setPeriodKey(payload.psa10_stats?.period_key || null);
+
+        const pop = payload.population;
+        if (pop) {
+          const total = Number(pop.psa_total ?? pop.total_population);
+          setPopTotal(
+            Number.isFinite(total) && total > 0 ? Math.round(total) : null,
+          );
+          const p10 = Number(pop.psa_10 ?? pop.grades_10);
+          setPopPsa10(
+            Number.isFinite(p10) && p10 >= 0 ? Math.round(p10) : null,
+          );
+          setPopVariant(pop.variant ? String(pop.variant) : null);
+          const gem = Number(pop.gem_rate_for_ev ?? pop.psa_gem_rate ?? pop.gem_rate);
+          if (Number.isFinite(gem) && gem > 0 && gem <= 100) {
+            setGemRatePct(Math.round(gem));
+            setPopGemSeeded(true);
+          } else {
+            setPopGemSeeded(false);
+          }
+        } else {
+          setPopTotal(null);
+          setPopPsa10(null);
+          setPopVariant(null);
+          setPopGemSeeded(false);
+        }
       })
       .catch((err) => {
         if (!alive) return;
@@ -107,6 +141,10 @@ export function GradingEvPanel({
         setPsa9(null);
         setSales10(null);
         setSales9(null);
+        setPopTotal(null);
+        setPopPsa10(null);
+        setPopVariant(null);
+        setPopGemSeeded(false);
       })
       .finally(() => {
         if (alive) setLoading(false);
@@ -370,6 +408,24 @@ export function GradingEvPanel({
                   s9: sales9 != null ? String(Math.round(sales9)) : "—",
                   window: periodKey || "—",
                 })}
+              </strong>
+            </div>
+            <div className="grade-ev-metric">
+              <span>{t("grade_ev_pop")}</span>
+              <strong>
+                {popTotal != null
+                  ? t("grade_ev_pop_values", {
+                      total: String(popTotal),
+                      p10: popPsa10 != null ? String(popPsa10) : "—",
+                      variant: popVariant || "—",
+                    })
+                  : "—"}
+                {popGemSeeded ? (
+                  <span className="grade-ev-hint">
+                    {" "}
+                    ({t("grade_ev_pop_gem_seed")})
+                  </span>
+                ) : null}
               </strong>
             </div>
           </div>

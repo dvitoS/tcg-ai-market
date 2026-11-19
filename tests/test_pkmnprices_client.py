@@ -174,6 +174,60 @@ def test_batch_variant_spots_one_get_per_tcp(monkeypatch) -> None:
     assert "999|LP|Normal" not in out
 
 
+def test_population_for_tcgplayer_id(monkeypatch) -> None:
+    monkeypatch.setattr(client, "find_card_id_by_tcgplayer_id", lambda _tcp: 18176)
+
+    def _fake_get(path, params=None):
+        assert path == "/v1/cards/18176/population"
+        return {
+            "card_id": 18176,
+            "variants": [
+                {
+                    "variant": "Normal",
+                    "total_population": 100,
+                    "total_gems": 10,
+                    "gem_rate": 10.0,
+                    "grades": {"9": 40, "10": 10},
+                    "percent_higher": {"9": 20.0},
+                    "graders": {
+                        "PSA": {
+                            "total": 80,
+                            "gems": 8,
+                            "gem_rate": 10.0,
+                            "grades": {"9": 30, "10": 8},
+                            "pop_report_url": "https://example.com/pop",
+                        }
+                    },
+                },
+                {
+                    "variant": "Holofoil",
+                    "total_population": 200,
+                    "total_gems": 40,
+                    "gem_rate": 20.0,
+                    "grades": {"9": 80, "10": 40},
+                    "percent_higher": {"9": 25.0},
+                    "graders": {
+                        "PSA": {
+                            "total": 150,
+                            "gems": 30,
+                            "gem_rate": 20.0,
+                            "grades": {"9": 60, "10": 30},
+                            "pop_report_url": "https://example.com/holo",
+                        }
+                    },
+                },
+            ],
+        }
+
+    monkeypatch.setattr(client, "_get", _fake_get)
+    hit = client.population_for_tcgplayer_id("555")
+    assert hit is not None
+    assert hit["variant"] == "Holofoil"
+    assert hit["psa_10"] == 30
+    assert hit["gem_rate_for_ev"] == 20.0
+    assert hit["pkmn_card_id"] == 18176
+
+
 def test_psa_series_from_comps_median() -> None:
     points = client.psa_series_from_comps(
         [

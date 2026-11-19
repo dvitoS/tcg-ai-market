@@ -578,6 +578,32 @@ def _build_card_price_sources_uncached(
         except Exception as exc:
             LOG.info("PkmnPrices graded import failed: %s", exc)
 
+    # Graded population (Pro+) — seeds Grading EV gem-rate; 1 credit when grades armed.
+    population: dict[str, Any] | None = None
+    population_error: str | None = None
+    if pkmn_configured and tcp and grades_mode != "none":
+        try:
+            from pkmnprices_client import (
+                PkmnPricesRateLimitError,
+                population_for_tcgplayer_id,
+            )
+
+            population = population_for_tcgplayer_id(tcp)
+            if population:
+                pkmn_used = True
+                LOG.info(
+                    "PkmnPrices population for %s (variant=%s psa10=%s gem=%.2f)",
+                    card_id,
+                    population.get("variant"),
+                    population.get("psa_10"),
+                    float(population.get("gem_rate_for_ev") or 0),
+                )
+        except PkmnPricesRateLimitError:
+            population_error = "PkmnPrices rate/credit limited — try again later."
+        except Exception as exc:
+            population_error = str(exc)[:180]
+            LOG.info("PkmnPrices population failed for %s: %s", card_id, exc)
+
     def _grade_stats(raw: dict[str, Any]) -> dict[str, Any]:
         return {
             "has_history_series": bool(raw.get("has_history_series")),
@@ -611,6 +637,8 @@ def _build_card_price_sources_uncached(
         "psa9": psa9,
         "psa9_error": psa9_error,
         "psa9_stats": _grade_stats(psa9_stats),
+        "population": population,
+        "population_error": population_error,
         "grades": grades_mode,
         "cache": "miss",
     }

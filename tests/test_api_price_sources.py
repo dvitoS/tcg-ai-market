@@ -237,6 +237,7 @@ def test_card_price_sources_grades_psa10_only(monkeypatch) -> None:
     calls = {"psa": 0}
 
     monkeypatch.setattr("api.price_sources_service.justtcg_api_key", lambda: "test-key")
+    monkeypatch.setattr("pkmnprices_client.pkmnprices_configured", lambda: False)
     monkeypatch.setattr(
         "api.price_sources_service._market_history_is_fresh",
         lambda _m: False,
@@ -278,7 +279,61 @@ def test_card_price_sources_grades_psa10_only(monkeypatch) -> None:
     assert body["psa10"][1]["price"] == 42.0
     assert body["psa10_stats"]["sales_count"] == 12
     assert body["psa9"] == []
+    assert body.get("population") is None
     assert calls == {"psa": 1}
+
+
+def test_card_price_sources_includes_population(monkeypatch) -> None:
+    monkeypatch.setattr("api.price_sources_service.justtcg_api_key", lambda: "")
+    monkeypatch.setattr(
+        "api.price_sources_service._market_history_is_fresh",
+        lambda _m: False,
+    )
+    monkeypatch.setattr(
+        "api.price_sources_service._resolve_tcp_from_board",
+        lambda _cid: ("Pikachu", "Base", "4242"),
+    )
+    monkeypatch.setattr(
+        "api.price_sources_service.load_card_history",
+        lambda *_a, **_k: [],
+    )
+    monkeypatch.setattr("pkmnprices_client.pkmnprices_configured", lambda: True)
+    monkeypatch.setattr(
+        "pkmnprices_client.nm_history_for_tcgplayer_id",
+        lambda *_a, **_k: [{"date": "2024-05-01", "price": 3.0}],
+    )
+    monkeypatch.setattr(
+        "pkmnprices_client.psa_history_for_tcgplayer_id",
+        lambda *_a, **_k: (
+            [{"date": "2024-05-02", "price": 40.0}],
+            {"has_history_series": True, "period_key": "90d", "sales_count": 4, "price": 40.0},
+        ),
+    )
+    monkeypatch.setattr(
+        "pkmnprices_client.population_for_tcgplayer_id",
+        lambda *_a, **_k: {
+            "source": "pkmnprices",
+            "variant": "Holofoil",
+            "total_population": 200,
+            "psa_total": 150,
+            "psa_10": 30,
+            "psa_9": 60,
+            "psa_gem_rate": 20.0,
+            "gem_rate_for_ev": 20.0,
+            "pkmn_card_id": 7,
+            "tcgplayer_id": "4242",
+        },
+    )
+
+    from api.price_sources_service import build_card_price_sources, clear_price_sources_cache
+
+    clear_price_sources_cache()
+    body = build_card_price_sources("sv3-1", limit=60, grades="psa10")
+    assert body["population"] is not None
+    assert body["population"]["psa_10"] == 30
+    assert body["population"]["gem_rate_for_ev"] == 20.0
+    assert body["population_error"] is None
+    assert body["pkmnprices_used"] is True
 
 
 def test_card_price_sources_grades_all(monkeypatch) -> None:
@@ -292,6 +347,7 @@ def test_card_price_sources_grades_all(monkeypatch) -> None:
         "api.price_sources_service.justtcg_api_key",
         lambda: "test-key",
     )
+    monkeypatch.setattr("pkmnprices_client.pkmnprices_configured", lambda: False)
     monkeypatch.setattr("justtcg_client.nm_history_for_card", _nm)
     monkeypatch.setattr(
         "justtcg_client.psa_histories_for_card",

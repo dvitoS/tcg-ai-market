@@ -323,6 +323,29 @@ class PsaGradeStats(BaseModel):
 Psa10Stats = PsaGradeStats
 
 
+class CardPopulationStats(BaseModel):
+    """PkmnPrices graded population summary for Grading EV gem-rate seeding."""
+
+    source: str | None = None
+    variant: str | None = None
+    total_population: int | None = None
+    total_gems: int | None = None
+    gem_rate: float | None = None
+    psa_total: int | None = None
+    psa_10: int | None = None
+    psa_9: int | None = None
+    psa_gem_rate: float | None = None
+    gem_rate_for_ev: float | None = None
+    percent_higher_9: float | None = None
+    grades_10: int | None = None
+    grades_9: int | None = None
+    pop_report_url: str | None = None
+    updated_at: str | None = None
+    last_population_change: str | None = None
+    pkmn_card_id: int | None = None
+    tcgplayer_id: str | None = None
+
+
 class CardPriceSourcesResponse(BaseModel):
     card_id: str
     name: str
@@ -344,6 +367,8 @@ class CardPriceSourcesResponse(BaseModel):
     psa9: list[HistoryPoint] = Field(default_factory=list)
     psa9_error: str | None = None
     psa9_stats: PsaGradeStats = Field(default_factory=PsaGradeStats)
+    population: CardPopulationStats | None = None
+    population_error: str | None = None
     grades: Literal["none", "psa10", "all"] = "none"
     cache: Literal["hit", "miss"] | None = None
 
