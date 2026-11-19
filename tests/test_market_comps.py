@@ -17,6 +17,41 @@ def test_build_market_comps_without_pkmn(monkeypatch) -> None:
     assert "PKMN_API_KEY" in (out["ebay_error"] or "")
 
 
+def test_resolve_tcp_pathb_when_missing(monkeypatch) -> None:
+    """Cards without stored TCP still resolve via TCGplayer search (Path B)."""
+    from api import market_comps_service as mcs
+
+    class _Board:
+        empty = True
+
+    monkeypatch.setattr(
+        "api.catalog_service.load_board",
+        lambda: (_Board(), "test"),
+    )
+
+    class _Card:
+        name = "Umbreon"
+        set_name = "Skyridge"
+        tcgplayer_id = None
+
+    monkeypatch.setattr("database.get_card", lambda _cid: _Card())
+    persisted: list[tuple[str, str]] = []
+
+    monkeypatch.setattr(
+        "backfill_tcgplayer_ids.resolve_tcgplayer_id_from_search",
+        lambda **_k: ("888001", 140),
+    )
+    monkeypatch.setattr(
+        "database.update_card_tcgplayer_id",
+        lambda cid, tid: persisted.append((cid, tid)),
+    )
+    tcp, name, set_name = mcs._resolve_tcp("skyridge-h32")
+    assert tcp == "888001"
+    assert name == "Umbreon"
+    assert set_name == "Skyridge"
+    assert persisted == [("skyridge-h32", "888001")]
+
+
 def test_build_market_comps_happy(monkeypatch) -> None:
     monkeypatch.setattr("pkmnprices_client.pkmnprices_configured", lambda: True)
     monkeypatch.setattr(

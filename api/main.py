@@ -72,6 +72,13 @@ _origins = [
     ).split(",")
     if o.strip()
 ]
+# Always allow Soft Ink production hosts even if Render env is stale/empty.
+for _prod in (
+    "https://www.kestreltcg.app",
+    "https://kestreltcg.app",
+):
+    if _prod not in _origins:
+        _origins.append(_prod)
 # Soft Ink local / PWA demos often use non-3000 ports (camera OCR, next start).
 for _port in (3000, 3001, 3456, 3457, 3458, 4173):
     for _host in ("http://localhost", "http://127.0.0.1"):

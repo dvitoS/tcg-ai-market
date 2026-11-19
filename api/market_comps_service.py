@@ -19,8 +19,14 @@ def _median(values: list[float]) -> float | None:
     return float((ordered[mid - 1] + ordered[mid]) / 2.0)
 
 
+def _card_number_from_id(card_id: str) -> str | None:
+    if "-" not in str(card_id):
+        return None
+    return str(card_id).rsplit("-", 1)[-1].strip() or None
+
+
 def _resolve_tcp(card_id: str) -> tuple[str | None, str, str | None]:
-    """Return (tcp, name, set_name) from board / cards table."""
+    """Return (tcp, name, set_name) from board / DB, then Path-B TCGplayer search."""
     name = str(card_id)
     set_name: str | None = None
     tcp: str | None = None
@@ -52,6 +58,37 @@ def _resolve_tcp(card_id: str) -> tuple[str | None, str, str | None]:
                     tcp = str(raw).strip()
         except Exception as exc:
             LOG.info("market_comps db lookup failed for %s: %s", card_id, exc)
+    if tcp:
+        return tcp, name, set_name
+
+    # Path B — TCGplayer storefront search (no JustTCG / Pkmn quota).
+    try:
+        from backfill_tcgplayer_ids import resolve_tcgplayer_id_from_search
+        from database import update_card_tcgplayer_id
+
+        search_name = name if name and name != str(card_id) else ""
+        if not search_name:
+            return tcp, name, set_name
+        tid, score = resolve_tcgplayer_id_from_search(
+            name=search_name,
+            number=_card_number_from_id(str(card_id)),
+            set_name=set_name,
+            min_score=120,
+        )
+        if tid:
+            tcp = str(tid).strip()
+            try:
+                update_card_tcgplayer_id(str(card_id), tcp)
+            except Exception as exc:
+                LOG.info("market_comps tcp persist failed for %s: %s", card_id, exc)
+            LOG.info(
+                "market_comps Path-B tcp=%s score=%s for %s",
+                tcp,
+                score,
+                card_id,
+            )
+    except Exception as exc:
+        LOG.info("market_comps Path-B resolve failed for %s: %s", card_id, exc)
     return tcp, name, set_name
 
 
