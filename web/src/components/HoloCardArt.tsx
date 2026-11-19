@@ -128,6 +128,8 @@ export function HoloCardArt({
         width={width}
         height={height}
         priority={priority}
+        fetchPriority={priority ? "high" : "auto"}
+        decoding={priority ? "sync" : "async"}
         className={`holo-card-art-img${fillFrame ? " is-fill" : ""}`}
         sizes={sizes}
         style={

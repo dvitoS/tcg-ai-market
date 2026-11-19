@@ -82,6 +82,12 @@ export function tcgdexImageUrl(cardId: string): string | null {
   return `https://assets.tcgdex.net/en/${mapped.serie}/${mapped.setId}/${local}/high.webp`;
 }
 
+/** Smaller TCGdex art for Soft Nav LCP (hero / first paint). */
+export function tcgdexImageUrlLow(cardId: string): string | null {
+  const high = tcgdexImageUrl(cardId);
+  return high ? high.replace(/\/high\.webp$/, "/low.webp") : null;
+}
+
 export function scrydexImageUrl(cardId: string): string | null {
   const id = String(cardId || "").trim();
   if (!id.includes("-")) return null;

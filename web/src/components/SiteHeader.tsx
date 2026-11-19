@@ -101,7 +101,8 @@ export function SiteHeader() {
           width={40}
           height={40}
           className="brand-mark"
-          priority
+          // Avoid stealing Soft Nav LCP from the page hero / card art.
+          priority={false}
         />
         <span className="brand-name">Kestrel</span>
       </Link>

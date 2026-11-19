@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { DealOfTheDay } from "@/components/DealOfTheDay";
 import { HeroCardSlider } from "@/components/HeroCardSlider";
 import { MarketPulse } from "@/components/MarketPulse";
-import { SoftInkWash } from "@/components/SoftInkWash";
+import { DeferredSoftInkWash } from "@/components/DeferredSoftInkWash";
 import { TrustProof } from "@/components/TrustProof";
 import { useLocale } from "@/components/LocaleProvider";
 import { fetchRadarPreview } from "@/lib/api";
@@ -58,11 +58,12 @@ export function MarketingLanding({
             width={1920}
             height={1080}
             decoding="async"
-            fetchPriority="high"
+            // Demote vs brand text LCP — Soft Nav was waiting on this plane.
+            fetchPriority="low"
+            loading="eager"
           />
           <div className="landing-hero-veil" />
-          {/* Above the veil so copper motion stays visible. */}
-          <SoftInkWash />
+          <DeferredSoftInkWash />
         </div>
 
         <div className="landing-hero-stage">

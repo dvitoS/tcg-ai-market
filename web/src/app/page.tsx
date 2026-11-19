@@ -3,10 +3,6 @@ import type { Metadata } from "next";
 import { MarketingLanding } from "@/components/MarketingLanding";
 import { fetchMarketPulse, fetchRadarPreview } from "@/lib/api";
 import { SITE_URL, absoluteUrl } from "@/lib/seo";
-import type {
-  MarketPulseResponse,
-  RadarPreviewResponse,
-} from "@/lib/types";
 
 const TITLE = "Kestrel — Pokémon card prices: buy, skip, or trade";
 const DESCRIPTION =
@@ -86,15 +82,31 @@ const jsonLd = {
   ],
 };
 
+async function withBudget<T>(
+  promise: Promise<T>,
+  ms: number,
+): Promise<T | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<null>((resolve) => {
+        timer = setTimeout(() => resolve(null), ms);
+      }),
+    ]);
+  } catch {
+    return null;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 export default async function HomePage() {
-  let initialDotd: RadarPreviewResponse | null = null;
-  let initialPulse: MarketPulseResponse | null = null;
-  const [dotd, pulse] = await Promise.allSettled([
-    fetchRadarPreview(5),
-    fetchMarketPulse(5),
+  // Cap SSR wait — cold API must not hold Soft Nav / LCP hostage (~4s+).
+  const [dotd, pulse] = await Promise.all([
+    withBudget(fetchRadarPreview(5), 700),
+    withBudget(fetchMarketPulse(5), 700),
   ]);
-  if (dotd.status === "fulfilled") initialDotd = dotd.value;
-  if (pulse.status === "fulfilled") initialPulse = pulse.value;
 
   return (
     <>
@@ -103,8 +115,8 @@ export default async function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <MarketingLanding
-        initialDotd={initialDotd}
-        initialPulse={initialPulse}
+        initialDotd={dotd}
+        initialPulse={pulse}
       />
     </>
   );

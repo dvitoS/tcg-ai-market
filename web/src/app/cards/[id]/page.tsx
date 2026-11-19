@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { CardDetailView } from "@/components/CardDetailView";
+import { resolveCardImageUrl } from "@/lib/cardImage";
 import { loadCardDetail } from "@/lib/cardDetail";
 import { cardJsonLd, cardMetadata } from "@/lib/seo";
 
@@ -40,9 +41,18 @@ export default async function CardDetailPage({ params }: PageProps) {
   // Prefer points embedded on detail (one round-trip); fall back to empty.
   const points = detail.points ?? [];
   const jsonLd = cardJsonLd(detail.card);
+  const lcpImage = resolveCardImageUrl(detail.card.id, detail.card.image_url);
 
   return (
     <>
+      {lcpImage.startsWith("http") ? (
+        <link
+          rel="preload"
+          as="image"
+          href={lcpImage}
+          fetchPriority="high"
+        />
+      ) : null}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
