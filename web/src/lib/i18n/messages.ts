@@ -746,6 +746,10 @@ const en = {
   detail_spot_source: "Price · US market (not Cardmarket EUR)",
   detail_spot_source_asof:
     "Price · US market · as of {date} (not Cardmarket EUR)",
+  detail_spot_asof_chip: "US market · as of {date} · NM board",
+  detail_spot_asof_today: "US market · as of today · NM board",
+  detail_asking: "Asking",
+  detail_fair: "Fair",
   detail_eu_separate:
     "Cardmarket link below is EU search only — separate from this US price.",
   detail_fx_not_eu:
@@ -890,9 +894,9 @@ const en = {
   comps_cm_lede: "Live Near Mint EUR offers (raw, unsigned).",
   comps_cm_empty: "No Cardmarket NM offers right now.",
   comps_market_tabs: "Marketplace comps",
-  comps_sold_title_ebay: "eBay sold listings",
-  comps_sold_title_tcp: "TCGplayer listings",
-  comps_sold_title_cm: "Cardmarket listings",
+  comps_sold_title_ebay: "Sold · eBay completed",
+  comps_sold_title_tcp: "Live asks · TCGplayer",
+  comps_sold_title_cm: "Live asks · Cardmarket",
   comps_tcp_lede:
     "Live Near Mint USD asks (price + shipping). Soft Ink NM history stays on the chart.",
   comps_tcp_ship: "+{ship} ship",
@@ -1060,6 +1064,7 @@ const en = {
   fx_fallback: "stale rate",
   fx_loading: "Loading FX…",
   detail_cardmarket: "Cardmarket ↗",
+  detail_tcgplayer: "TCGplayer ↗",
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -1796,6 +1801,10 @@ const hr: Dictionary = {
   detail_spot_source: "Cijena · US market (ne Cardmarket EUR)",
   detail_spot_source_asof:
     "Cijena · US market · as of {date} (ne Cardmarket EUR)",
+  detail_spot_asof_chip: "US market · as of {date} · NM board",
+  detail_spot_asof_today: "US market · as of today · NM board",
+  detail_asking: "Asking",
+  detail_fair: "Fair",
   detail_eu_separate:
     "Cardmarket link ispod je samo EU pretraga — odvojeno od ove US cijene.",
   detail_fx_not_eu:
@@ -1940,9 +1949,9 @@ const hr: Dictionary = {
   comps_cm_lede: "Live Near Mint EUR offers (raw, unsigned).",
   comps_cm_empty: "Nema Cardmarket NM offers trenutno.",
   comps_market_tabs: "Marketplace comps",
-  comps_sold_title_ebay: "eBay sold listings",
-  comps_sold_title_tcp: "TCGplayer listings",
-  comps_sold_title_cm: "Cardmarket listings",
+  comps_sold_title_ebay: "Sold · eBay completed",
+  comps_sold_title_tcp: "Live asks · TCGplayer",
+  comps_sold_title_cm: "Live asks · Cardmarket",
   comps_tcp_lede:
     "Live Near Mint USD asks (cijena + shipping). Soft Ink NM history ostaje na grafu.",
   comps_tcp_ship: "+{ship} ship",
@@ -2110,6 +2119,7 @@ const hr: Dictionary = {
   fx_fallback: "stara stopa",
   fx_loading: "Učitavam FX…",
   detail_cardmarket: "Cardmarket ↗",
+  detail_tcgplayer: "TCGplayer ↗",
 };
 
 export const MESSAGES: Record<Locale, Dictionary> = { en, hr };

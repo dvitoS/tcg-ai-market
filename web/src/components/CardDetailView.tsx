@@ -22,6 +22,7 @@ import { resolveCardImageUrl } from "@/lib/cardImage";
 import { cardmarketSearchUrl } from "@/lib/cardmarket";
 import { resolveFoilMode } from "@/lib/foilMode";
 import { decisionOneLiner, signalLabel } from "@/lib/i18n/messages";
+import { tcgplayerSearchUrl } from "@/lib/tcgplayer";
 import type { CardDetailResponse, HistoryPoint } from "@/lib/types";
 
 type DeskMode = "raw" | "graded" | "pop";
@@ -196,6 +197,27 @@ export function CardDetailView({
             </div>
           </div>
 
+          <p className="detail-asof">
+            {history.last_date
+              ? t("detail_spot_asof_chip", { date: history.last_date })
+              : t("detail_spot_asof_today")}
+          </p>
+
+          <div className="detail-fair-row">
+            <div className="detail-fair-cell">
+              <span className="detail-fair-k">{t("detail_asking")}</span>
+              <span className="detail-fair-v">
+                {formatSpot(history.last_price ?? card.price, 2)}
+              </span>
+            </div>
+            <div className="detail-fair-cell">
+              <span className="detail-fair-k">{t("detail_fair")}</span>
+              <span className="detail-fair-v">
+                {formatSpot(card.predicted_price, 2)}
+              </span>
+            </div>
+          </div>
+
           <p
             className={`detail-verdict ${signalClass(card.signal)}${showSignal ? "" : " is-unsure"}`}
           >
@@ -223,6 +245,14 @@ export function CardDetailView({
               rel="noopener noreferrer"
             >
               {t("detail_cardmarket")}
+            </a>
+            <a
+              className="btn-ghost"
+              href={tcgplayerSearchUrl(card.name, card.set_name)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {t("detail_tcgplayer")}
             </a>
           </div>
         </div>
