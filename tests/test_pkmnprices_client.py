@@ -158,3 +158,31 @@ def test_psa_history_for_tcgplayer_id(monkeypatch) -> None:
     assert stats["price"] == 55.0
     assert stats["canonical"] == "PSA 10"
     assert stats["price_status"] == "ebay_comps"
+
+
+def test_sealed_quote_for_tcgplayer_id(monkeypatch) -> None:
+    monkeypatch.setattr(client, "find_sealed_id_by_tcgplayer_id", lambda _tcp: 99)
+    monkeypatch.setattr(
+        client,
+        "get_sealed",
+        lambda _id, currency="usd": {
+            "id": 99,
+            "tcg_player_id": 624679,
+            "name": "Destined Rivals Booster Box",
+            "image_url": "https://example.com/box.jpg",
+            "set": {"id": 1, "name": "Destined Rivals"},
+            "prices": [
+                {
+                    "source": "tcgplayer",
+                    "currency": "USD",
+                    "market_price": 199.5,
+                }
+            ],
+        },
+    )
+    hit = client.sealed_quote_for_tcgplayer_id("624679")
+    assert hit is not None
+    assert hit["card_id"] == "sealed:624679"
+    assert hit["spot_usd"] == 199.5
+    assert hit["source"] == "pkmnprices"
+    assert hit["set_name"] == "Destined Rivals"

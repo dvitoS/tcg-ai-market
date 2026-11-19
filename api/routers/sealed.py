@@ -41,10 +41,14 @@ def sealed_quote(
         limit=limit,
         allow_showcase=not (q or tcgplayer_id or gtin),
     )
+    source = payload.get("source") or "empty"
+    if source not in {"justtcg", "demo", "empty", "pkmnprices"}:
+        source = "empty"
     return SealedQuoteResponse(
         items=[SealedQuoteItem(**item) for item in payload.get("items") or []],
-        source=payload.get("source") or "empty",
+        source=source,
         justtcg_configured=bool(payload.get("justtcg_configured")),
+        pkmnprices_used=bool(payload.get("pkmnprices_used")),
         error=payload.get("error"),
     )
 
@@ -64,14 +68,18 @@ def sealed_detail(
             detail="Sealed product not found.",
         )
     summary_raw = payload.get("summary")
+    source = payload.get("source") or "empty"
+    if source not in {"justtcg", "demo", "empty", "pkmnprices"}:
+        source = "empty"
     return SealedDetailResponse(
         product=SealedQuoteItem(**payload["product"]),
         shelf=[SealedQuoteItem(**row) for row in payload.get("shelf") or []],
         hits=[CatalogCard(**row) for row in payload.get("hits") or []],
         groups=[SealedRarityGroup(**row) for row in payload.get("groups") or []],
         summary=SealedDetailSummary(**summary_raw) if summary_raw else None,
-        source=payload.get("source") or "empty",
+        source=source,
         justtcg_configured=bool(payload.get("justtcg_configured")),
+        pkmnprices_used=bool(payload.get("pkmnprices_used")),
         set_name=payload.get("set_name"),
     )
 
