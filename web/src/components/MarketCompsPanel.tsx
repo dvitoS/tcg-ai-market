@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { EbayComps } from "@/components/EbayComps";
 import { GRADED_AUTO_MIN_USD } from "@/components/GradedPriceChart";
 import { useLocale } from "@/components/LocaleProvider";
 import {
@@ -12,6 +13,8 @@ import { fetchCardMarketComps, formatMoney } from "@/lib/api";
 import { ebaySoldSearchUrl } from "@/lib/ebaySold";
 import type { MessageKey } from "@/lib/i18n/messages";
 import type { CardMarketCompsResponse } from "@/lib/types";
+
+type EbayMode = "sold" | "active";
 
 function gradeLabel(
   grade: string,
@@ -43,6 +46,7 @@ export function MarketCompsPanel({
 
   const [armed, setArmed] = useState(autoArm || focus === "population");
   const [market, setMarket] = useState<MarketSource>("ebay");
+  const [ebayMode, setEbayMode] = useState<EbayMode>("sold");
   const [data, setData] = useState<CardMarketCompsResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,10 +57,14 @@ export function MarketCompsPanel({
     setError(null);
     setLoading(false);
     setMarket("ebay");
+    setEbayMode("sold");
   }, [cardId, autoArm, focus]);
 
+  const needSoldFetch =
+    armed && (market !== "ebay" || ebayMode === "sold");
+
   useEffect(() => {
-    if (!armed) return;
+    if (!needSoldFetch) return;
     let alive = true;
     setLoading(true);
     setError(null);
@@ -75,7 +83,7 @@ export function MarketCompsPanel({
     return () => {
       alive = false;
     };
-  }, [armed, cardId, t]);
+  }, [needSoldFetch, cardId, t]);
 
   const ebay = data?.ebay_sold || [];
   const ebayStats = data?.ebay_sold_stats;
@@ -87,7 +95,10 @@ export function MarketCompsPanel({
   const gradeRows = pop?.grade_rows || [];
 
   const titleByMarket: Record<MarketSource, string> = {
-    ebay: t("comps_sold_title_ebay"),
+    ebay:
+      ebayMode === "active"
+        ? t("comps_active_title_ebay")
+        : t("comps_sold_title_ebay"),
     tcgplayer: t("comps_sold_title_tcp"),
     cardmarket: t("comps_sold_title_cm"),
   };
@@ -200,10 +211,39 @@ export function MarketCompsPanel({
         <MarketSourceTabs
           sources={["ebay", "tcgplayer", "cardmarket"]}
           value={market}
-          onChange={setMarket}
+          onChange={(next) => {
+            setMarket(next);
+            if (next === "ebay") setEbayMode("sold");
+          }}
           ariaLabel={t("comps_market_tabs")}
         />
       </div>
+
+      {armed && market === "ebay" ? (
+        <div
+          className="comps-ebay-modes"
+          role="tablist"
+          aria-label={t("comps_ebay_mode_tabs")}
+        >
+          {(
+            [
+              { key: "sold", label: t("comps_ebay_mode_sold") },
+              { key: "active", label: t("comps_ebay_mode_active") },
+            ] as const
+          ).map((mode) => (
+            <button
+              key={mode.key}
+              type="button"
+              role="tab"
+              aria-selected={ebayMode === mode.key}
+              className={`comps-ebay-mode${ebayMode === mode.key ? " is-active" : ""}`}
+              onClick={() => setEbayMode(mode.key)}
+            >
+              {mode.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       {!armed ? (
         <p className="grade-ev-idle">
@@ -217,16 +257,27 @@ export function MarketCompsPanel({
         </p>
       ) : null}
 
-      {armed && loading ? (
+      {armed && market === "ebay" && ebayMode === "active" && cardName ? (
+        <div className="comps-body comps-body-ebay-active">
+          <EbayComps
+            cardId={cardId}
+            cardName={cardName}
+            compact
+            embedded
+          />
+        </div>
+      ) : null}
+
+      {armed && needSoldFetch && loading ? (
         <p className="chart-sources-status">{t("comps_loading")}</p>
       ) : null}
-      {armed && error && !data ? (
+      {armed && needSoldFetch && error && !data ? (
         <p className="form-error">{error}</p>
       ) : null}
 
-      {armed && data ? (
+      {armed && needSoldFetch && data ? (
         <div className="comps-body">
-          {market === "ebay" ? (
+          {market === "ebay" && ebayMode === "sold" ? (
             <div className="comps-block">
               {data.ebay_error && ebay.length === 0 ? (
                 <p className="chart-sources-status">{data.ebay_error}</p>
