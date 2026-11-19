@@ -1666,6 +1666,12 @@ a {
 
 .detail-desk-main {
   min-width: 0;
+  display: grid;
+  gap: 1.75rem;
+}
+
+.detail-section-sold {
+  margin-top: 0.15rem;
 }
 
 .detail-desk-side {

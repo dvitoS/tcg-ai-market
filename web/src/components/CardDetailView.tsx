@@ -248,30 +248,40 @@ export function CardDetailView({
         ))}
       </div>
 
-      {/* 3 — Chart main + side rail (collection + active eBay) */}
+      {/* 3 — Chart + sold under graph | side rail */}
       <div className="detail-desk-split">
-        <section className="detail-desk-main detail-section detail-section-chart">
-          {deskMode === "raw" ? (
-            <PriceChart
-              cardId={card.id}
-              points={points}
-              predictedPrice={card.predicted_price}
-            />
-          ) : null}
-          {deskMode === "graded" ? (
-            <GradedPriceChart
-              cardId={card.id}
-              nmSpotUsd={history.last_price ?? card.price}
-            />
-          ) : null}
-          {deskMode === "pop" ? (
+        <div className="detail-desk-main">
+          <section className="detail-section detail-section-chart">
+            {deskMode === "raw" ? (
+              <PriceChart
+                cardId={card.id}
+                points={points}
+                predictedPrice={card.predicted_price}
+              />
+            ) : null}
+            {deskMode === "graded" ? (
+              <GradedPriceChart
+                cardId={card.id}
+                nmSpotUsd={history.last_price ?? card.price}
+              />
+            ) : null}
+            {deskMode === "pop" ? (
+              <MarketCompsPanel
+                cardId={card.id}
+                nmSpotUsd={history.last_price ?? card.price}
+                focus="population"
+              />
+            ) : null}
+          </section>
+
+          <section className="detail-section detail-section-sold">
             <MarketCompsPanel
               cardId={card.id}
               nmSpotUsd={history.last_price ?? card.price}
-              focus="population"
+              focus="sold"
             />
-          ) : null}
-        </section>
+          </section>
+        </div>
 
         <aside className="detail-desk-side" aria-label={t("detail_side_rail")}>
           <div className="detail-side-module">
@@ -293,15 +303,6 @@ export function CardDetailView({
           </div>
         </aside>
       </div>
-
-      {/* 4 — Sold listings (full width under the split) */}
-      <section className="detail-section">
-        <MarketCompsPanel
-          cardId={card.id}
-          nmSpotUsd={history.last_price ?? card.price}
-          focus="sold"
-        />
-      </section>
 
       {/* 5 — Below fold extras */}
       <div className="detail-below">
