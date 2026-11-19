@@ -62,7 +62,7 @@ Never set `AUTH_DISABLED=1` in production. After a model feature change, trigger
 | `SUPABASE_KEY` | **service_role** — catalog, nightly, model/quotes write |
 | `SUPABASE_ANON_KEY` | **anon public** — login + portfolio/watchlist JWT/RLS |
 
-Optional: `JUSTTCG_API_KEY`, `TCG_API_KEY` (PokéWallet), eBay Browse keys, `EPN_CAMPID` (Partner Network click-out), `SUPABASE_DB_URL` (DDL), `CATALOG_SET_IDS` (pin sets), `CATALOG_ALL_SETS=0` (curated fallback), `CATALOG_MIN_PRICE` (USD floor; default `0` = all cards), `SOFT_INK_URL` (password-reset email links).
+Optional: `JUSTTCG_API_KEY`, `PKMN_API_KEY` (PkmnPrices parallel NM fallback — same name on Render), `TCG_API_KEY` (PokéWallet), eBay Browse keys, `EPN_CAMPID` (Partner Network click-out), `SUPABASE_DB_URL` (DDL), `CATALOG_SET_IDS` (pin sets), `CATALOG_ALL_SETS=0` (curated fallback), `CATALOG_MIN_PRICE` (USD floor; default `0` = all cards), `SOFT_INK_URL` (password-reset email links).
 
 ### eBay Partner Network (EPN)
 
@@ -129,7 +129,7 @@ Workflow: [`.github/workflows/nightly_update.yml`](.github/workflows/nightly_upd
 
 This is the **only** supported production runner. `nightly_update.py` refuses to start outside GitHub Actions unless you set `NIGHTLY_ALLOW_LOCAL=1` for a one-off debug. Do not install OS cron / Task Scheduler (`schedule_setup.py` is retired and exits with instructions).
 
-Actions secrets: `SUPABASE_URL`, `SUPABASE_KEY`, preferably `JUSTTCG_API_KEY`. Optional SMTP + `CATALOG_SET_IDS`. Optional legacy `POKEMONTCG_API_KEY` if you already have one (pokemontcg.io is **deprecated** — no new registrations; existing keys work until **2027-03-01**).
+Actions secrets: `SUPABASE_URL`, `SUPABASE_KEY`, preferably `JUSTTCG_API_KEY`. Optional `PKMN_API_KEY` (PkmnPrices; also set on Render). Optional SMTP + `CATALOG_SET_IDS`. Optional legacy `POKEMONTCG_API_KEY` if you already have one (pokemontcg.io is **deprecated** — no new registrations; existing keys work until **2027-03-01**).
 
 **Efficient all-sets strategy** (so the job finishes under the timeout):
 

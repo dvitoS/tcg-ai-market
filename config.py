@@ -147,6 +147,26 @@ def get_justtcg_api_key() -> str:
     return ""
 
 
+def get_pkmn_api_key() -> str:
+    """Fresh PkmnPrices key — Render / .env / Actions: ``PKMN_API_KEY``."""
+    load_dotenv(ENV_PATH, override=False)
+    if not os.environ.get("GITHUB_ACTIONS"):
+        load_dotenv(PROJECT_ROOT / "tcg.env.txt", override=False)
+
+    candidates = (
+        _secret("PKMN_API_KEY"),
+        _secret("PKMNPRICES_API_KEY"),
+        os.getenv("PKMN_API_KEY", ""),
+        os.getenv("PKMNPRICES_API_KEY", ""),
+        _from_streamlit_secrets("PKMN_API_KEY"),
+    )
+    for raw in candidates:
+        cleaned = _clean_secret_value(str(raw or ""))
+        if cleaned:
+            return cleaned
+    return ""
+
+
 def get_ebay_credentials() -> tuple[str, str, str, str]:
     """Svježi eBay Production keyset + opcioni OAuth token.
 
@@ -227,6 +247,14 @@ JUSTTCG_API_BASE_URL = "https://api.justtcg.com/v1"
 JUSTTCG_BATCH_SIZE = 100
 JUSTTCG_REQUEST_DELAY_SECONDS = 1.25  # 50/min → ≥1.2s between calls
 JUSTTCG_NIGHTLY_MAX_REQUESTS = 250
+
+# PkmnPrices (parallel NM source while JustTCG still active).
+# Secret name on Render: PKMN_API_KEY. Docs: https://www.pkmnprices.com/docs
+PKMN_API_KEY = _secret("PKMN_API_KEY")
+PKMN_API_BASE_URL = "https://api.pkmnprices.com"
+# Soft pace — Scale = 75k credits/day; history costs 1 credit/row.
+PKMN_REQUEST_DELAY_SECONDS = 0.05
+
 # Soft Ink "All" + nightly replace_card_history use this window.
 # 90d keeps charts useful without the free-tier payload of 180d/1y.
 JUSTTCG_HISTORY_DURATION = "90d"
