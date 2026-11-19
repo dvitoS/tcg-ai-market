@@ -21,11 +21,12 @@ import {
 import { fetchCardPriceSources, formatMoney } from "@/lib/api";
 import type { CardPriceSourcesResponse, HistoryPoint } from "@/lib/types";
 
-type RangeKey = "1m" | "3m" | "all";
+type RangeKey = "1m" | "3m" | "1y" | "all";
 
 const RANGES: { key: RangeKey; label: string; days: number | null }[] = [
   { key: "1m", label: "1M", days: 30 },
   { key: "3m", label: "3M", days: 90 },
+  { key: "1y", label: "1Y", days: 365 },
   { key: "all", label: "All", days: null },
 ];
 
@@ -88,7 +89,8 @@ export function PriceChart({
     if (points.length === 0) setLoading(true);
     setError(null);
     setSources(null);
-    fetchCardPriceSources(cardId, { grades: "none" })
+    // ≥365 pts so 1Y range has room when DB / Soft Ink history is long enough.
+    fetchCardPriceSources(cardId, { grades: "none", limit: 400 })
       .then((data) => {
         if (!cancelled) setSources(data);
       })

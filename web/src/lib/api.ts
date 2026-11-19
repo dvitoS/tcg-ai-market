@@ -233,7 +233,7 @@ export async function fetchCardPriceSources(
   cardId: string,
   options: { limit?: number; grades?: PriceSourcesGrades } = {},
 ): Promise<CardPriceSourcesResponse> {
-  const limit = options.limit ?? 180;
+  const limit = options.limit ?? 400;
   const grades = options.grades ?? "none";
   const key = `${cardId}|${limit}|${grades}`;
   const existing = _priceSourcesInflight.get(key);

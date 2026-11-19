@@ -423,7 +423,7 @@ def history_stats(points: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def load_card_history(card_id: str, *, limit: int = 180) -> list[dict[str, Any]]:
+def load_card_history(card_id: str, *, limit: int = 400) -> list[dict[str, Any]]:
     card_id = str(card_id).strip()
     if not card_id:
         return []

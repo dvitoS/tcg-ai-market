@@ -458,8 +458,11 @@ def _build_card_price_sources_uncached(
                 pkmn_error = "PkmnPrices Soft Ink live NM daily budget exhausted."
         else:
             try:
+                # Prefer up to 1Y when the caller asks for a long series (chart 1Y).
+                hist_limit = max(1, min(365, int(limit)))
+                hist_period = "365d" if hist_limit > 120 else "90d"
                 points = nm_history_for_tcgplayer_id(
-                    tcp, period="90d", limit=min(120, int(limit))
+                    tcp, period=hist_period, limit=hist_limit
                 )
                 filled = _points_from_rows(points)
                 if filled:
