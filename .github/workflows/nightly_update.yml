@@ -134,6 +134,8 @@ jobs:
           JUSTTCG_MAX_REQUESTS: "250"
           # PkmnPrices fills JustTCG-empty TCP cards (history ≈1 credit/row). Cap cards/night.
           PKMN_NIGHTLY_MAX_CARDS: "150"
+          # If JUSTTCG_API_KEY is removed, nightly uses Pkmn as primary drip (higher cap).
+          PKMN_NIGHTLY_PRIMARY_MAX_CARDS: "500"
           # Soft wall-clock SLO (default 150m) before GitHub's 180m hard kill.
           # Fail the job if retrain writes 0 quotes or elapsed exceeds this budget.
           NIGHTLY_SLO_MAX_SECONDS: "9000"
