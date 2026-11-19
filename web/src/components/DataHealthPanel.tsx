@@ -34,6 +34,7 @@ const EMPTY: DataHealthResponse = {
   attempts: 0,
   miss_or_fallback_pct: 0,
   justtcg_configured: false,
+  pkmnprices_configured: false,
   cards_total: 0,
   cards_with_history: 0,
   history_coverage_pct: 0,

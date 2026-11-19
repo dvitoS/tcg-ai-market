@@ -18,6 +18,7 @@ from api.schemas import (
     SpotSniffPackResponse,
 )
 from justtcg_client import justtcg_api_key
+from pkmnprices_client import pkmnprices_configured
 from services.creem_webhooks import creem_webhook_secret
 from services.prices import (
     justtcg_observability_summary,
@@ -72,6 +73,7 @@ def data_health(
         attempts=int(summary.get("attempts") or 0),
         miss_or_fallback_pct=float(summary.get("miss_or_fallback_pct") or 0.0),
         justtcg_configured=bool(justtcg_api_key()),
+        pkmnprices_configured=bool(pkmnprices_configured()),
         cards_total=int(spot.get("cards_total") or 0),
         cards_with_history=int(spot.get("cards_with_history") or 0),
         history_coverage_pct=float(spot.get("history_coverage_pct") or 0.0),

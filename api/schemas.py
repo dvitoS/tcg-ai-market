@@ -31,6 +31,7 @@ class DataHealthResponse(BaseModel):
     attempts: int = 0
     miss_or_fallback_pct: float = 0.0
     justtcg_configured: bool = False
+    pkmnprices_configured: bool = False
     # Spot / history QA
     cards_total: int = 0
     cards_with_history: int = 0
@@ -328,6 +329,9 @@ class CardPriceSourcesResponse(BaseModel):
     set_name: str | None = None
     tcgplayer_id: str | None = None
     justtcg_configured: bool = False
+    pkmnprices_configured: bool = False
+    pkmnprices_used: bool = False
+    pkmnprices_error: str | None = None
     tcgplayer: list[HistoryPoint] = Field(default_factory=list)
     justtcg: list[HistoryPoint] = Field(default_factory=list)
     justtcg_fallback: bool = False

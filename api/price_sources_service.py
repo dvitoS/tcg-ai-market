@@ -1,4 +1,8 @@
-"""Multi-source price history for Soft Ink detail (DB + JustTCG NM + PSA 9/10)."""
+"""Multi-source price history for Soft Ink detail (DB + JustTCG NM + PSA 9/10).
+
+PkmnPrices (``PKMN_API_KEY``) fills NM when JustTCG is missing/empty — parallel
+cutover path; do not cancel JustTCG until nightly + graded parity is green.
+"""
 
 from __future__ import annotations
 
@@ -367,6 +371,43 @@ def _build_card_price_sources_uncached(
     if nm_outcome:
         record_justtcg_event(nm_outcome)
 
+    # PkmnPrices parallel fallback — only when NM series is still empty.
+    pkmn_configured = False
+    pkmn_used = False
+    pkmn_error: str | None = None
+    try:
+        from pkmnprices_client import (
+            PkmnPricesRateLimitError,
+            nm_history_for_tcgplayer_id,
+            pkmnprices_configured,
+        )
+
+        pkmn_configured = bool(pkmnprices_configured())
+    except Exception:
+        pkmn_configured = False
+
+    if pkmn_configured and not justtcg and tcp:
+        try:
+            points = nm_history_for_tcgplayer_id(tcp, period="90d", limit=min(120, int(limit)))
+            justtcg = _points_from_rows(points)
+            if justtcg:
+                pkmn_used = True
+                justtcg_fallback = True
+                LOG.info(
+                    "PkmnPrices NM fallback for %s (%s pts, tcp=%s)",
+                    card_id,
+                    len(justtcg),
+                    tcp,
+                )
+            else:
+                pkmn_error = "PkmnPrices returned no Near Mint history."
+        except PkmnPricesRateLimitError:
+            pkmn_error = "PkmnPrices rate/credit limited — try again later."
+            LOG.warning("PkmnPrices rate-limited for %s", card_id)
+        except Exception as exc:
+            pkmn_error = str(exc)[:180]
+            LOG.info("PkmnPrices NM fallback failed for %s: %s", card_id, exc)
+
     # Graded prints are optional — default Soft Ink detail skips them (quota).
     if has_key and not rate_limited and grades_mode != "none":
         (
@@ -406,6 +447,9 @@ def _build_card_price_sources_uncached(
         "set_name": set_name or None,
         "tcgplayer_id": tcp,
         "justtcg_configured": has_key,
+        "pkmnprices_configured": pkmn_configured,
+        "pkmnprices_used": pkmn_used,
+        "pkmnprices_error": pkmn_error,
         "tcgplayer": market,
         "justtcg": justtcg,
         "justtcg_fallback": justtcg_fallback,

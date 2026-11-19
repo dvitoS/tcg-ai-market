@@ -93,6 +93,9 @@ export type CardPriceSourcesResponse = {
   set_name?: string | null;
   tcgplayer_id?: string | null;
   justtcg_configured: boolean;
+  pkmnprices_configured?: boolean;
+  pkmnprices_used?: boolean;
+  pkmnprices_error?: string | null;
   tcgplayer: HistoryPoint[];
   justtcg: HistoryPoint[];
   justtcg_fallback: boolean;
@@ -631,6 +634,7 @@ export type DataHealthResponse = {
   attempts: number;
   miss_or_fallback_pct: number;
   justtcg_configured: boolean;
+  pkmnprices_configured?: boolean;
   cards_total?: number;
   cards_with_history?: number;
   history_coverage_pct?: number;

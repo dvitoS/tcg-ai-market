@@ -89,6 +89,7 @@ def test_card_price_sources_single_flight(monkeypatch) -> None:
 
 def test_card_price_sources_without_justtcg_key(monkeypatch) -> None:
     monkeypatch.setattr("api.price_sources_service.justtcg_api_key", lambda: "")
+    monkeypatch.setattr("pkmnprices_client.pkmnprices_configured", lambda: False)
     client = TestClient(app)
     listing = client.get("/api/catalog", params={"limit": 1})
     assert listing.status_code == 200
@@ -101,6 +102,8 @@ def test_card_price_sources_without_justtcg_key(monkeypatch) -> None:
     body = res.json()
     assert body["card_id"] == card_id
     assert body["justtcg_configured"] is False
+    assert body["pkmnprices_configured"] is False
+    assert body["pkmnprices_used"] is False
     assert isinstance(body["tcgplayer"], list)
     assert body["justtcg"] == []
     assert body["psa10"] == []
@@ -110,6 +113,41 @@ def test_card_price_sources_without_justtcg_key(monkeypatch) -> None:
     assert "psa10_stats" in body
     assert body["psa10_stats"]["has_history_series"] is False
     assert body["psa9_stats"]["has_history_series"] is False
+
+
+def test_card_price_sources_pkmnprices_fallback(monkeypatch) -> None:
+    """When JustTCG misses NM, PkmnPrices fills the justtcg series."""
+    monkeypatch.setattr("api.price_sources_service.justtcg_api_key", lambda: "test-key")
+    monkeypatch.setattr(
+        "api.price_sources_service._market_history_is_fresh",
+        lambda _m: False,
+    )
+    monkeypatch.setattr(
+        "api.price_sources_service._resolve_tcp_from_board",
+        lambda _cid: ("Pikachu", "Base", "12345"),
+    )
+    monkeypatch.setattr(
+        "justtcg_client.nm_history_for_card",
+        lambda **_kwargs: ([], None),
+    )
+    monkeypatch.setattr("pkmnprices_client.pkmnprices_configured", lambda: True)
+    monkeypatch.setattr(
+        "pkmnprices_client.nm_history_for_tcgplayer_id",
+        lambda *_a, **_k: [
+            {"date": "2024-03-01", "price": 4.5},
+            {"date": "2024-03-02", "price": 4.75},
+        ],
+    )
+
+    from api.price_sources_service import build_card_price_sources, clear_price_sources_cache
+
+    clear_price_sources_cache()
+    body = build_card_price_sources("sv3-1", limit=60, grades="none")
+    assert body["pkmnprices_configured"] is True
+    assert body["pkmnprices_used"] is True
+    assert body["justtcg_fallback"] is True
+    assert len(body["justtcg"]) == 2
+    assert body["justtcg"][0]["price"] == 4.5
 
 
 def test_card_price_sources_default_skips_psa(monkeypatch) -> None:
