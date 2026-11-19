@@ -284,6 +284,34 @@ export function CardDetailView({
         </div>
 
         <aside className="detail-desk-side" aria-label={t("detail_side_rail")}>
+          {explain ? (
+            <details className="detail-fold detail-side-why">
+              <summary className="detail-fold-summary">
+                {t("detail_why")}
+                <span className="detail-fold-meta">
+                  {t("detail_confidence", { level: explain.confidence_level })}
+                </span>
+              </summary>
+              <div className="detail-fold-body">
+                {explain.confidence_reason ? (
+                  <p className="ai-conf">{explain.confidence_reason}</p>
+                ) : null}
+                {explain.rows.length > 0 ? (
+                  <dl className="ai-explain-list">
+                    {explain.rows.map((row) => (
+                      <div key={row.label} className="ai-explain-row">
+                        <dt>{row.label}</dt>
+                        <dd>{row.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                ) : (
+                  <p className="ai-board-caption">{t("detail_explain_need")}</p>
+                )}
+              </div>
+            </details>
+          ) : null}
+
           <div className="detail-side-module">
             <h2 className="detail-side-heading">{t("detail_lot_fold")}</h2>
             <AddLotForm
@@ -304,36 +332,8 @@ export function CardDetailView({
         </aside>
       </div>
 
-      {/* 5 — Below fold extras */}
+      {/* Below fold extras */}
       <div className="detail-below">
-        {explain ? (
-          <details className="detail-fold">
-            <summary className="detail-fold-summary">
-              {t("detail_why")}
-              <span className="detail-fold-meta">
-                {t("detail_confidence", { level: explain.confidence_level })}
-              </span>
-            </summary>
-            <div className="detail-fold-body">
-              {explain.confidence_reason ? (
-                <p className="ai-conf">{explain.confidence_reason}</p>
-              ) : null}
-              {explain.rows.length > 0 ? (
-                <dl className="ai-explain-list">
-                  {explain.rows.map((row) => (
-                    <div key={row.label} className="ai-explain-row">
-                      <dt>{row.label}</dt>
-                      <dd>{row.value}</dd>
-                    </div>
-                  ))}
-                </dl>
-              ) : (
-                <p className="ai-board-caption">{t("detail_explain_need")}</p>
-              )}
-            </div>
-          </details>
-        ) : null}
-
         <DeferredMount>
           <details className="detail-fold">
             <summary className="detail-fold-summary">
