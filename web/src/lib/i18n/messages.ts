@@ -880,7 +880,11 @@ const en = {
   comps_loading: "Loading comps…",
   comps_error: "Could not load market comps",
   comps_ebay_title: "eBay sold (raw)",
-  comps_ebay_lede: "Recent ungraded sold comps — median vs Soft Ink NM.",
+  comps_ebay_lede:
+    "Recorded ungraded sold prices (PkmnPrices). Links open eBay Completed+Sold search — not a live ask page.",
+  comps_ebay_link_tip:
+    "Opens eBay sold/completed results for this title. Soft Ink price is the recorded sale, not today’s ask.",
+  comps_ebay_sold_link: "Sold ↗",
   comps_ebay_empty: "No recent eBay sold comps.",
   comps_cm_title: "Cardmarket offers",
   comps_cm_lede: "Live Near Mint EUR offers (raw, unsigned).",
@@ -1924,7 +1928,11 @@ const hr: Dictionary = {
   comps_loading: "Učitavam comps…",
   comps_error: "Ne mogu učitati market comps",
   comps_ebay_title: "eBay sold (raw)",
-  comps_ebay_lede: "Nedavni ungraded sold comps — median vs Soft Ink NM.",
+  comps_ebay_lede:
+    "Zabilježene ungraded sold cijene (PkmnPrices). Linkovi otvaraju eBay Completed+Sold search — ne live ask.",
+  comps_ebay_link_tip:
+    "Otvara eBay sold/completed rezultate za ovaj naslov. Soft Ink cijena je zabilježena prodaja, ne današnji ask.",
+  comps_ebay_sold_link: "Sold ↗",
   comps_ebay_empty: "Nema recent eBay sold comps.",
   comps_cm_title: "Cardmarket offers",
   comps_cm_lede: "Live Near Mint EUR offers (raw, unsigned).",

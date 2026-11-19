@@ -259,8 +259,9 @@ export function MarketCompsPanel({
                 {ebay.slice(0, 8).map((row, i) => (
                   <li key={`ebay-${i}`}>
                     <span className="comps-list-meta">
-                      {[row.date, row.condition].filter(Boolean).join(" · ") ||
-                        "—"}
+                      {[row.date, row.condition, row.title]
+                        .filter(Boolean)
+                        .join(" · ") || "—"}
                     </span>
                     <strong>
                       {formatMoney(row.price, row.currency || "USD", 2)}
@@ -270,8 +271,9 @@ export function MarketCompsPanel({
                         href={row.url}
                         target="_blank"
                         rel="noopener noreferrer sponsored"
+                        title={t("comps_ebay_link_tip")}
                       >
-                        eBay ↗
+                        {t("comps_ebay_sold_link")}
                       </a>
                     ) : (
                       <span className="ebay-link-muted">—</span>

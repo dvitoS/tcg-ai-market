@@ -456,21 +456,65 @@ def nm_history_for_tcgplayer_id(
     return [{"date": d, "price": by_day[d]} for d in sorted(by_day)]
 
 
+def ebay_sold_search_url(
+    *,
+    title: str | None = None,
+    listing_url: str | None = None,
+) -> str | None:
+    """Outbound link for a *sold* comp — never raw /itm alone.
+
+    Ended eBay /itm/ pages often redirect to similar *active* listings with a
+    different ask, so Soft Ink prices look "wrong". Prefer Completed+Sold
+    search keyed by title (or item id) so the click stays in sold results.
+    """
+    from urllib.parse import quote_plus, urlsplit
+
+    title_s = str(title or "").strip()
+    raw = str(listing_url or "").strip()
+    item_id: str | None = None
+    if raw:
+        path = urlsplit(raw).path or ""
+        # /itm/123456789012 or /itm/some-slug/123456789012
+        parts = [p for p in path.split("/") if p]
+        for part in reversed(parts):
+            digits = "".join(ch for ch in part if ch.isdigit())
+            if len(digits) >= 9:
+                item_id = digits
+                break
+
+    query = title_s[:140] if title_s else (item_id or "")
+    if not query:
+        return None
+    return (
+        "https://www.ebay.com/sch/i.html"
+        f"?_nkw={quote_plus(query)}"
+        "&LH_Sold=1&LH_Complete=1&rt=nc&_sop=13"
+    )
+
+
 def ebay_sold_listings_for_tcgplayer_id(
     tcgplayer_id: str | int | None,
     *,
     graded: bool | None = False,
     period: str = "90d",
     limit: int = 12,
+    exact_attribution_only: bool = True,
 ) -> list[dict[str, Any]]:
-    """Recent eBay sold comps (raw by default). 1 credit/row (max 20/page)."""
+    """Recent eBay sold comps (raw by default). 1 credit/row (max 20/page).
+
+    Drops ``attribution=shared`` by default (same sale mirrored onto sibling
+    printings — title/price often describe the other card). Outbound ``url`` is
+    a Completed+Sold search, not a live /itm ask page.
+    """
     pid = find_card_id_by_tcgplayer_id(tcgplayer_id)
     if pid is None:
         return []
+    # Fetch a little extra so shared/unknown drops still leave ``limit`` rows.
+    fetch_n = max(1, min(20, int(limit) * 2 if exact_attribution_only else int(limit)))
     params: dict[str, Any] = {
         "period": period,
         "sort": "date_desc",
-        "limit": max(1, min(20, int(limit))),
+        "limit": fetch_n,
     }
     if graded is True:
         params["graded"] = "true"
@@ -488,29 +532,44 @@ def ebay_sold_listings_for_tcgplayer_id(
     for row in rows:
         if not isinstance(row, dict):
             continue
+        attr = str(row.get("attribution") or "").strip().lower()
+        if exact_attribution_only and attr == "shared":
+            continue
+        # Must be a dated sale — undated rows are not trustworthy sold comps.
+        day = _parse_history_date(row.get("sold_at") or row.get("date"))
+        if not day:
+            continue
         try:
             price = float(row.get("price"))
         except (TypeError, ValueError):
             continue
         if price <= 0:
             continue
-        day = _parse_history_date(row.get("sold_at") or row.get("date"))
         currency = str(row.get("currency") or "USD").upper() or "USD"
+        title = str(row.get("title") or "").strip() or None
+        listing_url = (
+            str(row.get("listing_url") or row.get("url") or "").strip() or None
+        )
         out.append(
             {
                 "price": price,
                 "currency": currency,
                 "date": day,
-                "title": str(row.get("title") or "").strip() or None,
-                "url": str(row.get("listing_url") or row.get("url") or "").strip()
-                or None,
+                "title": title,
+                "url": ebay_sold_search_url(title=title, listing_url=listing_url),
                 "condition": str(row.get("condition") or "").strip() or None,
                 "graded": bool(row.get("graded")),
                 "grader": str(row.get("grader") or "").strip() or None,
                 "grade": str(row.get("grade") or "").strip() or None,
                 "sale_type": str(row.get("sale_type") or "").strip() or None,
+                "variant": str(row.get("variant") or "").strip() or None,
+                "seller_country": str(row.get("seller_country") or "").strip()
+                or None,
+                "attribution": attr or None,
             }
         )
+        if len(out) >= max(1, min(20, int(limit))):
+            break
     return out
 
 

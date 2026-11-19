@@ -178,6 +178,7 @@ export type MarketCompListing = {
   sell_count?: number | null;
   language?: string | null;
   quantity?: number | null;
+  attribution?: string | null;
 };
 
 export type MarketCompStats = {
