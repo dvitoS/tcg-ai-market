@@ -2,6 +2,7 @@
 # Nightly katalog (gap-fill) + JustTCG NM history drip + XGBoost retrain (UTC).
 # Secrets (Settings → Secrets and variables → Actions):
 #   SUPABASE_URL, SUPABASE_KEY, JUSTTCG_API_KEY (prefer), TCG_API_KEY (fallback)
+#   PKMN_API_KEY — optional PkmnPrices parallel NM (same name as Render)
 #   POKEMONTCG_API_KEY — optional legacy key only (API deprecated; no new registrations)
 name: Nightly TCG Database & AI Update
 
@@ -77,6 +78,11 @@ jobs:
           elif [ -n "${{ secrets.JUSTTCG_API_KEY }}" ]; then
             echo "JUSTTCG_API_KEY is present (preferred NM sync)."
           fi
+          if [ -n "${{ secrets.PKMN_API_KEY }}" ]; then
+            echo "PKMN_API_KEY is present (PkmnPrices parallel NM)."
+          else
+            echo "No PKMN_API_KEY — Soft Ink Render still uses it; nightly drip stays JustTCG-only."
+          fi
           if [ -n "${{ secrets.POKEMONTCG_API_KEY }}" ]; then
             echo "POKEMONTCG_API_KEY present (legacy key; API deprecated, EOL 2027-03-01)."
           else
@@ -140,6 +146,7 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
           JUSTTCG_API_KEY: ${{ secrets.JUSTTCG_API_KEY }}
+          PKMN_API_KEY: ${{ secrets.PKMN_API_KEY }}
           TCG_API_KEY: ${{ secrets.TCG_API_KEY }}
           POKEMONTCG_API_KEY: ${{ secrets.POKEMONTCG_API_KEY }}
           EBAY_APP_ID: ${{ secrets.EBAY_APP_ID }}
