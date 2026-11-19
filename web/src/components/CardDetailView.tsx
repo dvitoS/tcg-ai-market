@@ -24,6 +24,8 @@ import { resolveFoilMode } from "@/lib/foilMode";
 import { decisionOneLiner, signalLabel } from "@/lib/i18n/messages";
 import type { CardDetailResponse, HistoryPoint } from "@/lib/types";
 
+type DeskMode = "raw" | "graded" | "pop";
+
 function deltaClass(value?: number | null): string {
   if (value == null || Number.isNaN(value)) return "flat";
   if (value > 0.05) return "up";
@@ -53,10 +55,15 @@ export function CardDetailView({
     () => (card.finishes || []).filter(Boolean),
   );
   const [browseBackHref, setBrowseBackHref] = useState("/browse");
+  const [deskMode, setDeskMode] = useState<DeskMode>("raw");
 
   useEffect(() => {
     setBrowseBackHref(readBrowseReturn("/browse"));
   }, []);
+
+  useEffect(() => {
+    setDeskMode("raw");
+  }, [card.id]);
 
   const finishesKey = (card.finishes || []).join("|");
   useEffect(() => {
@@ -101,7 +108,9 @@ export function CardDetailView({
     day_change_pct: detail.history?.day_change_pct ?? fromPoints.day_change_pct,
   };
   const foil = resolveFoilMode(finishes, card.rarity, card.name);
-  const meta = [card.set_name, card.rarity, card.id].filter(Boolean).join(" · ");
+  const meta = ["Pokémon", card.set_name, card.rarity, card.id]
+    .filter(Boolean)
+    .join(" · ");
   const image = resolveCardImageUrl(card.id, card.image_url);
   const dayChange = history.day_change_pct;
   const showSignal = Boolean(
@@ -130,6 +139,12 @@ export function CardDetailView({
       ? signalText
       : t("detail_low_conf");
 
+  const modes: { key: DeskMode; label: string }[] = [
+    { key: "raw", label: t("detail_mode_raw") },
+    { key: "graded", label: t("detail_mode_graded") },
+    { key: "pop", label: t("detail_mode_pop") },
+  ];
+
   return (
     <article className="detail-page detail-page-desk">
       <Link
@@ -154,7 +169,7 @@ export function CardDetailView({
         {t("detail_back")}
       </Link>
 
-      {/* 1 — Hero: art + name + spot + one verdict + 3 CTAs */}
+      {/* 1 — Hero identity */}
       <section className="detail-hero-band" aria-labelledby="detail-card-name">
         <div className="detail-hero-art">
           <HoloCardArt
@@ -213,25 +228,124 @@ export function CardDetailView({
         </div>
       </section>
 
-      {/* 2 — Chart */}
+      {/* 2 — Raw | Graded | Pop. */}
+      <div
+        className="detail-mode-tabs"
+        role="tablist"
+        aria-label={t("detail_mode_tabs")}
+      >
+        {modes.map((mode) => (
+          <button
+            key={mode.key}
+            type="button"
+            role="tab"
+            aria-selected={deskMode === mode.key}
+            className={`detail-mode-tab${deskMode === mode.key ? " is-active" : ""}`}
+            onClick={() => setDeskMode(mode.key)}
+          >
+            {mode.label}
+          </button>
+        ))}
+      </div>
+
+      {/* 3 — Chart / pop content follows mode */}
       <section className="detail-section detail-section-chart">
-        <PriceChart
-          cardId={card.id}
-          points={points}
-          predictedPrice={card.predicted_price}
-        />
+        {deskMode === "raw" ? (
+          <PriceChart
+            cardId={card.id}
+            points={points}
+            predictedPrice={card.predicted_price}
+          />
+        ) : null}
+        {deskMode === "graded" ? (
+          <GradedPriceChart
+            cardId={card.id}
+            nmSpotUsd={history.last_price ?? card.price}
+          />
+        ) : null}
+        {deskMode === "pop" ? (
+          <MarketCompsPanel
+            cardId={card.id}
+            nmSpotUsd={history.last_price ?? card.price}
+            focus="population"
+          />
+        ) : null}
       </section>
 
-      {/* 3 — Sold listings (one market at a time) */}
+      {/* 4 — Sold listings (always after mode/chart) */}
       <section className="detail-section">
         <MarketCompsPanel
           cardId={card.id}
           nmSpotUsd={history.last_price ?? card.price}
+          focus="sold"
         />
       </section>
 
-      {/* 4 — Below fold: tools collapsed by default */}
+      {/* 5 — Add to portfolio */}
+      <details className="detail-fold detail-fold-lot">
+        <summary className="detail-fold-summary">{t("detail_lot_fold")}</summary>
+        <div className="detail-fold-body">
+          <AddLotForm
+            cardId={card.id}
+            cardName={card.name}
+            defaultPrice={history.last_price ?? card.price}
+          />
+        </div>
+      </details>
+
+      {/* 6 — Below fold extras */}
       <div className="detail-below">
+        {explain ? (
+          <details className="detail-fold">
+            <summary className="detail-fold-summary">
+              {t("detail_why")}
+              <span className="detail-fold-meta">
+                {t("detail_confidence", { level: explain.confidence_level })}
+              </span>
+            </summary>
+            <div className="detail-fold-body">
+              {explain.confidence_reason ? (
+                <p className="ai-conf">{explain.confidence_reason}</p>
+              ) : null}
+              {explain.rows.length > 0 ? (
+                <dl className="ai-explain-list">
+                  {explain.rows.map((row) => (
+                    <div key={row.label} className="ai-explain-row">
+                      <dt>{row.label}</dt>
+                      <dd>{row.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              ) : (
+                <p className="ai-board-caption">{t("detail_explain_need")}</p>
+              )}
+            </div>
+          </details>
+        ) : null}
+
+        <DeferredMount>
+          <details className="detail-fold">
+            <summary className="detail-fold-summary">
+              {t("detail_grading_ev_fold")}
+            </summary>
+            <div className="detail-fold-body">
+              <GradingEvPanel
+                cardId={card.id}
+                rawPrice={history.last_price ?? card.price}
+              />
+            </div>
+          </details>
+
+          <details className="detail-fold">
+            <summary className="detail-fold-summary">
+              {t("detail_ebay_active_fold")}
+            </summary>
+            <div className="detail-fold-body">
+              <EbayComps cardId={card.id} cardName={card.name} />
+            </div>
+          </details>
+        </DeferredMount>
+
         <details className="detail-fold">
           <summary className="detail-fold-summary">
             {t("detail_details_fold")}
@@ -291,72 +405,6 @@ export function CardDetailView({
             </div>
           </div>
         </details>
-
-        {explain ? (
-          <details className="detail-fold">
-            <summary className="detail-fold-summary">
-              {t("detail_why")}
-              <span className="detail-fold-meta">
-                {t("detail_confidence", { level: explain.confidence_level })}
-              </span>
-            </summary>
-            <div className="detail-fold-body">
-              {explain.confidence_reason ? (
-                <p className="ai-conf">{explain.confidence_reason}</p>
-              ) : null}
-              {explain.rows.length > 0 ? (
-                <dl className="ai-explain-list">
-                  {explain.rows.map((row) => (
-                    <div key={row.label} className="ai-explain-row">
-                      <dt>{row.label}</dt>
-                      <dd>{row.value}</dd>
-                    </div>
-                  ))}
-                </dl>
-              ) : (
-                <p className="ai-board-caption">{t("detail_explain_need")}</p>
-              )}
-            </div>
-          </details>
-        ) : null}
-
-        <details className="detail-fold">
-          <summary className="detail-fold-summary">{t("detail_lot_fold")}</summary>
-          <div className="detail-fold-body">
-            <AddLotForm
-              cardId={card.id}
-              cardName={card.name}
-              defaultPrice={history.last_price ?? card.price}
-            />
-          </div>
-        </details>
-
-        <DeferredMount>
-          <details className="detail-fold">
-            <summary className="detail-fold-summary">
-              {t("detail_graded_fold")}
-            </summary>
-            <div className="detail-fold-body detail-fold-stack">
-              <GradedPriceChart
-                cardId={card.id}
-                nmSpotUsd={history.last_price ?? card.price}
-              />
-              <GradingEvPanel
-                cardId={card.id}
-                rawPrice={history.last_price ?? card.price}
-              />
-            </div>
-          </details>
-
-          <details className="detail-fold">
-            <summary className="detail-fold-summary">
-              {t("detail_ebay_active_fold")}
-            </summary>
-            <div className="detail-fold-body">
-              <EbayComps cardId={card.id} cardName={card.name} />
-            </div>
-          </details>
-        </DeferredMount>
       </div>
     </article>
   );

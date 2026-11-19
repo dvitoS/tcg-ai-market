@@ -23,9 +23,12 @@ function gradeLabel(
 export function MarketCompsPanel({
   cardId,
   nmSpotUsd,
+  focus = "sold",
 }: {
   cardId: string;
   nmSpotUsd?: number | null;
+  /** Collectr stack: sold listings vs population-only mode. */
+  focus?: "sold" | "population";
 }) {
   const { t } = useLocale();
   const autoArm =
@@ -33,19 +36,19 @@ export function MarketCompsPanel({
     Number.isFinite(Number(nmSpotUsd)) &&
     Number(nmSpotUsd) >= GRADED_AUTO_MIN_USD;
 
-  const [armed, setArmed] = useState(autoArm);
+  const [armed, setArmed] = useState(autoArm || focus === "population");
   const [market, setMarket] = useState<MarketSource>("ebay");
   const [data, setData] = useState<CardMarketCompsResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setArmed(autoArm);
+    setArmed(autoArm || focus === "population");
     setData(null);
     setError(null);
     setLoading(false);
     setMarket("ebay");
-  }, [cardId, autoArm]);
+  }, [cardId, autoArm, focus]);
 
   useEffect(() => {
     if (!armed) return;
@@ -81,6 +84,101 @@ export function MarketCompsPanel({
     tcgplayer: t("comps_sold_title_tcp"),
     cardmarket: t("comps_sold_title_cm"),
   };
+
+  if (focus === "population") {
+    return (
+      <section className="comps-panel comps-panel-pop" aria-label={t("comps_pop_title")}>
+        <div className="comps-head">
+          <h2>{t("comps_pop_title")}</h2>
+          <p>{t("comps_pop_lede")}</p>
+        </div>
+        {loading ? (
+          <p className="chart-sources-status">{t("comps_loading")}</p>
+        ) : null}
+        {error && !data ? <p className="form-error">{error}</p> : null}
+        {data?.population_error && !pop ? (
+          <p className="chart-sources-status">{data.population_error}</p>
+        ) : null}
+        {pop ? (
+          <div className="comps-block comps-block-pop">
+            <div className="comps-stats">
+              <div>
+                <span>{t("comps_pop_total")}</span>
+                <strong>
+                  {pop.total_population != null
+                    ? String(pop.total_population)
+                    : "—"}
+                </strong>
+              </div>
+              <div>
+                <span>{t("comps_pop_gems")}</span>
+                <strong>
+                  {pop.total_gems != null ? String(pop.total_gems) : "—"}
+                  {pop.gem_rate != null
+                    ? ` · ${pop.gem_rate.toFixed(1)}%`
+                    : ""}
+                </strong>
+              </div>
+              <div>
+                <span>{t("comps_pop_variant")}</span>
+                <strong>{pop.variant || "—"}</strong>
+              </div>
+            </div>
+            {pop.gem_rate != null ? (
+              <p className="comps-gem-callout">
+                {t("comps_pop_gem_callout", {
+                  rate: pop.gem_rate.toFixed(1),
+                })}
+              </p>
+            ) : null}
+            {gradeRows.length > 0 ? (
+              <table className="comps-pop-table">
+                <thead>
+                  <tr>
+                    <th>{t("comps_pop_grade")}</th>
+                    <th>{t("comps_pop_count")}</th>
+                    <th>{t("comps_pop_share")}</th>
+                    <th>{t("comps_pop_higher")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {gradeRows.map((row) => (
+                    <tr key={row.grade}>
+                      <td>{gradeLabel(row.grade, t)}</td>
+                      <td>{row.count}</td>
+                      <td>
+                        {row.share_pct != null
+                          ? `${row.share_pct.toFixed(1)}%`
+                          : "—"}
+                      </td>
+                      <td>
+                        {row.percent_higher != null
+                          ? `${row.percent_higher.toFixed(1)}%`
+                          : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : null}
+            {pop.pop_report_url ? (
+              <p className="comps-pop-link">
+                <a
+                  href={pop.pop_report_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {t("comps_pop_psa_link")}
+                </a>
+              </p>
+            ) : null}
+          </div>
+        ) : !loading && data && !data.population_error ? (
+          <p className="chart-sources-status">{t("comps_pop_empty")}</p>
+        ) : null}
+      </section>
+    );
+  }
 
   return (
     <section className="comps-panel" aria-label={t("comps_title")}>
@@ -231,96 +329,6 @@ export function MarketCompsPanel({
               </ul>
             </div>
           ) : null}
-
-          <details className="comps-pop-fold">
-            <summary className="comps-pop-fold-summary">
-              {t("comps_pop_title")}
-              {pop?.total_population != null ? (
-                <span className="comps-pop-fold-meta">
-                  {pop.total_population}
-                  {pop.gem_rate != null
-                    ? ` · ${pop.gem_rate.toFixed(1)}% gems`
-                    : ""}
-                </span>
-              ) : null}
-            </summary>
-            <div className="comps-block comps-block-pop">
-              <p className="comps-lede">{t("comps_pop_lede")}</p>
-              {data.population_error && !pop ? (
-                <p className="chart-sources-status">{data.population_error}</p>
-              ) : null}
-              {pop ? (
-                <>
-                  <div className="comps-stats">
-                    <div>
-                      <span>{t("comps_pop_total")}</span>
-                      <strong>
-                        {pop.total_population != null
-                          ? String(pop.total_population)
-                          : "—"}
-                      </strong>
-                    </div>
-                    <div>
-                      <span>{t("comps_pop_gems")}</span>
-                      <strong>
-                        {pop.total_gems != null ? String(pop.total_gems) : "—"}
-                        {pop.gem_rate != null
-                          ? ` · ${pop.gem_rate.toFixed(1)}%`
-                          : ""}
-                      </strong>
-                    </div>
-                    <div>
-                      <span>{t("comps_pop_variant")}</span>
-                      <strong>{pop.variant || "—"}</strong>
-                    </div>
-                  </div>
-                  {gradeRows.length > 0 ? (
-                    <table className="comps-pop-table">
-                      <thead>
-                        <tr>
-                          <th>{t("comps_pop_grade")}</th>
-                          <th>{t("comps_pop_count")}</th>
-                          <th>{t("comps_pop_share")}</th>
-                          <th>{t("comps_pop_higher")}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {gradeRows.map((row) => (
-                          <tr key={row.grade}>
-                            <td>{gradeLabel(row.grade, t)}</td>
-                            <td>{row.count}</td>
-                            <td>
-                              {row.share_pct != null
-                                ? `${row.share_pct.toFixed(1)}%`
-                                : "—"}
-                            </td>
-                            <td>
-                              {row.percent_higher != null
-                                ? `${row.percent_higher.toFixed(1)}%`
-                                : "—"}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  ) : null}
-                  {pop.pop_report_url ? (
-                    <p className="comps-pop-link">
-                      <a
-                        href={pop.pop_report_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {t("comps_pop_psa_link")}
-                      </a>
-                    </p>
-                  ) : null}
-                </>
-              ) : !data.population_error ? (
-                <p className="chart-sources-status">{t("comps_pop_empty")}</p>
-              ) : null}
-            </div>
-          </details>
         </div>
       ) : null}
     </section>
