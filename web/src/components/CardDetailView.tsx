@@ -12,6 +12,7 @@ import { GradingEvPanel } from "@/components/GradingEvPanel";
 import { HoloCardArt } from "@/components/HoloCardArt";
 import { useLocale } from "@/components/LocaleProvider";
 import { GradedPriceChart } from "@/components/GradedPriceChart";
+import { MarketCompsPanel } from "@/components/MarketCompsPanel";
 import { PriceChart } from "@/components/PriceChart";
 import { WatchToggle } from "@/components/WatchToggle";
 import { WrongSpotReport } from "@/components/WrongSpotReport";
@@ -331,6 +332,10 @@ export function CardDetailView({
           />
           <DeferredMount>
             <GradedPriceChart
+              cardId={card.id}
+              nmSpotUsd={history.last_price ?? card.price}
+            />
+            <MarketCompsPanel
               cardId={card.id}
               nmSpotUsd={history.last_price ?? card.price}
             />

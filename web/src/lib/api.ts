@@ -4,6 +4,7 @@ import type {
   BinderSetsResponse,
   CardDetailResponse,
   CardHistoryResponse,
+  CardMarketCompsResponse,
   CardPriceSourcesResponse,
   CatalogMode,
   CatalogResponse,
@@ -260,6 +261,24 @@ export async function fetchCardPriceSources(
 
   _priceSourcesInflight.set(key, promise);
   return promise;
+}
+
+export async function fetchCardMarketComps(
+  cardId: string,
+  limit = 10,
+): Promise<CardMarketCompsResponse> {
+  const qs = new URLSearchParams({ limit: String(limit) });
+  const res = await fetch(
+    apiUrl(`/api/cards/${encodeURIComponent(cardId)}/market-comps?${qs}`),
+    {
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+    },
+  );
+  if (!res.ok) {
+    throw new Error(`Market comps failed (${res.status})`);
+  }
+  return res.json() as Promise<CardMarketCompsResponse>;
 }
 
 export async function fetchEbayComps(

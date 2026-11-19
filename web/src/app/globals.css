@@ -2966,6 +2966,122 @@ a {
   animation-delay: 0.12s;
 }
 
+.comps-panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background:
+    radial-gradient(ellipse 50% 40% at 100% 0%, rgba(90, 158, 158, 0.1), transparent 55%),
+    rgba(26, 26, 26, 0.88);
+  padding: 1rem;
+  box-shadow: var(--shadow-soft);
+}
+
+.comps-head h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.08rem;
+  font-weight: 600;
+}
+
+.comps-head p {
+  margin: 0.25rem 0 0.75rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.comps-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.comps-block h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-family: var(--font-display);
+}
+
+.comps-lede {
+  margin: 0.2rem 0 0.55rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.comps-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  gap: 0.45rem;
+  margin-bottom: 0.55rem;
+}
+
+.comps-stats span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.comps-stats strong {
+  font-size: 0.92rem;
+}
+
+.comps-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.comps-list li {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 0.55rem;
+  align-items: center;
+  font-size: 0.82rem;
+  padding: 0.35rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.comps-list-meta {
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.comps-pop-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  margin-top: 0.35rem;
+}
+
+.comps-pop-table th,
+.comps-pop-table td {
+  text-align: left;
+  padding: 0.3rem 0.35rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.comps-pop-table th {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.comps-pop-link {
+  margin: 0.55rem 0 0;
+  font-size: 0.8rem;
+}
+
+@media (min-width: 900px) {
+  .comps-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .comps-block-pop {
+    grid-column: 1 / -1;
+  }
+}
+
 .chart-head {
   display: flex;
   flex-wrap: wrap;

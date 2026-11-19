@@ -456,6 +456,121 @@ def nm_history_for_tcgplayer_id(
     return [{"date": d, "price": by_day[d]} for d in sorted(by_day)]
 
 
+def ebay_sold_listings_for_tcgplayer_id(
+    tcgplayer_id: str | int | None,
+    *,
+    graded: bool | None = False,
+    period: str = "90d",
+    limit: int = 12,
+) -> list[dict[str, Any]]:
+    """Recent eBay sold comps (raw by default). 1 credit/row (max 20/page)."""
+    pid = find_card_id_by_tcgplayer_id(tcgplayer_id)
+    if pid is None:
+        return []
+    params: dict[str, Any] = {
+        "period": period,
+        "sort": "date_desc",
+        "limit": max(1, min(20, int(limit))),
+    }
+    if graded is True:
+        params["graded"] = "true"
+    elif graded is False:
+        params["graded"] = "false"
+    try:
+        payload = _get(f"/v1/cards/{int(pid)}/listings/ebay", params)
+    except PkmnPricesError as exc:
+        res = getattr(exc, "response", None)
+        if res is not None and getattr(res, "status_code", None) == 403:
+            return []
+        raise
+    rows = payload.get("data") if isinstance(payload.get("data"), list) else []
+    out: list[dict[str, Any]] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        try:
+            price = float(row.get("price"))
+        except (TypeError, ValueError):
+            continue
+        if price <= 0:
+            continue
+        day = _parse_history_date(row.get("sold_at") or row.get("date"))
+        currency = str(row.get("currency") or "USD").upper() or "USD"
+        out.append(
+            {
+                "price": price,
+                "currency": currency,
+                "date": day,
+                "title": str(row.get("title") or "").strip() or None,
+                "url": str(row.get("listing_url") or row.get("url") or "").strip()
+                or None,
+                "condition": str(row.get("condition") or "").strip() or None,
+                "graded": bool(row.get("graded")),
+                "grader": str(row.get("grader") or "").strip() or None,
+                "grade": str(row.get("grade") or "").strip() or None,
+                "sale_type": str(row.get("sale_type") or "").strip() or None,
+            }
+        )
+    return out
+
+
+def cardmarket_offers_for_tcgplayer_id(
+    tcgplayer_id: str | int | None,
+    *,
+    condition: str = "Near Mint",
+    limit: int = 12,
+) -> list[dict[str, Any]]:
+    """Live Cardmarket raw offers (EUR). 1 credit/row (max 20/page)."""
+    pid = find_card_id_by_tcgplayer_id(tcgplayer_id)
+    if pid is None:
+        return []
+    params: dict[str, Any] = {
+        "graded": "false",
+        "signed": "false",
+        "altered": "false",
+        "sort": "price_asc",
+        "limit": max(1, min(20, int(limit))),
+    }
+    if condition:
+        params["condition"] = condition
+    try:
+        payload = _get(f"/v1/cards/{int(pid)}/listings/cardmarket", params)
+    except PkmnPricesError as exc:
+        res = getattr(exc, "response", None)
+        if res is not None and getattr(res, "status_code", None) == 403:
+            return []
+        raise
+    rows = payload.get("data") if isinstance(payload.get("data"), list) else []
+    out: list[dict[str, Any]] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        # Defense in depth — never treat signed/altered/graded as raw NM.
+        if row.get("signed") or row.get("altered") or row.get("graded"):
+            continue
+        try:
+            price = float(row.get("price"))
+        except (TypeError, ValueError):
+            continue
+        if price <= 0:
+            continue
+        out.append(
+            {
+                "price": price,
+                "currency": "EUR",
+                "condition": str(row.get("condition") or "").strip() or None,
+                "variant": str(row.get("variant") or "").strip() or None,
+                "seller": str(row.get("seller") or "").strip() or None,
+                "seller_country": str(row.get("seller_country") or "").strip()
+                or None,
+                "sell_count": row.get("sell_count"),
+                "language": str(row.get("language") or "").strip() or None,
+                "quantity": row.get("quantity"),
+            }
+        )
+    return out
+
+
 def psa_ebay_comps_for_tcgplayer_id(
     tcgplayer_id: str | int | None,
     *,
@@ -627,6 +742,39 @@ def _summarize_population_variant(row: dict[str, Any]) -> dict[str, Any]:
         except (TypeError, ValueError):
             return None
 
+    # Compact grade ladder for Soft Ink detail table (PkmnPrices-style).
+    grade_rows: list[dict[str, Any]] = []
+    total_pop = _int(row.get("total_population")) or 0
+    for key in ("10", "9.5", "9", "8.5", "8", "7.5", "7"):
+        count = _grade_count(grades, key)
+        if count is None or count <= 0:
+            continue
+        share = (100.0 * count / total_pop) if total_pop > 0 else None
+        grade_rows.append(
+            {
+                "grade": key,
+                "count": count,
+                "share_pct": share,
+                "percent_higher": _pct(percent_higher.get(key)),
+            }
+        )
+    below = 0
+    for gkey, gval in grades.items():
+        try:
+            if float(gkey) < 7:
+                below += int(gval)
+        except (TypeError, ValueError):
+            continue
+    if below > 0:
+        grade_rows.append(
+            {
+                "grade": "below_7",
+                "count": below,
+                "share_pct": (100.0 * below / total_pop) if total_pop > 0 else None,
+                "percent_higher": _pct(percent_higher.get("7")),
+            }
+        )
+
     return {
         "source": "pkmnprices",
         "variant": str(row.get("variant") or "").strip() or None,
@@ -641,6 +789,7 @@ def _summarize_population_variant(row: dict[str, Any]) -> dict[str, Any]:
         "percent_higher_9": _pct(percent_higher.get("9")),
         "grades_10": _grade_count(grades, "10"),
         "grades_9": _grade_count(grades, "9"),
+        "grade_rows": grade_rows,
         "pop_report_url": pop_url,
         "updated_at": str(row.get("updated_at") or "").strip() or None,
         "last_population_change": str(row.get("last_population_change") or "").strip()
