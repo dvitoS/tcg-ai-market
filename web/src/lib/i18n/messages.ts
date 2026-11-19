@@ -775,6 +775,7 @@ const en = {
   detail_mode_raw: "Raw",
   detail_mode_graded: "Graded",
   detail_mode_pop: "Pop.",
+  detail_side_rail: "Collection and active listings",
   grade_ev_title: "Grading EV",
   grade_ev_lede:
     "Buy raw, pay grade + ship, sell after fees — scenario nets IF you land PSA 10 vs PSA 9. Not a gem-rate promise.",
@@ -1818,6 +1819,7 @@ const hr: Dictionary = {
   detail_mode_raw: "Raw",
   detail_mode_graded: "Graded",
   detail_mode_pop: "Pop.",
+  detail_side_rail: "Kolekcija i aktivni oglasi",
   grade_ev_title: "Grading EV",
   grade_ev_lede:
     "Kupi raw, plati grade + ship, prodaj nakon feeova — scenarij net AKO dobiješ PSA 10 vs PSA 9. Nije gem-rate obećanje.",

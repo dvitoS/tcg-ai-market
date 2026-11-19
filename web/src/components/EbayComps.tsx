@@ -47,9 +47,12 @@ function EbayRow({ row }: { row: EbayListing }) {
 export function EbayComps({
   cardId,
   cardName,
+  compact = false,
 }: {
   cardId: string;
   cardName: string;
+  /** Side-rail denser list (Collectr-style shop column). */
+  compact?: boolean;
 }) {
   const { t } = useLocale();
   const [data, setData] = useState<EbayCompsResponse | null>(null);
@@ -78,20 +81,21 @@ export function EbayComps({
   }, [cardId, t]);
 
   const listings = data?.listings || [];
+  const visible = compact ? listings.slice(0, 6) : listings;
   const lowest = listings
     .map((r) => r.price)
     .filter((n): n is number => n != null && Number.isFinite(n));
 
   return (
     <section
-      className="ebay-panel"
-      aria-label={`${t("ebay_title")} · ${cardName}`}
+      className={`ebay-panel${compact ? " ebay-panel-compact" : ""}`}
+      aria-label={`${t("ebay_active_title")} · ${cardName}`}
     >
       {/* Sold comps live in MarketCompsPanel tabs — this panel is active only. */}
       <div className="ebay-block">
         <div className="ebay-head">
           <h2>{t("ebay_active_title")}</h2>
-          <p>{t("ebay_active_lede")}</p>
+          {compact ? null : <p>{t("ebay_active_lede")}</p>}
         </div>
         {loading ? <p className="empty-state">{t("ebay_loading")}</p> : null}
         {!loading &&
@@ -104,7 +108,7 @@ export function EbayComps({
         listings.length === 0 ? (
           <p className="empty-state">{t("ebay_empty")}</p>
         ) : null}
-        {listings.length > 0 ? (
+        {visible.length > 0 ? (
           <>
             {lowest.length ? (
               <p className="ebay-caption">
@@ -114,11 +118,11 @@ export function EbayComps({
                 })}
               </p>
             ) : null}
-            {data?.epn ? (
+            {!compact && data?.epn ? (
               <p className="ebay-caption">{t("ebay_epn")}</p>
             ) : null}
             <div className="ebay-list">
-              {listings.map((row, idx) => (
+              {visible.map((row, idx) => (
                 <EbayRow key={`${row.item_id || row.url || idx}-a`} row={row} />
               ))}
             </div>

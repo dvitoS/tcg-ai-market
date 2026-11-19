@@ -248,31 +248,53 @@ export function CardDetailView({
         ))}
       </div>
 
-      {/* 3 — Chart / pop content follows mode */}
-      <section className="detail-section detail-section-chart">
-        {deskMode === "raw" ? (
-          <PriceChart
-            cardId={card.id}
-            points={points}
-            predictedPrice={card.predicted_price}
-          />
-        ) : null}
-        {deskMode === "graded" ? (
-          <GradedPriceChart
-            cardId={card.id}
-            nmSpotUsd={history.last_price ?? card.price}
-          />
-        ) : null}
-        {deskMode === "pop" ? (
-          <MarketCompsPanel
-            cardId={card.id}
-            nmSpotUsd={history.last_price ?? card.price}
-            focus="population"
-          />
-        ) : null}
-      </section>
+      {/* 3 — Chart main + side rail (collection + active eBay) */}
+      <div className="detail-desk-split">
+        <section className="detail-desk-main detail-section detail-section-chart">
+          {deskMode === "raw" ? (
+            <PriceChart
+              cardId={card.id}
+              points={points}
+              predictedPrice={card.predicted_price}
+            />
+          ) : null}
+          {deskMode === "graded" ? (
+            <GradedPriceChart
+              cardId={card.id}
+              nmSpotUsd={history.last_price ?? card.price}
+            />
+          ) : null}
+          {deskMode === "pop" ? (
+            <MarketCompsPanel
+              cardId={card.id}
+              nmSpotUsd={history.last_price ?? card.price}
+              focus="population"
+            />
+          ) : null}
+        </section>
 
-      {/* 4 — Sold listings (always after mode/chart) */}
+        <aside className="detail-desk-side" aria-label={t("detail_side_rail")}>
+          <div className="detail-side-module">
+            <h2 className="detail-side-heading">{t("detail_lot_fold")}</h2>
+            <AddLotForm
+              cardId={card.id}
+              cardName={card.name}
+              defaultPrice={history.last_price ?? card.price}
+            />
+          </div>
+          <div className="detail-side-module detail-side-ebay">
+            <DeferredMount>
+              <EbayComps
+                cardId={card.id}
+                cardName={card.name}
+                compact
+              />
+            </DeferredMount>
+          </div>
+        </aside>
+      </div>
+
+      {/* 4 — Sold listings (full width under the split) */}
       <section className="detail-section">
         <MarketCompsPanel
           cardId={card.id}
@@ -281,19 +303,7 @@ export function CardDetailView({
         />
       </section>
 
-      {/* 5 — Add to portfolio */}
-      <details className="detail-fold detail-fold-lot">
-        <summary className="detail-fold-summary">{t("detail_lot_fold")}</summary>
-        <div className="detail-fold-body">
-          <AddLotForm
-            cardId={card.id}
-            cardName={card.name}
-            defaultPrice={history.last_price ?? card.price}
-          />
-        </div>
-      </details>
-
-      {/* 6 — Below fold extras */}
+      {/* 5 — Below fold extras */}
       <div className="detail-below">
         {explain ? (
           <details className="detail-fold">
@@ -333,15 +343,6 @@ export function CardDetailView({
                 cardId={card.id}
                 rawPrice={history.last_price ?? card.price}
               />
-            </div>
-          </details>
-
-          <details className="detail-fold">
-            <summary className="detail-fold-summary">
-              {t("detail_ebay_active_fold")}
-            </summary>
-            <div className="detail-fold-body">
-              <EbayComps cardId={card.id} cardName={card.name} />
             </div>
           </details>
         </DeferredMount>
