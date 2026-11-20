@@ -566,11 +566,23 @@ export function TradeView() {
         </div>
         <div className="detail-actions">
           {status.checkout_url ? (
-            <a href={status.checkout_url} className="btn-primary">
+            <a
+              href={status.checkout_url}
+              className="btn-primary"
+              onClick={() =>
+                trackFunnel("pro_checkout_click", { source: "trade_gate" })
+              }
+            >
               {t("dealer_upgrade")}
             </a>
           ) : null}
-          <Link href="/pro" className="btn-ghost">
+          <Link
+            href="/pro"
+            className="btn-ghost"
+            onClick={() =>
+              trackFunnel("landing_cta_pro", { source: "trade_gate" })
+            }
+          >
             {t("dealer_pro_details")}
           </Link>
         </div>

@@ -106,6 +106,8 @@ const en = {
   obs_funnel_caption:
     "Landing → DOTD → Pro → Radar/Trade. Counts persist across API restarts (local + Supabase when available).",
   obs_funnel_total: "{n} events · source {source}",
+  obs_funnel_convert:
+    "landing → pro_view {to_pro} · pro_view → checkout {to_checkout}",
   obs_funnel_empty: "No funnel events recorded yet.",
   obs_trial_title: "Trial → paid (Creem)",
   obs_trial_caption:
@@ -1229,6 +1231,8 @@ const hr: Dictionary = {
   obs_funnel_caption:
     "Landing → DOTD → Pro → Radar/Trade. Brojači ostaju nakon API restarta (local + Supabase kad postoji).",
   obs_funnel_total: "{n} eventa · izvor {source}",
+  obs_funnel_convert:
+    "landing → pro_view {to_pro} · pro_view → checkout {to_checkout}",
   obs_funnel_empty: "Još nema funnel eventa.",
   obs_trial_title: "Trial → paid (Creem)",
   obs_trial_caption:

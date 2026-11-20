@@ -8,6 +8,7 @@ import { useLocale } from "@/components/LocaleProvider";
 import { TradeReportExport } from "@/components/TradeReportExport";
 import { fetchTradeShare, formatChange, formatMoney } from "@/lib/api";
 import { onCardImageError, resolveCardImageUrl } from "@/lib/cardImage";
+import { trackFunnel } from "@/lib/funnel";
 import type { TradeShareView as TradeSharePayload, TradeSide } from "@/lib/types";
 
 function verdictClass(verdict: string): string {
@@ -166,11 +167,23 @@ export function TradeShareView({ shareId }: { shareId: string }) {
           {t("trade_share_open_analyzer")}
         </Link>
         {data.checkout_url ? (
-          <a href={data.checkout_url} className="btn-ghost">
+          <a
+            href={data.checkout_url}
+            className="btn-ghost"
+            onClick={() =>
+              trackFunnel("pro_checkout_click", { source: "trade_share" })
+            }
+          >
             {t("dealer_upgrade")}
           </a>
         ) : (
-          <Link href="/pro" className="btn-ghost">
+          <Link
+            href="/pro"
+            className="btn-ghost"
+            onClick={() =>
+              trackFunnel("landing_cta_pro", { source: "trade_share" })
+            }
+          >
             {t("trade_share_pro_cta")}
           </Link>
         )}
