@@ -7,6 +7,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
 import { CurrencySwitcher } from "@/components/CurrencySwitcher";
+import { HeaderSearch } from "@/components/HeaderSearch";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { useLocale } from "@/components/LocaleProvider";
 import { trackFunnel } from "@/lib/funnel";
@@ -157,6 +158,7 @@ export function SiteHeader() {
       </nav>
 
       <div className="header-actions">
+        <HeaderSearch className="header-search-desktop" />
         <LocaleSwitcher />
         <CurrencySwitcher />
         <Link
@@ -195,6 +197,10 @@ export function SiteHeader() {
         hidden={!open}
       >
         <nav className="site-nav-mobile" aria-label={t("nav_mobile")}>
+          <HeaderSearch
+            className="header-search-mobile"
+            onNavigated={() => setOpen(false)}
+          />
           <p className="nav-mobile-section">{t("nav_free_section")}</p>
           {freeNav.map((item) => (
             <Link
