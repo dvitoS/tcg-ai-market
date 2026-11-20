@@ -194,7 +194,7 @@ export function DealerView() {
 
   if (!authLoading && !user) {
     return (
-      <section className="dealer-page">
+      <section className="scanner-page dealer-page">
         <div className="explore-command">
           <p className="explore-command-eyebrow">{t("dealer_eyebrow")}</p>
           <h1 className="explore-title">{t("dealer_title")}</h1>
@@ -219,7 +219,7 @@ export function DealerView() {
   }
 
   return (
-    <section className="dealer-page">
+    <section className="scanner-page dealer-page">
       <div className="explore-command">
         <p className="explore-command-eyebrow">{t("dealer_eyebrow")}</p>
         <h1 className="explore-title">{t("dealer_title")}</h1>
@@ -331,7 +331,7 @@ export function DealerView() {
             ) : null}
           </div>
           <p className="lot-meta">{t("dealer_tcp_note")}</p>
-          <div className="auth-actions">
+          <div className="detail-actions">
             <button
               type="submit"
               className="btn-primary"
@@ -403,7 +403,7 @@ export function DealerView() {
             </p>
           ) : null}
 
-          <div className="auth-actions dealer-download-actions">
+          <div className="detail-actions dealer-download-actions">
             <button
               type="button"
               className="btn-primary"

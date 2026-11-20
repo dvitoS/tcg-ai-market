@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useEffect, useRef, useState } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
+import { DeskLoading } from "@/components/DeskLoading";
 import { useLocale } from "@/components/LocaleProvider";
 import { SearchSuggest } from "@/components/SearchSuggest";
 import { TradeReportExport } from "@/components/TradeReportExport";
@@ -504,7 +505,11 @@ export function TradeView() {
   if (authLoading || (user && !statusReady)) {
     return (
       <section className="scanner-page trade-page">
-        <p className="explore-lede">{t("trade_loading")}</p>
+        <div className="explore-command">
+          <p className="explore-command-eyebrow">{t("trade_eyebrow")}</p>
+          <h1 className="explore-title">{t("trade_title")}</h1>
+        </div>
+        <DeskLoading label={t("trade_loading")} variant="panel" skeletonCount={4} />
       </section>
     );
   }
@@ -517,9 +522,11 @@ export function TradeView() {
           <h1 className="explore-title">{t("trade_title")}</h1>
           <p className="explore-lede">{t("trade_signin_lede")}</p>
         </div>
-        <Link href="/portfolio?next=/trade" className="btn-primary">
-          {t("auth_sign_in")}
-        </Link>
+        <div className="detail-actions">
+          <Link href="/portfolio?next=/trade" className="btn-primary">
+            {t("auth_sign_in")}
+          </Link>
+        </div>
       </section>
     );
   }
@@ -532,26 +539,28 @@ export function TradeView() {
           <h1 className="explore-title">{t("trade_title")}</h1>
           <p className="form-error">{error}</p>
         </div>
-        <button
-          type="button"
-          className="btn-primary"
-          onClick={() => {
-            setStatusReady(false);
-            setError(null);
-            void fetchTradeStatus()
-              .then((st) => {
-                setStatus(st);
-                setError(null);
-              })
-              .catch((err) => {
-                setStatus(null);
-                setError(err instanceof Error ? err.message : t("trade_error"));
-              })
-              .finally(() => setStatusReady(true));
-          }}
-        >
-          {t("port_refresh")}
-        </button>
+        <div className="detail-actions">
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => {
+              setStatusReady(false);
+              setError(null);
+              void fetchTradeStatus()
+                .then((st) => {
+                  setStatus(st);
+                  setError(null);
+                })
+                .catch((err) => {
+                  setStatus(null);
+                  setError(err instanceof Error ? err.message : t("trade_error"));
+                })
+                .finally(() => setStatusReady(true));
+            }}
+          >
+            {t("port_refresh")}
+          </button>
+        </div>
       </section>
     );
   }
@@ -598,6 +607,51 @@ export function TradeView() {
         <p className="explore-lede">{t("trade_lede")}</p>
         {seedNote ? <p className="pro-open-note">{seedNote}</p> : null}
       </div>
+
+      <div className="detail-actions">
+        <button
+          type="button"
+          className="btn-primary"
+          disabled={
+            busy || !status?.allowed || (you.length === 0 && them.length === 0)
+          }
+          onClick={() => void onScore()}
+        >
+          {busy ? t("trade_scoring") : t("trade_score")}
+        </button>
+        <button
+          type="button"
+          className="btn-ghost"
+          disabled={
+            shareBusy ||
+            busy ||
+            !status?.allowed ||
+            (you.length === 0 && them.length === 0)
+          }
+          onClick={() => void onShare()}
+        >
+          {shareBusy ? t("trade_share_busy") : t("trade_share_copy")}
+        </button>
+        <button
+          type="button"
+          className="btn-ghost"
+          onClick={() => {
+            setYou([]);
+            setThem([]);
+            setResult(null);
+            setQuery("");
+            setHits([]);
+            setSearchedFor(null);
+            setShareNote(null);
+            setShareUrl(null);
+          }}
+        >
+          {t("trade_clear")}
+        </button>
+      </div>
+
+      {error ? <p className="form-error">{error}</p> : null}
+      {shareNote ? <p className="pro-open-note">{shareNote}</p> : null}
 
       <div
         className={`trade-verdict trade-verdict-sticky ${
@@ -684,7 +738,10 @@ export function TradeView() {
         <p className="lot-meta">{t("search_no_hits")}</p>
       ) : null}
 
-      <div className="trade-board">
+      <div className="portfolio-section-head">
+        <h2>{t("trade_board_title")}</h2>
+      </div>
+      <div className="detail-desk-split trade-board">
         <SidePanel
           title={t("trade_you_give")}
           side={result?.you ?? null}
@@ -700,51 +757,6 @@ export function TradeView() {
           onPatch={(line, patch) => patchLine("them", line, patch)}
         />
       </div>
-
-      <div className="detail-actions">
-        <button
-          type="button"
-          className="btn-primary"
-          disabled={
-            busy || !status?.allowed || (you.length === 0 && them.length === 0)
-          }
-          onClick={() => void onScore()}
-        >
-          {busy ? t("trade_scoring") : t("trade_score")}
-        </button>
-        <button
-          type="button"
-          className="btn-ghost"
-          disabled={
-            shareBusy ||
-            busy ||
-            !status?.allowed ||
-            (you.length === 0 && them.length === 0)
-          }
-          onClick={() => void onShare()}
-        >
-          {shareBusy ? t("trade_share_busy") : t("trade_share_copy")}
-        </button>
-        <button
-          type="button"
-          className="btn-ghost"
-          onClick={() => {
-            setYou([]);
-            setThem([]);
-            setResult(null);
-            setQuery("");
-            setHits([]);
-            setSearchedFor(null);
-            setShareNote(null);
-            setShareUrl(null);
-          }}
-        >
-          {t("trade_clear")}
-        </button>
-      </div>
-
-      {error ? <p className="form-error">{error}</p> : null}
-      {shareNote ? <p className="pro-open-note">{shareNote}</p> : null}
 
       {result ? (
         <TradeReportExport

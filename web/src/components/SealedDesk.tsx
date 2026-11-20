@@ -65,7 +65,7 @@ export function SealedDesk({
   }
 
   return (
-    <section className="sealed-desk">
+    <section className="scanner-page sealed-desk">
       <div className="explore-command">
         <p className="explore-command-eyebrow">{t("sealed_desk_eyebrow")}</p>
         <h1 className="explore-title">{t("sealed_desk_title")}</h1>
@@ -84,12 +84,6 @@ export function SealedDesk({
         </button>
       </form>
 
-      {submitted ? (
-        <p className="lot-meta">
-          {t("sealed_desk_results", { q: submitted, n: items.length })}
-        </p>
-      ) : null}
-
       {error ? <p className="banner-error">{error}</p> : null}
 
       {!booted || (pending && items.length === 0) ? (
@@ -97,6 +91,14 @@ export function SealedDesk({
       ) : items.length === 0 ? (
         <p className="empty-state">{t("sealed_empty")}</p>
       ) : (
+        <>
+      <div className="portfolio-section-head">
+        <h2>
+          {submitted
+            ? t("sealed_desk_results", { q: submitted, n: items.length })
+            : t("sealed_desk_count", { n: items.length })}
+        </h2>
+      </div>
         <div className={`explore-grid sealed-desk-grid ${pending ? "is-pending" : ""}`}>
           {items.map((hit) => {
             const detailHref = hit.tcgplayer_id
@@ -161,6 +163,7 @@ export function SealedDesk({
             );
           })}
         </div>
+        </>
       )}
     </section>
   );

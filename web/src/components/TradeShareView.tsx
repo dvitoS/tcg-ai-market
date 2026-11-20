@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { DeskLoading } from "@/components/DeskLoading";
 import { useLocale } from "@/components/LocaleProvider";
 import { TradeReportExport } from "@/components/TradeReportExport";
 import { fetchTradeShare, formatChange, formatMoney } from "@/lib/api";
@@ -111,9 +112,11 @@ export function TradeShareView({ shareId }: { shareId: string }) {
           <h1 className="explore-title">{t("trade_share_missing")}</h1>
           <p className="explore-lede">{error}</p>
         </div>
-        <Link href="/trade" className="btn-primary">
-          {t("trade_share_open_analyzer")}
-        </Link>
+        <div className="detail-actions">
+          <Link href="/trade" className="btn-primary">
+            {t("trade_share_open_analyzer")}
+          </Link>
+        </div>
       </section>
     );
   }
@@ -121,7 +124,15 @@ export function TradeShareView({ shareId }: { shareId: string }) {
   if (!data) {
     return (
       <section className="scanner-page trade-page">
-        <p className="explore-lede">{t("trade_share_loading")}</p>
+        <div className="explore-command">
+          <p className="explore-command-eyebrow">{t("trade_share_eyebrow")}</p>
+          <h1 className="explore-title">{t("trade_share_title")}</h1>
+        </div>
+        <DeskLoading
+          label={t("trade_share_loading")}
+          variant="panel"
+          skeletonCount={4}
+        />
       </section>
     );
   }
@@ -133,33 +144,6 @@ export function TradeShareView({ shareId }: { shareId: string }) {
         <h1 className="explore-title">{t("trade_share_title")}</h1>
         <p className="explore-lede">{t("trade_share_lede")}</p>
         <p className="lot-meta">{t("trade_share_organic_note")}</p>
-      </div>
-
-      <div className="trade-board">
-        <ReadOnlySide title={t("trade_you_give")} side={data.you} />
-        <ReadOnlySide title={t("trade_them_give")} side={data.them} />
-      </div>
-
-      <div className={`trade-verdict ${verdictClass(data.verdict)}`}>
-        <p className="trade-verdict-label">{t("trade_verdict")}</p>
-        <h2>{t(verdictLabelKey(data.verdict))}</h2>
-        <p className="explore-lede">
-          {t("trade_net_spot", {
-            value: formatMoney(data.net_spot_usd),
-            pct: formatChange(data.net_spot_pct),
-          })}
-        </p>
-        <p className="explore-lede">
-          {t("trade_net_ai", {
-            value: formatMoney(data.net_fair_usd),
-            pct: formatChange(data.net_fair_pct),
-          })}
-        </p>
-        <p className="lot-meta">
-          {t("trade_band_note", { n: data.fair_band_pct })}
-          {data.source === "demo" ? ` · ${t("explore_demo")}` : ""}
-          {` · ${t("trade_share_live")}`}
-        </p>
       </div>
 
       <div className="detail-actions">
@@ -187,6 +171,36 @@ export function TradeShareView({ shareId }: { shareId: string }) {
             {t("trade_share_pro_cta")}
           </Link>
         )}
+      </div>
+
+      <div className={`trade-verdict ${verdictClass(data.verdict)}`}>
+        <p className="trade-verdict-label">{t("trade_verdict")}</p>
+        <h2>{t(verdictLabelKey(data.verdict))}</h2>
+        <p className="explore-lede">
+          {t("trade_net_spot", {
+            value: formatMoney(data.net_spot_usd),
+            pct: formatChange(data.net_spot_pct),
+          })}
+        </p>
+        <p className="explore-lede">
+          {t("trade_net_ai", {
+            value: formatMoney(data.net_fair_usd),
+            pct: formatChange(data.net_fair_pct),
+          })}
+        </p>
+        <p className="lot-meta">
+          {t("trade_band_note", { n: data.fair_band_pct })}
+          {data.source === "demo" ? ` · ${t("explore_demo")}` : ""}
+          {` · ${t("trade_share_live")}`}
+        </p>
+      </div>
+
+      <div className="portfolio-section-head">
+        <h2>{t("trade_board_title")}</h2>
+      </div>
+      <div className="detail-desk-split trade-board">
+        <ReadOnlySide title={t("trade_you_give")} side={data.you} />
+        <ReadOnlySide title={t("trade_them_give")} side={data.them} />
       </div>
 
       <TradeReportExport trade={data} shareUrl={shareUrl} />

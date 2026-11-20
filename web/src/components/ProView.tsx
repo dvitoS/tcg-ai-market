@@ -66,10 +66,12 @@ export function ProView({
       : t("pro_lede");
 
   return (
-    <main className="pro-page">
-      <p className="explore-command-eyebrow">{t("pro_eyebrow")}</p>
-      <h1 className="explore-title">{title}</h1>
-      <p className="explore-lede">{lede}</p>
+    <main className="scanner-page pro-page">
+      <div className="explore-command">
+        <p className="explore-command-eyebrow">{t("pro_eyebrow")}</p>
+        <h1 className="explore-title">{title}</h1>
+        <p className="explore-lede">{lede}</p>
+      </div>
 
       {error ? <p className="banner-error">{error}</p> : null}
       {meError ? <p className="banner-error">{meError}</p> : null}
