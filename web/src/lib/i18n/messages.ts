@@ -752,6 +752,12 @@ const en = {
   detail_spot_asof_chip: "US asking · as of {date} · Near Mint",
   detail_spot_asof_today: "US asking · as of today · Near Mint",
   detail_asking: "Asking",
+  detail_asking_us: "US asking",
+  detail_fair_us: "Good (US)",
+  detail_fair_us_tip:
+    "Good price is the US model — never averaged with Cardmarket EUR.",
+  detail_eur_is_fx:
+    "€ view converts US asking / Good — not Cardmarket EUR asking.",
   detail_match_high: "Match high",
   detail_match_med: "Match ok",
   detail_match_low: "Match low",
@@ -856,6 +862,12 @@ const en = {
   chart_subtitle: "Near Mint — US market / Soft Ink NM",
   chart_us_only_note:
     "US sources only — Cardmarket EUR is never averaged into these series.",
+  chart_cm_only_note:
+    "EUR Cardmarket only — not used for Good price.",
+  chart_us_error_title: "Couldn’t refresh US history",
+  chart_us_empty_lede:
+    "No saved US NM points yet for this print. Try again later or check TCGplayer.",
+  chart_cm_error_title: "Couldn’t load Cardmarket history",
   chart_loading: "Loading live NM…",
   chart_fallback: "Multi-source unavailable ({error}). Showing saved market history.",
   chart_no_key: "Showing saved market history.",
@@ -912,6 +924,7 @@ const en = {
   comps_cm_title: "Cardmarket offers",
   comps_cm_lede: "Live Near Mint EUR offers (raw, unsigned).",
   comps_cm_empty: "No Cardmarket NM offers right now.",
+  comps_cm_open_cta: "Open Cardmarket ↗",
   comps_market_tabs: "Marketplace comps",
   comps_sold_title_ebay: "Sold · eBay completed",
   comps_active_title_ebay: "Active · eBay asks",
@@ -1834,6 +1847,12 @@ const hr: Dictionary = {
   detail_spot_asof_chip: "US tražena · as of {date} · Near Mint",
   detail_spot_asof_today: "US tražena · as of today · Near Mint",
   detail_asking: "Tražena",
+  detail_asking_us: "US tražena",
+  detail_fair_us: "Dobra (US)",
+  detail_fair_us_tip:
+    "Dobra cijena je US model — nikad se ne miješa s Cardmarket EUR.",
+  detail_eur_is_fx:
+    "€ prikaz pretvara US traženu / Dobru — nije Cardmarket EUR tražena.",
   detail_match_high: "Match jak",
   detail_match_med: "Match ok",
   detail_match_low: "Match slab",
@@ -1938,6 +1957,12 @@ const hr: Dictionary = {
   chart_subtitle: "Near Mint — US market / Soft Ink NM",
   chart_us_only_note:
     "Samo US izvori — Cardmarket EUR se nikad ne prosječuje u ove serije.",
+  chart_cm_only_note:
+    "Samo EUR Cardmarket — ne ulazi u Dobru cijenu.",
+  chart_us_error_title: "Nisam uspio osvježiti US povijest",
+  chart_us_empty_lede:
+    "Još nema spremljenih US NM točaka za ovaj print. Probaj kasnije ili TCGplayer.",
+  chart_cm_error_title: "Nisam uspio učitati Cardmarket povijest",
   chart_loading: "Učitavam live NM…",
   chart_fallback: "Multi-source nije dostupan ({error}). Prikazujem spremljenu market povijest.",
   chart_no_key: "Prikazujem spremljenu market povijest.",
@@ -1994,6 +2019,7 @@ const hr: Dictionary = {
   comps_cm_title: "Cardmarket offers",
   comps_cm_lede: "Live Near Mint EUR offers (raw, unsigned).",
   comps_cm_empty: "Nema Cardmarket NM offers trenutno.",
+  comps_cm_open_cta: "Otvori Cardmarket ↗",
   comps_market_tabs: "Marketplace comps",
   comps_sold_title_ebay: "Sold · eBay completed",
   comps_active_title_ebay: "Active · eBay asks",

@@ -10,6 +10,7 @@ import {
   type MarketSource,
 } from "@/components/MarketSourceTabs";
 import { fetchCardMarketComps, formatMoney } from "@/lib/api";
+import { cardmarketSearchUrl } from "@/lib/cardmarket";
 import { ebaySoldSearchUrl } from "@/lib/ebaySold";
 import type { MessageKey } from "@/lib/i18n/messages";
 import { tcgplayerSearchUrl } from "@/lib/tcgplayer";
@@ -108,6 +109,7 @@ export function MarketCompsPanel({
     data?.tcgplayer_id && /^\d+$/.test(String(data.tcgplayer_id))
       ? `https://www.tcgplayer.com/product/${data.tcgplayer_id}`
       : tcgplayerSearchUrl(cardName || "", setName);
+  const cmSearchUrl = cardmarketSearchUrl(cardName || "", setName);
 
   function tcpTotal(row: (typeof tcp)[number]): number {
     return Number(row.price) + Number(row.shipping_price || 0);
@@ -440,7 +442,17 @@ export function MarketCompsPanel({
           {market === "cardmarket" ? (
             <div className="comps-block">
               {data.cardmarket_error && cm.length === 0 ? (
-                <p className="chart-sources-status">{data.cardmarket_error}</p>
+                <div className="comps-empty-cta">
+                  <p className="chart-sources-status">{data.cardmarket_error}</p>
+                  <a
+                    className="btn-ghost"
+                    href={cmSearchUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {t("comps_cm_open_cta")}
+                  </a>
+                </div>
               ) : null}
               {cmStats?.lowest != null ? (
                 <div className="comps-stats">
@@ -455,7 +467,17 @@ export function MarketCompsPanel({
                 </div>
               ) : null}
               {cm.length === 0 && !data.cardmarket_error ? (
-                <p className="chart-sources-status">{t("comps_cm_empty")}</p>
+                <div className="comps-empty-cta">
+                  <p className="chart-sources-status">{t("comps_cm_empty")}</p>
+                  <a
+                    className="btn-ghost"
+                    href={cmSearchUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {t("comps_cm_open_cta")}
+                  </a>
+                </div>
               ) : null}
               <ul className="comps-list">
                 {cm.slice(0, 8).map((row, i) => (

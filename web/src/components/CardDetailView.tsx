@@ -273,7 +273,7 @@ export function CardDetailView({
           <div className="detail-fair-row">
             <div className="detail-fair-cell">
               <span className="detail-fair-k">
-                {t("detail_asking")}
+                {t(currency === "EUR" ? "detail_asking_us" : "detail_asking")}
                 {matchLabelKey && matchTipKey ? (
                   <span
                     className={`detail-match-badge is-${matchQuality}`}
@@ -288,12 +288,22 @@ export function CardDetailView({
               </span>
             </div>
             <div className="detail-fair-cell">
-              <span className="detail-fair-k">{t("detail_fair")}</span>
+              <span
+                className="detail-fair-k"
+                title={t("detail_fair_us_tip")}
+              >
+                {t(currency === "EUR" ? "detail_fair_us" : "detail_fair")}
+              </span>
               <span className="detail-fair-v">
                 {formatSpot(card.predicted_price, 2)}
               </span>
             </div>
           </div>
+          {currency === "EUR" ? (
+            <p className="detail-fx-asking-note" title={t("fx_rate_tip", { rate: (usdEur ?? 0).toFixed(4) })}>
+              {t("detail_eur_is_fx")}
+            </p>
+          ) : null}
 
           {spotFixed ? (
             <p className="detail-spot-fixed" title={t("detail_spot_fixed_hint")}>
