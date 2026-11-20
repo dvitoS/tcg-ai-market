@@ -27,6 +27,7 @@ def test_absurd_spot_jump_ratio() -> None:
 
 def test_under_deal_rejects_extreme_edge_and_bulk() -> None:
     assert under_deal_allowed(spot=0.21, edge_pct=809.0) is False
+    assert under_deal_allowed(spot=2.0, edge_pct=25.0) is False  # below Deals bulk floor
     assert under_deal_allowed(spot=20.14, edge_pct=238.0) is False
     assert under_deal_allowed(spot=48.0, edge_pct=27.0) is True
     assert under_deal_allowed(spot=5.0, edge_pct=RADAR_MAX_UNDER_EDGE_PCT) is True
@@ -35,6 +36,7 @@ def test_under_deal_rejects_extreme_edge_and_bulk() -> None:
 
 def test_under_deal_rejects_poisoned_common_spot() -> None:
     assert under_deal_allowed(spot=68.15, edge_pct=32.0, rarity="Common") is False
+    assert under_deal_allowed(spot=8.0, edge_pct=20.0, rarity="Common") is False
     assert under_deal_allowed(spot=68.15, edge_pct=32.0, rarity="Rare") is True
     assert under_deal_allowed(spot=20.14, edge_pct=40.0, rarity="Uncommon") is True
     assert under_deal_allowed(spot=40.0, edge_pct=40.0, rarity="Uncommon") is False
