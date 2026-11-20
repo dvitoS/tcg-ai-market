@@ -6,15 +6,18 @@ let browserClient: SupabaseClient | null | undefined;
  * Public Soft Ink → Supabase Auth (OAuth only). Anon/publishable key is safe in the browser.
  *
  * PKCE stores a code verifier before redirecting to Google. That verifier must survive the
- * round-trip, so we use sessionStorage (persistSession true). Soft Ink still copies the
- * access token into its own API auth via setAccessToken after /auth/callback.
+ * round-trip in durable browser storage. Soft Ink copies the access token into its own API
+ * auth via setAccessToken after /auth/callback — we do NOT auto-detect the URL here because
+ * AuthCallbackView exchanges the code explicitly (detectSessionInUrl would race and clear
+ * the verifier first).
  */
 export function getSupabaseBrowser(): SupabaseClient | null {
+  if (typeof window === "undefined") return null;
   if (browserClient !== undefined) return browserClient;
 
   const url = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").trim();
   const anon = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "").trim();
-  if (!url || !anon || typeof window === "undefined") {
+  if (!url || !anon) {
     browserClient = null;
     return null;
   }
@@ -23,9 +26,9 @@ export function getSupabaseBrowser(): SupabaseClient | null {
     auth: {
       persistSession: true,
       autoRefreshToken: false,
-      detectSessionInUrl: true,
+      detectSessionInUrl: false,
       flowType: "pkce",
-      storage: window.sessionStorage,
+      storage: window.localStorage,
     },
   });
   return browserClient;
