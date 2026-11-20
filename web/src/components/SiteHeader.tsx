@@ -169,8 +169,38 @@ export function SiteHeader() {
           {t("nav_pro")}
         </Link>
         {user ? (
-          <button type="button" className="btn-ghost header-auth" onClick={logout}>
-            {user.email || t("auth_sign_out")}
+          <button
+            type="button"
+            className="btn-ghost header-auth header-auth-icon"
+            onClick={logout}
+            title={
+              user.email
+                ? t("auth_sign_out_as", { email: user.email })
+                : t("auth_sign_out")
+            }
+            aria-label={
+              user.email
+                ? t("auth_sign_out_as", { email: user.email })
+                : t("auth_sign_out")
+            }
+          >
+            <svg
+              className="header-user-mark"
+              viewBox="0 0 24 24"
+              width="18"
+              height="18"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <circle cx="12" cy="8" r="3.25" fill="none" stroke="currentColor" strokeWidth="1.75" />
+              <path
+                d="M5.5 18.25c.9-3.1 3.1-4.75 6.5-4.75s5.6 1.65 6.5 4.75"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+              />
+            </svg>
           </button>
         ) : (
           <Link href="/signin" className="btn-ghost header-auth">
@@ -248,7 +278,6 @@ export function SiteHeader() {
                 }}
               >
                 {t("auth_sign_out")}
-                {user.email ? ` · ${user.email}` : ""}
               </button>
             ) : (
               <>

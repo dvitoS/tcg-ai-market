@@ -379,12 +379,23 @@ a {
 }
 
 .header-auth {
-  max-width: 11.5rem;
   padding: 0.38rem 0.8rem;
   font-size: 0.82rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+}
+
+.header-auth-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.15rem;
+  height: 2.15rem;
+  padding: 0;
+  border-radius: 999px;
+}
+
+.header-user-mark {
+  display: block;
+  flex: 0 0 auto;
 }
 
 .tagline {
