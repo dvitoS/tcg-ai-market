@@ -15,7 +15,7 @@
 ## Fastest first post (≈5 minutes) — DOTD
 
 1. Open `https://www.kestreltcg.app` signed out (or Pro if DOTD share needs it).
-2. Scroll to **Deal of the day** — pick a clear UNDER with spot vs sure fair labeled.
+2. Scroll to **Deal of the day** — pick a clear “looks cheap” with **Asking vs Good** labeled.
 3. Use **Copy deal link** / save PNG (DOTD share buttons).
 4. Post in one place you already hang out:
    - LGS Discord / collector Discord, **or**
@@ -23,9 +23,9 @@
 5. Paste template (or use in-app clipboard pack):
 
 ```
-Kestrel desk call — {card} looks UNDER today.
-Spot {spot} vs sure fair {fair} ({edge}).
-Desk call — spot vs sure fair band. Not financial advice.
+Kestrel desk call — {card} looks cheap today.
+Asking {spot} vs Good {fair} ({edge}).
+Desk call — Asking vs Good. Not financial advice.
 {deal or card URL}
 ```
 
@@ -42,7 +42,7 @@ Desk call — spot vs sure fair band. Not financial advice.
 
 ## Soft Reddit rules
 
-- Title = verdict (“Even on these 4?” / “UNDER vs fair band — thoughts?”), not brand spam.
+- Title = verdict (“Even on these 4?” / “Asking under Good — thoughts?”), not brand spam.
 - One deep link + PNG; prices refresh live on the link.
 - No paid promo flair / affiliate tone.
 
@@ -58,7 +58,7 @@ Desk call — spot vs sure fair band. Not financial advice.
 
 - Only team-internal Discord → does **not** count.
 - Screenshot without share link → redo with paste pack + URL.
-- “AI said buy” framing → rewrite to spot vs sure fair.
+- “AI said buy” framing → rewrite to Asking vs Good.
 
 ## Non-goals
 

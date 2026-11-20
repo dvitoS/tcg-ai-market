@@ -347,13 +347,18 @@ const en = {
     "Open the latest link from your email, or request a new reset from Sign in.",
   alert_digest_title: "Alert digest · {n}",
   alert_digest_empty_title: "Alerts · quiet",
-  alert_threshold: "Threshold %",
-  alert_sure_only: "Sure-only (conformal)",
+  alert_threshold: "Difference %",
+  alert_sure_only: "Pretty sure only",
   alert_sure_pro: " · Pro",
   alert_poison_note:
-    "Poisoned / quarantined spots are never alerted — sure-only stays the default for Pro.",
-  alert_empty_sure: "No sure conformal BUY/SELL alerts above {n}% right now.",
-  alert_empty: "No watchlist cards currently above {n}%.",
+    "Bad or quarantined Asking prices never alert — pretty-sure stays the Pro default.",
+  alert_caption_sure:
+    "Pretty sure only · looks-cheap / looks-expensive vs Good by ≥ {n}%.",
+  alert_caption_any:
+    "Asking vs Good (or a 7-day Asking move) ≥ {n}% on cards you watch.",
+  alert_empty_sure:
+    "No pretty-sure looks-cheap / looks-expensive alerts above {n}% right now.",
+  alert_empty: "No watchlist cards currently above {n}% difference.",
   alert_dismiss: "Dismiss",
   alert_see_all: "See all",
   alert_banner_extra: "+{n} more",
@@ -1470,13 +1475,18 @@ const hr: Dictionary = {
     "Otvori najnoviji link iz emaila ili zatraži novi reset s prijave.",
   alert_digest_title: "Alert digest · {n}",
   alert_digest_empty_title: "Alerti · mirno",
-  alert_threshold: "Prag %",
-  alert_sure_only: "Samo sure (conformal)",
+  alert_threshold: "Razlika %",
+  alert_sure_only: "Samo prilično sigurno",
   alert_sure_pro: " · Pro",
   alert_poison_note:
-    "Poisoned / quarantined spotovi se nikad ne alertaju — sure-only ostaje default za Pro.",
-  alert_empty_sure: "Nema sure conformal KUPI/PRODAJ alerta iznad {n}% trenutno.",
-  alert_empty: "Nema watchlist karti iznad {n}% trenutno.",
+    "Loše ili karantirane Asking cijene se nikad ne alertaju — prilično sigurno ostaje Pro default.",
+  alert_caption_sure:
+    "Samo prilično sigurno · izgleda jeftino / skupo vs Dobra ≥ {n}%.",
+  alert_caption_any:
+    "Asking vs Dobra (ili 7-dnevni Asking pomak) ≥ {n}% na kartama koje pratiš.",
+  alert_empty_sure:
+    "Nema prilično sigurnih jeftino/skupo alerta iznad {n}% trenutno.",
+  alert_empty: "Nema watchlist karti iznad {n}% razlike trenutno.",
   alert_dismiss: "Odbaci",
   alert_see_all: "Sve",
   alert_banner_extra: "+{n} još",
