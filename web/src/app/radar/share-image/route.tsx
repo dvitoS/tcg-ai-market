@@ -37,7 +37,7 @@ export async function GET(request: Request) {
               fontFamily: "ui-sans-serif, system-ui, sans-serif",
             }}
           >
-            Shared Radar lens
+            Shared deals filters
           </div>
           <div
             style={{

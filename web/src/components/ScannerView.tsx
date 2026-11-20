@@ -92,7 +92,7 @@ export function ScannerView() {
         setData(next);
         setError(null);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Scanner failed");
+        setError(err instanceof Error ? err.message : t("scan_error"));
       } finally {
         setBooted(true);
       }

@@ -106,7 +106,7 @@ def radar_board(
     if not _pro_allowed(user):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Kestrel Radar requires Kestrel Pro.",
+            detail="Deals require Kestrel Pro.",
         )
     defaults = radar_defaults()
     edge = float(min_edge) if min_edge is not None else float(defaults["edge_floor"])
