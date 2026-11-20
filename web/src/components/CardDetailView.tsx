@@ -19,6 +19,7 @@ import { fetchCardDetail, formatChange } from "@/lib/api";
 import { readBrowseReturn } from "@/lib/browseReturn";
 import { resolveCardImageUrl } from "@/lib/cardImage";
 import { cardmarketSearchUrl } from "@/lib/cardmarket";
+import { resolveDeskNumbers } from "@/lib/deskNumbers";
 import { resolveFoilMode } from "@/lib/foilMode";
 import { trackFunnel } from "@/lib/funnel";
 import { decisionOneLiner, signalLabel } from "@/lib/i18n/messages";
@@ -126,24 +127,21 @@ export function CardDetailView({
       : null;
   const signalText = signalLabel(locale, card.signal);
   const signalKey = (card.signal || "").toUpperCase();
-  const detailSide =
+  const signalSide =
     signalKey === "BUY" || signalKey === "KUPI"
       ? "UNDER"
       : signalKey === "SELL" || signalKey === "PRODAJ"
         ? "OVER"
         : null;
-  const askSpot = history.last_price ?? card.price;
-  const fairSpot =
-    card.predicted_price != null && Number.isFinite(Number(card.predicted_price))
-      ? Number(card.predicted_price)
-      : null;
-  const gapPct =
-    askSpot != null &&
-    Number.isFinite(Number(askSpot)) &&
-    Number(askSpot) > 0 &&
-    fairSpot != null
-      ? ((fairSpot - Number(askSpot)) / Number(askSpot)) * 100
-      : null;
+  const desk = resolveDeskNumbers({
+    lastPrice: history.last_price,
+    price: card.price,
+    predicted_price: card.predicted_price,
+    side: signalSide,
+  });
+  const askSpot = desk.asking;
+  const gapPct = desk.edgeGapPct;
+  const detailSide = desk.side ?? signalSide;
   /** Soft Ink desks show the 30d model only — no 7d prediction fallback. */
   const move30d =
     card.expected_change_30d_pct != null &&
@@ -173,12 +171,14 @@ export function CardDetailView({
     setShareNote(null);
     const url = absoluteUrl(cardPagePath(card.id));
     const ask = formatSpot(askSpot, 2);
-    const fair =
-      fairSpot != null ? formatSpot(fairSpot, 2) : null;
+    const good =
+      desk.good != null ? formatSpot(desk.good, 2) : null;
     const lines = [
       [card.name, card.set_name].filter(Boolean).join(" · "),
       verdictLine,
-      fair ? `Asking ${ask} · Fair ${fair}` : `Asking ${ask}`,
+      good
+        ? `${t("detail_asking")} ${ask} · ${t("detail_fair")} ${good}`
+        : `${t("detail_asking")} ${ask}`,
       move30d != null ? `30d ${formatChange(move30d, 1)}` : null,
       url,
     ].filter(Boolean) as string[];

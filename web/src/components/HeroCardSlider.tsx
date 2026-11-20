@@ -8,6 +8,7 @@ import { useCurrency } from "@/components/CurrencyProvider";
 import { useLocale } from "@/components/LocaleProvider";
 import { formatChange } from "@/lib/api";
 import { resolveCardImageUrl, tcgdexImageUrlLow } from "@/lib/cardImage";
+import { resolveDeskNumbers } from "@/lib/deskNumbers";
 import { resolveFoilMode } from "@/lib/foilMode";
 import type { RadarCard } from "@/lib/types";
 
@@ -38,9 +39,16 @@ export function HeroCardSlider({ cards }: { cards: RadarCard[] }) {
   if (!slides.length) return null;
 
   const active = slides[Math.min(index, slides.length - 1)];
-  const edge = formatChange(active.edge_pct);
-  const spot = formatSpot(active.spot ?? active.price);
-  const fair = formatSpot(active.fair_price ?? active.predicted_price);
+  const desk = resolveDeskNumbers({
+    spot: active.spot,
+    price: active.price,
+    fair_price: active.fair_price,
+    predicted_price: active.predicted_price,
+    side: active.side,
+  });
+  const edge = formatChange(desk.edgeGapPct ?? active.edge_pct);
+  const spot = formatSpot(desk.asking);
+  const fair = formatSpot(desk.good);
 
   return (
     <aside

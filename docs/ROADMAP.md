@@ -41,8 +41,8 @@ Self-score after detail desk pass: **~7.5 / 10**. 10/10 is **trust + cold path**
 
 | ID | Item | Why |
 | --- | --- | --- |
-| T1.1 | Soft-nav detail **LCP** — search → card under ~1s | Friction kills the wedge |
-| T1.2 | Share / DOTD / Radar paste = **same numbers** as live detail | Share that lies destroys trust |
+| T1.1 | Soft-nav detail **LCP** — search → card under ~1s | **Shipping** — browse pick → card + loading shell + low art preload |
+| T1.2 | Share / DOTD / Radar paste = **same numbers** as live detail | **Shipping** — shared `deskNumbers` price-gap everywhere |
 | T1.3 | Landing hero stays **one job** | One card, two prices, one call |
 
 #### T2 — Desk that pays rent *(9 → 9.5)*

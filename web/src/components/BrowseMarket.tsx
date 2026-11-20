@@ -514,6 +514,19 @@ export function BrowseMarket({
               value={query}
               onChange={setQuery}
               onCommit={applyQuery}
+              onPickCard={(card) => {
+                saveBrowseReturn(
+                  buildBrowseHref({
+                    q: query,
+                    set: setName,
+                    signal,
+                    mode,
+                    min: minPrice,
+                    max: maxPrice,
+                  }),
+                );
+                router.push(`/cards/${encodeURIComponent(card.id)}`);
+              }}
               placeholder={t("explore_search_ph")}
               ariaLabel={t("explore_search_aria")}
               recentScope="browse"
