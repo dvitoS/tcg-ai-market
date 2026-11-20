@@ -13,7 +13,7 @@ from services.spot_sanity import (
     RADAR_MIN_UNDER_SPOT,
     SHARE_SAFE_MAX_UNDER_EDGE_PCT,
     SHARE_SAFE_MIN_UNDER_SPOT,
-    is_bulk_common,
+    is_bulk_deal,
     share_safe_under_deal,
     under_deal_allowed,
 )
@@ -246,13 +246,16 @@ def build_radar(
         )
     under_mask = under_mask & trust_u
 
-    # OVER: same bulk floor / Common skip + quarantine as UNDER.
+    # OVER: same penny floor as UNDER; mid-price Commons stay (rarity caps on UNDER).
     spot_ok = spot.notna() & (spot >= float(RADAR_MIN_UNDER_SPOT))
-    not_common = pd.Series(
-        [not is_bulk_common(r) for r in rarities.tolist()],
+    not_bulk = pd.Series(
+        [
+            not is_bulk_deal(spot=s, rarity=r)
+            for s, r in zip(spot.tolist(), rarities.tolist(), strict=False)
+        ],
         index=sure.index,
     )
-    over_mask = over_mask & spot_ok & not_common & ~quarantined
+    over_mask = over_mask & spot_ok & not_bulk & ~quarantined
 
     under_frame = (
         sure.loc[under_mask]

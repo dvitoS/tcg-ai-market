@@ -18,8 +18,9 @@ SPOT_JUMP_MAX_RATIO = 8.0
 
 # Radar / Deals surfacing (survives confidence + conformal gates).
 RADAR_MAX_UNDER_EDGE_PCT = 50.0
-# Floor above nightly bulk (~$2) so Deals is not flooded with pennies / commons.
-RADAR_MIN_UNDER_SPOT = 5.0
+# Match nightly bulk floor ($2): drop pennies, keep mid/chase rows on the desk.
+# (A $5 floor + blanket Common ban emptied Deals — too aggressive.)
+RADAR_MIN_UNDER_SPOT = 2.0
 RADAR_MAX_ABS_7D_CHANGE_PCT = 200.0
 
 # Soft spot caps by rarity for UNDER only — poisoned commons at $60+ should not
@@ -110,9 +111,28 @@ def under_spot_allowed_for_rarity(spot: Any, rarity: Any) -> bool:
 
 
 def is_bulk_common(rarity: Any) -> bool:
-    """Plain Common printings — noise on Deals even when spot clears the floor."""
+    """Plain Common printings (rarity token only).
+
+    Prefer :func:`is_bulk_deal` for Deals — rarity alone is not enough (chase
+    Commons at $5–$10 can be real deals; pennies are bulk).
+    """
     key = str(rarity or "").strip().lower()
     return key == "common" or key.startswith("common ")
+
+
+def is_bulk_deal(*, spot: Any, rarity: Any = None) -> bool:
+    """True for penny / sub-floor Commons — not for mid-price Commons.
+
+    Deals keeps ``RADAR_MIN_UNDER_SPOT`` as the hard floor for every rarity;
+    this helper is for OVER / callers that already cleared the floor and still
+    want to drop Common noise under the same bulk line.
+    """
+    if not is_bulk_common(rarity):
+        return False
+    price = _as_positive_float(spot)
+    if price is None:
+        return True
+    return price < float(RADAR_MIN_UNDER_SPOT)
 
 
 def under_deal_allowed(
@@ -128,10 +148,6 @@ def under_deal_allowed(
     """Whether an UNDER row is safe to surface on Radar / preview / Deal of Day."""
     price = _as_positive_float(spot)
     if price is None or price < float(min_spot):
-        return False
-
-    # Deals is for chase / mid+ — skip bulk Commons.
-    if is_bulk_common(rarity):
         return False
 
     try:
