@@ -25,7 +25,7 @@ export function SignInView({
 }: Props) {
   const { t } = useLocale();
   const router = useRouter();
-  const { login, signup } = useAuth();
+  const { login, signup, loginWithGoogle, googleAuthEnabled } = useAuth();
   const [authMode, setAuthMode] = useState<AuthMode>(
     initialMode === "signup" || initialMode === "forgot" ? initialMode : "signin",
   );
@@ -34,6 +34,24 @@ export function SignInView({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+
+  async function onGoogle() {
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const origin =
+        typeof window !== "undefined" ? window.location.origin : "";
+      const next = nextPath && nextPath.startsWith("/") ? nextPath : "/portfolio";
+      const redirectTo = `${origin}/auth/callback?next=${encodeURIComponent(next)}`;
+      await loginWithGoogle(redirectTo);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : t("auth_google_failed"),
+      );
+      setBusy(false);
+    }
+  }
 
   const title =
     authMode === "signup"
@@ -113,6 +131,25 @@ export function SignInView({
         <p className="auth-brand">Kestrel</p>
         <h1 className="auth-title">{title}</h1>
         <p className="auth-lede">{lede}</p>
+
+        {googleAuthEnabled && authMode !== "forgot" ? (
+          <div className="auth-oauth">
+            <button
+              type="button"
+              className="btn-ghost auth-google-btn"
+              disabled={busy}
+              onClick={() => void onGoogle()}
+            >
+              <span className="auth-google-mark" aria-hidden>
+                G
+              </span>
+              {t("auth_google")}
+            </button>
+            <p className="auth-oauth-divider">
+              <span>{t("auth_or_email")}</span>
+            </p>
+          </div>
+        ) : null}
 
         <form className="auth-form" onSubmit={onSubmit}>
           {authMode !== "forgot" ? (
