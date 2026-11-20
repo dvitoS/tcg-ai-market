@@ -86,6 +86,18 @@ def open_report_card_ids(limit: int = 50) -> list[str]:
     return ids[:limit]
 
 
+def latest_report_for_card(card_id: str) -> dict[str, Any] | None:
+    """Newest report for a card (queue is newest-first). Public detail closure."""
+    cid = str(card_id or "").strip()
+    if not cid:
+        return None
+    with _LOCK:
+        for row in _REPORTS:
+            if str(row.get("card_id") or "") == cid:
+                return dict(row)
+    return None
+
+
 def spot_report_summary() -> dict[str, Any]:
     with _LOCK:
         rows = list(_REPORTS)

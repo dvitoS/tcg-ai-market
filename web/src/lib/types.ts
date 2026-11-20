@@ -70,6 +70,22 @@ export type CardExplain = {
   rows: ExplainRow[];
 };
 
+export type SpotMatchQuality = "high" | "med" | "low";
+
+export type SpotMatchInfo = {
+  quality: SpotMatchQuality;
+  reason?: string | null;
+  tcgplayer_id?: string | null;
+};
+
+export type SpotReportPublic = {
+  id: string;
+  status: "open" | "acked" | "resolved" | "dismissed";
+  spot?: number | null;
+  created_at: number;
+  updated_at: number;
+};
+
 export type CardDetailResponse = {
   card: CatalogCard;
   pred_lo_pct?: number | null;
@@ -79,6 +95,10 @@ export type CardDetailResponse = {
   points?: HistoryPoint[];
   explain?: CardExplain;
   source: "supabase" | "demo" | "empty";
+  /** Asking TCP/quarantine match — not AI forecast confidence. */
+  spot_match?: SpotMatchInfo | null;
+  /** Latest wrong-spot report for this card (user-visible fixed loop). */
+  spot_report?: SpotReportPublic | null;
 };
 
 export type CardHistoryResponse = {

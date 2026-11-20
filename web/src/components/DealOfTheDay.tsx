@@ -10,6 +10,7 @@ import { DotdShareExport } from "@/components/DotdShareExport";
 import { useLocale } from "@/components/LocaleProvider";
 import { fetchRadarPreview, formatChange } from "@/lib/api";
 import { onCardImageError, resolveCardImageUrl } from "@/lib/cardImage";
+import { resolveDeskNumbers } from "@/lib/deskNumbers";
 import { trackFunnel } from "@/lib/funnel";
 import {
   decisionOneLiner,
@@ -26,6 +27,16 @@ function bandLabel(card: RadarCard): string | null {
   return `${formatChange(Number(lo), 1)}…${formatChange(Number(hi), 1)}`;
 }
 
+function deskFromRadar(card: RadarCard) {
+  return resolveDeskNumbers({
+    spot: card.spot,
+    price: card.price,
+    fair_price: card.fair_price,
+    predicted_price: card.predicted_price,
+    side: card.side,
+  });
+}
+
 function TeaserRow({
   card,
   variant,
@@ -35,8 +46,9 @@ function TeaserRow({
 }) {
   const { t } = useLocale();
   const { formatSpot } = useCurrency();
-  const fair = formatSpot(card.fair_price ?? card.predicted_price);
-  const edge = formatChange(card.edge_pct);
+  const desk = deskFromRadar(card);
+  const fair = formatSpot(desk.good);
+  const edge = formatChange(desk.edgeGapPct);
   return (
     <Link
       href={`/cards/${encodeURIComponent(card.id)}`}
@@ -62,7 +74,7 @@ function TeaserRow({
       </div>
       <div className="scan-metrics">
         <strong>
-          {t("metric_spot", { price: formatSpot(card.spot ?? card.price) })}
+          {t("metric_spot", { price: formatSpot(desk.asking) })}
         </strong>
         <span title={t("glossary_fair_tip")}>
           {t("metric_fair", { price: fair })}
@@ -182,14 +194,23 @@ export function DealOfTheDay({
       : openBeta
         ? t("landing_dotd_cta")
         : t("landing_dotd_cta_gated");
-  const featuredVerdict = featured
-    ? decisionOneLiner(locale, featured.side || "UNDER", featured.edge_pct)
-    : null;
+  const featuredDesk = featured ? deskFromRadar(featured) : null;
+  const featuredVerdict =
+    featured && featuredDesk?.side && featuredDesk.edgeGapPct != null
+      ? decisionOneLiner(
+          locale,
+          featuredDesk.side,
+          featuredDesk.edgeGapPct,
+        )
+      : featured
+        ? decisionOneLiner(locale, featured.side || "UNDER", featured.edge_pct)
+        : null;
   const featuredBand = featured ? bandLabel(featured) : null;
-  const featuredFair = featured
-    ? formatSpot(featured.fair_price ?? featured.predicted_price)
+  const featuredFair = featuredDesk ? formatSpot(featuredDesk.good) : "";
+  const featuredEdge = featuredDesk
+    ? formatChange(featuredDesk.edgeGapPct)
     : "";
-  const featuredEdge = featured ? formatChange(featured.edge_pct) : "";
+  const featuredAsk = featuredDesk ? formatSpot(featuredDesk.asking) : "";
 
   return (
     <section
@@ -251,9 +272,7 @@ export function DealOfTheDay({
             </div>
             <div className="deal-of-day-metrics">
               <strong>
-                {t("metric_spot", {
-                  price: formatSpot(featured.spot ?? featured.price),
-                })}
+                {t("metric_spot", { price: featuredAsk })}
               </strong>
               <span title={t("glossary_fair_tip")}>
                 {t("metric_fair", { price: featuredFair })}
@@ -308,7 +327,7 @@ export function DealOfTheDay({
       {featured ? (
         <DotdShareExport
           card={featured}
-          spotLabel={formatSpot(featured.spot ?? featured.price)}
+          spotLabel={featuredAsk}
           fairLabel={featuredFair}
           edgeLabel={featuredEdge}
           verdict={featuredVerdict}

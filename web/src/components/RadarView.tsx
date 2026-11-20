@@ -24,6 +24,7 @@ import {
   formatChange,
 } from "@/lib/api";
 import { onCardImageError, resolveCardImageUrl } from "@/lib/cardImage";
+import { resolveDeskNumbers } from "@/lib/deskNumbers";
 import {
   decisionOneLiner,
   sideLabel,
@@ -86,8 +87,19 @@ const EMPTY: RadarResponse = {
 function RadarRow({ card }: { card: RadarCard }) {
   const { t, locale } = useLocale();
   const { formatSpot } = useCurrency();
-  const verdict = decisionOneLiner(locale, card.side, card.edge_pct);
-  const fair = formatSpot(card.fair_price ?? card.predicted_price);
+  const desk = resolveDeskNumbers({
+    spot: card.spot,
+    price: card.price,
+    fair_price: card.fair_price,
+    predicted_price: card.predicted_price,
+    side: card.side,
+  });
+  const verdict = decisionOneLiner(
+    locale,
+    desk.side || card.side,
+    desk.edgeGapPct ?? card.edge_pct,
+  );
+  const fair = formatSpot(desk.good);
   return (
     <Link
       href={`/cards/${encodeURIComponent(card.id)}`}
@@ -117,7 +129,7 @@ function RadarRow({ card }: { card: RadarCard }) {
       </div>
       <div className="scan-metrics">
         <strong>
-          {t("metric_spot", { price: formatSpot(card.spot ?? card.price) })}
+          {t("metric_spot", { price: formatSpot(desk.asking) })}
         </strong>
         <span title={t("glossary_fair_tip")}>
           {t("metric_fair", { price: fair })}
@@ -295,6 +307,15 @@ export function RadarView() {
       const filters = currentShareFilters();
       const url = buildRadarShareUrl(SITE_URL, filters);
       const top = data.underpriced[0];
+      const topDesk = top
+        ? resolveDeskNumbers({
+            spot: top.spot,
+            price: top.price,
+            fair_price: top.fair_price,
+            predicted_price: top.predicted_price,
+            side: top.side,
+          })
+        : null;
       const text = buildRadarShareClipboardText({
         blurb: t("radar_share_blurb"),
         filters,
@@ -302,7 +323,7 @@ export function RadarView() {
           underTotal: data.under_total,
           overTotal: data.over_total,
           topUnderName: top?.name,
-          topUnderEdgePct: top?.edge_pct,
+          topUnderEdgePct: topDesk?.edgeGapPct ?? top?.edge_pct,
         },
         url,
         filtersLabel: t("radar_share_filters"),
@@ -405,6 +426,15 @@ export function RadarView() {
 
   const shareFilters = currentShareFilters();
   const topUnder = data.underpriced[0] ?? null;
+  const topUnderDesk = topUnder
+    ? resolveDeskNumbers({
+        spot: topUnder.spot,
+        price: topUnder.price,
+        fair_price: topUnder.fair_price,
+        predicted_price: topUnder.predicted_price,
+        side: topUnder.side,
+      })
+    : null;
   // Canonical origin on SSR + first client paint (avoid typeof window → #418).
   const shareUrl = buildRadarShareUrl(SITE_URL, shareFilters);
 
@@ -553,14 +583,14 @@ export function RadarView() {
           overTotal={data.over_total}
           topUnder={topUnder}
           spotLabel={
-            topUnder ? formatSpot(topUnder.spot ?? topUnder.price) : "—"
+            topUnderDesk ? formatSpot(topUnderDesk.asking) : "—"
           }
           fairLabel={
-            topUnder
-              ? formatSpot(topUnder.fair_price ?? topUnder.predicted_price)
-              : "—"
+            topUnderDesk ? formatSpot(topUnderDesk.good) : "—"
           }
-          edgeLabel={topUnder ? formatChange(topUnder.edge_pct) : "—"}
+          edgeLabel={
+            topUnderDesk ? formatChange(topUnderDesk.edgeGapPct) : "—"
+          }
           shareUrl={shareUrl}
         />
       </div>
