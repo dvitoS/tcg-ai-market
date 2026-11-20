@@ -84,7 +84,7 @@ const EMPTY: RadarResponse = {
   source: "empty",
 };
 
-function RadarRow({ card }: { card: RadarCard }) {
+function RadarCardTile({ card }: { card: RadarCard }) {
   const { t, locale } = useLocale();
   const { formatSpot } = useCurrency();
   const desk = resolveDeskNumbers({
@@ -100,40 +100,49 @@ function RadarRow({ card }: { card: RadarCard }) {
     desk.edgeGapPct ?? card.edge_pct,
   );
   const fair = formatSpot(desk.good);
+  const lean =
+    verdict ||
+    sideLabel(locale, desk.side || card.side) ||
+    "";
   return (
     <Link
       href={`/cards/${encodeURIComponent(card.id)}`}
-      className="scan-row radar-row radar-under"
+      className="explore-card sealed-desk-card-link is-buy"
     >
-      <div className="scan-art">
+      <div className="explore-card-art">
         <Image
           src={resolveCardImageUrl(card.id, card.image_url)}
           alt={card.name}
-          width={56}
-          height={78}
+          width={245}
+          height={342}
+          className="explore-card-img"
+          sizes="(max-width: 640px) 45vw, 180px"
           onError={(event) => onCardImageError(event, card.id)}
         />
+        <div className="explore-card-readout">
+          <span className="explore-card-price">
+            {formatSpot(desk.asking)}
+          </span>
+          <div className="explore-card-moves">
+            <div className="explore-card-move explore-card-fair">
+              <span className="explore-card-move-label">
+                {t("glossary_fair")}
+              </span>
+              <span className="explore-card-move-value">{fair}</span>
+            </div>
+          </div>
+          {lean ? (
+            <div className="explore-card-lean is-buy" title={t(sideTipKey(card.side))}>
+              {lean}
+            </div>
+          ) : null}
+        </div>
       </div>
-      <div className="scan-copy">
-        <div className="lot-name">{card.name}</div>
-        <div className="lot-meta">
+      <div className="explore-card-copy">
+        <div className="explore-card-name">{card.name}</div>
+        <div className="explore-card-meta">
           {[card.set_name, card.rarity].filter(Boolean).join(" · ")}
         </div>
-        {verdict ? (
-          <div className="decision-line lot-meta">{verdict}</div>
-        ) : (
-          <div className="lot-meta" title={t(sideTipKey(card.side))}>
-            {sideLabel(locale, card.side)}
-          </div>
-        )}
-      </div>
-      <div className="scan-metrics">
-        <strong>
-          {t("metric_spot", { price: formatSpot(desk.asking) })}
-        </strong>
-        <span title={t("glossary_fair_tip")}>
-          {t("metric_fair", { price: fair })}
-        </span>
       </div>
     </Link>
   );
@@ -586,9 +595,11 @@ export function RadarView() {
       ) : data.underpriced.length === 0 ? (
         <p className="empty-state">{t("radar_under_empty")}</p>
       ) : (
-        <div className={`scan-list${pending ? " is-pending" : ""}`}>
+        <div
+          className={`explore-grid sealed-desk-grid${pending ? " is-pending" : ""}`}
+        >
           {data.underpriced.map((card) => (
-            <RadarRow key={`u-${card.id}`} card={card} />
+            <RadarCardTile key={`u-${card.id}`} card={card} />
           ))}
         </div>
       )}

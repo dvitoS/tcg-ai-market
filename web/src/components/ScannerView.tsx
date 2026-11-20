@@ -33,30 +33,57 @@ const EMPTY: ScannerResponse = {
   source: "empty",
 };
 
-function ScanRow({ card }: { card: ScannerCard }) {
+function ScanCardTile({
+  card,
+  tone,
+}: {
+  card: ScannerCard;
+  tone: "up" | "down";
+}) {
+  const roi = card.expected_roi_pct ?? 0;
+  const sideClass = tone === "up" ? "is-buy" : "is-sell";
+  const moveClass = tone === "up" ? "up" : "down";
   return (
-    <Link href={`/cards/${encodeURIComponent(card.id)}`} className="scan-row">
-      <div className="scan-art">
+    <Link
+      href={`/cards/${encodeURIComponent(card.id)}`}
+      className={`explore-card sealed-desk-card-link ${sideClass}`}
+    >
+      <div className="explore-card-art">
         <Image
           src={resolveCardImageUrl(card.id, card.image_url)}
           alt={card.name}
-          width={56}
-          height={78}
+          width={245}
+          height={342}
+          className="explore-card-img"
+          sizes="(max-width: 640px) 45vw, 180px"
           onError={(event) => onCardImageError(event, card.id)}
         />
-      </div>
-      <div className="scan-copy">
-        <div className="lot-name">{card.name}</div>
-        <div className="lot-meta">
-          {[card.set_name, card.rarity].filter(Boolean).join(" · ")}
+        <div className="explore-card-readout">
+          <span className="explore-card-price">
+            {formatMoney(card.current_price ?? card.price)}
+          </span>
+          <div className="explore-card-moves">
+            <div className={`explore-card-move ${moveClass}`}>
+              <span className="explore-card-move-label">AI</span>
+              <span className="explore-card-move-value">
+                {formatMoney(card.ai_target_price ?? card.predicted_price)}
+              </span>
+            </div>
+          </div>
+          <div
+            className={`explore-card-change ${
+              roi >= 0 ? "up" : "down"
+            }`}
+          >
+            {formatChange(roi)}
+          </div>
         </div>
       </div>
-      <div className="scan-metrics">
-        <strong>{formatMoney(card.current_price ?? card.price)}</strong>
-        <span>→ {formatMoney(card.ai_target_price ?? card.predicted_price)}</span>
-        <span className={(card.expected_roi_pct ?? 0) >= 0 ? "pnl-up" : "pnl-down"}>
-          {formatChange(card.expected_roi_pct)}
-        </span>
+      <div className="explore-card-copy">
+        <div className="explore-card-name">{card.name}</div>
+        <div className="explore-card-meta">
+          {[card.set_name, card.rarity].filter(Boolean).join(" · ")}
+        </div>
       </div>
     </Link>
   );
@@ -252,9 +279,11 @@ export function ScannerView() {
       ) : data.opportunities.length === 0 ? (
         <p className="empty-state">{t("scan_opps_empty")}</p>
       ) : (
-        <div className={`scan-list${pending ? " is-pending" : ""}`}>
+        <div
+          className={`explore-grid sealed-desk-grid${pending ? " is-pending" : ""}`}
+        >
           {data.opportunities.map((card) => (
-            <ScanRow key={`opp-${card.id}`} card={card} />
+            <ScanCardTile key={`opp-${card.id}`} card={card} tone="up" />
           ))}
         </div>
       )}
@@ -265,9 +294,9 @@ export function ScannerView() {
       {data.warnings.length === 0 ? (
         <p className="empty-state">{t("scan_warns_empty")}</p>
       ) : (
-        <div className="scan-list">
+        <div className="explore-grid sealed-desk-grid">
           {data.warnings.map((card) => (
-            <ScanRow key={`warn-${card.id}`} card={card} />
+            <ScanCardTile key={`warn-${card.id}`} card={card} tone="down" />
           ))}
         </div>
       )}
