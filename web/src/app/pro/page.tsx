@@ -8,9 +8,9 @@ import type { RadarPreviewResponse } from "@/lib/types";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Kestrel Pro — Radar, Trade Analyzer, dealer desk",
+  title: "Kestrel Pro — daily looks-cheap + alerts",
   description:
-    "Unlock Kestrel Radar, Trade Analyzer, dealer scoring, and sure-only alerts. €7/mo after a 7-day trial.",
+    "Daily cards that look cheap vs good price, plus watchlist alerts. €7/mo after a 7-day trial.",
   alternates: { canonical: absoluteUrl("/pro") },
 };
 

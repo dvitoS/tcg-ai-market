@@ -69,7 +69,6 @@ export function MarketingLanding({
         <div className="landing-hero-stage">
           <div className="landing-hero-copy">
             <p className="landing-brand">Kestrel</p>
-            <p className="landing-product">{t("landing_product")}</p>
             <h1 className="landing-headline">{t("landing_headline")}</h1>
             <p className="landing-lede">{t("landing_lede")}</p>
             <div className="landing-ctas">
@@ -80,13 +79,6 @@ export function MarketingLanding({
               >
                 {t("landing_cta_market")}
               </a>
-              <Link
-                href="/pro"
-                className="btn-ghost landing-cta"
-                onClick={() => trackFunnel("landing_cta_pro")}
-              >
-                {t("landing_cta_pro")}
-              </Link>
             </div>
           </div>
           <HeroCardSlider cards={dotd?.underpriced || []} />
@@ -94,13 +86,13 @@ export function MarketingLanding({
       </section>
 
       <div className="landing-desk">
-        <MarketPulse initialPulse={initialPulse} />
         <DealOfTheDay
           limit={5}
           variant="landing"
           initialPreview={dotd}
           skipClientFetch
         />
+        <MarketPulse initialPulse={initialPulse} />
       </div>
 
       <section className="landing-path" aria-labelledby="landing-path-title">

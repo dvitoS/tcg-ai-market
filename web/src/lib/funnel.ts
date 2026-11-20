@@ -13,6 +13,7 @@ export type FunnelEventName =
   | "pro_checkout_click"
   | "pro_open_radar"
   | "pro_open_trade"
+  | "pro_open_alerts"
   | "radar_activate"
   | "trade_activate"
   | "share_copy"
