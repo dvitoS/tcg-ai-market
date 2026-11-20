@@ -215,6 +215,8 @@ export function BinderView() {
         </p>
       </div>
 
+      {snapshot ? <BinderReportExport snapshot={snapshot} /> : null}
+
       {error ? <p className="banner-error">{error}</p> : null}
       {pending ? <DeskLoading label={t("explore_updating")} variant="banner" /> : null}
 
@@ -271,13 +273,11 @@ export function BinderView() {
         </div>
       ) : null}
 
-      {snapshot ? <BinderReportExport snapshot={snapshot} /> : null}
-
-      <div className="binder-panels">
-        <div>
-          <h2 className="section-title">
-            {t("binder_missing_title", { n: detail?.missing ?? 0 })}
-          </h2>
+      <div className="detail-desk-split binder-panels">
+        <div className="detail-desk-main">
+          <div className="portfolio-section-head">
+            <h2>{t("binder_missing_title", { n: detail?.missing ?? 0 })}</h2>
+          </div>
           {pending && !detail ? (
             <DeskLoading label={t("binder_loading")} variant="panel" skeletonCount={4} />
           ) : null}
@@ -302,29 +302,34 @@ export function BinderView() {
         </div>
 
         {sets.length > 0 ? (
-          <aside className="binder-set-list" aria-label={t("binder_all_sets")}>
-            <h2 className="section-title">{t("binder_all_sets")}</h2>
-            <ul>
-              {sets.map((row) => (
-                <li key={row.set_name}>
-                  <button
-                    type="button"
-                    className={
-                      row.set_name === selected
-                        ? "binder-set-btn is-active"
-                        : "binder-set-btn"
-                    }
-                    onClick={() => setSelected(row.set_name)}
-                  >
-                    <span className="binder-set-name">{row.set_name}</span>
-                    <span className="binder-set-meta">
-                      {row.pct.toFixed(0)}% · {formatMoney(row.missing_cost)}
-                    </span>
-                    <SetProgress pct={row.pct} />
-                  </button>
-                </li>
-              ))}
-            </ul>
+          <aside
+            className="detail-desk-side binder-set-list"
+            aria-label={t("binder_all_sets")}
+          >
+            <div className="detail-side-module">
+              <h2 className="detail-side-heading">{t("binder_all_sets")}</h2>
+              <ul>
+                {sets.map((row) => (
+                  <li key={row.set_name}>
+                    <button
+                      type="button"
+                      className={
+                        row.set_name === selected
+                          ? "binder-set-btn is-active"
+                          : "binder-set-btn"
+                      }
+                      onClick={() => setSelected(row.set_name)}
+                    >
+                      <span className="binder-set-name">{row.set_name}</span>
+                      <span className="binder-set-meta">
+                        {row.pct.toFixed(0)}% · {formatMoney(row.missing_cost)}
+                      </span>
+                      <SetProgress pct={row.pct} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </aside>
         ) : null}
       </div>

@@ -461,19 +461,7 @@ export function RadarView() {
         </p>
       </div>
 
-      <form className="search-strip scanner-search" onSubmit={onSearch}>
-        <SearchSuggest
-          inputId="radar-q"
-          value={query}
-          onChange={setQuery}
-          onCommit={applyQuery}
-          placeholder={t("radar_search_ph")}
-          ariaLabel={t("radar_search_aria")}
-          recentScope="radar"
-        />
-        <button type="submit" className="btn-primary">
-          {t("radar_btn")}
-        </button>
+      <div className="detail-actions">
         <button
           type="button"
           className="btn-ghost"
@@ -490,10 +478,25 @@ export function RadarView() {
         >
           {exportBusy ? t("radar_export_busy") : t("radar_export_image")}
         </button>
-      </form>
+      </div>
       <p className="lot-meta">{t("radar_share_hint")}</p>
       {shareNote ? <p className="pro-open-note">{shareNote}</p> : null}
       {exportNote ? <p className="pro-open-note">{exportNote}</p> : null}
+
+      <form className="search-strip scanner-search" onSubmit={onSearch}>
+        <SearchSuggest
+          inputId="radar-q"
+          value={query}
+          onChange={setQuery}
+          onCommit={applyQuery}
+          placeholder={t("radar_search_ph")}
+          ariaLabel={t("radar_search_aria")}
+          recentScope="radar"
+        />
+        <button type="submit" className="btn-primary">
+          {t("radar_btn")}
+        </button>
+      </form>
 
       <div className="filter-row">
         <label>
@@ -507,34 +510,34 @@ export function RadarView() {
             onChange={(e) => setMinEdge(Number(e.target.value) || 0)}
           />
         </label>
-        <label>
-          <span>{t("explore_min")}</span>
-          <input
-            type="number"
-            min={0}
-            step={1}
-            value={minPrice}
-            onChange={(e) => setMinPrice(e.target.value)}
-            inputMode="decimal"
-            placeholder={t("explore_any")}
-          />
-        </label>
-        <label>
-          <span>{t("explore_max")}</span>
-          <input
-            type="number"
-            min={0}
-            step={1}
-            value={maxPrice}
-            onChange={(e) => setMaxPrice(e.target.value)}
-            inputMode="decimal"
-            placeholder={t("explore_any")}
-          />
-        </label>
       </div>
-      <details className="radar-more-filters">
+      <details className="desk-more-filters">
         <summary className="lot-meta">{t("radar_more_filters")}</summary>
         <div className="filter-row">
+          <label>
+            <span>{t("explore_min")}</span>
+            <input
+              type="number"
+              min={0}
+              step={1}
+              value={minPrice}
+              onChange={(e) => setMinPrice(e.target.value)}
+              inputMode="decimal"
+              placeholder={t("explore_any")}
+            />
+          </label>
+          <label>
+            <span>{t("explore_max")}</span>
+            <input
+              type="number"
+              min={0}
+              step={1}
+              value={maxPrice}
+              onChange={(e) => setMaxPrice(e.target.value)}
+              inputMode="decimal"
+              placeholder={t("explore_any")}
+            />
+          </label>
           <label>
             <span>{t("explore_set")}</span>
             <select value={setName} onChange={(e) => setSetName(e.target.value)}>
@@ -563,18 +566,20 @@ export function RadarView() {
       {error ? <p className="form-error">{error}</p> : null}
       {pending ? <DeskLoading label={t("explore_updating")} variant="banner" /> : null}
 
-      <div className="stat-row scanner-kpis">
-        <div className="stat-chip">
+      <div className="kpi-row scanner-kpis">
+        <div className="kpi-chip">
           <span>{t("radar_kpi_sure")}</span>
           <strong>{data.sure_scoped}</strong>
         </div>
-        <div className="stat-chip">
+        <div className="kpi-chip">
           <span>{t("radar_kpi_under")}</span>
           <strong>{data.under_total}</strong>
         </div>
       </div>
 
-      <h2 className="section-title">{t("radar_under_title")}</h2>
+      <div className="portfolio-section-head">
+        <h2>{t("radar_under_title")}</h2>
+      </div>
       {pending && data.underpriced.length === 0 ? (
         <DeskLoading label={t("explore_updating")} variant="panel" skeletonCount={4} />
       ) : data.underpriced.length === 0 ? (
