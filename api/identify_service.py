@@ -26,12 +26,19 @@ _JUNK_LINE = re.compile(
     re.I,
 )
 
+# OCR often prefixes the title with "Name =" / "Name:" from UI chrome or glare.
+_OCR_LABEL = re.compile(
+    r"^(?:name|title|card(?:\s*name)?|pokemon)\s*[:=\-–—]?\s*",
+    re.I,
+)
+
 _COLLECTOR = re.compile(
     r"\b([A-Z]{0,3}\d{1,3})\s*/\s*([A-Z]{0,3}\d{1,3})\b",
     re.I,
 )
 _CARD_ID = re.compile(r"\b([a-z]{1,6}\d{0,2})-(\d{1,3}[a-z]?)\b", re.I)
 _SOLO_NUM = re.compile(r"\b(?:no\.?\s*)?(\d{1,3})\b", re.I)
+_HP_LINE = re.compile(r"^\s*(?:hp\s*)?\d{2,3}\s*(?:hp)?\s*$", re.I)
 
 
 def normalize_number_token(value: str | None) -> str:
@@ -42,10 +49,17 @@ def normalize_number_token(value: str | None) -> str:
     return text
 
 
+def _clean_ocr_line(line: str) -> str:
+    clean = re.sub(r"\s+", " ", str(line or "")).strip()
+    clean = _OCR_LABEL.sub("", clean).strip()
+    clean = re.sub(r"[^A-Za-z0-9' .\-/]", "", clean).strip(" .-")
+    return clean
+
+
 def parse_ocr_clues(raw: str) -> dict[str, Any]:
     """Pull name / number / set-ish hints from messy OCR text."""
     text = str(raw or "").replace("\r", "\n")
-    lines = [re.sub(r"\s+", " ", ln).strip() for ln in text.split("\n")]
+    lines = [_clean_ocr_line(ln) for ln in text.split("\n")]
     lines = [ln for ln in lines if ln]
 
     collector_left: str | None = None
@@ -63,10 +77,10 @@ def parse_ocr_clues(raw: str) -> dict[str, Any]:
 
     name_candidates: list[tuple[int, str]] = []
     for idx, ln in enumerate(lines):
-        clean = re.sub(r"[^A-Za-z0-9' .\-]", "", ln).strip()
+        clean = ln
         if len(clean) < 3:
             continue
-        if _JUNK_LINE.match(clean):
+        if _JUNK_LINE.match(clean) or _HP_LINE.match(clean):
             continue
         if _COLLECTOR.search(clean) and len(clean) < 12:
             continue
@@ -100,16 +114,30 @@ def _name_score(card_name: str, hints: list[str]) -> float:
         h = re.sub(r"[^a-z0-9 ]", "", hint.lower()).strip()
         if not h:
             continue
-        if target == h or target in h or h in target:
+        if target == h:
             best = max(best, 1.0)
             continue
-        ratio = SequenceMatcher(None, target, h).ratio()
-        # Token overlap for partial OCR ("Charizrd" / "Charizard ex")
+        # Token / substring matches — require enough letters so short names
+        # like "N" do not match every OCR blob that merely contains the letter.
         t_tok = set(target.split())
         h_tok = set(h.split())
-        if t_tok and h_tok:
+        if len(target) >= 3 and (target in h or h in target):
+            # Length gate: "N" must not ride inside "bmoochum".
+            shorter, longer = (target, h) if len(target) <= len(h) else (h, target)
+            if len(shorter) >= 3 and (len(shorter) / max(1, len(longer))) >= 0.45:
+                best = max(best, 1.0)
+                continue
+        if t_tok and h_tok and len(target) >= 3:
+            # Exact token hit (e.g. "charizard" in "charizard ex").
+            if target in h_tok or any(tok == target for tok in h_tok):
+                best = max(best, 1.0)
+                continue
             overlap = len(t_tok & h_tok) / max(len(t_tok), len(h_tok))
-            ratio = max(ratio, overlap)
+        else:
+            overlap = 0.0
+        ratio = SequenceMatcher(None, target, h).ratio()
+        ratio = max(ratio, overlap)
+        # Soft OCR typos ("Bmoochum" → Smoochum) still clear the name bar.
         best = max(best, ratio)
     return best
 
@@ -188,16 +216,22 @@ def identify_from_text(raw: str, *, limit: int = 8) -> dict[str, Any]:
 
     # If nothing crossed the bar, fall back to best name-ish catalog contains.
     if not scored and clues.get("name_hints"):
-        needle = str(clues["name_hints"][0]).lower()
-        mask = board["name"].astype(str).str.lower().str.contains(
-            re.escape(needle[:24]),
-            na=False,
-            regex=True,
-        )
-        subset = board[mask].head(limit)
-        for _, row in subset.iterrows():
-            payload = row_to_card(row)
-            scored.append((15.0, ["fallback"], payload))
+        needle = re.sub(
+            r"[^a-z0-9 ]",
+            "",
+            str(clues["name_hints"][0]).lower(),
+        ).strip()[:24]
+        # Skip tiny needles ("n", "hp") — they match half the board.
+        if len(needle) >= 4:
+            mask = board["name"].astype(str).str.lower().str.contains(
+                re.escape(needle),
+                na=False,
+                regex=True,
+            )
+            subset = board[mask].head(limit)
+            for _, row in subset.iterrows():
+                payload = row_to_card(row)
+                scored.append((15.0, ["fallback"], payload))
 
     scored.sort(key=lambda t: t[0], reverse=True)
     matches = []
