@@ -53,8 +53,24 @@ def test_funnel_api_batch_and_summary():
     assert "share_png" in data["allowed_events"]
     assert "landing_view" in data["allowed_events"]
     assert "dotd_view" in data["allowed_events"]
+    assert "alerts_activate" in data["allowed_events"]
+    assert "pro_open_alerts" in data["allowed_events"]
     assert data["persisted"] is True
     assert data["source"] in {"local", "supabase"}
+
+
+def test_alerts_activate_accepted():
+    out = record_events(
+        [
+            {
+                "event": "alerts_activate",
+                "session": "s-alerts",
+                "props": {"watch_n": 2},
+            }
+        ]
+    )
+    assert out == {"accepted": 1, "rejected": 0}
+    assert funnel_summary()["counts"]["alerts_activate"] == 1
 
 
 def test_funnel_survives_memory_reset(tmp_path, monkeypatch):

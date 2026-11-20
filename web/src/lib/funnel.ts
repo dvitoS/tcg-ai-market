@@ -1,4 +1,4 @@
-/** Soft-launch funnel: landing → DOTD → Pro → Radar/Trade activation. */
+/** Soft-launch funnel: landing → DOTD → Pro → Radar/Trade/Alerts activation. */
 
 import { apiUrl } from "@/lib/api";
 
@@ -16,6 +16,7 @@ export type FunnelEventName =
   | "pro_open_alerts"
   | "radar_activate"
   | "trade_activate"
+  | "alerts_activate"
   | "share_copy"
   | "share_png"
   | "spot_report";

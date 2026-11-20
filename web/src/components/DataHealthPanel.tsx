@@ -758,6 +758,7 @@ export function DataHealthPanel() {
                       "pro_open_alerts",
                       "radar_activate",
                       "trade_activate",
+                      "alerts_activate",
                       "share_copy",
                       "share_png",
                       "spot_report",

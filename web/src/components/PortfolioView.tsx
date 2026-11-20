@@ -24,6 +24,7 @@ import {
   updatePortfolioLot,
 } from "@/lib/api";
 import { onCardImageError, resolveCardImageUrl } from "@/lib/cardImage";
+import { trackFunnel } from "@/lib/funnel";
 import { signalLabel } from "@/lib/i18n/messages";
 import type {
   PortfolioLot,
@@ -174,6 +175,17 @@ export function PortfolioView() {
       }
       setBusy(false);
       setBooted(true);
+      trackFunnel(
+        "alerts_activate",
+        {
+          watch_n: boot.watchlist.items.length,
+          alerts_n: boot.alerts.items.length,
+          demo: Boolean(
+            boot.portfolio.demo || boot.watchlist.demo || boot.alerts.demo,
+          ),
+        },
+        { once: true },
+      );
       void fetchPortfolioPerformance({ max_days: 120 })
         .then((performance) => {
           setPerfPoints(performance.points || []);

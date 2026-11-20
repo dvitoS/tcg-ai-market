@@ -1,4 +1,4 @@
-"""Soft-launch funnel counters (landing → DOTD → Pro → Radar/Trade).
+"""Soft-launch funnel counters (landing → DOTD → Pro → Radar/Trade/Alerts).
 
 Counts persist across API restarts via local JSON + optional Supabase
 ``model_artifacts`` row (same pattern as spot_qa). Events stay anonymous
@@ -38,6 +38,7 @@ ALLOWED_EVENTS = frozenset(
         "pro_open_alerts",
         "radar_activate",
         "trade_activate",
+        "alerts_activate",
         "share_copy",
         "share_png",
         "spot_report",

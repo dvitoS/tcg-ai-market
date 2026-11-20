@@ -19,8 +19,9 @@ Funnel **and G3 cancel/refund counters** persist across API restarts (local JSON
 
 ## Pass criteria
 
-1. Funnel events flowing (`landing_view` → Pro → Radar/Trade → `share_*`).  
-   `landing_cta_pro` fires from **header + locked-desk Pro links** (not the landing hero — T1.3 one-job). Locked-desk checkout fires `pro_checkout_click`.
+1. Funnel events flowing (`landing_view` → Pro → Radar/Trade/Alerts → `share_*`).  
+   `landing_cta_pro` fires from **header + locked-desk Pro links** (not the landing hero — T1.3 one-job). Locked-desk checkout fires `pro_checkout_click`.  
+   Pro wedge: `pro_open_alerts` → Portfolio bootstrap fires `alerts_activate` (once/day).
 2. Trial → paid strip readable (not empty source for days).
 3. **Wrong-price cite % &lt; 2%** once you have cancel/refund reasons (`gate_ok` true).  
    If Creem sends no reason, keep volume of open wrong-spot reports low and resolve within SLA (`docs/WRONG_SPOT_SLA.md`).
