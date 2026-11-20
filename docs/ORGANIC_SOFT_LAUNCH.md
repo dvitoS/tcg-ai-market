@@ -12,7 +12,7 @@ Paid spend stays locked until G0–G3 are green (`docs/ROADMAP.md`).
 | “Show my board filters” | **Radar** PNG + paste (`?share=`) | Board totals + top UNDER + filter URL (Discord/Reddit OG unfurl) |
 | “How close is this set?” | **Binder** PNG + paste (`?set=`) | Completion % / missing / buy-cost (Discord/Reddit OG unfurl) |
 
-Always keep the desk disclaimer: *spot vs sure fair band — not financial advice.*
+Always keep the desk disclaimer: *Asking vs Good — not financial advice.*
 
 ## Paste templates
 
@@ -20,8 +20,8 @@ Always keep the desk disclaimer: *spot vs sure fair band — not financial advic
 
 ```
 Kestrel desk call — {one-line verdict}.
-{spot / fair / edge line}
-Desk call — spot vs sure fair band. Not financial advice.
+{Asking / Good / difference line}
+Desk call — Asking vs Good. Not financial advice.
 {share URL}
 ```
 
@@ -30,7 +30,7 @@ Attach the PNG when you exported one (Trade / DOTD / Binder / Radar). Prefer the
 ### LGS counter talk (30 seconds)
 
 1. Open the shared Trade or DOTD link on your phone.
-2. Point at **spot vs sure fair** (not “the AI said buy”).
+2. Point at **Asking vs Good** (not “the AI said buy”).
 3. Offer the PNG in the shop Discord / WhatsApp if they want to revisit.
 
 ### Soft Reddit (TCG trade / local shops)

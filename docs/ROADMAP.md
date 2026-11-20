@@ -129,7 +129,7 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 | ID | Item | Ship |
 | --- | --- | --- |
 | M1.1 | Plain-language everywhere | Radar, DOTD, detail, Trade — one vocabulary (= A1) |
-| M1.2 | Landing desk core | Hero slider → pulse → DOTD; hero + DOTD label **spot / sure fair** for G1 |
+| M1.2 | Landing desk core | Hero slider → pulse → DOTD; hero + DOTD label **Asking / Good** for G1 |
 | M1.3 | Free teaser quality | DOTD 5 UNDER = Pro vocabulary; fast SSR (= A2/A3) |
 | M1.4 | Source labels on detail | **Shipping** — US spot + as-of; Cardmarket EUR never blended; chart US-only note |
 | M1.5 | Disclaimer tone | **Shipping** — “Desk call, not financial advice” under AI band |

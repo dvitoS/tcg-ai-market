@@ -208,11 +208,12 @@ export function PortfolioView() {
   }, [dismissed, sureOnly, thresholdPct, t]);
 
   const alertCaption = useMemo(() => {
+    const n = thresholdPct.toFixed(0);
     if (sureOnly) {
-      return `Sure-only · conformal BUY/SELL with |AI ROI| ≥ ${thresholdPct.toFixed(0)}%.`;
+      return t("alert_caption_sure", { n });
     }
-    return `AI ROI or 7d price move ≥ ${thresholdPct.toFixed(0)}% on cards you watch.`;
-  }, [sureOnly, thresholdPct]);
+    return t("alert_caption_any", { n });
+  }, [sureOnly, thresholdPct, t]);
 
   const openLots = useMemo(
     () => lots.filter((lot) => String(lot.status || "open").toLowerCase() !== "sold"),
