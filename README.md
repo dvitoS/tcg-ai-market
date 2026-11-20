@@ -29,7 +29,7 @@ Open `http://localhost:3000`. API docs: `http://127.0.0.1:8000/docs`. Tests: `py
 | `web/` | Soft Ink (Next.js) — landing, browse, detail, portfolio, scanner, dealer, Pro |
 | `api/` | FastAPI over existing `services/` + `market_quotes` (demo seed without Supabase) |
 
-Without Supabase Auth credentials the API runs in **demo mode**. With `SUPABASE_URL` + `SUPABASE_ANON_KEY`, Soft Ink login uses real email/password.
+Without Supabase Auth credentials the API runs in **demo mode**. With `SUPABASE_URL` + `SUPABASE_ANON_KEY`, Soft Ink login uses real email/password. Optional Google sign-in: enable the Google provider in Supabase and set Soft Ink `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` (see `docs/DEPLOY.md`).
 
 ### Deploy + custom domain (Creem)
 

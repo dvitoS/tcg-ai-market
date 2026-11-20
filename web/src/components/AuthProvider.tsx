@@ -16,6 +16,10 @@ import {
   setAccessToken,
   signupRequest,
 } from "@/lib/api";
+import {
+  getSupabaseBrowser,
+  isGoogleAuthConfigured,
+} from "@/lib/supabaseBrowser";
 import type { AuthUser } from "@/lib/types";
 
 type SignupOutcome = {
@@ -28,6 +32,10 @@ type AuthContextValue = {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string) => Promise<SignupOutcome>;
+  /** Start Google OAuth (Supabase). redirectTo lands on Soft Ink /auth/callback. */
+  loginWithGoogle: (redirectTo: string) => Promise<void>;
+  googleAuthEnabled: boolean;
+  refresh: () => Promise<void>;
   logout: () => void;
   /** Local/demo only. Returns false in production when demo login is rejected. */
   ensureDemoSession: () => Promise<boolean>;
@@ -80,6 +88,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  const loginWithGoogle = useCallback(async (redirectTo: string) => {
+    const client = getSupabaseBrowser();
+    if (!client) {
+      throw new Error("Google sign-in is not configured.");
+    }
+    const { data, error } = await client.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo,
+        queryParams: {
+          prompt: "select_account",
+        },
+      },
+    });
+    if (error) throw error;
+    // Browser navigates to data.url; keep a throw path if the SDK returns no URL.
+    if (data?.url && typeof window !== "undefined") {
+      window.location.assign(data.url);
+    }
+  }, []);
+
   const logout = useCallback(() => {
     setAccessToken(null);
     setUser(null);
@@ -99,9 +128,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [login, refresh]);
 
+  const googleAuthEnabled = isGoogleAuthConfigured();
+
   const value = useMemo(
-    () => ({ user, loading, login, signup, logout, ensureDemoSession }),
-    [user, loading, login, signup, logout, ensureDemoSession],
+    () => ({
+      user,
+      loading,
+      login,
+      signup,
+      loginWithGoogle,
+      googleAuthEnabled,
+      refresh,
+      logout,
+      ensureDemoSession,
+    }),
+    [
+      user,
+      loading,
+      login,
+      signup,
+      loginWithGoogle,
+      googleAuthEnabled,
+      refresh,
+      logout,
+      ensureDemoSession,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

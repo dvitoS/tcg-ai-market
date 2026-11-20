@@ -62,21 +62,35 @@ curl -s http://127.0.0.1:8000/api/health
 | Variable | Value |
 |----------|--------|
 | `NEXT_PUBLIC_API_URL` | `https://api.YOURDOMAIN.com` (no trailing slash) |
+| `NEXT_PUBLIC_SUPABASE_URL` | `https://xxxx.supabase.co` (same project as API) |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | anon public key (same as API `SUPABASE_ANON_KEY`) |
+
+`NEXT_PUBLIC_SUPABASE_*` is required for **Continue with Google**. Email/password still works with only the API anon key.
 
 5. Deploy, then Domains → add `app.YOURDOMAIN.com` (follow DNS CNAME).
 6. Confirm:
    - `https://app.YOURDOMAIN.com` loads Browse
    - Network tab calls `https://api.YOURDOMAIN.com/api/catalog`
 
-## 4. Supabase Auth URLs
+## 4. Supabase Auth URLs + Google
 
 In Supabase → Authentication → URL configuration:
 
 - Site URL: `https://app.YOURDOMAIN.com`
 - Redirect URLs: `https://app.YOURDOMAIN.com/**`  
-  (include `https://app.YOURDOMAIN.com/auth/reset` for Soft Ink password recovery)
+  (include `https://app.YOURDOMAIN.com/auth/reset` for Soft Ink password recovery  
+  and `https://app.YOURDOMAIN.com/auth/callback` for Google OAuth)
 
 API forgot-password uses `SOFT_INK_URL` (or the client-sent `redirect_to`) so recovery emails land on Soft Ink `/auth/reset`.
+
+### Google provider
+
+1. Google Cloud Console → APIs & Services → Credentials → OAuth 2.0 Client (Web).
+2. Authorized redirect URI: `https://xxxx.supabase.co/auth/v1/callback`  
+   (copy exact URI from Supabase → Authentication → Providers → Google).
+3. Supabase → Authentication → Providers → Google → enable → paste Client ID + Secret.
+4. Soft Ink sign-in shows **Continue with Google** when Vercel has `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+5. Smoke: Sign in → Google → land on `/auth/callback` → portfolio / `next` path; header shows Google email.
 
 ## 5. Creem checklist (approved)
 
