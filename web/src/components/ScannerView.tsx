@@ -4,9 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useState, useTransition } from "react";
 
-import { CardSkeletonGrid } from "@/components/CardSkeletonGrid";
 import { DeskLoading } from "@/components/DeskLoading";
-import { ExploreCard } from "@/components/ExploreCard";
 import { useLocale } from "@/components/LocaleProvider";
 import { SearchSuggest } from "@/components/SearchSuggest";
 import { fetchScanner, formatChange, formatMoney } from "@/lib/api";
@@ -195,34 +193,39 @@ export function ScannerView() {
             onChange={(e) => setMinGrowth(Number(e.target.value) || 0)}
           />
         </label>
-        <label>
-          <span>{t("explore_min")}</span>
-          <input
-            type="number"
-            min={0}
-            step={1}
-            inputMode="decimal"
-            value={minPrice}
-            onChange={(e) => setMinPrice(e.target.value)}
-            placeholder="0"
-          />
-        </label>
-        <label>
-          <span>{t("explore_max")}</span>
-          <input
-            type="number"
-            min={0}
-            step={1}
-            inputMode="decimal"
-            value={maxPrice}
-            onChange={(e) => setMaxPrice(e.target.value)}
-            placeholder={t("explore_any")}
-          />
-        </label>
         <p className="result-count">
           {t("scan_scoped_count", { n: data.scoped })}
         </p>
       </div>
+      <details className="desk-more-filters">
+        <summary className="lot-meta">{t("radar_more_filters")}</summary>
+        <div className="filter-row">
+          <label>
+            <span>{t("explore_min")}</span>
+            <input
+              type="number"
+              min={0}
+              step={1}
+              inputMode="decimal"
+              value={minPrice}
+              onChange={(e) => setMinPrice(e.target.value)}
+              placeholder="0"
+            />
+          </label>
+          <label>
+            <span>{t("explore_max")}</span>
+            <input
+              type="number"
+              min={0}
+              step={1}
+              inputMode="decimal"
+              value={maxPrice}
+              onChange={(e) => setMaxPrice(e.target.value)}
+              placeholder={t("explore_any")}
+            />
+          </label>
+        </div>
+      </details>
 
       {error ? <p className="banner-error">{error}</p> : null}
 
@@ -245,22 +248,15 @@ export function ScannerView() {
         <h2>{t("scan_opps_title")}</h2>
       </div>
       {pending && data.opportunities.length === 0 ? (
-        <CardSkeletonGrid count={6} />
+        <DeskLoading label={t("explore_updating")} variant="panel" skeletonCount={4} />
       ) : data.opportunities.length === 0 ? (
         <p className="empty-state">{t("scan_opps_empty")}</p>
       ) : (
-        <>
-          <div className={`explore-grid scanner-grid${pending ? " is-pending" : ""}`}>
-            {data.opportunities.slice(0, 12).map((card) => (
-              <ExploreCard key={card.id} card={card} showSignal />
-            ))}
-          </div>
-          <div className={`scan-list${pending ? " is-pending" : ""}`}>
-            {data.opportunities.map((card) => (
-              <ScanRow key={`opp-${card.id}`} card={card} />
-            ))}
-          </div>
-        </>
+        <div className={`scan-list${pending ? " is-pending" : ""}`}>
+          {data.opportunities.map((card) => (
+            <ScanRow key={`opp-${card.id}`} card={card} />
+          ))}
+        </div>
       )}
 
       <div className="portfolio-section-head">
