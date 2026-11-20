@@ -16,9 +16,10 @@ from trading_signals import SIGNAL_HOLD
 # Reject ingest when new spot vs prior market_price jumps outside [1/r, r].
 SPOT_JUMP_MAX_RATIO = 8.0
 
-# Radar UNDER surfacing (survives confidence + conformal gates).
+# Radar / Deals surfacing (survives confidence + conformal gates).
 RADAR_MAX_UNDER_EDGE_PCT = 50.0
-RADAR_MIN_UNDER_SPOT = 1.5
+# Floor above nightly bulk (~$2) so Deals is not flooded with pennies / commons.
+RADAR_MIN_UNDER_SPOT = 5.0
 RADAR_MAX_ABS_7D_CHANGE_PCT = 200.0
 
 # Soft spot caps by rarity for UNDER only — poisoned commons at $60+ should not
@@ -108,6 +109,12 @@ def under_spot_allowed_for_rarity(spot: Any, rarity: Any) -> bool:
     return price <= cap
 
 
+def is_bulk_common(rarity: Any) -> bool:
+    """Plain Common printings — noise on Deals even when spot clears the floor."""
+    key = str(rarity or "").strip().lower()
+    return key == "common" or key.startswith("common ")
+
+
 def under_deal_allowed(
     *,
     spot: Any,
@@ -121,6 +128,10 @@ def under_deal_allowed(
     """Whether an UNDER row is safe to surface on Radar / preview / Deal of Day."""
     price = _as_positive_float(spot)
     if price is None or price < float(min_spot):
+        return False
+
+    # Deals is for chase / mid+ — skip bulk Commons.
+    if is_bulk_common(rarity):
         return False
 
     try:
