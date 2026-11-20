@@ -41,6 +41,39 @@ export function preprocessForOcr(source: HTMLCanvasElement): HTMLCanvasElement {
   return canvas;
 }
 
+/** Crop a vertical band of a card frame (fractions of height). */
+export function cropBand(
+  source: HTMLCanvasElement,
+  y0: number,
+  y1: number,
+): HTMLCanvasElement {
+  const top = Math.max(0, Math.min(1, y0));
+  const bottom = Math.max(top + 0.05, Math.min(1, y1));
+  const sy = Math.floor(source.height * top);
+  const sh = Math.max(1, Math.floor(source.height * (bottom - top)));
+  const canvas = document.createElement("canvas");
+  canvas.width = source.width;
+  canvas.height = sh;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas unavailable");
+  ctx.drawImage(source, 0, sy, source.width, sh, 0, 0, source.width, sh);
+  return canvas;
+}
+
+async function recognizeOnce(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  worker: any,
+  image: HTMLCanvasElement,
+  psm: number,
+): Promise<string> {
+  await worker.setParameters({
+    tessedit_pageseg_mode: String(psm),
+    preserve_interword_spaces: "1",
+  });
+  const result = await worker.recognize(preprocessForOcr(image));
+  return String(result.data.text || "").trim();
+}
+
 export async function recognizeCardText(
   image: HTMLCanvasElement | HTMLImageElement | File | Blob | string,
   onProgress?: (p: OcrProgress) => void,
@@ -61,15 +94,46 @@ export async function recognizeCardText(
     },
   });
   try {
-    await worker.setParameters({
-      // Uniform block — card title + HP + number cluster.
-      tessedit_pageseg_mode: PSM.SINGLE_BLOCK,
-      preserve_interword_spaces: "1",
-    });
-    const input =
-      image instanceof HTMLCanvasElement ? preprocessForOcr(image) : image;
-    const result = await worker.recognize(input);
-    return String(result.data.text || "").trim();
+    let source: HTMLCanvasElement;
+    if (image instanceof HTMLCanvasElement) {
+      source = image;
+    } else {
+      // Non-canvas inputs: let tesseract load once on the full image only.
+      await worker.setParameters({
+        tessedit_pageseg_mode: PSM.SINGLE_BLOCK,
+        preserve_interword_spaces: "1",
+      });
+      const result = await worker.recognize(image);
+      return String(result.data.text || "").trim();
+    }
+
+    // Pokémon layout: title near top, collector # near bottom — OCR those
+    // bands separately so art noise does not dominate the title line.
+    const full = await recognizeOnce(worker, source, PSM.SINGLE_BLOCK);
+    const top = await recognizeOnce(
+      worker,
+      cropBand(source, 0.02, 0.28),
+      PSM.SINGLE_LINE,
+    );
+    const bottom = await recognizeOnce(
+      worker,
+      cropBand(source, 0.78, 0.98),
+      PSM.SINGLE_LINE,
+    );
+
+    const parts = [top, full, bottom]
+      .map((t) => t.trim())
+      .filter(Boolean);
+    // Dedupe while keeping order (title → body → number).
+    const seen = new Set<string>();
+    const merged: string[] = [];
+    for (const part of parts) {
+      const key = part.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      merged.push(part);
+    }
+    return merged.join("\n").trim();
   } finally {
     await worker.terminate();
   }

@@ -23,6 +23,47 @@ def test_parse_ocr_clues_collector_and_name() -> None:
     assert any("charizard" in h.lower() for h in clues["name_hints"])
 
 
+def test_parse_ocr_strips_name_label_and_typo() -> None:
+    clues = parse_ocr_clues("Name = Bmoochum 9\n31/115\nUnseen Forces")
+    assert clues["number"] == "31"
+    assert any("bmoochum" in h.lower() for h in clues["name_hints"])
+    assert not any(h.lower().startswith("name ") for h in clues["name_hints"])
+
+
+def test_identify_fuzzy_ocr_typo_beats_short_name(monkeypatch) -> None:
+    """OCR 'Bmoochum' must not rank the trainer card 'N' above Smoochum."""
+    board = pd.DataFrame(
+        [
+            {
+                "id": "ex10-31",
+                "name": "Smoochum",
+                "set_name": "Unseen Forces",
+                "price": 115.0,
+                "expected_change_pct": 8.0,
+                "signal": "HOLD",
+                "confidence_ok": True,
+            },
+            {
+                "id": "bw3-101",
+                "name": "N",
+                "set_name": "Noble Victories",
+                "price": 200.0,
+                "expected_change_pct": 0.0,
+                "signal": "HOLD",
+                "confidence_ok": True,
+            },
+        ]
+    )
+    monkeypatch.setattr(
+        "api.identify_service.load_board",
+        lambda: (board, "demo"),
+    )
+    out = identify_from_text("Name = Bmoochum 9\n31/115\nUnseen Forces", limit=5)
+    assert out["matches"]
+    assert out["matches"][0]["card"]["id"] == "ex10-31"
+    assert all(m["card"]["name"] != "N" for m in out["matches"])
+
+
 def test_identify_from_text_ranks_number_and_name(monkeypatch) -> None:
     board = pd.DataFrame(
         [
