@@ -12,6 +12,7 @@ import {
   YAxis,
 } from "recharts";
 
+import { useLocale } from "@/components/LocaleProvider";
 import { formatMoney } from "@/lib/api";
 import type { PortfolioLot } from "@/lib/types";
 
@@ -21,6 +22,7 @@ function shortName(value: string | null | undefined, fallback: string): string {
 }
 
 export function PortfolioBarsChart({ lots }: { lots: PortfolioLot[] }) {
+  const { t } = useLocale();
   const rows = useMemo(
     () =>
       lots
@@ -42,8 +44,8 @@ export function PortfolioBarsChart({ lots }: { lots: PortfolioLot[] }) {
   return (
     <div className="chart-panel portfolio-bars">
       <div className="chart-head">
-        <h2>Open lots</h2>
-        <p>Cost basis vs mark-to-market value.</p>
+        <h2>{t("port_bars_title")}</h2>
+        <p>{t("port_bars_lede")}</p>
       </div>
       <div className="chart-frame">
         <ResponsiveContainer width="100%" height={280}>
