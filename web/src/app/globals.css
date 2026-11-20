@@ -318,6 +318,41 @@ a {
   gap: 0.55rem;
 }
 
+.header-search {
+  min-width: 0;
+}
+
+.header-search-desktop {
+  width: min(16.5rem, 28vw);
+}
+
+.header-search .search-suggest > input {
+  width: 100%;
+  min-width: 0;
+  padding: 0.42rem 0.7rem;
+  font-size: 0.88rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(12, 12, 12, 0.45);
+  color: var(--text);
+}
+
+.header-search .search-suggest > input:focus {
+  outline: none;
+  border-color: rgba(184, 115, 51, 0.45);
+  box-shadow: 0 0 0 3px rgba(184, 115, 51, 0.18);
+}
+
+.header-search-mobile {
+  width: 100%;
+  margin: 0 0 0.85rem;
+}
+
+.header-search-mobile .search-suggest > input {
+  padding: 0.65rem 0.8rem;
+  font-size: 0.95rem;
+}
+
 .header-pro {
   padding: 0.38rem 0.78rem;
   font-size: 0.88rem;
@@ -5642,8 +5677,9 @@ a {
     gap: 0.45rem;
   }
 
-  /* Locale/currency live in the drawer — keep the mobile bar to brand + menu. */
-  .header-actions .locale-switcher {
+  /* Locale/currency/search live in the drawer — keep the mobile bar to brand + menu. */
+  .header-actions .locale-switcher,
+  .header-actions .header-search-desktop {
     display: none;
   }
 
