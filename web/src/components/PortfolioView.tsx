@@ -399,6 +399,16 @@ export function PortfolioView() {
             {demo ? ` · ${t("port_demo_session")}` : ""}
           </p>
         </div>
+        <div className="detail-actions">
+          <button
+            type="button"
+            className="btn-ghost"
+            disabled={busy}
+            onClick={() => void load()}
+          >
+            {t("port_refresh")}
+          </button>
+        </div>
       </div>
 
       {error ? <p className="banner-error">{error}</p> : null}
@@ -544,9 +554,6 @@ export function PortfolioView() {
 
       <div className="portfolio-section-head">
         <h2>{t("port_open_lots", { n: openLots.length })}</h2>
-        <button type="button" className="btn-ghost" disabled={busy} onClick={() => void load()}>
-          {t("port_refresh")}
-        </button>
       </div>
 
       {openLots.length === 0 ? (
@@ -559,27 +566,26 @@ export function PortfolioView() {
         </p>
       ) : (
         <>
+          <div className="search-strip portfolio-lot-search">
+            <SearchSuggest
+              mode="local"
+              localItems={lotSuggestItems}
+              value={lotQuery}
+              onChange={setLotQuery}
+              onCommit={(q) => {
+                setLotQuery(q);
+                if (q) pushRecentSearch("portfolio", q);
+              }}
+              onPickLocal={(item) => {
+                setLotQuery(item.label);
+                pushRecentSearch("portfolio", item.label);
+              }}
+              placeholder={t("port_search_ph")}
+              ariaLabel={t("port_search")}
+              recentScope="portfolio"
+            />
+          </div>
           <div className="filter-row portfolio-lot-filters">
-            <label className="portfolio-search-label">
-              <span>{t("port_search")}</span>
-              <SearchSuggest
-                mode="local"
-                localItems={lotSuggestItems}
-                value={lotQuery}
-                onChange={setLotQuery}
-                onCommit={(q) => {
-                  setLotQuery(q);
-                  if (q) pushRecentSearch("portfolio", q);
-                }}
-                onPickLocal={(item) => {
-                  setLotQuery(item.label);
-                  pushRecentSearch("portfolio", item.label);
-                }}
-                placeholder={t("port_search_ph")}
-                ariaLabel={t("port_search")}
-                recentScope="portfolio"
-              />
-            </label>
             <label>
               <span>{t("port_rarity")}</span>
               <select value={lotRarity} onChange={(e) => setLotRarity(e.target.value)}>
@@ -616,38 +622,43 @@ export function PortfolioView() {
                 <option value="qty_desc">{t("port_sort_qty_desc")}</option>
               </select>
             </label>
-            <label>
-              <span>{t("port_min_price")}</span>
-              <input
-                type="number"
-                min={0}
-                step={0.01}
-                value={lotMinPrice}
-                onChange={(e) => setLotMinPrice(e.target.value)}
-              />
-            </label>
-            <label>
-              <span>{t("port_max_price")}</span>
-              <input
-                type="number"
-                min={0}
-                step={0.01}
-                value={lotMaxPrice}
-                onChange={(e) => setLotMaxPrice(e.target.value)}
-              />
-            </label>
-            {filtersActive ? (
-              <button type="button" className="btn-ghost" onClick={clearLotFilters}>
-                {t("port_clear_filters")}
-              </button>
-            ) : null}
+            <p className="result-count">
+              {t("port_shown_of", {
+                n: filteredOpenLots.length,
+                total: openLots.length,
+              })}
+            </p>
           </div>
-          <p className="result-count">
-            {t("port_shown_of", {
-              n: filteredOpenLots.length,
-              total: openLots.length,
-            })}
-          </p>
+          <details className="desk-more-filters">
+            <summary className="lot-meta">{t("radar_more_filters")}</summary>
+            <div className="filter-row">
+              <label>
+                <span>{t("port_min_price")}</span>
+                <input
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  value={lotMinPrice}
+                  onChange={(e) => setLotMinPrice(e.target.value)}
+                />
+              </label>
+              <label>
+                <span>{t("port_max_price")}</span>
+                <input
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  value={lotMaxPrice}
+                  onChange={(e) => setLotMaxPrice(e.target.value)}
+                />
+              </label>
+              {filtersActive ? (
+                <button type="button" className="btn-ghost" onClick={clearLotFilters}>
+                  {t("port_clear_filters")}
+                </button>
+              ) : null}
+            </div>
+          </details>
           {filteredOpenLots.length === 0 ? (
             <p className="empty-state">{t("port_no_filter_hits")}</p>
           ) : (
