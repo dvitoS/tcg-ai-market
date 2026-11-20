@@ -57,9 +57,9 @@ Self-score after detail desk pass: **~7.5 / 10**. 10/10 is **trust + cold path**
 
 | ID | Item | Why |
 | --- | --- | --- |
-| T3.1 | Pkmn / JustTCG **budget** so detail never goes blank | Quota ≠ empty chart |
-| T3.2 | Honest empty: what we know + what we don’t | Template from #279 |
-| T3.3 | **US Asking ≠ EUR Asking** — labeled, never blended into Good | EU parity without Collectr |
+| T3.1 | Pkmn / JustTCG **budget** so detail never goes blank | **Shipping** — chart status + never fake-blank |
+| T3.2 | Honest empty: what we know + what we don’t | **Shipping** — CM comps CTA + chart error/empty fork |
+| T3.3 | **US Asking ≠ EUR Asking** — labeled, never blended into Good | **Shipping** — US labels + € is FX note |
 
 ### Suggested next 3 PRs
 

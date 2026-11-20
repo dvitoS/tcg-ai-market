@@ -235,29 +235,42 @@ export function PriceChart({
   const moneyCur = isCm ? "EUR" : "USD";
   const tickPrefix = isCm ? "€" : "$";
 
-  if (!points.length && !chartData.length && market === "tcgplayer" && !loading) {
-    return (
-      <div className="chart-panel">
-        <div className="chart-head">
-          <h2>{t("chart_title")}</h2>
-          <p>{t("chart_empty")}</p>
-        </div>
-      </div>
-    );
-  }
-
   const cmEmpty =
     isCm &&
     !cmLoading &&
     !loading &&
     chartData.length === 0 &&
     cmTried;
+  const usEmpty =
+    !isCm &&
+    !loading &&
+    chartData.length === 0 &&
+    (sources != null || Boolean(error));
+  const usBudgetNote =
+    !isCm && sources?.justtcg_from_db
+      ? t("chart_just_from_db")
+      : !isCm && sources?.justtcg_fallback
+        ? t("chart_just_fallback")
+        : null;
+  const usError =
+    !isCm && sources?.justtcg_error
+      ? sources.justtcg_error
+      : !isCm && sources?.pkmnprices_error
+        ? sources.pkmnprices_error
+        : !isCm && error
+          ? error
+          : null;
 
   return (
     <div className="chart-panel">
       <div className="chart-head chart-head-mkt">
         <div>
           <h2>{t("chart_title")}</h2>
+          {!isCm ? (
+            <p className="chart-head-note">{t("chart_us_only_note")}</p>
+          ) : (
+            <p className="chart-head-note">{t("chart_cm_only_note")}</p>
+          )}
         </div>
         <div className="chart-head-controls">
           <MarketSourceTabs
@@ -346,11 +359,29 @@ export function PriceChart({
       {error ? (
         <p className="chart-sources-status">{t("chart_fallback", { error })}</p>
       ) : null}
-      {isCm && sources?.cardmarket_error && chartData.length === 0 && !cmLoading ? (
-        <p className="chart-sources-status">{sources.cardmarket_error}</p>
+      {usBudgetNote && chartData.length > 0 ? (
+        <p className="chart-sources-status">{usBudgetNote}</p>
       ) : null}
-      {!isCm && sources?.pkmnprices_error && chartData.length === 0 && !loading ? (
-        <p className="chart-sources-status">{sources.pkmnprices_error}</p>
+      {usError && chartData.length > 0 ? (
+        <p className="chart-sources-status">{usError}</p>
+      ) : null}
+      {isCm && sources?.cardmarket_error && chartData.length === 0 && !cmLoading ? (
+        <div className="chart-market-empty">
+          <p className="chart-market-empty-title">{t("chart_cm_error_title")}</p>
+          <p className="chart-market-empty-lede">{sources.cardmarket_error}</p>
+        </div>
+      ) : null}
+      {usEmpty && usError ? (
+        <div className="chart-market-empty">
+          <p className="chart-market-empty-title">{t("chart_us_error_title")}</p>
+          <p className="chart-market-empty-lede">{usError}</p>
+        </div>
+      ) : null}
+      {usEmpty && !usError ? (
+        <div className="chart-market-empty">
+          <p className="chart-market-empty-title">{t("chart_empty")}</p>
+          <p className="chart-market-empty-lede">{t("chart_us_empty_lede")}</p>
+        </div>
       ) : null}
 
       {cmEmpty && !sources?.cardmarket_error ? (
@@ -358,7 +389,10 @@ export function PriceChart({
           <p className="chart-market-empty-title">{t("chart_cm_empty_title")}</p>
           <p className="chart-market-empty-lede">{t("chart_cm_empty_lede")}</p>
         </div>
-      ) : !cmEmpty && !(isCm && chartData.length === 0 && cmLoading) ? (
+      ) : !cmEmpty &&
+        !usEmpty &&
+        !(isCm && chartData.length === 0 && cmLoading) &&
+        chartData.length > 0 ? (
         <div className="chart-canvas">
           <ResponsiveContainer width="100%" height={300}>
             <ComposedChart
@@ -438,7 +472,7 @@ export function PriceChart({
                   stroke="#a1a1aa"
                   strokeDasharray="4 4"
                   label={{
-                    value: `Pred ${formatMoney(predictedPrice, "USD", 2)}`,
+                    value: `Good ${formatMoney(predictedPrice, "USD", 2)}`,
                     position: "insideTopRight",
                     fill: "#a1a1aa",
                     fontSize: 11,
