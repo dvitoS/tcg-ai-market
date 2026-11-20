@@ -40,12 +40,12 @@ function ScanRow({ card }: { card: ScannerCard }) {
         <Image
           src={resolveCardImageUrl(card.id, card.image_url)}
           alt={card.name}
-          width={48}
-          height={67}
+          width={56}
+          height={78}
           onError={(event) => onCardImageError(event, card.id)}
         />
       </div>
-      <div>
+      <div className="scan-copy">
         <div className="lot-name">{card.name}</div>
         <div className="lot-meta">
           {[card.set_name, card.rarity].filter(Boolean).join(" · ")}
@@ -122,7 +122,7 @@ export function ScannerView() {
 
   if (!hydrated || !booted) {
     return (
-      <section className="scanner-page">
+      <section className="scanner-page desk-premium">
         <div className="explore-command">
           <p className="explore-command-eyebrow">{t("scan_eyebrow")}</p>
           <h1 className="explore-title">{t("scan_title")}</h1>
@@ -133,7 +133,7 @@ export function ScannerView() {
   }
 
   return (
-    <section className="scanner-page">
+    <section className="scanner-page desk-premium">
       <div className="explore-command">
         <p className="explore-command-eyebrow">{t("scan_eyebrow")}</p>
         <h1 className="explore-title">{t("scan_title")}</h1>

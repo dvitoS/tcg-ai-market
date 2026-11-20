@@ -358,7 +358,7 @@ export function PortfolioView() {
 
   if (authLoading) {
     return (
-      <section className="portfolio-page">
+      <section className="portfolio-page desk-premium">
         <DeskLoading label={t("port_loading")} variant="panel" skeletonCount={4} />
       </section>
     );
@@ -366,7 +366,7 @@ export function PortfolioView() {
 
   if (user && !booted) {
     return (
-      <section className="portfolio-page">
+      <section className="portfolio-page desk-premium">
         <div className="explore-command">
           <p className="explore-command-eyebrow">{t("port_eyebrow")}</p>
           <h1 className="explore-title">{t("port_title")}</h1>
@@ -389,8 +389,8 @@ export function PortfolioView() {
   }
 
   return (
-    <section className="portfolio-page">
-      <div className="portfolio-head">
+    <section className="portfolio-page desk-premium">
+      <div className="portfolio-head desk-command-row">
         <div className="explore-command">
           <p className="explore-command-eyebrow">{t("port_eyebrow")}</p>
           <h1 className="explore-title">{t("port_title")}</h1>
