@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { CardDetailView } from "@/components/CardDetailView";
-import { resolveCardImageUrl, tcgdexImageUrlLow } from "@/lib/cardImage";
+import { resolveCardImageUrl } from "@/lib/cardImage";
 import { loadCardDetail } from "@/lib/cardDetail";
 import { cardJsonLd, cardMetadata } from "@/lib/seo";
 
@@ -41,18 +41,17 @@ export default async function CardDetailPage({ params }: PageProps) {
   // Prefer points embedded on detail (one round-trip); fall back to empty.
   const points = detail.points ?? [];
   const jsonLd = cardJsonLd(detail.card);
+  // Must match CardDetailView → HoloCardArt `src` or Chrome warns
+  // "preloaded … but not used" (low.webp was never rendered on detail).
   const lcpImage = resolveCardImageUrl(detail.card.id, detail.card.image_url);
-  const lcpLow = tcgdexImageUrlLow(detail.card.id);
-  const preloadHref =
-    lcpLow && lcpLow.startsWith("http") ? lcpLow : lcpImage;
 
   return (
     <>
-      {preloadHref.startsWith("http") ? (
+      {lcpImage.startsWith("http") ? (
         <link
           rel="preload"
           as="image"
-          href={preloadHref}
+          href={lcpImage}
           fetchPriority="high"
         />
       ) : null}
