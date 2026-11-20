@@ -64,7 +64,7 @@ async function recognizeOnce(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   worker: any,
   image: HTMLCanvasElement,
-  psm: number,
+  psm: string | number,
 ): Promise<string> {
   await worker.setParameters({
     tessedit_pageseg_mode: String(psm),
