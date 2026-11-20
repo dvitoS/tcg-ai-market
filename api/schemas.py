@@ -1080,4 +1080,5 @@ class TrialConversionResponse(BaseModel):
     paid_share_pct: float | None = None
     webhook_outcomes: dict[str, Any] = Field(default_factory=dict)
     g3_trust: dict[str, Any] = Field(default_factory=dict)
+    spend_unlock: dict[str, Any] = Field(default_factory=dict)
     source: Literal["supabase", "empty"] = "empty"

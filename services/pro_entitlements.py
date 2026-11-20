@@ -115,6 +115,8 @@ def conversion_summary() -> dict[str, Any]:
         spot_reports_open=int(reports.get("open_total") or 0),
         spot_reports_total=spot_total,
     )
+    from services.spend_unlock import spend_unlock_snapshot
+
     return {
         "by_status": by_status,
         "active": active,
@@ -126,6 +128,7 @@ def conversion_summary() -> dict[str, Any]:
         "paid_share_pct": paid_share_pct,
         "webhook_outcomes": webhook_outcome_counts(),
         "g3_trust": g3,
+        "spend_unlock": spend_unlock_snapshot(g3=g3),
         "source": "supabase" if by_status else "empty",
     }
 

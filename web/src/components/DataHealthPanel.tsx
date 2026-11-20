@@ -568,6 +568,50 @@ export function DataHealthPanel() {
           </div>
 
           <div className="data-health-qa">
+            <p className="data-health-qa-title">{t("obs_spend_title")}</p>
+            <p className="data-health-caption">{t("obs_spend_caption")}</p>
+            {trial?.spend_unlock ? (
+              <>
+                <p className="data-health-cache lot-meta">
+                  {trial.spend_unlock.ready
+                    ? t("obs_spend_ready")
+                    : t("obs_spend_blocked")}
+                  {` · ${trial.spend_unlock.status}`}
+                </p>
+                <div className="data-health-metrics">
+                  <div>
+                    <span>{t("obs_spend_g0")}</span>
+                    <strong>{trial.spend_unlock.g0.status}</strong>
+                  </div>
+                  <div>
+                    <span>{t("obs_spend_g1")}</span>
+                    <strong>{trial.spend_unlock.g1.status}</strong>
+                  </div>
+                  <div>
+                    <span>{t("obs_spend_g2")}</span>
+                    <strong>
+                      {trial.spend_unlock.g2.status}
+                      {` (${trial.spend_unlock.g2.share_events})`}
+                    </strong>
+                  </div>
+                  <div>
+                    <span>{t("obs_spend_g3")}</span>
+                    <strong>{trial.spend_unlock.g3.status}</strong>
+                  </div>
+                </div>
+                {trial.spend_unlock.blockers.length > 0 ? (
+                  <p className="data-health-cache lot-meta">
+                    {t("obs_spend_blockers")}:{" "}
+                    {trial.spend_unlock.blockers.join(", ")}
+                  </p>
+                ) : null}
+              </>
+            ) : (
+              <p className="data-health-caption">{t("obs_trial_empty")}</p>
+            )}
+          </div>
+
+          <div className="data-health-qa">
             <p className="data-health-qa-title">{t("obs_trial_title")}</p>
             <p className="data-health-caption">{t("obs_trial_caption")}</p>
             {trial ? (
@@ -638,7 +682,32 @@ export function DataHealthPanel() {
                       {trial.g3_trust.cited_total === 0
                         ? ` · ${t("obs_g3_empty")}`
                         : ""}
+                      {trial.g3_trust.source
+                        ? ` · ${t("obs_g3_persist", {
+                            source: trial.g3_trust.source,
+                          })}`
+                        : ""}
                     </p>
+                    {Object.keys(trial.g3_trust.reason_buckets || {}).length >
+                    0 ? (
+                      <>
+                        <p className="data-health-caption">
+                          {t("obs_g3_reasons")}
+                        </p>
+                        <div className="data-health-metrics">
+                          {Object.entries(trial.g3_trust.reason_buckets)
+                            .filter(([key]) => !key.startsWith("event:"))
+                            .sort((a, b) => b[1] - a[1])
+                            .slice(0, 8)
+                            .map(([reason, n]) => (
+                              <div key={reason}>
+                                <span>{reason}</span>
+                                <strong>{n}</strong>
+                              </div>
+                            ))}
+                        </div>
+                      </>
+                    ) : null}
                   </div>
                 ) : null}
               </>
@@ -669,6 +738,7 @@ export function DataHealthPanel() {
                       "dotd_cta",
                       "pro_view",
                       "pro_checkout_click",
+                      "pro_open_alerts",
                       "radar_activate",
                       "trade_activate",
                       "share_copy",

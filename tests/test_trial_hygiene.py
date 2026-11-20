@@ -27,7 +27,15 @@ def test_conversion_summary_paid_share(monkeypatch):
     )
     monkeypatch.setattr(
         "services.spot_reports.spot_report_summary",
-        lambda: {"open_total": 0, "counts": {}},
+        lambda: {"open_total": 0, "counts": {}, "overdue_heal": 0},
+    )
+    monkeypatch.setattr(
+        "services.spot_qa.load_spot_qa_snapshot",
+        lambda: {"nightly_auto_g0": {"g0_ready": True}},
+    )
+    monkeypatch.setattr(
+        "services.funnel.funnel_summary",
+        lambda: {"counts": {"share_copy": 1}, "total": 1},
     )
     summary = conversion_summary()
     assert summary["active"] == 3
@@ -36,6 +44,7 @@ def test_conversion_summary_paid_share(monkeypatch):
     assert summary["paid_share_pct"] == 75.0
     assert summary["webhook_outcomes"]["counts"]["total"] == 2
     assert summary["g3_trust"]["gate_ok"] is True
+    assert summary["spend_unlock"]["ready"] is True
     assert summary["source"] == "supabase"
 
 
@@ -50,10 +59,16 @@ def test_conversion_summary_empty(monkeypatch):
     )
     monkeypatch.setattr(
         "services.spot_reports.spot_report_summary",
-        lambda: {"open_total": 0, "counts": {}},
+        lambda: {"open_total": 0, "counts": {}, "overdue_heal": 0},
+    )
+    monkeypatch.setattr("services.spot_qa.load_spot_qa_snapshot", lambda: None)
+    monkeypatch.setattr(
+        "services.funnel.funnel_summary",
+        lambda: {"counts": {}, "total": 0},
     )
     summary = conversion_summary()
     assert summary["entitled"] == 0
     assert summary["paid_share_pct"] is None
     assert summary["source"] == "empty"
     assert "g3_trust" in summary
+    assert "spend_unlock" in summary
