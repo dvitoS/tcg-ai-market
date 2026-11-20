@@ -266,12 +266,64 @@ export function IdentifyView() {
   const busy = phase === "ocr" || phase === "match";
 
   return (
-    <div className="identify-page">
-      <header className="identify-head">
-        <p className="eyebrow">{t("identify_eyebrow")}</p>
-        <h1>{t("identify_title")}</h1>
-        <p className="identify-lede">{t("identify_lede")}</p>
-      </header>
+    <section className="scanner-page identify-page">
+      <div className="explore-command">
+        <p className="explore-command-eyebrow">{t("identify_eyebrow")}</p>
+        <h1 className="explore-title">{t("identify_title")}</h1>
+        <p className="explore-lede">{t("identify_lede")}</p>
+      </div>
+
+      <div className="detail-actions">
+        {phase === "camera" ? (
+          <>
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => void captureFrame()}
+              disabled={!cameraReady || busy}
+            >
+              {cameraReady
+                ? t("identify_capture")
+                : t("identify_camera_warming")}
+            </button>
+            <button type="button" className="btn-ghost" onClick={reset}>
+              {t("identify_cancel")}
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => void startCamera()}
+              disabled={busy}
+            >
+              {t("identify_open_camera")}
+            </button>
+            <button
+              type="button"
+              className="btn-ghost"
+              onClick={() => fileRef.current?.click()}
+              disabled={busy}
+            >
+              {t("identify_upload")}
+            </button>
+            {phase === "done" ? (
+              <button type="button" className="btn-ghost" onClick={reset}>
+                {t("identify_again")}
+              </button>
+            ) : null}
+          </>
+        )}
+        {/* No capture= — that forces mobile camera/recording UI on Upload. */}
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*,.jpg,.jpeg,.png,.webp,.heic,.heif"
+          className="sr-only"
+          onChange={(e) => void onFile(e.target.files?.[0] || null)}
+        />
+      </div>
 
       <div className="identify-stage">
         <div
@@ -316,58 +368,6 @@ export function IdentifyView() {
             </div>
           ) : null}
         </div>
-
-        <div className="identify-actions">
-          {phase === "camera" ? (
-            <>
-              <button
-                type="button"
-                className="btn-primary"
-                onClick={() => void captureFrame()}
-                disabled={!cameraReady || busy}
-              >
-                {cameraReady
-                  ? t("identify_capture")
-                  : t("identify_camera_warming")}
-              </button>
-              <button type="button" className="btn-ghost" onClick={reset}>
-                {t("identify_cancel")}
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                type="button"
-                className="btn-primary"
-                onClick={() => void startCamera()}
-                disabled={busy}
-              >
-                {t("identify_open_camera")}
-              </button>
-              <button
-                type="button"
-                className="btn-ghost"
-                onClick={() => fileRef.current?.click()}
-                disabled={busy}
-              >
-                {t("identify_upload")}
-              </button>
-              {phase === "done" ? (
-                <button type="button" className="btn-ghost" onClick={reset}>
-                  {t("identify_again")}
-                </button>
-              ) : null}
-            </>
-          )}
-          {/* No capture= — that forces mobile camera/recording UI on Upload. */}
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*,.jpg,.jpeg,.png,.webp,.heic,.heif"
-            className="sr-only"
-            onChange={(e) => void onFile(e.target.files?.[0] || null)}
-          />
-        </div>
       </div>
 
       {error ? <p className="form-error">{error}</p> : null}
@@ -385,8 +385,10 @@ export function IdentifyView() {
 
       {matches.length > 0 ? (
         <section className="identify-results" aria-label={t("identify_results")}>
-          <h2>{t("identify_results")}</h2>
-          <p className="identify-lede">{t("identify_results_lede")}</p>
+          <div className="portfolio-section-head">
+            <h2>{t("identify_results")}</h2>
+          </div>
+          <p className="explore-lede">{t("identify_results_lede")}</p>
           <div className="identify-match-list">
             {matches.map((m) => {
               const card = m.card;
@@ -435,6 +437,6 @@ export function IdentifyView() {
           <pre>{ocrText}</pre>
         </details>
       ) : null}
-    </div>
+    </section>
   );
 }

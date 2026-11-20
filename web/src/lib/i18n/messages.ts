@@ -388,6 +388,7 @@ const en = {
   sealed_desk_seed_fast:
     "Featured products load instantly — search for a live quote on any sealed product.",
   sealed_desk_results: "{n} result(s) for “{q}”",
+  sealed_desk_count: "Sealed · {n}",
   sealed_desk_signin: "Sign in to add lot",
   sealed_desk_disclaimer:
     "Estimates only — not financial advice. Double-check the product before you buy.",
@@ -607,6 +608,7 @@ const en = {
   trade_add_to: "Add cards to",
   trade_you: "You give",
   trade_them: "They give",
+  trade_board_title: "Trade board",
   trade_you_give: "You give",
   trade_them_give: "They give",
   trade_side_empty: "No scored totals yet",
@@ -1524,6 +1526,7 @@ const hr: Dictionary = {
   sealed_desk_seed_fast:
     "Istaknuti proizvodi se učitaju odmah — traži live quote za bilo koji sealed proizvod.",
   sealed_desk_results: "{n} rezultat(a) za “{q}”",
+  sealed_desk_count: "Sealed · {n}",
   sealed_desk_signin: "Prijavi se da dodaš lot",
   sealed_desk_disclaimer:
     "Samo procjene — nije financijski savjet. Provjeri proizvod prije kupnje.",
@@ -1741,6 +1744,7 @@ const hr: Dictionary = {
   trade_add_to: "Dodaj karte u",
   trade_you: "Ti daješ",
   trade_them: "Oni daju",
+  trade_board_title: "Trade board",
   trade_you_give: "Ti daješ",
   trade_them_give: "Oni daju",
   trade_side_empty: "Još nema scoranih totala",

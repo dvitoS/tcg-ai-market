@@ -2299,8 +2299,16 @@ a {
   grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.15fr);
 }
 
+/* Keep sealed product / hits rhythm when also tagged as detail-desk-split. */
+.sealed-detail-split.detail-desk-split {
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.15fr);
+  gap: 1rem;
+  align-items: start;
+}
+
 @media (max-width: 860px) {
-  .sealed-detail-split {
+  .sealed-detail-split,
+  .sealed-detail-split.detail-desk-split {
     grid-template-columns: 1fr;
   }
 }
@@ -5025,6 +5033,13 @@ a {
   margin-bottom: 1rem;
 }
 
+/* Equal columns when trade board also uses detail-desk-split chrome. */
+.trade-board.detail-desk-split {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+  align-items: start;
+}
+
 .trade-side {
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -5300,7 +5315,8 @@ a {
 }
 
 @media (max-width: 720px) {
-  .trade-board {
+  .trade-board,
+  .trade-board.detail-desk-split {
     grid-template-columns: 1fr;
   }
 }

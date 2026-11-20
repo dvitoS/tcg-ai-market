@@ -216,7 +216,7 @@ export function SealedDetailView({ detail }: { detail: SealedDetailResponse }) {
         </div>
       </div>
 
-      <div className="sealed-detail-split">
+      <div className="detail-desk-split sealed-detail-split">
         <article className="sealed-detail-product">
           <p className="sealed-detail-kicker">{product.name}</p>
           <p className="sealed-detail-price" suppressHydrationWarning>
