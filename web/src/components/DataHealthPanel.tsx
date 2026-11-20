@@ -541,6 +541,7 @@ export function DataHealthPanel() {
                         : reports.oldest_open_age_h.toFixed(1),
                     ack: reports.ack_sla_hours,
                     heal: reports.heal_sla_hours,
+                    source: reports.source || "memory",
                   })}
                 </p>
                 {reports.recent.slice(0, 6).map((row) => (
@@ -599,6 +600,20 @@ export function DataHealthPanel() {
                     <strong>{trial.spend_unlock.g3.status}</strong>
                   </div>
                 </div>
+                {trial.spend_unlock.g0.captured_at ||
+                trial.spend_unlock.g0.verdict_pass != null ? (
+                  <p className="data-health-cache lot-meta">
+                    {t("obs_spend_g0_meta", {
+                      pass: trial.spend_unlock.g0.verdict_pass ?? "—",
+                      fail: trial.spend_unlock.g0.verdict_fail ?? "—",
+                      when: trial.spend_unlock.g0.captured_at
+                        ? new Date(
+                            trial.spend_unlock.g0.captured_at,
+                          ).toLocaleString()
+                        : "—",
+                    })}
+                  </p>
+                ) : null}
                 {trial.spend_unlock.blockers.length > 0 ? (
                   <p className="data-health-cache lot-meta">
                     {t("obs_spend_blockers")}:{" "}

@@ -1251,6 +1251,8 @@ export type SpotReportSummary = {
     created_at: number;
   }>;
   uptime_s: number;
+  persisted?: boolean;
+  source?: string;
 };
 
 export async function reportWrongSpot(input: {

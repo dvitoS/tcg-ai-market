@@ -184,7 +184,17 @@ export function ProView({
       </ul>
 
       <p className="lot-meta pro-more-desks">
-        <Link href="/trade">{t("pro_open_trade")}</Link>
+        <Link
+          href="/trade"
+          onClick={() =>
+            trackFunnel("pro_open_trade", {
+              is_pro: paidPro,
+              open_beta: openBeta,
+            })
+          }
+        >
+          {t("pro_open_trade")}
+        </Link>
         {" · "}
         <Link href="/dealer">{t("pro_open_dealer")}</Link>
       </p>

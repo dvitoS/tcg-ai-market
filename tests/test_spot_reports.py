@@ -73,3 +73,33 @@ def test_latest_report_and_public_status():
     empty = client.get("/api/spots/report-status", params={"card_id": "no-such-card"})
     assert empty.status_code == 200
     assert empty.json()["report"] is None
+
+
+def test_spot_reports_persist_across_restart(tmp_path, monkeypatch):
+    import services.spot_reports as sr
+
+    path = tmp_path / "spot_reports.json"
+    monkeypatch.setattr(sr, "LOCAL_PATH", path)
+    monkeypatch.setattr(sr, "_save_supabase", lambda _payload: False)
+    monkeypatch.setattr(sr, "_load_supabase", lambda: None)
+    reset_spot_reports_for_tests()
+
+    row = sr.submit_spot_report(card_id="base1-4", spot=11.0, note="wrong")
+    assert path.is_file()
+    summary = sr.spot_report_summary()
+    assert summary["persisted"] is True
+    assert summary["source"] == "local"
+    assert summary["open_total"] == 1
+
+    # Simulate process restart: wipe memory, keep file, rehydrate.
+    with sr._LOCK:
+        sr._REPORTS.clear()
+        sr._HYDRATED = False
+        sr._PERSIST_SOURCE = "memory"
+    again = sr.latest_report_for_card("base1-4")
+    assert again is not None
+    assert again["id"] == row["id"]
+    assert again["note"] == "wrong"
+    summary2 = sr.spot_report_summary()
+    assert summary2["open_total"] == 1
+    assert summary2["source"] == "local"

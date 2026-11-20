@@ -5,7 +5,7 @@
 ## Intake
 
 - Soft Ink card detail → **Report wrong spot** → `POST /api/spots/report`
-- Process-local queue (resets on API restart) — soft launch only
+- Queue persists across API restarts (local JSON + Supabase `model_artifacts` when available)
 - Funnel event: `spot_report`
 
 ## SLA
