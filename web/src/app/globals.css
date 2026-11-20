@@ -4998,6 +4998,34 @@ a {
   margin: 0.55rem 0 0;
 }
 
+.trade-verdict-sticky {
+  position: sticky;
+  top: 0.5rem;
+  z-index: 4;
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: rgba(18, 16, 14, 0.92);
+}
+
+.trade-verdict-sticky.trade-verdict-wait {
+  color: var(--muted);
+}
+
+.radar-more-filters {
+  margin: 0.35rem 0 0.75rem;
+}
+
+.radar-more-filters summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.radar-more-filters summary::-webkit-details-marker {
+  display: none;
+}
+
 .trade-verdict {
   margin-top: 1rem;
   padding: 1rem 1.05rem;
