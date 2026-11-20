@@ -116,6 +116,13 @@ export function DataHealthPanel() {
     setError(null);
     try {
       setSniff(await fetchSpotSniffPack(20));
+      // Manual Run auto G0 persists nightly_auto_g0 — refresh Spend unlock.
+      void fetchTrialConversion()
+        .then(setTrial)
+        .catch(() => {});
+      void fetchDataHealth()
+        .then(setStats)
+        .catch(() => {});
     } catch {
       setError(t("obs_load_error"));
     } finally {

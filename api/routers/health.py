@@ -133,10 +133,15 @@ def data_health_sniff_pack(
     live_check: bool = True,
     ebay_check: bool = True,
     auto_heal: bool = True,
+    persist: bool = True,
 ) -> SpotSniffPackResponse:
-    """Ops G0: TCP + eBay auto verdict; hard fails quarantined when auto_heal."""
+    """Ops G0: TCP + eBay auto verdict; hard fails quarantined when auto_heal.
+
+    Persists the pack summary onto ``nightly_auto_g0`` by default so Spend
+    unlock G0 flips after a manual Run auto G0 (heal alone does not).
+    """
     from api.catalog_service import clear_board_cache
-    from services.spot_sniff import build_spot_sniff_pack
+    from services.spot_sniff import build_spot_sniff_pack, persist_auto_g0_snapshot
 
     # Bust process cache; load_board revision check + radar load the board once.
     clear_board_cache()
@@ -146,6 +151,13 @@ def data_health_sniff_pack(
         ebay_check=ebay_check,
         auto_heal=auto_heal,
     )
+    if persist:
+        persist_auto_g0_snapshot(
+            payload,
+            source="manual",
+            ebay_check=ebay_check,
+            limit=limit,
+        )
     return SpotSniffPackResponse(**payload)
 
 

@@ -27,11 +27,13 @@ Env: `NIGHTLY_AUTO_G0=1` (default), `NIGHTLY_AUTO_G0_LIMIT=20`, `NIGHTLY_G0_REQU
    - batch-check **JustTCG NM** (TCP market)
    - parallel-check **eBay sold** medians only when `EBAY_SOLD_ENABLED=1` + Insights; otherwise TCP-only (no active-Browse proxy)
    - **auto-heal** hard fails (quarantine off the sure desk)
+   - **persist** the pack onto `nightly_auto_g0` (same field Spend unlock reads)
 4. Read the summary: `pass · review · fail · healed`, TCP missing/resolved, and whether **G0 auto-ready**.
 5. Open only the **review** rows (TCP + eBay links) — usually a handful, not all 20.  
    If you still see **20 review / 0 pass** and “no TCGplayer id”, JustTCG key is missing on the API or search couldn’t match — fix that before manual clicking.
-6. If review rows smell OK and `g0_ready` is true → **G0 passes**.  
-   If not → Heal remaining fails / wait for next nightly. Do **not** unlock spend.
+6. Healing a single bad card does **not** flip Spend unlock G0 by itself — re-run **Run auto G0** after heals so the snapshot updates.
+7. If review rows smell OK and `g0_ready` is true → Spend unlock G0 goes **green**.  
+   If not → Heal remaining fails / re-run / wait for next nightly. Do **not** unlock spend.
 
 ## Pass criteria
 

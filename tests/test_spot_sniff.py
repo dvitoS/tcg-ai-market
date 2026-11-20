@@ -278,6 +278,11 @@ def test_sniff_pack_endpoint_ok_for_ops(monkeypatch) -> None:
             "items": [],
         },
     )
+    persisted: list[dict] = []
+    monkeypatch.setattr(
+        "services.spot_sniff.persist_auto_g0_snapshot",
+        lambda pack, **kwargs: persisted.append({"pack": pack, **kwargs}) or {},
+    )
     monkeypatch.setattr("api.catalog_service.clear_board_cache", lambda: None)
     app.dependency_overrides[optional_user] = _ops
     try:
@@ -291,5 +296,15 @@ def test_sniff_pack_endpoint_ok_for_ops(monkeypatch) -> None:
         assert body["pass_required"] is True
         assert "g0_ready" in body
         assert "verdict_pass" in body
+        assert len(persisted) == 1
+        assert persisted[0]["source"] == "manual"
+
+        persisted.clear()
+        resp2 = client.get(
+            "/api/data-health/sniff-pack",
+            params={"limit": 20, "persist": "false"},
+        )
+        assert resp2.status_code == 200
+        assert persisted == []
     finally:
         app.dependency_overrides.pop(optional_user, None)
