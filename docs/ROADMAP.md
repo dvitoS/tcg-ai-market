@@ -160,9 +160,9 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 | --- | --- | --- |
 | M4.1 | Funnel events | **Shipping** — landing → DOTD → Pro → Radar/Trade; `/api/funnel` + ops panel |
 | M4.2 | Organic first | **Shipping** — Trade Discord paste pack; share funnel; `docs/ORGANIC_SOFT_LAUNCH.md` |
-| M4.3 | Trial hygiene + G3 trust | **Shipping** — trial strip; cancel/refund wrong-price gate in `/api/billing/conversion` → Data Health |
+| M4.3 | Trial hygiene + G3 trust | **Shipping** — trial strip; persisted G3 counters + reason buckets in `/api/billing/conversion` → Data Health |
 | M4.4 | Support playbook | **Shipping** — detail report + ops queue/SLA; `docs/WRONG_SPOT_SLA.md` |
-| M4.5 | **Spend unlock** | G0–G3 green → tiny paid search / creator tests |
+| M4.5 | **Spend unlock** | **Shipping (ops card)** — Data Health spend-unlock rollup; unlock still needs G0–G3 green + tiny paid search / creator tests |
 
 ### Suggested next 3
 

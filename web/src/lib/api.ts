@@ -1177,6 +1177,32 @@ export type G3TrustSnapshot = {
   gate_target_pct: number;
   gate_ok: boolean;
   uptime_s: number;
+  persisted?: boolean;
+  source?: string;
+};
+
+export type SpendUnlockSnapshot = {
+  ready: boolean;
+  status: string;
+  blockers: string[];
+  g0: {
+    status: string;
+    ready: boolean | null;
+    captured_at?: string | null;
+    verdict_pass?: number | null;
+    verdict_fail?: number | null;
+  };
+  g1: { status: string; checklist: string };
+  g2: { status: string; share_events: number; note: string };
+  g3: {
+    status: string;
+    gate_ok: boolean;
+    wrong_price_pct: number | null;
+    cited_total: number;
+    persisted?: boolean;
+    source?: string;
+  };
+  docs: { g3: string; organic: string };
 };
 
 export type TrialConversionResponse = {
@@ -1193,6 +1219,7 @@ export type TrialConversionResponse = {
     uptime_s?: number;
   };
   g3_trust?: G3TrustSnapshot;
+  spend_unlock?: SpendUnlockSnapshot;
   source: "supabase" | "empty";
 };
 

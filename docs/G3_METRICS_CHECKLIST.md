@@ -9,11 +9,12 @@
 | Signal | Where | Notes |
 | --- | --- | --- |
 | Trial → paid | Data Health → Trial → paid | `active` / `trialing` / `canceled` |
-| Cancel / refund reasons | Data Health → **G3 trust gate** | Creem webhook reasons when present |
+| Cancel / refund reasons | Data Health → **G3 trust gate** | Creem webhook reasons when present; **reason buckets** listed |
 | Wrong-price cites | Same strip | Keyword match on cancel/refund reason (&lt;2% target) |
 | Wrong-spot reports | Data Health → Wrong-spot reports + funnel `spot_report` | Soft proxy before refund volume exists |
+| Spend unlock rollup | Data Health → **Spend unlock (G0–G3)** | G0 nightly + G3 gate + SLA + G2 share proxy |
 
-Funnel counters persist across API restarts (local JSON + Supabase when available). Entitlement counts come from `pro_entitlements`.
+Funnel **and G3 cancel/refund counters** persist across API restarts (local JSON + Supabase `model_artifacts` when available). Entitlement counts come from `pro_entitlements`.
 `landing_view` / `dotd_view` / activate events fire **once per browser day** (not on every refresh).
 
 ## Pass criteria
@@ -23,6 +24,7 @@ Funnel counters persist across API restarts (local JSON + Supabase when availabl
 3. **Wrong-price cite % &lt; 2%** once you have cancel/refund reasons (`gate_ok` true).  
    If Creem sends no reason, keep volume of open wrong-spot reports low and resolve within SLA (`docs/WRONG_SPOT_SLA.md`).
 4. No spike of refunds that ops manually tags as “wrong prices” in Discord/Creem notes.
+5. Data Health **Spend unlock** card shows G0 green and G3 not blocked (G1 remains manual checklist).
 
 ## Manual Creem check
 
@@ -37,4 +39,6 @@ GET /api/billing/conversion
 Authorization: Bearer <ops access token>
 ```
 
-Response includes `g3_trust` (`wrong_price_pct`, `gate_ok`, spot-report rate, reason buckets).
+Response includes:
+- `g3_trust` — `wrong_price_pct`, `gate_ok`, spot-report rate, `reason_buckets`, `persisted` / `source`
+- `spend_unlock` — G0–G3 rollup (`ready`, `blockers`, per-gate status)
