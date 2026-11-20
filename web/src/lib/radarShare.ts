@@ -127,15 +127,15 @@ function formatEdgeAbs(edgePct: number | null | undefined): string | null {
   return abs >= 10 ? abs.toFixed(0) : abs.toFixed(1);
 }
 
-/** Discord / Reddit unfurl title for a shared Radar lens. */
+/** Discord / Reddit unfurl title for a shared deals filter view. */
 export function radarShareSeoTitle(filters: RadarShareFilters | null): string {
   const chips = filters ? formatRadarShareFilters(filters) : [];
-  if (chips.length === 1) return `${chips[0]} — Kestrel Radar`;
-  if (chips.length > 1) return `Radar lens · ${chips.slice(0, 2).join(" · ")} — Kestrel`;
+  if (chips.length === 1) return `${chips[0]} — Kestrel deals`;
+  if (chips.length > 1) return `Deals · ${chips.slice(0, 2).join(" · ")} — Kestrel`;
   return "Kestrel deals — Pokémon cards that look cheap";
 }
 
-/** Discord / Reddit unfurl description for a shared Radar lens. */
+/** Discord / Reddit unfurl description for a shared deals filter view. */
 export function radarShareSeoDescription(
   filters: RadarShareFilters | null,
 ): string {

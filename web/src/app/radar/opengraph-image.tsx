@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 
 import { OG_SIZE, OgShell } from "@/lib/og";
 
-export const alt = "Kestrel Radar";
+export const alt = "Kestrel deals";
 export const size = OG_SIZE;
 export const contentType = "image/png";
 
@@ -27,7 +27,7 @@ export default async function RadarOpenGraphImage() {
               fontFamily: "ui-sans-serif, system-ui, sans-serif",
             }}
           >
-            Kestrel Radar
+            Deals
           </div>
           <div
             style={{
