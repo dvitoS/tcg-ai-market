@@ -1557,6 +1557,21 @@ a {
   gap: 1.75rem;
 }
 
+.detail-page-loading .detail-back-skel {
+  width: 5.5rem;
+  height: 0.9rem;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  margin-bottom: 1rem;
+}
+
+.detail-lcp-skel {
+  width: 100%;
+  max-width: 16rem;
+  aspect-ratio: 5 / 7;
+  border-radius: 10px;
+}
+
 .detail-hero-band {
   display: grid;
   grid-template-columns: minmax(200px, 260px) minmax(0, 1fr);

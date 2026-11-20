@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { CardDetailView } from "@/components/CardDetailView";
-import { resolveCardImageUrl } from "@/lib/cardImage";
+import { resolveCardImageUrl, tcgdexImageUrlLow } from "@/lib/cardImage";
 import { loadCardDetail } from "@/lib/cardDetail";
 import { cardJsonLd, cardMetadata } from "@/lib/seo";
 
@@ -42,14 +42,17 @@ export default async function CardDetailPage({ params }: PageProps) {
   const points = detail.points ?? [];
   const jsonLd = cardJsonLd(detail.card);
   const lcpImage = resolveCardImageUrl(detail.card.id, detail.card.image_url);
+  const lcpLow = tcgdexImageUrlLow(detail.card.id);
+  const preloadHref =
+    lcpLow && lcpLow.startsWith("http") ? lcpLow : lcpImage;
 
   return (
     <>
-      {lcpImage.startsWith("http") ? (
+      {preloadHref.startsWith("http") ? (
         <link
           rel="preload"
           as="image"
-          href={lcpImage}
+          href={preloadHref}
           fetchPriority="high"
         />
       ) : null}
