@@ -20,6 +20,38 @@ import { cleanBinderShareSet } from "@/lib/binderExport";
 import { onCardImageError, resolveCardImageUrl } from "@/lib/cardImage";
 import type { BinderMissingCard, BinderResponse, BinderSetSummary } from "@/lib/types";
 
+type MissingView = "grid" | "list";
+
+function MissingCardTile({ card }: { card: BinderMissingCard }) {
+  const meta = [card.number ? `#${card.number}` : null, card.rarity]
+    .filter(Boolean)
+    .join(" · ");
+  return (
+    <Link
+      href={`/cards/${encodeURIComponent(card.id)}`}
+      className="binder-missing-tile"
+    >
+      <span className="binder-missing-art">
+        <Image
+          src={resolveCardImageUrl(card.id, card.image_url)}
+          alt={card.name}
+          width={180}
+          height={252}
+          sizes="(max-width: 720px) 42vw, 140px"
+          onError={(event) => onCardImageError(event, card.id)}
+        />
+      </span>
+      <span className="binder-missing-body">
+        <span className="lot-name">{card.name}</span>
+        {meta ? <span className="lot-meta">{meta}</span> : null}
+        <span className="binder-missing-price">
+          {card.price != null ? formatMoney(card.price) : "—"}
+        </span>
+      </span>
+    </Link>
+  );
+}
+
 function MissingRow({ card }: { card: BinderMissingCard }) {
   const meta = [card.number ? `#${card.number}` : null, card.rarity]
     .filter(Boolean)
@@ -40,7 +72,7 @@ function MissingRow({ card }: { card: BinderMissingCard }) {
         {meta ? <div className="lot-meta">{meta}</div> : null}
       </div>
       <div className="scan-metrics">
-        <strong>{formatMoney(card.price)}</strong>
+        <strong>{card.price != null ? formatMoney(card.price) : "—"}</strong>
       </div>
     </Link>
   );
@@ -68,6 +100,7 @@ export function BinderView() {
   const [pending, startTransition] = useTransition();
   const [hydrated, setHydrated] = useState(false);
   const [booted, setBooted] = useState(false);
+  const [missingView, setMissingView] = useState<MissingView>("grid");
 
   const [sharedSet, setSharedSet] = useState<string | null>(null);
 
@@ -233,7 +266,7 @@ export function BinderView() {
             ) : (
               sets.map((row) => (
                 <option key={row.set_name} value={row.set_name}>
-                  {row.set_name} · {row.pct.toFixed(0)}%
+                  {row.set_name} · {row.owned}/{row.total}
                 </option>
               ))
             )}
@@ -277,6 +310,24 @@ export function BinderView() {
         <div className="detail-desk-main">
           <div className="portfolio-section-head">
             <h2>{t("binder_missing_title", { n: detail?.missing ?? 0 })}</h2>
+            {detail && detail.missing_cards.length > 0 ? (
+              <div className="mode-toggle binder-view-toggle" role="group">
+                <button
+                  type="button"
+                  className={missingView === "grid" ? "is-active" : undefined}
+                  onClick={() => setMissingView("grid")}
+                >
+                  {t("binder_view_grid")}
+                </button>
+                <button
+                  type="button"
+                  className={missingView === "list" ? "is-active" : undefined}
+                  onClick={() => setMissingView("list")}
+                >
+                  {t("binder_view_list")}
+                </button>
+              </div>
+            ) : null}
           </div>
           {pending && !detail ? (
             <DeskLoading label={t("binder_loading")} variant="panel" skeletonCount={4} />
@@ -285,11 +336,21 @@ export function BinderView() {
             <p className="empty-state">{t("binder_complete")}</p>
           ) : null}
           {detail && detail.missing_cards.length > 0 ? (
-            <div className={`scan-list${pending ? " is-pending" : ""}`}>
-              {detail.missing_cards.map((card) => (
-                <MissingRow key={card.id} card={card} />
-              ))}
-            </div>
+            missingView === "grid" ? (
+              <div
+                className={`binder-missing-grid${pending ? " is-pending" : ""}`}
+              >
+                {detail.missing_cards.map((card) => (
+                  <MissingCardTile key={card.id} card={card} />
+                ))}
+              </div>
+            ) : (
+              <div className={`scan-list${pending ? " is-pending" : ""}`}>
+                {detail.missing_cards.map((card) => (
+                  <MissingRow key={card.id} card={card} />
+                ))}
+              </div>
+            )
           ) : null}
           {detail && detail.missing > detail.missing_cards.length ? (
             <p className="lot-meta">
@@ -304,11 +365,14 @@ export function BinderView() {
         {sets.length > 0 ? (
           <aside
             className="detail-desk-side binder-set-list"
-            aria-label={t("binder_all_sets")}
+            aria-label={t("binder_progress_title")}
           >
             <div className="detail-side-module">
-              <h2 className="detail-side-heading">{t("binder_all_sets")}</h2>
-              <ul>
+              <h2 className="detail-side-heading">{t("binder_progress_title")}</h2>
+              <p className="lot-meta binder-progress-lede">
+                {t("binder_progress_lede")}
+              </p>
+              <ul className="binder-progress-list">
                 {sets.map((row) => (
                   <li key={row.set_name}>
                     <button
@@ -320,11 +384,19 @@ export function BinderView() {
                       }
                       onClick={() => setSelected(row.set_name)}
                     >
-                      <span className="binder-set-name">{row.set_name}</span>
+                      <span className="binder-set-head">
+                        <span className="binder-set-name">{row.set_name}</span>
+                        <span className="binder-set-frac">
+                          {t("binder_owned_of", {
+                            owned: row.owned,
+                            total: row.total,
+                          })}
+                        </span>
+                      </span>
+                      <SetProgress pct={row.pct} />
                       <span className="binder-set-meta">
                         {row.pct.toFixed(0)}% · {formatMoney(row.missing_cost)}
                       </span>
-                      <SetProgress pct={row.pct} />
                     </button>
                   </li>
                 ))}
