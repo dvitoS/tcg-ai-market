@@ -756,6 +756,57 @@ def nightly_auto_g0_limit() -> int:
         return 20
 
 
+def persist_auto_g0_snapshot(
+    pack: dict[str, Any],
+    *,
+    source: str = "nightly",
+    ebay_check: bool | None = None,
+    limit: int | None = None,
+) -> dict[str, Any]:
+    """Write sniff pack summary onto spot_qa so Spend unlock G0 can flip.
+
+    Manual ops ``Run auto G0`` and nightly both call this — heal alone does
+    not update ``nightly_auto_g0``, which is why G0 stayed red after a one-card heal.
+    """
+    ebay = bool(ebay_check) if ebay_check is not None else bool(pack.get("ebay_checked"))
+    lim = int(limit) if limit is not None else int(pack.get("limit") or 0)
+    generated = pack.get("generated_at") or datetime.now(timezone.utc).isoformat()
+    summary: dict[str, Any] = {
+        "source": str(source or "nightly"),
+        "ebay_check": ebay,
+        "limit": lim,
+        "count": int(pack.get("count") or 0),
+        "g0_ready": bool(pack.get("g0_ready")),
+        "verdict_pass": int(pack.get("verdict_pass") or 0),
+        "verdict_review": int(pack.get("verdict_review") or 0),
+        "verdict_fail": int(pack.get("verdict_fail") or 0),
+        "healed_n": int(pack.get("healed_n") or 0),
+        "healed_ids": list(pack.get("healed_ids") or [])[:40],
+        "tcp_missing": int(pack.get("tcp_missing") or 0),
+        "tcp_resolved": int(pack.get("tcp_resolved") or 0),
+        "auto_ok": int(pack.get("auto_ok") or 0),
+        "auto_fail": int(pack.get("auto_fail") or 0),
+        "live_checked": bool(pack.get("live_checked")),
+        "generated_at": generated,
+        "captured_at": generated,
+    }
+
+    try:
+        from services.spot_qa import load_spot_qa_snapshot, save_spot_qa_snapshot
+
+        snap = load_spot_qa_snapshot() or {}
+        snap["nightly_auto_g0"] = dict(summary)
+        snap["g0_ready"] = summary["g0_ready"]
+        snap["captured_at"] = generated
+        save_spot_qa_snapshot(snap)
+        summary["persisted"] = True
+    except Exception as snap_exc:
+        LOG.warning("Auto G0 snapshot failed (%s): %s", source, snap_exc)
+        summary["persisted"] = False
+
+    return summary
+
+
 def run_nightly_auto_g0() -> dict[str, Any]:
     """Post-retrain G0: live TCP sniff + auto-heal; persist summary on spot_qa.
 
@@ -787,36 +838,12 @@ def run_nightly_auto_g0() -> dict[str, Any]:
         ebay_check=ebay_check,
         auto_heal=True,
     )
-    summary: dict[str, Any] = {
-        "skipped": False,
-        "required": nightly_auto_g0_required(),
-        "ebay_check": ebay_check,
-        "limit": limit,
-        "count": int(pack.get("count") or 0),
-        "g0_ready": bool(pack.get("g0_ready")),
-        "verdict_pass": int(pack.get("verdict_pass") or 0),
-        "verdict_review": int(pack.get("verdict_review") or 0),
-        "verdict_fail": int(pack.get("verdict_fail") or 0),
-        "healed_n": int(pack.get("healed_n") or 0),
-        "healed_ids": list(pack.get("healed_ids") or [])[:40],
-        "tcp_missing": int(pack.get("tcp_missing") or 0),
-        "tcp_resolved": int(pack.get("tcp_resolved") or 0),
-        "auto_ok": int(pack.get("auto_ok") or 0),
-        "auto_fail": int(pack.get("auto_fail") or 0),
-        "live_checked": bool(pack.get("live_checked")),
-        "generated_at": pack.get("generated_at"),
-    }
-
-    try:
-        from services.spot_qa import load_spot_qa_snapshot, save_spot_qa_snapshot
-
-        snap = load_spot_qa_snapshot() or {}
-        snap["nightly_auto_g0"] = {
-            k: v for k, v in summary.items() if k not in {"skipped", "required"}
-        }
-        snap["g0_ready"] = summary["g0_ready"]
-        save_spot_qa_snapshot(snap)
-    except Exception as snap_exc:
-        LOG.warning("Nightly auto G0 snapshot failed: %s", snap_exc)
-
+    summary = persist_auto_g0_snapshot(
+        pack,
+        source="nightly",
+        ebay_check=ebay_check,
+        limit=limit,
+    )
+    summary["skipped"] = False
+    summary["required"] = nightly_auto_g0_required()
     return summary
