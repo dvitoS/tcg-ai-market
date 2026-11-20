@@ -156,9 +156,6 @@ function SidePanel({
                       : scored?.spot_source === "multiplier"
                         ? ` · ${t("port_spot_estimated")}`
                         : ""}
-                    {scored?.expected_change_pct != null
-                      ? ` · AI ${formatChange(scored.expected_change_pct)}`
-                      : ""}
                   </div>
                   <div className="trade-line-meta">
                     <select
@@ -590,6 +587,31 @@ export function TradeView() {
         {seedNote ? <p className="pro-open-note">{seedNote}</p> : null}
       </div>
 
+      <div
+        className={`trade-verdict trade-verdict-sticky ${
+          result ? verdictClass(result.verdict) : "trade-verdict-wait"
+        }`}
+      >
+        {result ? (
+          <>
+            <p className="trade-verdict-label">{t("trade_verdict")}</p>
+            <h2>{t(verdictLabelKey(result.verdict))}</h2>
+            <p className="explore-lede">
+              {t("trade_net_ai", {
+                value: formatMoney(result.net_fair_usd),
+                pct: formatChange(result.net_fair_pct),
+              })}
+            </p>
+            <p className="lot-meta">
+              {t("trade_band_note", { n: result.fair_band_pct })}
+              {result.source === "demo" ? ` · ${t("explore_demo")}` : ""}
+            </p>
+          </>
+        ) : (
+          <p className="explore-lede">{t("trade_verdict_wait")}</p>
+        )}
+      </div>
+
       <div className="trade-target">
         <span>{t("trade_add_to")}</span>
         <button
@@ -713,48 +735,26 @@ export function TradeView() {
       {shareNote ? <p className="pro-open-note">{shareNote}</p> : null}
 
       {result ? (
-        <>
-          <div className={`trade-verdict ${verdictClass(result.verdict)}`}>
-            <p className="trade-verdict-label">{t("trade_verdict")}</p>
-            <h2>{t(verdictLabelKey(result.verdict))}</h2>
-            <p className="explore-lede">
-              {t("trade_net_spot", {
-                value: formatMoney(result.net_spot_usd),
-                pct: formatChange(result.net_spot_pct),
-              })}
-            </p>
-            <p className="explore-lede">
-              {t("trade_net_ai", {
-                value: formatMoney(result.net_fair_usd),
-                pct: formatChange(result.net_fair_pct),
-              })}
-            </p>
-            <p className="lot-meta">
-              {t("trade_band_note", { n: result.fair_band_pct })}
-              {result.source === "demo" ? ` · ${t("explore_demo")}` : ""}
-            </p>
-          </div>
-          <TradeReportExport
-            trade={result}
-            shareUrl={shareUrl}
-            onEnsureShare={
-              status?.allowed
-                ? async () => {
-                    try {
-                      return await ensureShareUrl();
-                    } catch (err) {
-                      setError(
-                        err instanceof Error
-                          ? err.message
-                          : t("trade_share_error"),
-                      );
-                      return null;
-                    }
+        <TradeReportExport
+          trade={result}
+          shareUrl={shareUrl}
+          onEnsureShare={
+            status?.allowed
+              ? async () => {
+                  try {
+                    return await ensureShareUrl();
+                  } catch (err) {
+                    setError(
+                      err instanceof Error
+                        ? err.message
+                        : t("trade_share_error"),
+                    );
+                    return null;
                   }
-                : undefined
-            }
-          />
-        </>
+                }
+              : undefined
+          }
+        />
       ) : null}
     </section>
   );

@@ -49,8 +49,8 @@ Self-score after detail desk pass: **~7.5 / 10**. 10/10 is **trust + cold path**
 
 | ID | Item | Why |
 | --- | --- | --- |
-| T2.1 | Radar = **sure looks-cheap** only + plain why | Less list, more decision |
-| T2.2 | Trade = **one-screen** fair / you’re ahead / they’re ahead | Viral job-to-be-done |
+| T2.1 | Radar = **sure looks-cheap** only + plain why | **Shipping** — under-only desk, plain why |
+| T2.2 | Trade = **one-screen** even / you’re ahead / they’re ahead | **Shipping** — sticky verdict + good-price net |
 | T2.3 | Pro wedge: **daily looks-cheap + alerts** | One reason for €7, not six desks |
 
 #### T3 — Invisible reliability *(9.5 → 10)* — parallel

@@ -18,7 +18,6 @@ import { DeskLoading } from "@/components/DeskLoading";
 import { useLocale } from "@/components/LocaleProvider";
 import { RadarShareCard } from "@/components/RadarShareCard";
 import { SearchSuggest } from "@/components/SearchSuggest";
-import { TrustPanel } from "@/components/TrustPanel";
 import {
   fetchRadar,
   fetchRadarBootstrap,
@@ -88,10 +87,6 @@ const EMPTY: RadarResponse = {
 function RadarRow({ card }: { card: RadarCard }) {
   const { t, locale } = useLocale();
   const { formatSpot } = useCurrency();
-  const band =
-    card.pred_lo_pct != null && card.pred_hi_pct != null
-      ? `${formatChange(card.pred_lo_pct, 1)}…${formatChange(card.pred_hi_pct, 1)}`
-      : null;
   const desk = resolveDeskNumbers({
     spot: card.spot,
     price: card.price,
@@ -99,18 +94,16 @@ function RadarRow({ card }: { card: RadarCard }) {
     predicted_price: card.predicted_price,
     side: card.side,
   });
-  const edgeUp = (desk.edgeGapPct ?? card.edge_pct ?? 0) >= 0;
   const verdict = decisionOneLiner(
     locale,
     desk.side || card.side,
     desk.edgeGapPct ?? card.edge_pct,
   );
   const fair = formatSpot(desk.good);
-  const edge = formatChange(desk.edgeGapPct);
   return (
     <Link
       href={`/cards/${encodeURIComponent(card.id)}`}
-      className={`scan-row radar-row ${card.side === "UNDER" ? "radar-under" : "radar-over"}`}
+      className="scan-row radar-row radar-under"
     >
       <div className="scan-art">
         <Image
@@ -122,26 +115,24 @@ function RadarRow({ card }: { card: RadarCard }) {
         />
       </div>
       <div>
-        <div className="radar-side" title={t(sideTipKey(card.side))}>
-          {sideLabel(locale, card.side)}
-        </div>
         <div className="lot-name">{card.name}</div>
         <div className="lot-meta">
           {[card.set_name, card.rarity].filter(Boolean).join(" · ")}
         </div>
         {verdict ? (
           <div className="decision-line lot-meta">{verdict}</div>
-        ) : band ? (
-          <div className="lot-meta" title={t("glossary_band_tip")}>
-            {t("landing_dotd_band", { band })}
+        ) : (
+          <div className="lot-meta" title={t(sideTipKey(card.side))}>
+            {sideLabel(locale, card.side)}
           </div>
-        ) : null}
+        )}
       </div>
       <div className="scan-metrics">
-        <strong>{formatSpot(desk.asking)}</strong>
-        <span title={t("glossary_fair_tip")}>{t("metric_fair", { price: fair })}</span>
-        <span className={edgeUp ? "pnl-up" : "pnl-down"} title={t("glossary_edge_tip")}>
-          {t("metric_edge", { pct: edge })}
+        <strong>
+          {t("metric_spot", { price: formatSpot(desk.asking) })}
+        </strong>
+        <span title={t("glossary_fair_tip")}>
+          {t("metric_fair", { price: fair })}
         </span>
       </div>
     </Link>
@@ -336,8 +327,8 @@ export function RadarView() {
         },
         url,
         filtersLabel: t("radar_share_filters"),
-        boardLine: (under, over) =>
-          t("radar_share_board", { under, over }),
+        boardLine: (under, _over) =>
+          t("radar_share_board", { under, over: 0 }),
         topUnderLine: (name, edge) =>
           t("radar_share_top_under", { name, edge }),
       });
@@ -494,28 +485,6 @@ export function RadarView() {
 
       <div className="filter-row">
         <label>
-          <span>{t("explore_set")}</span>
-          <select value={setName} onChange={(e) => setSetName(e.target.value)}>
-            <option value="">{t("explore_all_sets")}</option>
-            {data.sets.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span>{t("scan_rarity")}</span>
-          <select value={rarity} onChange={(e) => setRarity(e.target.value)}>
-            <option value="">{t("explore_all")}</option>
-            {data.rarities.map((r) => (
-              <option key={r} value={r}>
-                {r}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
           <span>{t("radar_min_edge")}</span>
           <input
             type="number"
@@ -551,6 +520,33 @@ export function RadarView() {
           />
         </label>
       </div>
+      <details className="radar-more-filters">
+        <summary className="lot-meta">{t("radar_more_filters")}</summary>
+        <div className="filter-row">
+          <label>
+            <span>{t("explore_set")}</span>
+            <select value={setName} onChange={(e) => setSetName(e.target.value)}>
+              <option value="">{t("explore_all_sets")}</option>
+              {data.sets.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>{t("scan_rarity")}</span>
+            <select value={rarity} onChange={(e) => setRarity(e.target.value)}>
+              <option value="">{t("explore_all")}</option>
+              {data.rarities.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </details>
 
       {error ? <p className="form-error">{error}</p> : null}
       {pending ? <DeskLoading label={t("explore_updating")} variant="banner" /> : null}
@@ -563,10 +559,6 @@ export function RadarView() {
         <div className="stat-chip">
           <span>{t("radar_kpi_under")}</span>
           <strong>{data.under_total}</strong>
-        </div>
-        <div className="stat-chip">
-          <span>{t("radar_kpi_over")}</span>
-          <strong>{data.over_total}</strong>
         </div>
       </div>
 
@@ -582,21 +574,6 @@ export function RadarView() {
           ))}
         </div>
       )}
-
-      <h2 className="section-title">{t("radar_over_title")}</h2>
-      {pending && data.overpriced.length === 0 ? (
-        <DeskLoading label={t("explore_updating")} variant="panel" skeletonCount={4} />
-      ) : data.overpriced.length === 0 ? (
-        <p className="explore-lede">{t("radar_over_empty")}</p>
-      ) : (
-        <div className={`scan-list${pending ? " is-pending" : ""}`}>
-          {data.overpriced.map((card) => (
-            <RadarRow key={`o-${card.id}`} card={card} />
-          ))}
-        </div>
-      )}
-
-      <TrustPanel minEdge={minEdge} />
 
       <div className="trade-share-card-host" aria-hidden="true">
         <RadarShareCard
