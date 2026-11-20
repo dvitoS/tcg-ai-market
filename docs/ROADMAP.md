@@ -35,7 +35,7 @@ Self-score after detail desk pass: **~7.5 / 10**. 10/10 is **trust + cold path**
 | T0.1 | **Match-quality badge** next to Asking (high / med / low) | **Shipped** — low match quiets buy/skip |
 | T0.2 | **Wrong-spot report → heal → “fixed”** visible on detail | **Shipped** — report-status + Price updated chip |
 | T0.3 | Never **fake-empty** comps (TCP/CM pattern) | **Shipped** — #279 + T3 CM CTA |
-| T0.4 | User-facing “prices checked today” (no ops jargon) | **Shipping** — freshness chip on detail |
+| T0.4 | User-facing “prices checked today” (no ops jargon) | **Shipped** — freshness chip on detail |
 
 #### T1 — Cold path 30s *(8.5 → 9)* — **SHIPPED**
 
@@ -43,7 +43,7 @@ Self-score after detail desk pass: **~7.5 / 10**. 10/10 is **trust + cold path**
 | --- | --- | --- |
 | T1.1 | Soft-nav detail **LCP** — search → card under ~1s | **Shipped** — browse pick → card + loading shell + low art preload |
 | T1.2 | Share / DOTD / Radar paste = **same numbers** as live detail | **Shipped** — shared `deskNumbers` price-gap everywhere |
-| T1.3 | Landing hero stays **one job** | **Shipping** — one card, one CTA, pulse below DOTD |
+| T1.3 | Landing hero stays **one job** | **Shipped** — one card, one CTA, pulse below DOTD |
 
 #### T2 — Desk that pays rent *(9 → 9.5)* — **SHIPPED**
 
@@ -51,7 +51,7 @@ Self-score after detail desk pass: **~7.5 / 10**. 10/10 is **trust + cold path**
 | --- | --- | --- |
 | T2.1 | Radar = **sure looks-cheap** only + plain why | **Shipped** — under-only desk, plain why |
 | T2.2 | Trade = **one-screen** even / you’re ahead / they’re ahead | **Shipped** — sticky verdict + good-price net |
-| T2.3 | Pro wedge: **daily looks-cheap + alerts** | **Shipping** — /pro deals + alerts primary |
+| T2.3 | Pro wedge: **daily looks-cheap + alerts** | **Shipped** — /pro deals + alerts primary |
 
 #### T3 — Invisible reliability *(9.5 → 10)* — parallel
 
@@ -61,11 +61,11 @@ Self-score after detail desk pass: **~7.5 / 10**. 10/10 is **trust + cold path**
 | T3.2 | Honest empty: what we know + what we don’t | **Shipping** — CM comps CTA + chart error/empty fork |
 | T3.3 | **US Asking ≠ EUR Asking** — labeled, never blended into Good | **Shipping** — US labels + € is FX note |
 
-### Suggested next (post T0–T3)
+### Suggested next (post T0–T3 / G3 card)
 
-1. **G3 trust week** *(ops)* — `docs/G3_METRICS_CHECKLIST.md` then M4.5 spend unlock  
-2. Keep **G2** cadence — ≥1 Twitter / Discord / Reddit share per week  
-3. Keep nightly **auto G0** green — reopen G0 if sniff fails  
+1. Keep **G2** cadence — ≥1 Twitter / Discord / Reddit share per week  
+2. Keep nightly **auto G0** green — reopen G0 if sniff fails  
+3. Watch Data Health **Spend unlock** + wrong-spot SLA until both stay green
 
 ### Explicit non-goals for 10/10
 
@@ -161,14 +161,14 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 | M4.1 | Funnel events | **Shipping** — landing → DOTD → Pro → Radar/Trade; `/api/funnel` + ops panel |
 | M4.2 | Organic first | **Shipping** — Trade Discord paste pack; share funnel; `docs/ORGANIC_SOFT_LAUNCH.md` |
 | M4.3 | Trial hygiene + G3 trust | **Shipping** — trial strip; persisted G3 counters + reason buckets in `/api/billing/conversion` → Data Health |
-| M4.4 | Support playbook | **Shipping** — detail report + ops queue/SLA; `docs/WRONG_SPOT_SLA.md` |
+| M4.4 | Support playbook | **Shipping** — detail report + **persisted** ops queue/SLA; `docs/WRONG_SPOT_SLA.md` |
 | M4.5 | **Spend unlock** | **Shipping (ops card)** — Data Health spend-unlock rollup; unlock still needs G0–G3 green + tiny paid search / creator tests |
 
 ### Suggested next 3
 
-1. **G3 trust week** *(ops)* — `docs/G3_METRICS_CHECKLIST.md` then **M4.5** spend unlock  
-2. Keep **G2** cadence — ≥1 Twitter / Discord / Reddit share per week  
-3. Keep nightly **auto G0** green — reopen G0 if sniff fails
+1. Keep **G2** cadence — ≥1 Twitter / Discord / Reddit share per week  
+2. Keep nightly **auto G0** green — reopen G0 if sniff fails  
+3. Watch Data Health spend unlock until G0 + G3 + SLA stay green
 
 ### Just shipped (ops / infra)
 

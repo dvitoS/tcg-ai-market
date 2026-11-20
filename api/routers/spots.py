@@ -51,6 +51,8 @@ class SpotReportSummaryOut(BaseModel):
     heal_sla_hours: int = 48
     recent: list[dict[str, Any]] = Field(default_factory=list)
     uptime_s: float = 0.0
+    persisted: bool = False
+    source: str = "memory"
 
 
 class SpotReportStatusIn(BaseModel):

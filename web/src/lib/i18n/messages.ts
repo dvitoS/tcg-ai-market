@@ -141,12 +141,14 @@ const en = {
   obs_na: "—",
   obs_reports_title: "Wrong-spot reports",
   obs_reports_caption:
-    "User flags from card detail. SLA: ack ≤24h, heal attempt ≤48h. Heal-open nulls + quarantines market_quotes for reported ids.",
+    "User flags from card detail. Queue persists across API restarts. SLA: ack ≤24h, heal attempt ≤48h. Heal-open nulls + quarantines market_quotes for reported ids.",
   obs_reports_open: "Open",
   obs_reports_overdue: "Overdue heal",
-  obs_reports_empty: "No open spot reports on this API process.",
-  obs_reports_meta: "Oldest open {age}h · ack SLA {ack}h · heal SLA {heal}h",
+  obs_reports_empty: "No open spot reports yet.",
+  obs_reports_meta:
+    "Oldest open {age}h · ack SLA {ack}h · heal SLA {heal}h · queue {source}",
   obs_reports_heal_open: "Heal open (refetch)",
+  obs_spend_g0_meta: "Nightly · pass {pass} · fail {fail} · {when}",
   obs_sniff_title: "Spot sniff pack (G0)",
   obs_sniff_caption:
     "One click: live TCP + eBay sold, auto-heal hard fails. You only open review rows before marketing spend.",
@@ -1262,12 +1264,14 @@ const hr: Dictionary = {
   obs_na: "—",
   obs_reports_title: "Wrong-spot reporti",
   obs_reports_caption:
-    "User flage s card detaila. SLA: ack ≤24h, heal pokušaj ≤48h. Heal-open null-a tip i stavlja market_quotes u karantenu.",
+    "User flage s card detaila. Queue ostaje nakon API restarta. SLA: ack ≤24h, heal pokušaj ≤48h. Heal-open null-a tip i stavlja market_quotes u karantenu.",
   obs_reports_open: "Open",
   obs_reports_overdue: "Overdue heal",
-  obs_reports_empty: "Nema open spot reporta na ovom API procesu.",
-  obs_reports_meta: "Najstariji open {age}h · ack SLA {ack}h · heal SLA {heal}h",
+  obs_reports_empty: "Još nema open spot reporta.",
+  obs_reports_meta:
+    "Najstariji open {age}h · ack SLA {ack}h · heal SLA {heal}h · queue {source}",
   obs_reports_heal_open: "Heal open (refetch)",
+  obs_spend_g0_meta: "Nightly · pass {pass} · fail {fail} · {when}",
   obs_sniff_title: "Spot sniff pack (G0)",
   obs_sniff_caption:
     "Jedan klik: live TCP + eBay sold, auto-heal hard failova. Ti otvaraš samo review redove prije marketing spenda.",
