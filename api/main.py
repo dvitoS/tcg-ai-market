@@ -80,7 +80,7 @@ for _prod in (
     if _prod not in _origins:
         _origins.append(_prod)
 # Soft Ink local / PWA demos often use non-3000 ports (camera OCR, next start).
-for _port in (3000, 3001, 3456, 3457, 3458, 4173):
+for _port in (3000, 3001, 3010, 3013, 3014, 3456, 3457, 3458, 4173):
     for _host in ("http://localhost", "http://127.0.0.1"):
         _origin = f"{_host}:{_port}"
         if _origin not in _origins:

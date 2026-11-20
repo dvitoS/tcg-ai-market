@@ -109,12 +109,12 @@ function RadarRow({ card }: { card: RadarCard }) {
         <Image
           src={resolveCardImageUrl(card.id, card.image_url)}
           alt={card.name}
-          width={48}
-          height={67}
+          width={56}
+          height={78}
           onError={(event) => onCardImageError(event, card.id)}
         />
       </div>
-      <div>
+      <div className="scan-copy">
         <div className="lot-name">{card.name}</div>
         <div className="lot-meta">
           {[card.set_name, card.rarity].filter(Boolean).join(" · ")}
@@ -375,7 +375,7 @@ export function RadarView() {
 
   if (authLoading || !hydrated || (user && !booted)) {
     return (
-      <section className="scanner-page radar-page">
+      <section className="scanner-page radar-page desk-premium">
         <div className="explore-command">
           <p className="explore-command-eyebrow">{t("radar_eyebrow")}</p>
           <h1 className="explore-title">{t("radar_title")}</h1>
@@ -387,7 +387,7 @@ export function RadarView() {
 
   if (!user) {
     return (
-      <section className="scanner-page radar-page">
+      <section className="scanner-page radar-page desk-premium">
         <div className="explore-command">
           <p className="explore-command-eyebrow">{t("radar_eyebrow")}</p>
           <h1 className="explore-title">{t("radar_title")}</h1>
@@ -403,7 +403,7 @@ export function RadarView() {
 
   if (status && !status.allowed) {
     return (
-      <section className="scanner-page radar-page">
+      <section className="scanner-page radar-page desk-premium">
         <div className="explore-command">
           <p className="explore-command-eyebrow">{t("radar_eyebrow")}</p>
           <h1 className="explore-title">{t("radar_locked")}</h1>
@@ -451,35 +451,36 @@ export function RadarView() {
   const shareUrl = buildRadarShareUrl(SITE_URL, shareFilters);
 
   return (
-    <section className="scanner-page radar-page">
-      <div className="explore-command">
-        <p className="explore-command-eyebrow">{t("radar_eyebrow")}</p>
-        <h1 className="explore-title">{t("radar_title")}</h1>
-        <p className="explore-lede">
-          {t("radar_lede", { days: data.forecast_days || status?.forecast_days || 7 })}
-          {data.source === "demo" ? ` · ${t("explore_demo")}` : ""}
-        </p>
+    <section className="scanner-page radar-page desk-premium">
+      <div className="desk-command-row">
+        <div className="explore-command">
+          <p className="explore-command-eyebrow">{t("radar_eyebrow")}</p>
+          <h1 className="explore-title">{t("radar_title")}</h1>
+          <p className="explore-lede">
+            {t("radar_lede", { days: data.forecast_days || status?.forecast_days || 7 })}
+            {data.source === "demo" ? ` · ${t("explore_demo")}` : ""}
+          </p>
+        </div>
+        <div className="detail-actions">
+          <button
+            type="button"
+            className="btn-ghost"
+            disabled={shareBusy || exportBusy}
+            onClick={() => void onShare()}
+          >
+            {shareBusy ? t("radar_share_busy") : t("radar_share_copy")}
+          </button>
+          <button
+            type="button"
+            className="btn-ghost"
+            disabled={exportBusy || shareBusy}
+            onClick={() => void onExportPng()}
+          >
+            {exportBusy ? t("radar_export_busy") : t("radar_export_image")}
+          </button>
+        </div>
       </div>
-
-      <div className="detail-actions">
-        <button
-          type="button"
-          className="btn-ghost"
-          disabled={shareBusy || exportBusy}
-          onClick={() => void onShare()}
-        >
-          {shareBusy ? t("radar_share_busy") : t("radar_share_copy")}
-        </button>
-        <button
-          type="button"
-          className="btn-ghost"
-          disabled={exportBusy || shareBusy}
-          onClick={() => void onExportPng()}
-        >
-          {exportBusy ? t("radar_export_busy") : t("radar_export_image")}
-        </button>
-      </div>
-      <p className="lot-meta">{t("radar_share_hint")}</p>
+      <p className="lot-meta desk-hint">{t("radar_share_hint")}</p>
       {shareNote ? <p className="pro-open-note">{shareNote}</p> : null}
       {exportNote ? <p className="pro-open-note">{exportNote}</p> : null}
 
@@ -566,7 +567,7 @@ export function RadarView() {
       {error ? <p className="form-error">{error}</p> : null}
       {pending ? <DeskLoading label={t("explore_updating")} variant="banner" /> : null}
 
-      <div className="kpi-row scanner-kpis">
+      <div className="kpi-row desk-kpis-2">
         <div className="kpi-chip">
           <span>{t("radar_kpi_sure")}</span>
           <strong>{data.sure_scoped}</strong>
@@ -583,7 +584,7 @@ export function RadarView() {
       {pending && data.underpriced.length === 0 ? (
         <DeskLoading label={t("explore_updating")} variant="panel" skeletonCount={4} />
       ) : data.underpriced.length === 0 ? (
-        <p className="explore-lede">{t("radar_under_empty")}</p>
+        <p className="empty-state">{t("radar_under_empty")}</p>
       ) : (
         <div className={`scan-list${pending ? " is-pending" : ""}`}>
           {data.underpriced.map((card) => (
