@@ -112,9 +112,14 @@ a {
   padding: 0 0 3.5rem;
 }
 
+/* Full-bleed sticky bar; inner nav aligns with the landing content column. */
 .app-shell:has(> main .landing) .site-header {
-  width: min(1180px, calc(100% - 2rem));
-  margin: 0 auto;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  box-sizing: border-box;
+  padding-left: max(1rem, calc((100% - 1180px) / 2));
+  padding-right: max(1rem, calc((100% - 1180px) / 2));
 }
 
 .app-shell:has(> main .landing) .site-header::before {
