@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useAuth } from "@/components/AuthProvider";
 import { DeskLoading } from "@/components/DeskLoading";
@@ -21,8 +21,11 @@ export function AuthCallbackView() {
   const search = useSearchParams();
   const { refresh } = useAuth();
   const [error, setError] = useState<string | null>(null);
+  const ran = useRef(false);
 
   useEffect(() => {
+    if (ran.current) return;
+    ran.current = true;
     let cancelled = false;
 
     async function finish() {
@@ -35,23 +38,30 @@ export function AuthCallbackView() {
 
       try {
         const code = search.get("code");
+        let token: string | undefined;
+
         if (code) {
           const { data, error: exchangeError } =
             await client.auth.exchangeCodeForSession(code);
-          if (exchangeError) throw exchangeError;
-          const token = data.session?.access_token;
-          if (!token) throw new Error("missing session");
-          setAccessToken(token);
+          if (exchangeError) {
+            // Effect remount / prior exchange may have already created a session.
+            const { data: existing, error: sessionError } =
+              await client.auth.getSession();
+            if (sessionError) throw exchangeError;
+            token = existing.session?.access_token;
+            if (!token) throw exchangeError;
+          } else {
+            token = data.session?.access_token;
+          }
         } else {
           // Implicit / hash recovery fallback (older Supabase redirects).
           const { data, error: sessionError } = await client.auth.getSession();
           if (sessionError) throw sessionError;
-          const token = data.session?.access_token;
-          if (!token) {
-            throw new Error(t("auth_google_failed"));
-          }
-          setAccessToken(token);
+          token = data.session?.access_token;
         }
+
+        if (!token) throw new Error(t("auth_google_failed"));
+        setAccessToken(token);
         await refresh();
         if (!cancelled) router.replace(next);
       } catch (err) {
