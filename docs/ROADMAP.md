@@ -158,7 +158,7 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 
 | ID | Item | Ship |
 | --- | --- | --- |
-| M4.1 | Funnel events | **Shipping** — landing → DOTD → Pro → Radar/Trade; `/api/funnel` + ops panel |
+| M4.1 | Funnel events | **Shipping** — landing → DOTD → Pro → Radar/Trade; non-hero `landing_cta_pro` + locked-desk checkout; `/api/funnel` + ops panel |
 | M4.2 | Organic first | **Shipping** — Trade Discord paste pack; share funnel; `docs/ORGANIC_SOFT_LAUNCH.md` |
 | M4.3 | Trial hygiene + G3 trust | **Shipping** — trial strip; persisted G3 counters + reason buckets in `/api/billing/conversion` → Data Health |
 | M4.4 | Support playbook | **Shipping** — detail report + **persisted** ops queue/SLA; `docs/WRONG_SPOT_SLA.md` |

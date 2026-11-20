@@ -12,6 +12,7 @@ import {
   scoreDealerCsv,
 } from "@/lib/api";
 import { downloadDealerCsv } from "@/lib/dealerCsv";
+import { trackFunnel } from "@/lib/funnel";
 import {
   clearDealerSync,
   readDealerSync,
@@ -203,7 +204,13 @@ export function DealerView() {
           <Link href="/signin?next=/dealer" className="btn-primary">
             {t("auth_sign_in")}
           </Link>
-          <Link href="/pro" className="btn-ghost">
+          <Link
+            href="/pro"
+            className="btn-ghost"
+            onClick={() =>
+              trackFunnel("landing_cta_pro", { source: "dealer_signin" })
+            }
+          >
             {t("landing_cta_pro")}
           </Link>
         </div>
@@ -226,11 +233,24 @@ export function DealerView() {
           <p className="explore-lede">{t("dealer_locked_lede")}</p>
           <div className="detail-actions">
             {status.checkout_url ? (
-              <a href={status.checkout_url} className="btn-primary" rel="noreferrer">
+              <a
+                href={status.checkout_url}
+                className="btn-primary"
+                rel="noreferrer"
+                onClick={() =>
+                  trackFunnel("pro_checkout_click", { source: "dealer_gate" })
+                }
+              >
                 {t("dealer_upgrade")}
               </a>
             ) : null}
-            <Link href="/pro" className="btn-ghost">
+            <Link
+              href="/pro"
+              className="btn-ghost"
+              onClick={() =>
+                trackFunnel("landing_cta_pro", { source: "dealer_gate" })
+              }
+            >
               {t("dealer_pro_details")}
             </Link>
           </div>

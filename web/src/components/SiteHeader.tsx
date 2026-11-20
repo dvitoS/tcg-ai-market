@@ -9,6 +9,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { CurrencySwitcher } from "@/components/CurrencySwitcher";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { useLocale } from "@/components/LocaleProvider";
+import { trackFunnel } from "@/lib/funnel";
 import type { MessageKey } from "@/lib/i18n/messages";
 
 type NavItem = { href: string; labelKey: MessageKey };
@@ -161,6 +162,7 @@ export function SiteHeader() {
         <Link
           href="/pro"
           className={`btn-ghost header-pro${linkActive(pathname, "/pro") ? " is-active" : ""}`}
+          onClick={() => trackFunnel("landing_cta_pro", { source: "header" })}
         >
           {t("nav_pro")}
         </Link>
@@ -223,7 +225,10 @@ export function SiteHeader() {
             <Link
               href="/pro"
               className="btn-ghost header-pro"
-              onClick={() => setOpen(false)}
+              onClick={() => {
+                trackFunnel("landing_cta_pro", { source: "header_mobile" });
+                setOpen(false);
+              }}
             >
               {t("nav_pro")}
             </Link>

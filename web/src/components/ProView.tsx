@@ -123,7 +123,9 @@ export function ProView({
                 href={effectiveCheckout}
                 className="btn-ghost"
                 rel="noreferrer"
-                onClick={() => trackFunnel("pro_checkout_click")}
+                onClick={() =>
+                  trackFunnel("pro_checkout_click", { source: "pro" })
+                }
               >
                 {t("pro_checkout_later")}
               </a>
@@ -136,7 +138,9 @@ export function ProView({
                 href={effectiveCheckout}
                 className="btn-primary"
                 rel="noreferrer"
-                onClick={() => trackFunnel("pro_checkout_click")}
+                onClick={() =>
+                  trackFunnel("pro_checkout_click", { source: "pro" })
+                }
               >
                 {t("dealer_upgrade")}
               </a>

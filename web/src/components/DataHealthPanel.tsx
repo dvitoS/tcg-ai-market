@@ -753,6 +753,8 @@ export function DataHealthPanel() {
                       "dotd_cta",
                       "pro_view",
                       "pro_checkout_click",
+                      "pro_open_radar",
+                      "pro_open_trade",
                       "pro_open_alerts",
                       "radar_activate",
                       "trade_activate",
@@ -767,6 +769,24 @@ export function DataHealthPanel() {
                     </div>
                   ))}
                 </div>
+                {(() => {
+                  const views = funnel.counts.landing_view ?? 0;
+                  const pro = funnel.counts.pro_view ?? 0;
+                  const checkout = funnel.counts.pro_checkout_click ?? 0;
+                  if (views < 1) return null;
+                  const toPro = Math.round((100 * pro) / views);
+                  const toCheckout =
+                    pro > 0 ? Math.round((100 * checkout) / pro) : null;
+                  return (
+                    <p className="data-health-cache lot-meta">
+                      {t("obs_funnel_convert", {
+                        to_pro: `${toPro}%`,
+                        to_checkout:
+                          toCheckout == null ? "—" : `${toCheckout}%`,
+                      })}
+                    </p>
+                  );
+                })()}
               </>
             ) : (
               <p className="data-health-caption">{t("obs_funnel_empty")}</p>
