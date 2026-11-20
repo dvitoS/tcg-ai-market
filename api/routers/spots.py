@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 from api.deps import optional_user, require_ops_user
 from api.schemas import SpotHealResponse
 from services.spot_reports import (
+    latest_report_for_card,
     list_spot_reports,
     open_report_card_ids,
     set_report_status,
@@ -76,6 +77,26 @@ def post_spot_report(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
         ) from exc
     return SpotReportOut(**row)
+
+
+class SpotReportStatusOut(BaseModel):
+    card_id: str
+    report: SpotReportOut | None = None
+
+
+@router.get("/report-status", response_model=SpotReportStatusOut)
+def get_spot_report_status(
+    response: Response,
+    card_id: str = Query(..., min_length=1, max_length=80),
+    _user: Annotated[dict[str, Any] | None, Depends(optional_user)] = None,
+) -> SpotReportStatusOut:
+    """Public: latest report for a card (detail “fixed” chip)."""
+    response.headers.update(_NO_STORE)
+    row = latest_report_for_card(card_id)
+    return SpotReportStatusOut(
+        card_id=str(card_id).strip(),
+        report=SpotReportOut(**row) if row else None,
+    )
 
 
 @router.get("/reports", response_model=list[SpotReportOut])

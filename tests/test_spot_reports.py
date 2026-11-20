@@ -42,3 +42,34 @@ def test_open_report_card_ids_empty():
     from services.spot_reports import open_report_card_ids
 
     assert open_report_card_ids() == []
+
+
+def test_latest_report_and_public_status():
+    from services.spot_reports import latest_report_for_card, set_report_status
+
+    res = client.post(
+        "/api/spots/report",
+        json={"card_id": "sv3-199", "spot": 9.5},
+    )
+    assert res.status_code == 200
+    rid = res.json()["id"]
+
+    latest = latest_report_for_card("sv3-199")
+    assert latest is not None
+    assert latest["id"] == rid
+    assert latest["status"] == "open"
+
+    status = client.get("/api/spots/report-status", params={"card_id": "sv3-199"})
+    assert status.status_code == 200
+    body = status.json()
+    assert body["card_id"] == "sv3-199"
+    assert body["report"]["id"] == rid
+    assert body["report"]["status"] == "open"
+
+    set_report_status(rid, "resolved")
+    status2 = client.get("/api/spots/report-status", params={"card_id": "sv3-199"})
+    assert status2.json()["report"]["status"] == "resolved"
+
+    empty = client.get("/api/spots/report-status", params={"card_id": "no-such-card"})
+    assert empty.status_code == 200
+    assert empty.json()["report"] is None

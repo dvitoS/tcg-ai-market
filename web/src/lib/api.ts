@@ -12,6 +12,7 @@ import type {
   DataHealthResponse,
   SpotHealMode,
   SpotHealResponse,
+  SpotReportPublic,
   SpotSniffPackResponse,
   DealerResponse,
   DealerStatus,
@@ -1242,6 +1243,22 @@ export async function reportWrongSpot(input: {
   });
   if (!res.ok) {
     throw new Error(`Spot report failed (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function fetchSpotReportStatus(
+  cardId: string,
+): Promise<{ card_id: string; report: SpotReportPublic | null }> {
+  const res = await fetch(
+    apiUrl(`/api/spots/report-status?card_id=${encodeURIComponent(cardId)}`),
+    {
+      headers: { Accept: "application/json", ...authHeaders() },
+      cache: "no-store",
+    },
+  );
+  if (!res.ok) {
+    throw new Error(`Spot report status failed (${res.status})`);
   }
   return res.json();
 }

@@ -117,9 +117,28 @@ export function CardDetailView({
     .join(" · ");
   const image = resolveCardImageUrl(card.id, card.image_url);
   const dayChange = history.day_change_pct;
+  const matchQuality = detail.spot_match?.quality ?? null;
+  const matchLow = matchQuality === "low";
   const showSignal = Boolean(
-    card.confidence_ok && card.conformal_ok && card.signal,
+    card.confidence_ok && card.conformal_ok && card.signal && !matchLow,
   );
+  const matchLabelKey =
+    matchQuality === "high"
+      ? "detail_match_high"
+      : matchQuality === "med"
+        ? "detail_match_med"
+        : matchQuality === "low"
+          ? "detail_match_low"
+          : null;
+  const matchTipKey =
+    matchQuality === "high"
+      ? "detail_match_high_tip"
+      : matchQuality === "med"
+        ? "detail_match_med_tip"
+        : matchQuality === "low"
+          ? "detail_match_low_tip"
+          : null;
+  const spotFixed = detail.spot_report?.status === "resolved";
   const band =
     pred_lo_pct != null && pred_hi_pct != null
       ? `${formatChange(pred_lo_pct, 1)} … ${formatChange(pred_hi_pct, 1)}`
@@ -253,7 +272,17 @@ export function CardDetailView({
 
           <div className="detail-fair-row">
             <div className="detail-fair-cell">
-              <span className="detail-fair-k">{t("detail_asking")}</span>
+              <span className="detail-fair-k">
+                {t("detail_asking")}
+                {matchLabelKey && matchTipKey ? (
+                  <span
+                    className={`detail-match-badge is-${matchQuality}`}
+                    title={t(matchTipKey)}
+                  >
+                    {t(matchLabelKey)}
+                  </span>
+                ) : null}
+              </span>
               <span className="detail-fair-v">
                 {formatSpot(history.last_price ?? card.price, 2)}
               </span>
@@ -265,6 +294,12 @@ export function CardDetailView({
               </span>
             </div>
           </div>
+
+          {spotFixed ? (
+            <p className="detail-spot-fixed" title={t("detail_spot_fixed_hint")}>
+              {t("detail_spot_fixed")}
+            </p>
+          ) : null}
 
           <p
             className={`detail-verdict ${signalClass(card.signal)}${showSignal ? "" : " is-unsure"}`}
@@ -479,6 +514,7 @@ export function CardDetailView({
             <WrongSpotReport
               cardId={card.id}
               spot={history.last_price ?? card.price}
+              initialReport={detail.spot_report ?? null}
             />
             <div className="detail-fold-actions">
               <Link href="/portfolio#watchlist" className="btn-ghost">
