@@ -57,15 +57,15 @@ Self-score after detail desk pass: **~7.5 / 10**. 10/10 is **trust + cold path**
 
 | ID | Item | Why |
 | --- | --- | --- |
-| T3.1 | Pkmn / JustTCG **budget** so detail never goes blank | **Shipping** — chart status + never fake-blank |
-| T3.2 | Honest empty: what we know + what we don’t | **Shipping** — CM comps CTA + chart error/empty fork |
-| T3.3 | **US Asking ≠ EUR Asking** — labeled, never blended into Good | **Shipping** — US labels + € is FX note |
+| T3.1 | Pkmn / JustTCG **budget** so detail never goes blank | **Shipped** (#287) — chart status + never fake-blank |
+| T3.2 | Honest empty: what we know + what we don’t | **Shipped** (#287) — CM comps CTA + chart error/empty fork |
+| T3.3 | **US Asking ≠ EUR Asking** — labeled, never blended into Good | **Shipped** (#287) — US labels + € is FX note |
 
 ### Suggested next (post T0–T3 / G3 card)
 
 1. Keep **G2** cadence — ≥1 Twitter / Discord / Reddit share per week  
 2. Keep nightly **auto G0** green — reopen G0 if sniff fails  
-3. Watch Data Health **Spend unlock** + wrong-spot SLA until both stay green
+3. Watch Data Health funnel: Pro → `alerts_activate` / Radar / Trade + spend unlock
 
 ### Explicit non-goals for 10/10
 
@@ -168,7 +168,7 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 
 1. Keep **G2** cadence — ≥1 Twitter / Discord / Reddit share per week  
 2. Keep nightly **auto G0** green — reopen G0 if sniff fails  
-3. Watch Data Health spend unlock until G0 + G3 + SLA stay green
+3. Watch Data Health funnel (incl. `alerts_activate`) + spend unlock until green
 
 ### Just shipped (ops / infra)
 

@@ -177,7 +177,17 @@ export function ProView({
           {t("pro_alerts_title")}
         </h2>
         <p className="explore-lede">{t("pro_alerts_lede")}</p>
-        <Link href="/portfolio#watchlist" className="btn-ghost">
+        <Link
+          href="/portfolio#watchlist"
+          className="btn-ghost"
+          onClick={() =>
+            trackFunnel("pro_open_alerts", {
+              is_pro: paidPro,
+              open_beta: openBeta,
+              source: "pro_teaser",
+            })
+          }
+        >
           {t("pro_alerts_cta")}
         </Link>
       </section>
