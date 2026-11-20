@@ -102,19 +102,16 @@ export function ProView({
               {t("pro_open_radar")}
             </Link>
             <Link
-              href="/trade"
+              href="/portfolio#watchlist"
               className="btn-ghost"
               onClick={() =>
-                trackFunnel("pro_open_trade", {
+                trackFunnel("pro_open_alerts", {
                   is_pro: paidPro,
                   open_beta: openBeta,
                 })
               }
             >
-              {t("pro_open_trade")}
-            </Link>
-            <Link href="/dealer" className="btn-ghost">
-              {t("pro_open_dealer")}
+              {t("pro_open_alerts")}
             </Link>
             {paidPro && portalUrl ? (
               <a href={portalUrl} className="btn-ghost" rel="noreferrer">
@@ -155,16 +152,6 @@ export function ProView({
             >
               {t("pro_open_radar")}
             </Link>
-            <Link
-              href="/trade"
-              className="btn-ghost"
-              onClick={() => trackFunnel("pro_open_trade", { is_pro: false })}
-            >
-              {t("pro_open_trade")}
-            </Link>
-            <Link href="/dealer" className="btn-ghost">
-              {t("pro_open_dealer")}
-            </Link>
             {!user ? (
               <Link href="/signin?next=/pro" className="btn-ghost">
                 {t("auth_sign_in")}
@@ -181,23 +168,26 @@ export function ProView({
         openBeta={openBeta}
       />
 
+      <section className="pro-alerts-teaser" aria-labelledby="pro-alerts-title">
+        <h2 id="pro-alerts-title" className="pro-guides-title">
+          {t("pro_alerts_title")}
+        </h2>
+        <p className="explore-lede">{t("pro_alerts_lede")}</p>
+        <Link href="/portfolio#watchlist" className="btn-ghost">
+          {t("pro_alerts_cta")}
+        </Link>
+      </section>
+
       <ul className="pro-feature-list">
         <li>{t("pro_f1")}</li>
         <li>{t("pro_f2")}</li>
-        <li>{t("pro_f3")}</li>
       </ul>
 
-      <section className="pro-guides" aria-labelledby="pro-guides-title">
-        <h2 id="pro-guides-title" className="pro-guides-title">
-          {t("pro_guides_title")}
-        </h2>
-        <nav className="pro-guides-nav" aria-label={t("pro_guides_title")}>
-          <Link href="/guides/pokemon-tcg-fair-value">{t("landing_guides_fair")}</Link>
-          <Link href="/guides/should-i-grade">{t("landing_guides_grade")}</Link>
-          <Link href="/guides/trade-fairness">{t("landing_guides_trade")}</Link>
-          <Link href="/guides">{t("guides_all")}</Link>
-        </nav>
-      </section>
+      <p className="lot-meta pro-more-desks">
+        <Link href="/trade">{t("pro_open_trade")}</Link>
+        {" · "}
+        <Link href="/dealer">{t("pro_open_dealer")}</Link>
+      </p>
     </main>
   );
 }

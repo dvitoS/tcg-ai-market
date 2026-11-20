@@ -265,9 +265,14 @@ export function CardDetailView({
           </div>
 
           <p className="detail-asof">
-            {history.last_date
-              ? t("detail_spot_asof_chip", { date: history.last_date })
-              : t("detail_spot_asof_today")}
+            {(() => {
+              const today = new Date().toISOString().slice(0, 10);
+              const asof = history.last_date || null;
+              if (!asof || asof === today) {
+                return t("detail_prices_checked_today");
+              }
+              return t("detail_prices_checked_date", { date: asof });
+            })()}
           </p>
 
           <div className="detail-fair-row">

@@ -28,30 +28,30 @@ Self-score after detail desk pass: **~7.5 / 10**. 10/10 is **trust + cold path**
 
 ### Phases (ship in order)
 
-#### T0 — Trust on detail *(7.5 → 8.5)* — **NEXT**
+#### T0 — Trust on detail *(7.5 → 8.5)* — **SHIPPED**
 
 | ID | Item | Why |
 | --- | --- | --- |
-| T0.1 | **Match-quality badge** next to Asking (high / med / low) | **Shipping** — low match quiets buy/skip |
-| T0.2 | **Wrong-spot report → heal → “fixed”** visible on detail | **Shipping** — report-status + Price updated chip |
-| T0.3 | Never **fake-empty** comps (TCP/CM pattern) | Empty must mean empty, not silent failure |
-| T0.4 | User-facing “prices checked today” (no ops jargon) | Prove freshness without System status |
+| T0.1 | **Match-quality badge** next to Asking (high / med / low) | **Shipped** — low match quiets buy/skip |
+| T0.2 | **Wrong-spot report → heal → “fixed”** visible on detail | **Shipped** — report-status + Price updated chip |
+| T0.3 | Never **fake-empty** comps (TCP/CM pattern) | **Shipped** — #279 + T3 CM CTA |
+| T0.4 | User-facing “prices checked today” (no ops jargon) | **Shipping** — freshness chip on detail |
 
-#### T1 — Cold path 30s *(8.5 → 9)*
-
-| ID | Item | Why |
-| --- | --- | --- |
-| T1.1 | Soft-nav detail **LCP** — search → card under ~1s | **Shipping** — browse pick → card + loading shell + low art preload |
-| T1.2 | Share / DOTD / Radar paste = **same numbers** as live detail | **Shipping** — shared `deskNumbers` price-gap everywhere |
-| T1.3 | Landing hero stays **one job** | One card, two prices, one call |
-
-#### T2 — Desk that pays rent *(9 → 9.5)*
+#### T1 — Cold path 30s *(8.5 → 9)* — **SHIPPED**
 
 | ID | Item | Why |
 | --- | --- | --- |
-| T2.1 | Radar = **sure looks-cheap** only + plain why | **Shipping** — under-only desk, plain why |
-| T2.2 | Trade = **one-screen** even / you’re ahead / they’re ahead | **Shipping** — sticky verdict + good-price net |
-| T2.3 | Pro wedge: **daily looks-cheap + alerts** | One reason for €7, not six desks |
+| T1.1 | Soft-nav detail **LCP** — search → card under ~1s | **Shipped** — browse pick → card + loading shell + low art preload |
+| T1.2 | Share / DOTD / Radar paste = **same numbers** as live detail | **Shipped** — shared `deskNumbers` price-gap everywhere |
+| T1.3 | Landing hero stays **one job** | **Shipping** — one card, one CTA, pulse below DOTD |
+
+#### T2 — Desk that pays rent *(9 → 9.5)* — **SHIPPED**
+
+| ID | Item | Why |
+| --- | --- | --- |
+| T2.1 | Radar = **sure looks-cheap** only + plain why | **Shipped** — under-only desk, plain why |
+| T2.2 | Trade = **one-screen** even / you’re ahead / they’re ahead | **Shipped** — sticky verdict + good-price net |
+| T2.3 | Pro wedge: **daily looks-cheap + alerts** | **Shipping** — /pro deals + alerts primary |
 
 #### T3 — Invisible reliability *(9.5 → 10)* — parallel
 
@@ -61,11 +61,11 @@ Self-score after detail desk pass: **~7.5 / 10**. 10/10 is **trust + cold path**
 | T3.2 | Honest empty: what we know + what we don’t | **Shipping** — CM comps CTA + chart error/empty fork |
 | T3.3 | **US Asking ≠ EUR Asking** — labeled, never blended into Good | **Shipping** — US labels + € is FX note |
 
-### Suggested next 3 PRs
+### Suggested next (post T0–T3)
 
-1. **T0.1 + T0.2** — match-quality badge + wrong-spot fixed loop on detail  
-2. **T1.1 + T1.2** — soft-nav LCP + share number parity  
-3. **T2.1 + T2.2** — Radar sure-only trim + Trade one-screen verdict  
+1. **G3 trust week** *(ops)* — `docs/G3_METRICS_CHECKLIST.md` then M4.5 spend unlock  
+2. Keep **G2** cadence — ≥1 Twitter / Discord / Reddit share per week  
+3. Keep nightly **auto G0** green — reopen G0 if sniff fails  
 
 ### Explicit non-goals for 10/10
 
