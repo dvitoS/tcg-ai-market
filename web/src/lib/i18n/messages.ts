@@ -921,6 +921,8 @@ const en = {
   chart_no_key: "Showing saved market history.",
   chart_just_fallback: "Live NM empty — showing saved market history.",
   chart_just_from_db: "NM from nightly sync (saved) — no live call.",
+  chart_coverage_short:
+    "On file: ~{days} days (this range asks for {want}). Timeline keeps real date gaps.",
   chart_psa_rate_limited:
     "PSA 10 paused — rate limit. Try again later.",
   chart_psa_unavailable: "PSA 10 comps unavailable right now.",
@@ -2069,6 +2071,8 @@ const hr: Dictionary = {
   chart_no_key: "Prikazujem spremljenu market povijest.",
   chart_just_fallback: "Live NM prazan — prikazujem spremljenu market povijest.",
   chart_just_from_db: "NM iz noćnog synca (spremljeno) — bez live poziva.",
+  chart_coverage_short:
+    "Na fileu: ~{days} dana (ovaj raspon traži {want}). Vremenska os čuva prave rupe.",
   chart_psa_rate_limited:
     "PSA 10 pauziran — rate limit. Pokušaj kasnije.",
   chart_psa_unavailable: "PSA 10 comps trenutno nisu dostupni.",

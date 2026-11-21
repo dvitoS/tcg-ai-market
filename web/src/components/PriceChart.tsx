@@ -36,16 +36,49 @@ const CONDITIONS: ChartCondition[] = ["NM", "LP", "MP"];
 const CHART_COLOR = "#B87333";
 const CM_CHART_COLOR = "#5B7C99";
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function pointTs(date: string): number {
+  return new Date(`${date}T00:00:00Z`).getTime();
+}
+
+/** Drop junk that collapses the Y domain (≤0 / NaN). */
+function sanitizePoints(points: HistoryPoint[]): HistoryPoint[] {
+  return points.filter((p) => {
+    const price = Number(p.price);
+    return Boolean(p.date) && Number.isFinite(price) && price > 0;
+  });
+}
+
 function clipPoints(points: HistoryPoint[], range: RangeKey): HistoryPoint[] {
   const cfg = RANGES.find((r) => r.key === range);
   if (!cfg?.days || points.length === 0) return points;
-  const last = new Date(
-    `${points[points.length - 1].date}T00:00:00Z`,
-  ).getTime();
-  const cutoff = last - cfg.days * 24 * 60 * 60 * 1000;
-  return points.filter(
-    (p) => new Date(`${p.date}T00:00:00Z`).getTime() >= cutoff,
-  );
+  const last = pointTs(points[points.length - 1].date);
+  const cutoff = last - cfg.days * DAY_MS;
+  return points.filter((p) => pointTs(p.date) >= cutoff);
+}
+
+/** Full selected window ending at the last point — short history leaves empty left pad. */
+function rangeDomainMs(
+  points: HistoryPoint[],
+  range: RangeKey,
+): [number, number] | ["dataMin", "dataMax"] {
+  if (!points.length) return ["dataMin", "dataMax"];
+  const last = pointTs(points[points.length - 1].date);
+  const first = pointTs(points[0].date);
+  const cfg = RANGES.find((r) => r.key === range);
+  if (cfg?.days) {
+    return [last - cfg.days * DAY_MS, last];
+  }
+  return [first, last];
+}
+
+function coverageDays(points: HistoryPoint[]): number {
+  if (!points.length) return 0;
+  if (points.length === 1) return 1;
+  const first = pointTs(points[0].date);
+  const last = pointTs(points[points.length - 1].date);
+  return Math.max(1, Math.round((last - first) / DAY_MS) + 1);
 }
 
 function shortDate(value: string, locale: string): string {
@@ -57,15 +90,41 @@ function shortDate(value: string, locale: string): string {
   });
 }
 
+function shortDateFromTs(ts: number, locale: string): string {
+  return shortDate(new Date(ts).toISOString().slice(0, 10), locale);
+}
+
+/** Break the stroke across long missing stretches so 1Y doesn't invent a ramp. */
+const GAP_BREAK_DAYS = 14;
+
 function toChartRows(
   points: HistoryPoint[],
   locale: string,
 ): Array<Record<string, string | number | null>> {
-  return points.map((p) => ({
-    date: p.date,
-    label: shortDate(p.date, locale),
-    price: Number(p.price),
-  }));
+  const rows: Array<Record<string, string | number | null>> = [];
+  for (let i = 0; i < points.length; i += 1) {
+    const p = points[i];
+    const ts = pointTs(p.date);
+    if (i > 0) {
+      const prevTs = pointTs(points[i - 1].date);
+      const gapDays = (ts - prevTs) / DAY_MS;
+      if (gapDays > GAP_BREAK_DAYS) {
+        rows.push({
+          date: "",
+          label: "",
+          ts: prevTs + Math.min(gapDays, GAP_BREAK_DAYS) * DAY_MS * 0.5,
+          price: null,
+        });
+      }
+    }
+    rows.push({
+      date: p.date,
+      label: shortDate(p.date, locale),
+      ts,
+      price: Number(p.price),
+    });
+  }
+  return rows;
 }
 
 function preferredFinish(finishes: string[]): string | null {
@@ -219,13 +278,28 @@ export function PriceChart({
   const cmAll = sources?.cardmarket?.length ? sources.cardmarket : [];
   const activeAll = market === "cardmarket" ? cmAll : nmAll;
   const clipped = useMemo(
-    () => clipPoints(activeAll, range),
+    () => clipPoints(sanitizePoints(activeAll), range),
     [activeAll, range],
   );
   const chartData = useMemo(
     () => toChartRows(clipped, locale),
     [clipped, locale],
   );
+  const xDomain = useMemo(
+    () => rangeDomainMs(clipped, range),
+    [clipped, range],
+  );
+  const rangeWantDays = RANGES.find((r) => r.key === range)?.days ?? null;
+  const coveredDays = coverageDays(clipped);
+  const coverageNote =
+    rangeWantDays != null &&
+    clipped.length > 0 &&
+    coveredDays < Math.floor(rangeWantDays * 0.85)
+      ? t("chart_coverage_short", {
+          days: String(coveredDays),
+          want: String(rangeWantDays),
+        })
+      : null;
 
   const isCm = market === "cardmarket";
   const seriesColor = isCm ? CM_CHART_COLOR : CHART_COLOR;
@@ -363,6 +437,9 @@ export function PriceChart({
       {usBudgetNote && chartData.length > 0 ? (
         <p className="chart-sources-status">{usBudgetNote}</p>
       ) : null}
+      {coverageNote ? (
+        <p className="chart-sources-status">{coverageNote}</p>
+      ) : null}
       {usError && chartData.length > 0 ? (
         <p className="chart-sources-status">{usError}</p>
       ) : null}
@@ -418,11 +495,17 @@ export function PriceChart({
               </defs>
               <CartesianGrid stroke="rgba(42,42,42,0.9)" vertical={false} />
               <XAxis
-                dataKey="label"
+                dataKey="ts"
+                type="number"
+                scale="time"
+                domain={xDomain}
                 tick={{ fill: "#a1a1aa", fontSize: 12 }}
                 axisLine={false}
                 tickLine={false}
-                minTickGap={28}
+                minTickGap={36}
+                tickFormatter={(ts) =>
+                  typeof ts === "number" ? shortDateFromTs(ts, locale) : ""
+                }
               />
               <YAxis
                 tick={{ fill: "#a1a1aa", fontSize: 12 }}
@@ -430,7 +513,8 @@ export function PriceChart({
                 tickLine={false}
                 width={56}
                 tickFormatter={(v) => `${tickPrefix}${Number(v).toFixed(2)}`}
-                domain={["auto", "auto"]}
+                domain={[0, "auto"]}
+                allowDataOverflow={false}
               />
               <Tooltip
                 contentStyle={{
@@ -440,6 +524,14 @@ export function PriceChart({
                   color: "#f4f4f5",
                 }}
                 labelStyle={{ color: "#a1a1aa" }}
+                labelFormatter={(_, payload) => {
+                  const row = payload?.[0]?.payload as
+                    | { date?: string }
+                    | undefined;
+                  return row?.date
+                    ? shortDate(row.date, locale)
+                    : "";
+                }}
                 formatter={(value) => [
                   typeof value === "number"
                     ? formatMoney(value, moneyCur, 4)
@@ -456,7 +548,7 @@ export function PriceChart({
                 strokeWidth={2.2}
                 fill={`url(#${isCm ? "cmPriceFill" : "priceFill"})`}
                 dot={false}
-                connectNulls
+                connectNulls={false}
                 activeDot={{
                   r: 4,
                   fill: isCm ? "#8FA8C0" : "#D4A574",
