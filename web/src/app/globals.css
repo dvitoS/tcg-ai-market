@@ -754,6 +754,10 @@ a {
 
 .btn-primary,
 .btn-ghost {
+  /* inline-flex: padding on bare <a class="btn-*"> must reserve layout space */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   position: relative;
   overflow: hidden;
   border-radius: 10px;
@@ -6648,11 +6652,33 @@ a {
   margin-top: 1rem;
 }
 
+.pro-alerts-teaser {
+  margin-top: 2rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(46, 41, 36, 0.9);
+  display: grid;
+  gap: 0.85rem;
+  justify-items: start;
+}
+
+.pro-alerts-teaser .pro-guides-title {
+  margin: 0;
+}
+
+.pro-alerts-teaser .explore-lede {
+  margin: 0;
+  max-width: 36rem;
+}
+
 .pro-feature-list {
-  margin: 1.75rem 0 0;
+  margin: 1.5rem 0 0;
   padding-left: 1.1rem;
   color: var(--muted);
   line-height: 1.7;
+}
+
+.pro-more-desks {
+  margin-top: 1.25rem;
 }
 
 .add-lot-panel {
