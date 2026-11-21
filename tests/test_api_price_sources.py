@@ -254,6 +254,51 @@ def test_card_price_sources_condition_lp(monkeypatch) -> None:
     assert body["pkmnprices_used"] is True
 
 
+def test_card_price_sources_condition_mp_empty_does_not_reuse_nm(
+    monkeypatch,
+) -> None:
+    """Empty MP history must not paint the NM DB series under an MP selection."""
+    monkeypatch.setattr("api.price_sources_service.justtcg_api_key", lambda: "")
+    monkeypatch.setattr(
+        "api.price_sources_service._market_history_is_fresh",
+        lambda _m: True,
+    )
+    monkeypatch.setattr(
+        "api.price_sources_service._resolve_tcp_from_board",
+        lambda _cid: ("Pikachu", "Base", "4242"),
+    )
+    monkeypatch.setattr(
+        "api.price_sources_service.load_card_history",
+        lambda *_a, **_k: [{"date": "2024-06-01", "price": 9.0}],
+    )
+    monkeypatch.setattr("pkmnprices_client.pkmnprices_configured", lambda: True)
+
+    def _nm(_tcp, *, period="90d", limit=120, currency="usd", variant=None, condition=None):
+        assert condition == "MP"
+        return []
+
+    monkeypatch.setattr("pkmnprices_client.nm_history_for_tcgplayer_id", _nm)
+
+    from api.price_sources_service import (
+        build_card_price_sources,
+        clear_price_sources_cache,
+        reset_live_pkmn_nm_budget_for_tests,
+    )
+
+    clear_price_sources_cache()
+    reset_live_pkmn_nm_budget_for_tests()
+    body = build_card_price_sources(
+        "sv3-1", limit=60, grades="none", condition="MP"
+    )
+    assert body["condition"] == "MP"
+    assert body["justtcg"] == []
+    assert body["justtcg_from_db"] is False
+    assert body["pkmnprices_used"] is False
+    assert "MP" in (body.get("pkmnprices_error") or "")
+    # NM market series stays available separately — never as the MP chart.
+    assert body["tcgplayer"][0]["price"] == 9.0
+
+
 def test_card_price_sources_cardmarket_reuses_usd_cache(monkeypatch) -> None:
     """Opening the CM tab must not re-fetch USD NM when cm=0 is warm."""
     monkeypatch.setattr("api.price_sources_service.justtcg_api_key", lambda: "")

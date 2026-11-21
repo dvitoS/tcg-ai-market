@@ -386,80 +386,83 @@ def _build_card_price_sources_uncached(
     use_db_nm = _market_history_is_fresh(market)
     nm_outcome: str | None = None
 
-    # Fresh DB history is primary whether or not JustTCG is configured
-    # (cutover: Soft Ink must keep working with PKMN_API_KEY alone).
-    if use_db_nm:
-        justtcg = list(market)
-        justtcg_from_db = True
-        nm_outcome = "db"
-        LOG.info(
-            "using DB NM history for %s (%s pts) — skip live NM",
-            card_id,
-            len(market),
-        )
-    elif grades_mode != "none":
-        # Graded follow-up: reuse DB market for NM — never spend a second live NM call.
-        if market:
+    # Fresh DB / live JustTCG history is NM-only. LP/MP must not inherit that series —
+    # otherwise the chart looks like the selected condition while plotting NM.
+    if not want_non_nm:
+        # Fresh DB history is primary whether or not JustTCG is configured
+        # (cutover: Soft Ink must keep working with PKMN_API_KEY alone).
+        if use_db_nm:
             justtcg = list(market)
             justtcg_from_db = True
             nm_outcome = "db"
-        else:
-            nm_outcome = None
-    elif has_key:
-        if not _try_consume_live_nm_budget():
-            # Daily Soft Ink live budget exhausted — serve stale DB, don't crash quota.
+            LOG.info(
+                "using DB NM history for %s (%s pts) — skip live NM",
+                card_id,
+                len(market),
+            )
+        elif grades_mode != "none":
+            # Graded follow-up: reuse DB market for NM — never spend a second live NM call.
             if market:
                 justtcg = list(market)
                 justtcg_from_db = True
                 nm_outcome = "db"
-                LOG.info(
-                    "live NM budget exhausted — using DB for %s (%s pts)",
-                    card_id,
-                    len(market),
-                )
             else:
                 nm_outcome = None
-                justtcg_error = "JustTCG live NM daily budget exhausted."
-        else:
-            try:
-                from justtcg_client import nm_history_for_card
-
-                points, resolved = nm_history_for_card(
-                    tcgplayer_id=tcp,
-                    name=name,
-                    number=number or None,
-                    set_name=set_name or None,
-                )
-                if resolved:
-                    tcp = str(resolved)
-                justtcg = _points_from_rows(points)
-                if justtcg:
-                    nm_outcome = "live"
+        elif has_key:
+            if not _try_consume_live_nm_budget():
+                # Daily Soft Ink live budget exhausted — serve stale DB, don't crash quota.
+                if market:
+                    justtcg = list(market)
+                    justtcg_from_db = True
+                    nm_outcome = "db"
+                    LOG.info(
+                        "live NM budget exhausted — using DB for %s (%s pts)",
+                        card_id,
+                        len(market),
+                    )
                 else:
-                    nm_outcome = "empty"
-            except JustTCGRateLimitError as exc:
-                rate_limited = True
-                justtcg_error = "JustTCG rate limited — try again later."
-                nm_outcome = "error"
-                LOG.warning("nm_history_for_card rate-limited for %s", card_id)
-                _ = exc
-            except Exception as exc:
-                justtcg_error = str(exc)[:180]
-                nm_outcome = "error"
-                LOG.info("nm_history_for_card failed for %s: %s", card_id, exc)
+                    nm_outcome = None
+                    justtcg_error = "JustTCG live NM daily budget exhausted."
+            else:
+                try:
+                    from justtcg_client import nm_history_for_card
 
-            if not justtcg and market:
-                justtcg = list(market)
-                justtcg_fallback = True
-                nm_outcome = "fallback"
-    elif market:
-        # No JustTCG key — still paint the chart series from DB; live Pkmn may refresh below.
-        justtcg = list(market)
-        justtcg_from_db = True
-        nm_outcome = "db"
+                    points, resolved = nm_history_for_card(
+                        tcgplayer_id=tcp,
+                        name=name,
+                        number=number or None,
+                        set_name=set_name or None,
+                    )
+                    if resolved:
+                        tcp = str(resolved)
+                    justtcg = _points_from_rows(points)
+                    if justtcg:
+                        nm_outcome = "live"
+                    else:
+                        nm_outcome = "empty"
+                except JustTCGRateLimitError as exc:
+                    rate_limited = True
+                    justtcg_error = "JustTCG rate limited — try again later."
+                    nm_outcome = "error"
+                    LOG.warning("nm_history_for_card rate-limited for %s", card_id)
+                    _ = exc
+                except Exception as exc:
+                    justtcg_error = str(exc)[:180]
+                    nm_outcome = "error"
+                    LOG.info("nm_history_for_card failed for %s: %s", card_id, exc)
 
-    if nm_outcome and has_key:
-        record_justtcg_event(nm_outcome)
+                if not justtcg and market:
+                    justtcg = list(market)
+                    justtcg_fallback = True
+                    nm_outcome = "fallback"
+        elif market:
+            # No JustTCG key — still paint the chart series from DB; live Pkmn may refresh below.
+            justtcg = list(market)
+            justtcg_from_db = True
+            nm_outcome = "db"
+
+        if nm_outcome and has_key:
+            record_justtcg_event(nm_outcome)
 
     # PkmnPrices: fill empty NM, or refresh when JustTCG key is gone and DB was stale.
     pkmn_configured = False
@@ -489,13 +492,18 @@ def _build_card_price_sources_uncached(
     )
     if want_pkmn_nm:
         if not _try_consume_live_pkmn_nm_budget():
-            if not justtcg and market:
+            if want_non_nm:
+                justtcg = []
+                justtcg_from_db = False
+                justtcg_fallback = False
+                pkmn_error = "PkmnPrices Soft Ink live NM daily budget exhausted."
+            elif not justtcg and market:
                 justtcg = list(market)
                 justtcg_from_db = True
                 justtcg_fallback = True
             elif not justtcg:
                 pkmn_error = "PkmnPrices Soft Ink live NM daily budget exhausted."
-            elif want_variant or want_non_nm:
+            elif want_variant:
                 pkmn_error = "PkmnPrices Soft Ink live NM daily budget exhausted."
         else:
             try:
@@ -528,24 +536,43 @@ def _build_card_price_sources_uncached(
                         f"PkmnPrices returned no {condition_code} history"
                         + (f" for {want_variant}." if want_variant else ".")
                     )
-                    if not justtcg and market and not want_non_nm:
+                    if want_non_nm:
+                        justtcg = []
+                        justtcg_from_db = False
+                        justtcg_fallback = False
+                    elif not justtcg and market:
                         justtcg = list(market)
                         justtcg_from_db = True
                         justtcg_fallback = True
             except PkmnPricesRateLimitError:
                 pkmn_error = "PkmnPrices rate/credit limited — try again later."
                 LOG.warning("PkmnPrices rate-limited for %s", card_id)
-                if not justtcg and market and not want_non_nm:
+                if want_non_nm:
+                    justtcg = []
+                    justtcg_from_db = False
+                    justtcg_fallback = False
+                elif not justtcg and market:
                     justtcg = list(market)
                     justtcg_from_db = True
                     justtcg_fallback = True
             except Exception as exc:
                 pkmn_error = str(exc)[:180]
                 LOG.info("PkmnPrices NM fill failed for %s: %s", card_id, exc)
-                if not justtcg and market and not want_non_nm:
+                if want_non_nm:
+                    justtcg = []
+                    justtcg_from_db = False
+                    justtcg_fallback = False
+                elif not justtcg and market:
                     justtcg = list(market)
                     justtcg_from_db = True
                     justtcg_fallback = True
+    elif want_non_nm and not justtcg:
+        if not pkmn_configured:
+            pkmn_error = f"PkmnPrices required for {condition_code} history."
+        elif not tcp:
+            pkmn_error = (
+                f"No TCGplayer id — cannot load {condition_code} history."
+            )
 
     # Cardmarket history (EUR) — opt-in so Soft Ink detail does not burn credits until the CM tab opens.
     cardmarket_series: list[dict[str, Any]] = []
