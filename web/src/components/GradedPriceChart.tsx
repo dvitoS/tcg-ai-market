@@ -34,16 +34,39 @@ const GRADE_META: Record<GradeKey, { color: string; dash?: string }> = {
   psa9: { color: "#8b9dc3", dash: "5 4" },
 };
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function pointTs(date: string): number {
+  return new Date(`${date}T00:00:00Z`).getTime();
+}
+
+function sanitizePoints(points: HistoryPoint[]): HistoryPoint[] {
+  return points.filter((p) => {
+    const price = Number(p.price);
+    return Boolean(p.date) && Number.isFinite(price) && price > 0;
+  });
+}
+
 function clipPoints(points: HistoryPoint[], range: RangeKey): HistoryPoint[] {
   const cfg = RANGES.find((r) => r.key === range);
   if (!cfg?.days || points.length === 0) return points;
-  const last = new Date(
-    `${points[points.length - 1].date}T00:00:00Z`,
-  ).getTime();
-  const cutoff = last - cfg.days * 24 * 60 * 60 * 1000;
-  return points.filter(
-    (p) => new Date(`${p.date}T00:00:00Z`).getTime() >= cutoff,
-  );
+  const last = pointTs(points[points.length - 1].date);
+  const cutoff = last - cfg.days * DAY_MS;
+  return points.filter((p) => pointTs(p.date) >= cutoff);
+}
+
+function rangeDomainMs(
+  points: HistoryPoint[],
+  range: RangeKey,
+): [number, number] | ["dataMin", "dataMax"] {
+  if (!points.length) return ["dataMin", "dataMax"];
+  const last = pointTs(points[points.length - 1].date);
+  const first = pointTs(points[0].date);
+  const cfg = RANGES.find((r) => r.key === range);
+  if (cfg?.days) {
+    return [last - cfg.days * DAY_MS, last];
+  }
+  return [first, last];
 }
 
 function shortDate(value: string, locale: string): string {
@@ -53,6 +76,10 @@ function shortDate(value: string, locale: string): string {
     day: "numeric",
     timeZone: "UTC",
   });
+}
+
+function shortDateFromTs(ts: number, locale: string): string {
+  return shortDate(new Date(ts).toISOString().slice(0, 10), locale);
 }
 
 function mergeGradeSeries(
@@ -65,6 +92,7 @@ function mergeGradeSeries(
     byDate.set(p.date, {
       date: p.date,
       label: shortDate(p.date, locale),
+      ts: pointTs(p.date),
       psa10: Number(p.price),
       psa9: null,
     });
@@ -73,14 +101,15 @@ function mergeGradeSeries(
     const row = byDate.get(p.date) || {
       date: p.date,
       label: shortDate(p.date, locale),
+      ts: pointTs(p.date),
       psa10: null,
       psa9: null,
     };
     row.psa9 = Number(p.price);
     byDate.set(p.date, row);
   }
-  return Array.from(byDate.values()).sort((a, b) =>
-    String(a.date).localeCompare(String(b.date)),
+  return Array.from(byDate.values()).sort(
+    (a, b) => Number(a.ts) - Number(b.ts),
   );
 }
 
@@ -99,7 +128,7 @@ export function GradedPriceChart({
     Number(nmSpotUsd) >= GRADED_AUTO_MIN_USD;
 
   const [armed, setArmed] = useState(autoArm);
-  const [range, setRange] = useState<RangeKey>("3m");
+  const [range, setRange] = useState<RangeKey>("1y");
   const [psa10, setPsa10] = useState<HistoryPoint[]>([]);
   const [psa9, setPsa9] = useState<HistoryPoint[]>([]);
   const [sales10, setSales10] = useState<number | null>(null);
@@ -129,8 +158,8 @@ export function GradedPriceChart({
     let alive = true;
     setLoading(true);
     setError(null);
-    // PSA 9 + 10 — "all graded" comps for Soft Ink detail.
-    void fetchCardPriceSources(cardId, { grades: "all" })
+    // PSA 9 + 10 — ask for a long series so the 1Y toggle has room.
+    void fetchCardPriceSources(cardId, { grades: "all", limit: 400 })
       .then((payload) => {
         if (!alive) return;
         const err = payload.psa10_error || payload.psa9_error;
@@ -169,11 +198,34 @@ export function GradedPriceChart({
     };
   }, [armed, cardId, t]);
 
-  const psa10Clip = useMemo(() => clipPoints(psa10, range), [psa10, range]);
-  const psa9Clip = useMemo(() => clipPoints(psa9, range), [psa9, range]);
+  const psa10Clip = useMemo(
+    () => clipPoints(sanitizePoints(psa10), range),
+    [psa10, range],
+  );
+  const psa9Clip = useMemo(
+    () => clipPoints(sanitizePoints(psa9), range),
+    [psa9, range],
+  );
   const chartData = useMemo(
     () => mergeGradeSeries(psa10Clip, psa9Clip, locale),
     [psa10Clip, psa9Clip, locale],
+  );
+  const xDomain = useMemo(
+    (): [number, number] | ["dataMin", "dataMax"] => {
+      const dates = [
+        ...psa10Clip.map((p) => p.date),
+        ...psa9Clip.map((p) => p.date),
+      ].sort();
+      if (!dates.length) return ["dataMin", "dataMax"];
+      return rangeDomainMs(
+        [
+          { date: dates[0], price: 1 },
+          { date: dates[dates.length - 1], price: 1 },
+        ],
+        range,
+      );
+    },
+    [psa10Clip, psa9Clip, range],
   );
   const hasSeries = chartData.length > 0;
 
@@ -283,11 +335,17 @@ export function GradedPriceChart({
               >
                 <CartesianGrid stroke="rgba(42,42,42,0.9)" vertical={false} />
                 <XAxis
-                  dataKey="label"
+                  dataKey="ts"
+                  type="number"
+                  scale="time"
+                  domain={xDomain}
                   tick={{ fill: "#a1a1aa", fontSize: 12 }}
                   axisLine={false}
                   tickLine={false}
-                  minTickGap={28}
+                  minTickGap={36}
+                  tickFormatter={(ts) =>
+                    typeof ts === "number" ? shortDateFromTs(ts, locale) : ""
+                  }
                 />
                 <YAxis
                   tick={{ fill: "#a1a1aa", fontSize: 12 }}
@@ -295,7 +353,7 @@ export function GradedPriceChart({
                   tickLine={false}
                   width={56}
                   tickFormatter={(v) => `$${Number(v).toFixed(0)}`}
-                  domain={["auto", "auto"]}
+                  domain={[0, "auto"]}
                 />
                 <Tooltip
                   contentStyle={{
@@ -305,6 +363,12 @@ export function GradedPriceChart({
                     color: "#f4f4f5",
                   }}
                   labelStyle={{ color: "#a1a1aa" }}
+                  labelFormatter={(_, payload) => {
+                    const row = payload?.[0]?.payload as
+                      | { date?: string }
+                      | undefined;
+                    return row?.date ? shortDate(row.date, locale) : "";
+                  }}
                   formatter={(value, name) => [
                     typeof value === "number"
                       ? formatMoney(value, "USD", 2)

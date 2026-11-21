@@ -17,8 +17,22 @@ from typing import Any
 LOG = logging.getLogger("tcg.justtcg")
 
 # Narrow periods + history windows (docs: include=periods.Xd narrows response).
-JUSTTCG_PSA10_HISTORY_INCLUDE = "periods.30d,periods.90d,periods.1y,price_history.90d"
+# Soft Ink graded chart has a 1Y toggle — request price_history.1y (not 90d).
+JUSTTCG_PSA10_HISTORY_INCLUDE = "periods.30d,periods.90d,periods.1y,price_history.1y"
 JUSTTCG_PSA_HISTORY_INCLUDE = JUSTTCG_PSA10_HISTORY_INCLUDE
+
+
+def _psa_history_include() -> str:
+    """Respect JUSTTCG_HISTORY_DURATION (nightly Soft Ink = 1y)."""
+    try:
+        from config import JUSTTCG_HISTORY_DURATION
+
+        duration = str(JUSTTCG_HISTORY_DURATION or "1y").strip() or "1y"
+    except Exception:
+        duration = "1y"
+    if duration in {"365", "365d", "year", "12m"}:
+        duration = "1y"
+    return f"periods.30d,periods.90d,periods.1y,price_history.{duration}"
 
 
 def _client():
@@ -211,7 +225,7 @@ def _graded_card_params(*, grades: list[float]) -> dict[str, Any]:
         "graded": "only",
         "grading_company": "PSA",
         "grade": _format_grade_param(grades),
-        "include": JUSTTCG_PSA_HISTORY_INCLUDE,
+        "include": _psa_history_include(),
         "regions": "NA",
     }
 
