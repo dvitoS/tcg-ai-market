@@ -858,9 +858,11 @@ def test_card_price_sources_pkmnprices_psa10_fallback(monkeypatch) -> None:
         lambda **_kwargs: ({10.0: ([], {"has_history_series": False})}, "555"),
     )
     monkeypatch.setattr("pkmnprices_client.pkmnprices_configured", lambda: True)
-    monkeypatch.setattr(
-        "pkmnprices_client.psa_history_for_tcgplayer_id",
-        lambda *_a, **_k: (
+    calls: list[dict] = []
+
+    def _psa(_tcp, *, grade=10, period="90d", limit=20):
+        calls.append({"grade": grade, "period": period, "limit": limit})
+        return (
             [
                 {"date": "2024-04-01", "price": 80.0},
                 {"date": "2024-04-02", "price": 82.0},
@@ -871,10 +873,11 @@ def test_card_price_sources_pkmnprices_psa10_fallback(monkeypatch) -> None:
                 "price": 82.0,
                 "price_status": "ebay_comps",
                 "canonical": "PSA 10",
-                "period_key": "90d",
+                "period_key": period,
             },
-        ),
-    )
+        )
+
+    monkeypatch.setattr("pkmnprices_client.psa_history_for_tcgplayer_id", _psa)
 
     from api.price_sources_service import build_card_price_sources, clear_price_sources_cache
 
@@ -884,3 +887,4 @@ def test_card_price_sources_pkmnprices_psa10_fallback(monkeypatch) -> None:
     assert len(body["psa10"]) == 2
     assert body["psa10"][1]["price"] == 82.0
     assert body["psa10_stats"]["price_status"] == "ebay_comps"
+    assert calls and calls[0]["period"] == "365d"

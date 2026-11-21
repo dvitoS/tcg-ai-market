@@ -24,7 +24,7 @@ LOG = logging.getLogger("tcg.justtcg")
 # NM + graded cards: prefer /v2/cards (beta). /sets and /games stay on v1.
 # Docs: https://justtcg.com/docs/api/cards-v2
 JUSTTCG_API_V2_BASE_URL = "https://api.justtcg.com/v2"
-JUSTTCG_PSA10_HISTORY_INCLUDE = "periods.30d,periods.90d,periods.1y,price_history.90d"
+JUSTTCG_PSA10_HISTORY_INCLUDE = "periods.30d,periods.90d,periods.1y,price_history.1y"
 # v2 examples use game id "pokemon" (not display name "Pokemon").
 JUSTTCG_GAME = "pokemon"
 JUSTTCG_REGION = "NA"

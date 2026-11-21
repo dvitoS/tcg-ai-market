@@ -24,7 +24,7 @@ def test_graded_card_params_match_docs() -> None:
     assert params["grade"] == "9,10"
     assert params["regions"] == "NA"
     assert "periods.90d" in params["include"]
-    assert "price_history.90d" in params["include"]
+    assert "price_history.1y" in params["include"]
 
 
 def test_pick_psa_prefers_current_without_qualifier() -> None:

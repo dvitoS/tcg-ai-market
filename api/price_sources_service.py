@@ -625,9 +625,17 @@ def _build_card_price_sources_uncached(
             )
 
             want_psa9 = grades_mode == "all"
+            # Match Soft Ink 1Y graded toggle — eBay comps window was stuck at 90d.
+            psa_hist_period = "365d"
+            psa_hist_limit = 20  # PkmnPrices eBay page max
             if not psa10:
                 try:
-                    pts, stats = psa_history_for_tcgplayer_id(tcp, grade=10, period="90d")
+                    pts, stats = psa_history_for_tcgplayer_id(
+                        tcp,
+                        grade=10,
+                        period=psa_hist_period,
+                        limit=psa_hist_limit,
+                    )
                     psa10 = _points_from_rows(pts)
                     if psa10:
                         psa10_stats = dict(stats or {})
@@ -635,10 +643,11 @@ def _build_card_price_sources_uncached(
                         pkmn_grades_used = True
                         pkmn_used = True
                         LOG.info(
-                            "PkmnPrices PSA10 fallback for %s (%s pts, tcp=%s)",
+                            "PkmnPrices PSA10 fallback for %s (%s pts, tcp=%s, %s)",
                             card_id,
                             len(psa10),
                             tcp,
+                            psa_hist_period,
                         )
                     elif not psa10_error:
                         psa10_error = "PkmnPrices returned no PSA 10 eBay comps."
@@ -652,7 +661,12 @@ def _build_card_price_sources_uncached(
 
             if want_psa9 and not psa9:
                 try:
-                    pts, stats = psa_history_for_tcgplayer_id(tcp, grade=9, period="90d")
+                    pts, stats = psa_history_for_tcgplayer_id(
+                        tcp,
+                        grade=9,
+                        period=psa_hist_period,
+                        limit=psa_hist_limit,
+                    )
                     psa9 = _points_from_rows(pts)
                     if psa9:
                         psa9_stats = dict(stats or {})
@@ -660,10 +674,11 @@ def _build_card_price_sources_uncached(
                         pkmn_grades_used = True
                         pkmn_used = True
                         LOG.info(
-                            "PkmnPrices PSA9 fallback for %s (%s pts, tcp=%s)",
+                            "PkmnPrices PSA9 fallback for %s (%s pts, tcp=%s, %s)",
                             card_id,
                             len(psa9),
                             tcp,
+                            psa_hist_period,
                         )
                     elif not psa9_error:
                         psa9_error = "PkmnPrices returned no PSA 9 eBay comps."
