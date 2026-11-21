@@ -7,6 +7,7 @@ import { DealOfTheDay } from "@/components/DealOfTheDay";
 import { HeroCardSlider } from "@/components/HeroCardSlider";
 import { MarketPulse } from "@/components/MarketPulse";
 import { DeferredSoftInkWash } from "@/components/DeferredSoftInkWash";
+import { OpenBetaPromo } from "@/components/OpenBetaPromo";
 import { TrustProof } from "@/components/TrustProof";
 import { useLocale } from "@/components/LocaleProvider";
 import { fetchRadarPreview } from "@/lib/api";
@@ -48,7 +49,9 @@ export function MarketingLanding({
   }, [dotd]);
 
   return (
-    <div className="landing">
+    <>
+      <OpenBetaPromo />
+      <div className="landing">
       <section className="landing-hero" aria-label="Kestrel">
         <div className="landing-hero-plane" aria-hidden>
           <img
@@ -152,6 +155,7 @@ export function MarketingLanding({
           </Link>
         </nav>
       </section>
-    </div>
+      </div>
+    </>
   );
 }
