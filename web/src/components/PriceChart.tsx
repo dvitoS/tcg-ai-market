@@ -304,8 +304,8 @@ export function PriceChart({
   const isCm = market === "cardmarket";
   const seriesColor = isCm ? CM_CHART_COLOR : CHART_COLOR;
   const seriesName = isCm
-    ? t("chart_series_cm_short")
-    : t("chart_series_tcg_short");
+    ? t("chart_series_cm_cond", { condition })
+    : t("chart_series_tcg_cond", { condition });
   const moneyCur = isCm ? "EUR" : "USD";
   const tickPrefix = isCm ? "€" : "$";
 
