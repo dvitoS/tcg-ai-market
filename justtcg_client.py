@@ -142,8 +142,14 @@ def _headers() -> dict[str, str]:
 
 
 def _v2_history_include() -> str:
-    """Narrow periods + price_history windows (docs: include=periods.Xd,price_history.Xd)."""
-    duration = str(JUSTTCG_HISTORY_DURATION or "90d").strip() or "90d"
+    """Narrow periods + price_history windows (docs: include=periods.Xd,price_history.Xd).
+
+    Soft Ink charts need 1Y; duration does not change JustTCG request cost
+    (1 HTTP call = 1 request). Default matches config JUSTTCG_HISTORY_DURATION.
+    """
+    duration = str(JUSTTCG_HISTORY_DURATION or "1y").strip() or "1y"
+    if duration in {"365", "365d", "year", "12m"}:
+        duration = "1y"
     return f"periods.{duration},price_history.{duration}"
 
 

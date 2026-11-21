@@ -159,7 +159,7 @@ export function PriceChart({
     () => preferredFinish(finishOptions),
     [finishOptions],
   );
-  const [range, setRange] = useState<RangeKey>("1m");
+  const [range, setRange] = useState<RangeKey>("1y");
   const [market, setMarket] = useState<MarketSource>("tcgplayer");
   // null = Soft Ink auto (DB / JustTCG / Pkmn with Holofoil preference) — no finish filter credit burn.
   const [finish, setFinish] = useState<string | null>(null);
