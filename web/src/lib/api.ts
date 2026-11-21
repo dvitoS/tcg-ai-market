@@ -238,6 +238,7 @@ export async function fetchCardPriceSources(
     cardmarket?: boolean;
     printing?: string | null;
     condition?: string | null;
+    signal?: AbortSignal;
   } = {},
 ): Promise<CardPriceSourcesResponse> {
   const limit = options.limit ?? 400;
@@ -247,8 +248,12 @@ export async function fetchCardPriceSources(
   const condition = (options.condition || "").trim().toUpperCase() || "";
   const condKey = condition && condition !== "NM" ? condition : "-";
   const key = `${cardId}|${limit}|${grades}|cm=${cardmarket ? 1 : 0}|p=${printing || "-"}|c=${condKey}`;
-  const existing = _priceSourcesInflight.get(key);
-  if (existing) return existing;
+  // Abortable callers (Cardmarket tab timeout) must not share the inflight map —
+  // one abort would cancel every waiter.
+  if (!options.signal) {
+    const existing = _priceSourcesInflight.get(key);
+    if (existing) return existing;
+  }
 
   const promise = (async () => {
     const qs = new URLSearchParams({
@@ -263,6 +268,7 @@ export async function fetchCardPriceSources(
       {
         headers: { Accept: "application/json" },
         cache: "no-store",
+        signal: options.signal,
       },
     );
     if (!res.ok) {
@@ -270,10 +276,10 @@ export async function fetchCardPriceSources(
     }
     return res.json() as Promise<CardPriceSourcesResponse>;
   })().finally(() => {
-    _priceSourcesInflight.delete(key);
+    if (!options.signal) _priceSourcesInflight.delete(key);
   });
 
-  _priceSourcesInflight.set(key, promise);
+  if (!options.signal) _priceSourcesInflight.set(key, promise);
   return promise;
 }
 

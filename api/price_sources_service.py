@@ -806,7 +806,8 @@ def _fetch_cardmarket_series_only(
             nm_history_for_tcgplayer_id,
         )
 
-        hist_limit = max(1, min(365, int(limit)))
+        # Cap EUR rows: 1 Pkmn credit per point; Soft Ink chart is fine at ~6mo daily.
+        hist_limit = max(1, min(180, int(limit)))
         hist_period = "365d"
         cond = condition or "NM"
         cm_points = nm_history_for_tcgplayer_id(

@@ -916,6 +916,8 @@ const en = {
   chart_us_empty_lede:
     "No saved US NM points yet for this print. Try again later or check TCGplayer.",
   chart_cm_error_title: "Couldn’t load Cardmarket history",
+  chart_cm_timeout: "Cardmarket history timed out — try again.",
+  chart_cm_failed: "Cardmarket history failed",
   chart_loading: "Loading live NM…",
   chart_fallback: "Multi-source unavailable ({error}). Showing saved market history.",
   chart_no_key: "Showing saved market history.",
@@ -2068,6 +2070,8 @@ const hr: Dictionary = {
   chart_us_empty_lede:
     "Još nema spremljenih US NM točaka za ovaj print. Probaj kasnije ili TCGplayer.",
   chart_cm_error_title: "Nisam uspio učitati Cardmarket povijest",
+  chart_cm_timeout: "Cardmarket povijest je istekla — pokušaj ponovo.",
+  chart_cm_failed: "Cardmarket povijest nije uspjela",
   chart_loading: "Učitavam live NM…",
   chart_fallback: "Multi-source nije dostupan ({error}). Prikazujem spremljenu market povijest.",
   chart_no_key: "Prikazujem spremljenu market povijest.",
