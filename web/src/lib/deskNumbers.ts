@@ -1,5 +1,5 @@
 /**
- * Shared Asking / Good / price-gap for Soft Ink desks (T1.2).
+ * Shared Market / AI fair / price-gap for Soft Ink desks (T1.2).
  *
  * Detail hero, DOTD, and Radar paste must agree on these three numbers.
  * Ranking / model ``edge_pct`` (pred_lo) stays separate — never pass it as the

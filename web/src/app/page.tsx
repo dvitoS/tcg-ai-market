@@ -6,7 +6,7 @@ import { SITE_URL, absoluteUrl } from "@/lib/seo";
 
 const TITLE = "Kestrel — Pokémon card prices: buy, skip, or trade";
 const DESCRIPTION =
-  "Most apps show one asking price. Kestrel shows asking price next to a good price so you can buy, skip, trade, or grade with a clearer read.";
+  "Most apps show one market price. Kestrel shows market price next to a AI fair so you can buy, skip, trade, or grade with a clearer read.";
 
 export const metadata: Metadata = {
   title: {
@@ -19,8 +19,8 @@ export const metadata: Metadata = {
   keywords: [
     "Pokémon TCG",
     "Pokemon card prices",
-    "good price",
-    "asking price",
+    "AI fair",
+    "market price",
     "TCG market",
     "Kestrel",
     "trade analyzer",

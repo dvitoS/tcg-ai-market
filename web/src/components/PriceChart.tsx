@@ -472,7 +472,7 @@ export function PriceChart({
                   stroke="#a1a1aa"
                   strokeDasharray="4 4"
                   label={{
-                    value: `Good ${formatMoney(predictedPrice, "USD", 2)}`,
+                    value: `AI fair ${formatMoney(predictedPrice, "USD", 2)}`,
                     position: "insideTopRight",
                     fill: "#a1a1aa",
                     fontSize: 11,

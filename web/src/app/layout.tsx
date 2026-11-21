@@ -39,7 +39,7 @@ export const metadata: Metadata = {
     template: "%s · Kestrel",
   },
   description:
-    "Kestrel — Pokémon asking prices next to a good price, plus portfolio, trade checks, and dealer tools.",
+    "Kestrel — Pokémon market prices next to a AI fair, plus portfolio, trade checks, and dealer tools.",
   applicationName: "Kestrel",
   manifest: "/manifest.webmanifest",
   appleWebApp: {

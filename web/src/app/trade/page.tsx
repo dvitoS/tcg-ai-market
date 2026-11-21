@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Trade check — fair Pokémon card trades",
   description:
-    "Score two-sided Pokémon trades on asking price and good price. Fair, you’re ahead, or they’re ahead in seconds.",
+    "Score two-sided Pokémon trades on market price and AI fair. Fair, you’re ahead, or they’re ahead in seconds.",
   alternates: { canonical: absoluteUrl("/trade") },
 };
 
