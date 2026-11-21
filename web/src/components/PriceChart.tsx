@@ -247,9 +247,10 @@ export function PriceChart({
     chartData.length === 0 &&
     (sources != null || Boolean(error));
   const usBudgetNote =
-    !isCm && sources?.justtcg_from_db
+    // Hardcoded NM copy — never show it while LP/MP is selected.
+    !isCm && condition === "NM" && sources?.justtcg_from_db
       ? t("chart_just_from_db")
-      : !isCm && sources?.justtcg_fallback
+      : !isCm && condition === "NM" && sources?.justtcg_fallback
         ? t("chart_just_fallback")
         : null;
   const usError =
