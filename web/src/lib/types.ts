@@ -95,7 +95,7 @@ export type CardDetailResponse = {
   points?: HistoryPoint[];
   explain?: CardExplain;
   source: "supabase" | "demo" | "empty";
-  /** Asking TCP/quarantine match — not AI forecast confidence. */
+  /** Market TCP/quarantine match — not AI forecast confidence. */
   spot_match?: SpotMatchInfo | null;
   /** Latest wrong-spot report for this card (user-visible fixed loop). */
   spot_report?: SpotReportPublic | null;

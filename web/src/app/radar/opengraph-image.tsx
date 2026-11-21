@@ -38,7 +38,7 @@ export default async function RadarOpenGraphImage() {
               color: "#f7f1e8",
             }}
           >
-            Looks cheap / expensive vs good price
+            Looks cheap / expensive vs AI fair
           </div>
           <div
             style={{
@@ -61,7 +61,7 @@ export default async function RadarOpenGraphImage() {
             >
               <div style={{ fontSize: 18, color: "#9a9288" }}>LOOKS CHEAP</div>
               <div style={{ fontSize: 32, color: "#7dcea0", fontWeight: 650 }}>
-                Asking below good price
+                Market below AI fair
               </div>
             </div>
             <div
@@ -77,7 +77,7 @@ export default async function RadarOpenGraphImage() {
             >
               <div style={{ fontSize: 18, color: "#9a9288" }}>LOOKS EXPENSIVE</div>
               <div style={{ fontSize: 32, color: "#e08a7a", fontWeight: 650 }}>
-                Asking above good price
+                Market above AI fair
               </div>
             </div>
           </div>

@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Browse Pokémon card prices",
   description:
-    "Browse live Pokémon asking prices next to Kestrel’s good price.",
+    "Browse live Pokémon market prices next to Kestrel’s AI fair.",
   alternates: { canonical: absoluteUrl("/browse") },
 };
 

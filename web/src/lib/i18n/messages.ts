@@ -38,24 +38,24 @@ const en = {
   landing_product: "Pokémon card prices, made simple",
   landing_headline: "Should you buy this card — or skip?",
   landing_lede:
-    "Asking vs Good on one card. Asking lower → maybe buy.",
+    "Market vs AI fair on one card. Market lower → maybe buy.",
   landing_cta_market: "See cards that look cheap today",
   landing_cta_pro: "Kestrel Pro",
   landing_hero_slider_aria: "Cards that look cheap today",
   landing_hero_slide_under: "Looks cheap",
-  landing_hero_slide_edge: "{pct} below good price",
-  landing_hero_slide_spot_fair: "Asking {spot} · Good {fair}",
-  landing_hero_slide_call: "Asking is lower than good price → maybe buy",
+  landing_hero_slide_edge: "{pct} below AI fair",
+  landing_hero_slide_spot_fair: "Market {spot} · AI fair {fair}",
+  landing_hero_slide_call: "Market is lower than AI fair → maybe buy",
   landing_dotd_eyebrow: "Deal of the Day",
   landing_dotd_title: "Today’s “looks cheap” picks",
   landing_dotd_lede:
-    "Check two numbers: Asking vs Good price. Asking lower = looks cheap — maybe buy or maybe skip.",
+    "Check two numbers: Market vs AI fair. Market lower = looks cheap — maybe buy or maybe skip.",
   landing_dotd_loading: "Loading today’s deal…",
   landing_dotd_empty: "No “looks cheap” picks yet — check back after the next update.",
   landing_dotd_error: "Could not load Deal of the Day.",
   landing_dotd_cta: "See more deals",
   landing_dotd_cta_gated: "Unlock more deals",
-  landing_dotd_band: "Good-price range {band}",
+  landing_dotd_band: "AI fair range {band}",
   dotd_export_image: "Save deal image",
   dotd_export_busy: "Saving…",
   dotd_export_done: "Deal image saved",
@@ -70,7 +70,7 @@ const en = {
   dotd_share_copied: "Deal text copied — short note + card link.",
   dotd_share_copied_fallback: "Clipboard blocked — copy the link below.",
   dotd_share_blurb: "Kestrel Deal of the Day — {name}",
-  dotd_share_metrics: "Asking {spot} · good {fair} · difference {edge}",
+  dotd_share_metrics: "Market {spot} · good {fair} · difference {edge}",
   dotd_share_hint: "PNG or link for Discord / IG.",
   landing_follow_title: "Check a trade next",
   landing_follow_lede:
@@ -78,31 +78,31 @@ const en = {
   landing_follow_link: "Open Trade →",
   landing_path_title: "Buy, sell, trade, or grade — with a clear read",
   landing_path_lede:
-    "Kestrel shows asking price next to a good price. Find deals, check trades, and browse live prices.",
+    "Kestrel shows market price next to a AI fair. Find deals, check trades, and browse live prices.",
   landing_path_radar: "See deals →",
   landing_path_radar_meta: "Cards that look cheap or expensive",
   landing_path_trade: "Check a trade →",
   landing_path_trade_meta: "Fair / you’re ahead / they’re ahead",
   landing_path_browse: "Browse cards →",
-  landing_path_browse_meta: "Asking price, good price, and history",
+  landing_path_browse_meta: "Market price, AI fair, and history",
   landing_trust_title: "Why the numbers are trustworthy",
   landing_trust_lede:
     "Kestrel stays honest about sources — and quiet when we aren’t sure enough.",
   landing_trust_p1:
-    "Asking price comes from US seller quotes (TCGplayer-linked) — labeled, not mixed with Cardmarket EUR.",
+    "Market price comes from US seller quotes (TCGplayer-linked) — labeled, not mixed with Cardmarket EUR.",
   landing_trust_p2:
-    "Good price is Kestrel’s estimate. We only say maybe buy / maybe skip when we’re pretty sure.",
+    "AI fair is Kestrel’s estimate. We only say maybe buy / maybe skip when we’re pretty sure.",
   landing_trust_p3:
     "If we don’t have enough history, we stay quiet — better than a loud wrong tip.",
   landing_trust_p4:
     "See a wrong price? Report it on the card page — we review and fix.",
   landing_trust_method: "Where every number comes from →",
-  landing_trust_fair: "How good price works →",
+  landing_trust_fair: "How AI fair works →",
   landing_guides_title: "Learn more",
   landing_guides_lede:
-    "Short guides on where numbers come from, good price, grading, and fair trades.",
+    "Short guides on where numbers come from, AI fair, grading, and fair trades.",
   landing_guides_method: "Where every number comes from →",
-  landing_guides_fair: "What “good price” means →",
+  landing_guides_fair: "What “AI fair” means →",
   landing_guides_grade: "Should I grade this card? →",
   landing_guides_trade: "Is this trade fair? →",
   obs_funnel_title: "Soft-launch funnel",
@@ -202,17 +202,17 @@ const en = {
   landing_pulse_story_over:
     "{n} cards look clearly expensive — more maybe-skip than maybe-buy.",
   landing_pulse_story_rising:
-    "Most cards rose this week (typical move {pct}). Still compare asking vs good price.",
+    "Most cards rose this week (typical move {pct}). Still compare market vs AI fair.",
   landing_pulse_story_falling:
-    "Most cards fell this week (typical move {pct}). Still compare asking vs good price.",
+    "Most cards fell this week (typical move {pct}). Still compare market vs AI fair.",
   landing_pulse_story_mixed:
-    "Mixed day — {under} look cheap · {over} look expensive. Asking vs good price still helps.",
+    "Mixed day — {under} look cheap · {over} look expensive. Market vs AI fair still helps.",
   landing_pulse_sure_under: "Looks cheap",
   landing_pulse_sure_under_tip:
-    "How many cards look clearly cheaper than Kestrel’s good price — stronger maybe-buy picks.",
+    "How many cards look clearly cheaper than Kestrel’s AI fair — stronger maybe-buy picks.",
   landing_pulse_sure_over: "Looks expensive",
   landing_pulse_sure_over_tip:
-    "How many cards look clearly more expensive than good price — maybe skip or sell.",
+    "How many cards look clearly more expensive than AI fair — maybe skip or sell.",
   landing_pulse_median_7d: "Typical week",
   landing_pulse_median_7d_tip:
     "The middle week-over-week price change — half of cards moved more, half less.",
@@ -229,37 +229,37 @@ const en = {
   glossary_under: "Looks cheap",
   glossary_over: "Looks expensive",
   glossary_under_tip:
-    "Asking price is below Kestrel’s good-price range — maybe buy or keep.",
+    "Market price is below Kestrel’s AI fair range — maybe buy or keep.",
   glossary_over_tip:
-    "Asking price is above Kestrel’s good-price range — maybe sell or skip.",
+    "Market price is above Kestrel’s AI fair range — maybe sell or skip.",
   glossary_edge: "Difference",
   glossary_edge_tip:
-    "How far asking price is from good price.",
-  glossary_fair: "Good price",
+    "How far market price is from AI fair.",
+  glossary_fair: "AI fair",
   glossary_fair_tip: "What Kestrel thinks is a fair amount to pay right now.",
-  glossary_band: "Good-price range",
+  glossary_band: "AI fair range",
   glossary_band_tip:
     "The price range where we’re pretty sure. Outside it we stay quiet.",
   glossary_sure: "Pretty sure",
   glossary_sure_tip: "We’re confident enough to say maybe buy or maybe skip.",
   glossary_unsure: "Not sure yet",
   glossary_unsure_tip: "Not confident enough — wait, don’t treat it as a tip.",
-  decision_under: "Asking price is ~{pct}% below good price — maybe buy.",
-  decision_over: "Asking price is ~{pct}% above good price — maybe skip.",
-  metric_spot: "Asking {price}",
-  metric_fair: "Good {price}",
+  decision_under: "Market price is ~{pct}% below AI fair — maybe buy.",
+  decision_over: "Market price is ~{pct}% above AI fair — maybe skip.",
+  metric_spot: "Market {price}",
+  metric_fair: "AI fair {price}",
   metric_edge: "{pct} difference",
   card_move_3d: "3 days",
   card_move_7d: "7 days",
-  card_move_ai_7d: "Good 7d",
-  card_move_ai_30d: "Good 30d",
-  card_fair: "Good price",
-  card_lean_under: "{pct}% below good price",
-  card_lean_over: "{pct}% above good price",
-  card_lean_near: "Near good price",
+  card_move_ai_7d: "AI 7d",
+  card_move_ai_30d: "AI 30d",
+  card_fair: "AI fair",
+  card_lean_under: "{pct}% below AI fair",
+  card_lean_over: "{pct}% above AI fair",
+  card_lean_near: "Near AI fair",
   explore_eyebrow: "Browse cards",
   explore_title: "Cards",
-  explore_lede: "Pokémon card asking prices next to a simple good price.",
+  explore_lede: "Pokémon card market prices next to a simple AI fair.",
   catalog_mode: "Catalog mode",
   catalog_browse: "Browse",
   catalog_signals: "Signals",
@@ -359,11 +359,11 @@ const en = {
   alert_sure_only: "Pretty sure only",
   alert_sure_pro: " · Pro",
   alert_poison_note:
-    "Bad or quarantined Asking prices never alert — pretty-sure stays the Pro default.",
+    "Bad or quarantined Market prices never alert — pretty-sure stays the Pro default.",
   alert_caption_sure:
-    "Pretty sure only · looks-cheap / looks-expensive vs Good by ≥ {n}%.",
+    "Pretty sure only · looks-cheap / looks-expensive vs AI fair by ≥ {n}%.",
   alert_caption_any:
-    "Asking vs Good (or a 7-day Asking move) ≥ {n}% on cards you watch.",
+    "Market vs AI fair (or a 7-day market move) ≥ {n}% on cards you watch.",
   alert_empty_sure:
     "No pretty-sure looks-cheap / looks-expensive alerts above {n}% right now.",
   alert_empty: "No watchlist cards currently above {n}% difference.",
@@ -374,8 +374,8 @@ const en = {
   kpi_value: "Value",
   kpi_invested: "Invested",
   kpi_pnl: "PnL",
-  kpi_outlook: "Good-price outlook",
-  kpi_outlook_days: "Good-price outlook ({days}d)",
+  kpi_outlook: "AI fair outlook",
+  kpi_outlook_days: "AI fair outlook ({days}d)",
   port_lot_action_add: "ADD",
   port_lot_action_trim: "TRIM",
   port_lot_action_hold: "HOLD",
@@ -383,7 +383,7 @@ const en = {
   port_lot_outlook_uncertain: "uncertain {days}d interval",
   port_open_lots: "Open lots · {n}",
   port_bars_title: "Open lots",
-  port_bars_lede: "What you paid vs today’s Asking value.",
+  port_bars_lede: "What you paid vs today’s market value.",
   port_refresh: "Refresh",
   sealed_desk_eyebrow: "Sealed",
   sealed_desk_title: "Sealed products",
@@ -468,12 +468,12 @@ const en = {
   port_watch_empty: "Watchlist is empty. Star cards from detail pages.",
   port_perf_title: "Performance",
   port_perf_lede:
-    "Book value vs cost basis over time, with today’s good price as a reference.",
-  port_perf_ai_fair: "Good (today)",
+    "Book value vs cost basis over time, with today’s AI fair as a reference.",
+  port_perf_ai_fair: "AI fair (today)",
   port_perf_ai_note:
-    "Good {value} is today’s Kestrel mark on open lots — not a backtested series.",
+    "AI fair {value} is today’s Kestrel mark on open lots — not a backtested series.",
   port_perf_dd_title: "Drawdown {pct}",
-  port_perf_dd_trim: "{n} lot(s) look expensive vs Good now — maybe trim",
+  port_perf_dd_trim: "{n} lot(s) look expensive vs AI fair now — maybe trim",
   port_search: "Search",
   port_search_ph: "Name or card id",
   port_rarity: "Rarity",
@@ -519,7 +519,7 @@ const en = {
   radar_eyebrow: "Looks cheap",
   radar_title: "Deals",
   radar_lede:
-    "Pretty-sure looks-cheap picks for the next {days} days — Asking vs Good, with a plain maybe-buy why.",
+    "Pretty-sure looks-cheap picks for the next {days} days — Market vs AI fair, with a plain maybe-buy why.",
   radar_signin_lede: "Sign in to open deals against the market board.",
   radar_locked: "Deals are a Kestrel Pro surface.",
   radar_locked_lede:
@@ -544,10 +544,10 @@ const en = {
   radar_share_copied_fallback: "Clipboard blocked — copy the link below.",
   radar_share_error: "Could not copy share link",
   radar_share_blurb:
-    "Kestrel deals — pretty-sure looks-cheap vs good price. A price check, not financial advice.",
+    "Kestrel deals — pretty-sure looks-cheap vs AI fair. A price check, not financial advice.",
   radar_share_filters: "Filters",
   radar_share_board: "List: {under} look cheap (pretty sure)",
-  radar_share_top_under: "Top cheap look: {name} (~{edge}% below good price)",
+  radar_share_top_under: "Top cheap look: {name} (~{edge}% below AI fair)",
   radar_share_preview_title: "Shared deal filters",
   radar_share_preview_lede:
     "Someone shared this deal view. Sign in to open the live looks-cheap list.",
@@ -559,7 +559,7 @@ const en = {
   radar_export_error: "Could not export deals PNG",
   radar_export_tag: "Deals share",
   radar_export_note:
-    "Looks cheap / looks expensive vs good price. A price check — not financial advice.",
+    "Looks cheap / looks expensive vs AI fair. A price check — not financial advice.",
   radar_export_watermark: "Shared from Kestrel",
   radar_export_cta: "Open live list →",
   radar_share_hint: "Save a PNG or copy a short note to share.",
@@ -568,7 +568,7 @@ const en = {
   trust_eyebrow: "Model trust",
   trust_title: "How the forecast earns trust",
   trust_lede:
-    "Did recent clear deal calls move the right way — and is the good-price range calibrated?",
+    "Did recent clear deal calls move the right way — and is the AI fair range calibrated?",
   trust_trained: "Last trained {when}",
   trust_loading: "Loading model trust…",
   trust_error: "Model trust failed",
@@ -584,7 +584,7 @@ const en = {
   trust_cal_title: "Calibration",
   trust_cal_conformal_q: "Range width",
   trust_cal_wf: "Walk-forward direction",
-  trust_cov_title: "Good-price coverage",
+  trust_cov_title: "AI fair coverage",
   trust_cov_target: "Target ~{pct}%",
   trust_cov_empty:
     "No forward coverage yet — needs about a week of tip history after nightly runs.",
@@ -602,7 +602,7 @@ const en = {
   trade_eyebrow: "Kestrel Pro",
   trade_title: "Trade check",
   trade_lede:
-    "Add both sides. One screen: even trade, you’re ahead, or they’re ahead — on good price.",
+    "Add both sides. One screen: even trade, you’re ahead, or they’re ahead — on AI fair.",
   trade_signin_lede: "Sign in to score trades against the market board.",
   trade_locked: "Trade check is a Kestrel Pro surface.",
   trade_locked_lede:
@@ -630,8 +630,8 @@ const en = {
   trade_v_fair: "Even trade",
   trade_v_you_ahead: "You’re ahead",
   trade_v_them_ahead: "They’re ahead",
-  trade_net_spot: "Asking net {value} ({pct}) for you",
-  trade_net_ai: "Good-price net {value} ({pct}) for you",
+  trade_net_spot: "Market net {value} ({pct}) for you",
+  trade_net_ai: "AI fair net {value} ({pct}) for you",
   trade_band_note:
     "Even when the difference stays within ±{n}% of your give total",
   trade_seed_you: "Added {n} card(s) to You give from the link.",
@@ -643,14 +643,14 @@ const en = {
   trade_share_copied_fallback:
     "Clipboard blocked — paste this share link manually:",
   trade_share_paste_note:
-    "Price check — asking vs good-price range. Not financial advice.",
+    "Price check — asking vs AI fair range. Not financial advice.",
   trade_share_error: "Could not create share link",
   trade_share_eyebrow: "Shared trade",
   trade_share_title: "Trade verdict",
   trade_share_lede:
-    "Live re-score of a shared trade — asking net, good-price net, and who is ahead.",
+    "Live re-score of a shared trade — asking net, AI fair net, and who is ahead.",
   trade_share_organic_note:
-    "Price check — asking vs good-price range. Share freely; Pro unlocks the full deals / trade desk.",
+    "Price check — asking vs AI fair range. Share freely; Pro unlocks the full deals / trade desk.",
   trade_share_loading: "Loading shared trade…",
   trade_share_missing: "Share not found",
   trade_share_open_analyzer: "Open Trade Analyzer",
@@ -667,10 +667,10 @@ const en = {
   trade_export_hint:
     "PNG for Discord / shops — Kestrel watermark + Pro CTA. Desk call, not financial advice.",
   trade_export_tag: "Trade report",
-  trade_export_watermark: "Kestrel · good-price check",
-  trade_export_blurb_fair: "Asking and good-price totals sit inside the range — even trade.",
-  trade_export_blurb_you: "Your side is ahead on Kestrel’s good-price check.",
-  trade_export_blurb_them: "Their side is ahead on Kestrel’s good-price check.",
+  trade_export_watermark: "Kestrel · AI fair check",
+  trade_export_blurb_fair: "Market and AI fair totals sit inside the range — even trade.",
+  trade_export_blurb_you: "Your side is ahead on Kestrel’s AI fair check.",
+  trade_export_blurb_them: "Their side is ahead on Kestrel’s AI fair check.",
   trade_export_more: "+{n} more",
 
   // Dealer
@@ -721,7 +721,7 @@ const en = {
   dealer_unknown: "Unknown",
   dealer_qty: "qty {n}",
   dealer_row_unmatched: "unmatched",
-  dealer_ai_move: "Good {pct}",
+  dealer_ai_move: "AI fair {pct}",
   dealer_net_edge: "net edge {pct}",
 
   // Pro
@@ -730,7 +730,7 @@ const en = {
   pro_title_open: "Open beta — daily deals are free",
   pro_title_active: "You're on Kestrel Pro",
   pro_lede:
-    "Pretty-sure looks-cheap picks every day, plus watchlist alerts when Asking moves. €7/mo after a 7-day trial.",
+    "Pretty-sure looks-cheap picks every day, plus watchlist alerts when market price moves. €7/mo after a 7-day trial.",
   pro_lede_open:
     "Daily looks-cheap list and alerts are free during open beta. Paid Pro (€7/mo after a 7-day trial) starts when we gate.",
   pro_lede_active:
@@ -747,7 +747,7 @@ const en = {
   pro_open_alerts: "Set up alerts",
   pro_alerts_title: "Watchlist alerts",
   pro_alerts_lede:
-    "Pretty-sure only — email when a watched card looks cheap or expensive vs Good.",
+    "Pretty-sure only — email when a watched card looks cheap or expensive vs AI fair.",
   pro_alerts_cta: "Open watchlist",
   pro_manage: "Manage subscription",
   pro_status_error: "Could not load Pro status.",
@@ -758,8 +758,8 @@ const en = {
   pro_success_active_title: "Kestrel Pro unlocked",
   pro_success_active_lede:
     "This account has an active Kestrel Pro entitlement. Open daily deals or set up alerts.",
-  pro_f1: "Daily looks-cheap picks vs Good price",
-  pro_f2: "Watchlist alerts when Asking moves",
+  pro_f1: "Daily looks-cheap picks vs AI fair",
+  pro_f2: "Watchlist alerts when market price moves",
   pro_f3: "Trade check + dealer CSV when you need them",
   pro_demo_eyebrow: "Live deals",
   pro_demo_title: "Top “looks cheap” picks right now",
@@ -788,27 +788,27 @@ const en = {
   detail_spot_source: "Price · US market (not Cardmarket EUR)",
   detail_spot_source_asof:
     "Price · US market · as of {date} (not Cardmarket EUR)",
-  detail_spot_asof_chip: "US asking · as of {date} · Near Mint",
-  detail_spot_asof_today: "US asking · as of today · Near Mint",
+  detail_spot_asof_chip: "US market · as of {date} · Near Mint",
+  detail_spot_asof_today: "US market · as of today · Near Mint",
   detail_prices_checked_today: "Prices checked today",
   detail_prices_checked_date: "Prices checked {date}",
-  detail_asking: "Asking",
-  detail_asking_us: "US asking",
-  detail_fair_us: "Good (US)",
+  detail_asking: "Market",
+  detail_asking_us: "US market",
+  detail_fair_us: "AI fair (US)",
   detail_fair_us_tip:
-    "Good price is the US model — never averaged with Cardmarket EUR.",
+    "AI fair is the US model — never averaged with Cardmarket EUR.",
   detail_eur_is_fx:
-    "€ view converts US asking / Good — not Cardmarket EUR asking.",
-  detail_match_high: "Solid Asking",
+    "€ view converts US market / AI fair — not Cardmarket EUR market.",
+  detail_match_high: "Solid market match",
   detail_match_med: "Thin history",
-  detail_match_low: "Asking may be off",
-  detail_match_high_tip: "Linked to TCGplayer with enough history — trust Asking more.",
+  detail_match_low: "Market price may be off",
+  detail_match_high_tip: "Linked to TCGplayer with enough history — trust market price more.",
   detail_match_med_tip: "Linked, but history is thin — take maybe buy / maybe skip lightly.",
-  detail_match_low_tip: "Asking may be off — we quiet the call; wait or report if it looks wrong.",
+  detail_match_low_tip: "Market price may be off — we quiet the call; wait or report if it looks wrong.",
   detail_spot_fixed: "Price updated",
-  detail_spot_fixed_hint: "We checked your report and refreshed this asking.",
-  detail_report_checking: "We’re checking this asking…",
-  detail_fair: "Good",
+  detail_spot_fixed_hint: "We checked your report and refreshed this market price.",
+  detail_report_checking: "We’re checking this market price…",
+  detail_fair: "AI fair",
   detail_eu_separate:
     "Cardmarket link below is EU search only — separate from this US price.",
   detail_fx_not_eu:
@@ -818,10 +818,10 @@ const en = {
   detail_report_busy: "Sending…",
   detail_report_thanks: "Thanks — we’ll check this within 1–2 days.",
   detail_report_error: "Could not send the report",
-  detail_ai_title: "Good-price outlook",
-  detail_ai_under_title: "Good · 30d outlook",
+  detail_ai_title: "AI fair outlook",
+  detail_ai_under_title: "AI 30d outlook",
   detail_expected: "Expected move",
-  detail_predicted: "Good price",
+  detail_predicted: "AI fair",
   detail_band: "Likely range {band}",
   detail_horizon: "30-day outlook from Soft Ink.",
   detail_low_conf: "Not sure yet — wait for more history before you decide.",
@@ -904,7 +904,7 @@ const en = {
   chart_us_only_note:
     "US sources only — Cardmarket EUR is never averaged into these series.",
   chart_cm_only_note:
-    "EUR Cardmarket only — not used for Good price.",
+    "EUR Cardmarket only — not used for AI fair.",
   chart_us_error_title: "Couldn’t refresh US history",
   chart_us_empty_lede:
     "No saved US NM points yet for this print. Try again later or check TCGplayer.",
@@ -1137,7 +1137,7 @@ const en = {
   identify_match_error: "Could not match against the catalog.",
   identify_no_match: "No close catalog match — try another angle or search Browse.",
   identify_results: "Matches",
-  identify_results_lede: "Tap a card to open detail (chart, good-price range, grading EV).",
+  identify_results_lede: "Tap a card to open detail (chart, AI fair range, grading EV).",
   identify_clue_number: "Number ~{n}",
   identify_clue_name: "Name ~{name}",
   identify_raw_ocr: "Raw OCR text",
@@ -1185,24 +1185,24 @@ const hr: Dictionary = {
   landing_product: "Pokémon cijene karata, jednostavno",
   landing_headline: "Kupiti ovu kartu — ili preskočiti?",
   landing_lede:
-    "Tražena vs Dobra na jednoj karti. Tražena niža → možda kupi.",
+    "Market vs AI fer na jednoj karti. Market niža → možda kupi.",
   landing_cta_market: "Pogledaj karte koje izgledaju jeftino",
   landing_cta_pro: "Kestrel Pro",
   landing_hero_slider_aria: "Karte koje danas izgledaju jeftino",
   landing_hero_slide_under: "Izgleda jeftino",
-  landing_hero_slide_edge: "{pct} ispod dobre cijene",
-  landing_hero_slide_spot_fair: "Tražena {spot} · Dobra {fair}",
-  landing_hero_slide_call: "Tražena je niža od dobre cijene → možda kupi",
+  landing_hero_slide_edge: "{pct} ispod AI fer cijene",
+  landing_hero_slide_spot_fair: "Market {spot} · AI fer {fair}",
+  landing_hero_slide_call: "Market je niža od AI fer cijene → možda kupi",
   landing_dotd_eyebrow: "Deal of the Day",
   landing_dotd_title: "Današnji “izgleda jeftino” pickovi",
   landing_dotd_lede:
-    "Pogledaj dva broja: Tražena vs Dobra cijena. Tražena niža = izgleda jeftino — možda kupi ili možda preskoči.",
+    "Pogledaj dva broja: Market vs AI fer. Market niža = izgleda jeftino — možda kupi ili možda preskoči.",
   landing_dotd_loading: "Učitavam današnji deal…",
   landing_dotd_empty: "Još nema “izgleda jeftino” pickova — provjeri nakon idućeg updatea.",
   landing_dotd_error: "Ne mogu učitati Deal of the Day.",
   landing_dotd_cta: "Vidi još dealova",
   landing_dotd_cta_gated: "Otključaj više dealova",
-  landing_dotd_band: "Raspon dobre cijene {band}",
+  landing_dotd_band: "Raspon AI fer cijene {band}",
   dotd_export_image: "Spremi deal sliku",
   dotd_export_busy: "Spremam…",
   dotd_export_done: "Deal slika spremljena",
@@ -1217,7 +1217,7 @@ const hr: Dictionary = {
   dotd_share_copied: "Deal tekst kopiran — kratka bilješka + link karte.",
   dotd_share_copied_fallback: "Clipboard blokiran — kopiraj link ispod.",
   dotd_share_blurb: "Kestrel Deal of the Day — {name}",
-  dotd_share_metrics: "Tražena {spot} · dobra {fair} · razlika {edge}",
+  dotd_share_metrics: "Market {spot} · AI fer {fair} · razlika {edge}",
   dotd_share_hint: "PNG ili link za Discord / IG.",
   landing_follow_title: "Sljedeće: provjeri trade",
   landing_follow_lede:
@@ -1231,25 +1231,25 @@ const hr: Dictionary = {
   landing_path_trade: "Provjeri trade →",
   landing_path_trade_meta: "Fer / ti naprijed / oni naprijed",
   landing_path_browse: "Pregledaj karte →",
-  landing_path_browse_meta: "Tražena cijena, dobra cijena i povijest",
+  landing_path_browse_meta: "Market cijena, AI fer i povijest",
   landing_trust_title: "Zašto su brojevi pouzdani",
   landing_trust_lede:
     "Kestrel je iskren oko izvora — i šuti kad nismo dovoljno sigurni.",
   landing_trust_p1:
-    "Tražena cijena dolazi iz US seller quoteova (TCGplayer) — označena, ne miješana s Cardmarket EUR.",
+    "Market cijena dolazi iz US seller quoteova (TCGplayer) — označena, ne miješana s Cardmarket EUR.",
   landing_trust_p2:
-    "Dobra cijena je Kestrelova procjena. “Možda kupi / možda preskoči” kažemo samo kad smo prilično sigurni.",
+    "AI fer je Kestrelova procjena. “Možda kupi / možda preskoči” kažemo samo kad smo prilično sigurni.",
   landing_trust_p3:
     "Ako nemamo dovoljno povijesti, šutimo — bolje nego glasan krivi tip.",
   landing_trust_p4:
     "Vidiš krivu cijenu? Prijavi je na stranici karte — pregledamo i popravimo.",
   landing_trust_method: "Odakle dolazi svaki broj →",
-  landing_trust_fair: "Kako radi dobra cijena →",
+  landing_trust_fair: "Kako radi AI fer →",
   landing_guides_title: "Saznaj više",
   landing_guides_lede:
-    "Kratki vodiči o tome odakle dolaze brojevi, dobra cijena, grading i fer tradeovi.",
+    "Kratki vodiči o tome odakle dolaze brojevi, AI fer, grading i fer tradeovi.",
   landing_guides_method: "Odakle dolazi svaki broj →",
-  landing_guides_fair: "Što znači “dobra cijena” →",
+  landing_guides_fair: "Što znači “AI fer” →",
   landing_guides_grade: "Trebam li gradeati ovu kartu? →",
   landing_guides_trade: "Je li ovaj trade fer? →",
   obs_funnel_title: "Soft-launch funnel",
@@ -1353,13 +1353,13 @@ const hr: Dictionary = {
   landing_pulse_story_falling:
     "Većina karti je pala ovaj tjedan (tipičan pomak {pct}). I dalje usporedi traženu i dobru cijenu.",
   landing_pulse_story_mixed:
-    "Mješovit dan — {under} izgleda jeftino · {over} izgleda skupo. Tražena vs dobra cijena i dalje pomaže.",
+    "Mješovit dan — {under} izgleda jeftino · {over} izgleda skupo. Market vs AI fer i dalje pomaže.",
   landing_pulse_sure_under: "Izgleda jeftino",
   landing_pulse_sure_under_tip:
-    "Koliko karti izgleda jasno jeftinije od Kestrelove dobre cijene — jači “možda kupi” pickovi.",
+    "Koliko karti izgleda jasno jeftinije od Kestrelove AI fer cijene — jači “možda kupi” pickovi.",
   landing_pulse_sure_over: "Izgleda skupo",
   landing_pulse_sure_over_tip:
-    "Koliko karti izgleda jasno skuplje od dobre cijene — možda preskoči ili prodaj.",
+    "Koliko karti izgleda jasno skuplje od AI fer cijene — možda preskoči ili prodaj.",
   landing_pulse_median_7d: "Tipičan tjedan",
   landing_pulse_median_7d_tip:
     "Srednji tjedni pomak cijene — pola karti se pomaknulo više, pola manje.",
@@ -1375,34 +1375,34 @@ const hr: Dictionary = {
   glossary_under: "Izgleda jeftino",
   glossary_over: "Izgleda skupo",
   glossary_under_tip:
-    "Tražena cijena je ispod Kestrelovog raspona dobre cijene — možda kupi ili zadrži.",
+    "Market cijena je ispod Kestrelovog raspona AI fer cijene — možda kupi ili zadrži.",
   glossary_over_tip:
-    "Tražena cijena je iznad Kestrelovog raspona dobre cijene — možda prodaj ili preskoči.",
+    "Market cijena je iznad Kestrelovog raspona AI fer cijene — možda prodaj ili preskoči.",
   glossary_edge: "Razlika",
   glossary_edge_tip:
-    "Koliko je tražena cijena udaljena od dobre cijene.",
-  glossary_fair: "Dobra cijena",
+    "Koliko je market cijena udaljena od AI fer cijene.",
+  glossary_fair: "AI fer",
   glossary_fair_tip: "Što Kestrel misli da je fer platiti sada.",
-  glossary_band: "Raspon dobre cijene",
+  glossary_band: "Raspon AI fer cijene",
   glossary_band_tip:
     "Raspon cijena u kojem smo prilično sigurni. Izvan njega šutimo.",
   glossary_sure: "Prilično sigurno",
   glossary_sure_tip: "Dovoljno smo sigurni da kažemo možda kupi ili možda preskoči.",
   glossary_unsure: "Još nismo sigurni",
   glossary_unsure_tip: "Nismo dovoljno sigurni — pričekaj, nemoj to tretirati kao tip.",
-  decision_under: "Tražena cijena je ~{pct}% ispod dobre cijene — možda kupi.",
-  decision_over: "Tražena cijena je ~{pct}% iznad dobre cijene — možda preskoči.",
-  metric_spot: "Tražena {price}",
-  metric_fair: "Dobra {price}",
+  decision_under: "Market cijena je ~{pct}% ispod AI fer cijene — možda kupi.",
+  decision_over: "Market cijena je ~{pct}% iznad AI fer cijene — možda preskoči.",
+  metric_spot: "Market {price}",
+  metric_fair: "AI fer {price}",
   metric_edge: "{pct} razlika",
   card_move_3d: "3 dana",
   card_move_7d: "7 dana",
-  card_move_ai_7d: "Dobra 7d",
-  card_move_ai_30d: "Dobra 30d",
-  card_fair: "Dobra cijena",
-  card_lean_under: "{pct}% ispod dobre cijene",
-  card_lean_over: "{pct}% iznad dobre cijene",
-  card_lean_near: "Blizu dobre cijene",
+  card_move_ai_7d: "AI 7d",
+  card_move_ai_30d: "AI 30d",
+  card_fair: "AI fer",
+  card_lean_under: "{pct}% ispod AI fer cijene",
+  card_lean_over: "{pct}% iznad AI fer cijene",
+  card_lean_near: "Blizu AI fer cijene",
   explore_eyebrow: "Pregledaj karte",
   explore_title: "Karte",
   explore_lede: "Pokémon tražene cijene uz jednostavnu dobru cijenu.",
@@ -1505,11 +1505,11 @@ const hr: Dictionary = {
   alert_sure_only: "Samo prilično sigurno",
   alert_sure_pro: " · Pro",
   alert_poison_note:
-    "Loše ili karantirane Asking cijene se nikad ne alertaju — prilično sigurno ostaje Pro default.",
+    "Loše ili karantirane Market cijene se nikad ne alertaju — prilično sigurno ostaje Pro default.",
   alert_caption_sure:
-    "Samo prilično sigurno · izgleda jeftino / skupo vs Dobra ≥ {n}%.",
+    "Samo prilično sigurno · izgleda jeftino / skupo vs AI fer ≥ {n}%.",
   alert_caption_any:
-    "Asking vs Dobra (ili 7-dnevni Asking pomak) ≥ {n}% na kartama koje pratiš.",
+    "Market vs AI fer (ili 7-dnevni Market pomak) ≥ {n}% na kartama koje pratiš.",
   alert_empty_sure:
     "Nema prilično sigurnih jeftino/skupo alerta iznad {n}% trenutno.",
   alert_empty: "Nema watchlist karti iznad {n}% razlike trenutno.",
@@ -1520,8 +1520,8 @@ const hr: Dictionary = {
   kpi_value: "Vrijednost",
   kpi_invested: "Uloženo",
   kpi_pnl: "PnL",
-  kpi_outlook: "Outlook dobre cijene",
-  kpi_outlook_days: "Outlook dobre cijene ({days}d)",
+  kpi_outlook: "Outlook AI fer cijene",
+  kpi_outlook_days: "Outlook AI fer cijene ({days}d)",
   port_lot_action_add: "ADD",
   port_lot_action_trim: "TRIM",
   port_lot_action_hold: "HOLD",
@@ -1529,7 +1529,7 @@ const hr: Dictionary = {
   port_lot_outlook_uncertain: "nesiguran {days}d interval",
   port_open_lots: "Otvoreni lotovi · {n}",
   port_bars_title: "Otvoreni lotovi",
-  port_bars_lede: "Što si platio vs današnja Asking vrijednost.",
+  port_bars_lede: "Što si platio vs današnja Market vrijednost.",
   port_refresh: "Osvježi",
   sealed_desk_eyebrow: "Sealed",
   sealed_desk_title: "Sealed proizvodi",
@@ -1618,11 +1618,11 @@ const hr: Dictionary = {
   port_perf_title: "Performansa",
   port_perf_lede:
     "Vrijednost knjige vs nabavna cijena kroz vrijeme, s današnjom dobrom cijenom kao referentom.",
-  port_perf_ai_fair: "Dobra (danas)",
+  port_perf_ai_fair: "AI fer (danas)",
   port_perf_ai_note:
-    "Dobra {value} je današnji Kestrel mark na otvorenim lotovima — nije backtest serija.",
+    "AI fer {value} je današnji Kestrel mark na otvorenim lotovima — nije backtest serija.",
   port_perf_dd_title: "Drawdown {pct}",
-  port_perf_dd_trim: "{n} lot(ova) izgleda skupo vs Dobra — maybe trim",
+  port_perf_dd_trim: "{n} lot(ova) izgleda skupo vs AI fer — maybe trim",
   port_search: "Traži",
   port_search_ph: "Ime ili card id",
   port_rarity: "Rijetkost",
@@ -1666,7 +1666,7 @@ const hr: Dictionary = {
   radar_eyebrow: "Izgleda jeftino",
   radar_title: "Dealovi",
   radar_lede:
-    "Prilično sigurni “izgleda jeftino” pickovi za sljedećih {days} dana — Tražena vs Dobra, s jasnim možda-kupi zašto.",
+    "Prilično sigurni “izgleda jeftino” pickovi za sljedećih {days} dana — Market vs AI fer, s jasnim možda-kupi zašto.",
   radar_signin_lede: "Prijavi se da otvoriš dealove prema market boardu.",
   radar_locked: "Dealovi su Kestrel Pro površina.",
   radar_locked_lede:
@@ -1694,7 +1694,7 @@ const hr: Dictionary = {
     "Kestrel dealovi — prilično sigurno izgleda jeftino uz dobru cijenu. Provjera cijene, ne financijski savjet.",
   radar_share_filters: "Filteri",
   radar_share_board: "Lista: {under} izgleda jeftino (prilično sigurno)",
-  radar_share_top_under: "Top jeftin izgled: {name} (~{edge}% ispod dobre cijene)",
+  radar_share_top_under: "Top jeftin izgled: {name} (~{edge}% ispod AI fer cijene)",
   radar_share_preview_title: "Podijeljeni deal filteri",
   radar_share_preview_lede:
     "Netko je podijelio ovaj deal pregled. Prijavi se da otvoriš live listu jeftinih pickova.",
@@ -1714,7 +1714,7 @@ const hr: Dictionary = {
   trust_eyebrow: "Model trust",
   trust_title: "Kako forecast zarađuje povjerenje",
   trust_lede:
-    "Jesu li nedavni jasni deal pozivi išli u pravom smjeru — i je li raspon dobre cijene kalibriran?",
+    "Jesu li nedavni jasni deal pozivi išli u pravom smjeru — i je li raspon AI fer cijene kalibriran?",
   trust_trained: "Zadnji train {when}",
   trust_loading: "Učitavam model trust…",
   trust_error: "Model trust nije uspio",
@@ -1730,7 +1730,7 @@ const hr: Dictionary = {
   trust_cal_title: "Kalibracija",
   trust_cal_conformal_q: "Širina raspona",
   trust_cal_wf: "Walk-forward smjer",
-  trust_cov_title: "Pokriće dobre cijene",
+  trust_cov_title: "Pokriće AI fer cijene",
   trust_cov_target: "Cilj ~{pct}%",
   trust_cov_empty:
     "Još nema forward pokrića — treba ~tjedan tip povijesti nakon nightly runova.",
@@ -1765,7 +1765,7 @@ const hr: Dictionary = {
   trade_you_give: "Ti daješ",
   trade_them_give: "Oni daju",
   trade_side_empty: "Još nema scoranih totala",
-  trade_side_totals: "{spot} traženo · {fair} dobra",
+  trade_side_totals: "{spot} market · {fair} AI fer",
   trade_add_hint: "Nađi kartu gore, pa dodirni rezultat da je dodaš ovdje.",
   trade_remove: "Ukloni",
   trade_score: "Ocijeni trade",
@@ -1775,8 +1775,8 @@ const hr: Dictionary = {
   trade_v_fair: "Ravnopravan trade",
   trade_v_you_ahead: "Ti si ispred",
   trade_v_them_ahead: "Oni su ispred",
-  trade_net_spot: "Traženo neto {value} ({pct}) za tebe",
-  trade_net_ai: "Dobra cijena neto {value} ({pct}) za tebe",
+  trade_net_spot: "Market neto {value} ({pct}) za tebe",
+  trade_net_ai: "AI fer neto {value} ({pct}) za tebe",
   trade_band_note: "Ravnopravno dok je razlika unutar ±{n}% tvog give totala",
   trade_seed_you: "Dodano {n} kart(a/e) u Ti daješ iz linka.",
   trade_seed_them: "Dodano {n} kart(a/e) u Oni daju iz linka.",
@@ -1787,14 +1787,14 @@ const hr: Dictionary = {
   trade_share_copied_fallback:
     "Clipboard blokiran — zalijepi ovaj share link ručno:",
   trade_share_paste_note:
-    "Provjera cijene — traženo vs raspon dobre cijene. Nije financijski savjet.",
+    "Provjera cijene — market vs raspon AI fer cijene. Nije financijski savjet.",
   trade_share_error: "Nisam uspio napraviti share link",
   trade_share_eyebrow: "Podijeljeni trade",
   trade_share_title: "Trade presuda",
   trade_share_lede:
-    "Live re-score podijeljenog tradea — traženo neto, dobra cijena neto i tko je ispred.",
+    "Live re-score podijeljenog tradea — market neto, AI fer neto i tko je ispred.",
   trade_share_organic_note:
-    "Provjera cijene — traženo vs raspon dobre cijene. Dijeli slobodno; Pro otključava cijeli deal / trade stol.",
+    "Provjera cijene — market vs raspon AI fer cijene. Dijeli slobodno; Pro otključava cijeli deal / trade stol.",
   trade_share_loading: "Učitavam podijeljeni trade…",
   trade_share_missing: "Share nije pronađen",
   trade_share_open_analyzer: "Otvori Trade Analyzer",
@@ -1811,10 +1811,10 @@ const hr: Dictionary = {
   trade_export_hint:
     "PNG za Discord / shopove — Kestrel watermark + Pro CTA. Desk call, ne financijski savjet.",
   trade_export_tag: "Trade izvještaj",
-  trade_export_watermark: "Kestrel · provjera dobre cijene",
-  trade_export_blurb_fair: "Traženo i dobra cijena unutar raspona — even trade.",
-  trade_export_blurb_you: "Tvoja strana je ispred na Kestrelovoj provjeri dobre cijene.",
-  trade_export_blurb_them: "Njihova strana je ispred na Kestrelovoj provjeri dobre cijene.",
+  trade_export_watermark: "Kestrel · provjera AI fer cijene",
+  trade_export_blurb_fair: "Market i AI fer unutar raspona — even trade.",
+  trade_export_blurb_you: "Tvoja strana je ispred na Kestrelovoj provjeri AI fer cijene.",
+  trade_export_blurb_them: "Njihova strana je ispred na Kestrelovoj provjeri AI fer cijene.",
   trade_export_more: "+još {n}",
 
   dealer_eyebrow: "Dealer",
@@ -1863,7 +1863,7 @@ const hr: Dictionary = {
   dealer_unknown: "Nepoznato",
   dealer_qty: "qty {n}",
   dealer_row_unmatched: "unmatched",
-  dealer_ai_move: "Dobra {pct}",
+  dealer_ai_move: "AI fer {pct}",
   dealer_net_edge: "net edge {pct}",
   dealer_download_actionable: "Preuzmi actionable CSV",
 
@@ -1872,7 +1872,7 @@ const hr: Dictionary = {
   pro_title_open: "Open beta — dnevni dealovi su besplatni",
   pro_title_active: "Na Kestrel Pro si",
   pro_lede:
-    "Prilično sigurni “izgleda jeftino” pickovi svaki dan, plus watchlist alerti kad se Tražena pomakne. €7/mj nakon 7-dnevnog trial-a.",
+    "Prilično sigurni “izgleda jeftino” pickovi svaki dan, plus watchlist alerti kad se market cijena pomakne. €7/mj nakon 7-dnevnog trial-a.",
   pro_lede_open:
     "Dnevna lista jeftinih pickova i alerti su besplatni tijekom open bete. Plaćeni Pro (€7/mj nakon 7-dnevnog trial-a) kreće kad zatvorimo gate.",
   pro_lede_active:
@@ -1901,7 +1901,7 @@ const hr: Dictionary = {
   pro_success_active_lede:
     "Ovaj račun ima aktivni Kestrel Pro entitlement. Otvori dnevne dealove ili postavi alerte.",
   pro_f1: "Dnevni looks-cheap pickovi uz Dobru cijenu",
-  pro_f2: "Watchlist alerti kad se Tražena pomakne",
+  pro_f2: "Watchlist alerti kad se market cijena pomakne",
   pro_f3: "Provjera tradea + dealer CSV kad zatreba",
   pro_demo_eyebrow: "Live dealovi",
   pro_demo_title: "Top “izgleda jeftino” pickovi sada",
@@ -1933,23 +1933,23 @@ const hr: Dictionary = {
   detail_spot_asof_today: "US tražena · as of today · Near Mint",
   detail_prices_checked_today: "Cijene provjerene danas",
   detail_prices_checked_date: "Cijene provjerene {date}",
-  detail_asking: "Tražena",
-  detail_asking_us: "US tražena",
-  detail_fair_us: "Dobra (US)",
+  detail_asking: "Market",
+  detail_asking_us: "US market",
+  detail_fair_us: "AI fer (US)",
   detail_fair_us_tip:
-    "Dobra cijena je US model — nikad se ne miješa s Cardmarket EUR.",
+    "AI fer je US model — nikad se ne miješa s Cardmarket EUR.",
   detail_eur_is_fx:
     "€ prikaz pretvara US traženu / Dobru — nije Cardmarket EUR tražena.",
-  detail_match_high: "Solidna Asking",
+  detail_match_high: "Solidan market match",
   detail_match_med: "Malo povijesti",
-  detail_match_low: "Asking možda kriva",
-  detail_match_high_tip: "Povezano s TCGplayerom i dovoljno povijesti — više vjeruj Asking.",
+  detail_match_low: "Market cijena možda kriva",
+  detail_match_high_tip: "Povezano s TCGplayerom i dovoljno povijesti — više vjeruj market cijeni.",
   detail_match_med_tip: "Povezano, ali malo povijesti — maybe buy / maybe skip uzmi lagano.",
-  detail_match_low_tip: "Asking možda kriva — tišimo poziv; pričekaj ili prijavi ako izgleda krivo.",
+  detail_match_low_tip: "Market cijena možda kriva — tišimo poziv; pričekaj ili prijavi ako izgleda krivo.",
   detail_spot_fixed: "Cijena ažurirana",
   detail_spot_fixed_hint: "Provjerili smo tvoju prijavu i osvježili traženu.",
   detail_report_checking: "Provjeravamo ovu traženu…",
-  detail_fair: "Dobra",
+  detail_fair: "AI fer",
   detail_eu_separate:
     "Cardmarket link ispod je samo EU pretraga — odvojeno od ove US cijene.",
   detail_fx_not_eu:
@@ -1959,10 +1959,10 @@ const hr: Dictionary = {
   detail_report_busy: "Šaljem…",
   detail_report_thanks: "Hvala — provjerit ćemo u roku od 1–2 dana.",
   detail_report_error: "Nisam uspio poslati prijavu",
-  detail_ai_title: "Outlook dobre cijene",
-  detail_ai_under_title: "Dobra · 30d outlook",
+  detail_ai_title: "Outlook AI fer cijene",
+  detail_ai_under_title: "AI 30d outlook",
   detail_expected: "Očekivani pomak",
-  detail_predicted: "Dobra cijena",
+  detail_predicted: "AI fer",
   detail_band: "Vjerojatni raspon {band}",
   detail_horizon: "30-dnevni outlook iz Soft Inka.",
   detail_low_conf: "Još nismo sigurni — pričekaj više povijesti prije odluke.",
@@ -2278,7 +2278,7 @@ const hr: Dictionary = {
   identify_match_error: "Ne mogu spariti s katalogom.",
   identify_no_match: "Nema bliskog pogotka — drugi kut ili Browse pretraga.",
   identify_results: "Pogoci",
-  identify_results_lede: "Dodirni kartu za detail (chart, raspon dobre cijene, grading EV).",
+  identify_results_lede: "Dodirni kartu za detail (chart, raspon AI fer cijene, grading EV).",
   identify_clue_number: "Broj ~{n}",
   identify_clue_name: "Ime ~{name}",
   identify_raw_ocr: "Sirovi OCR tekst",
@@ -2343,7 +2343,7 @@ export function sideTipKey(side?: string | null): "glossary_under_tip" | "glossa
     : "glossary_under_tip";
 }
 
-/** One-line desk verdict, e.g. "Asking price is ~12% below good price — maybe buy." */
+/** One-line desk verdict, e.g. "Market price is ~12% below AI fair — maybe buy." */
 export function decisionOneLiner(
   locale: Locale,
   side: string | null | undefined,

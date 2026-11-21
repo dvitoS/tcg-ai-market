@@ -152,10 +152,10 @@ export function tradeShareSeoDescription(
       : null;
   const fair =
     share.net_fair_pct != null && Number.isFinite(Number(share.net_fair_pct))
-      ? `${Number(share.net_fair_pct) >= 0 ? "+" : ""}${Number(share.net_fair_pct).toFixed(1)}% good price`
+      ? `${Number(share.net_fair_pct) >= 0 ? "+" : ""}${Number(share.net_fair_pct).toFixed(1)}% AI fair`
       : null;
   const bits = [verdict, spot, fair].filter(Boolean).join(" · ");
-  return `${bits}. Price check vs ±${share.fair_band_pct}% good-price range — not financial advice.`;
+  return `${bits}. Price check vs ±${share.fair_band_pct}% AI fair range — not financial advice.`;
 }
 
 export function tradeShareMetadata(share: TradeShareView): Metadata {

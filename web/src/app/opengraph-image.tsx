@@ -38,7 +38,7 @@ export default function OpenGraphImage() {
               maxWidth: 820,
             }}
           >
-            Pokémon asking price next to a good price. Clear reads for buy,
+            Pokémon market price next to a AI fair. Clear reads for buy,
             sell, trade, and grade.
           </div>
           <div

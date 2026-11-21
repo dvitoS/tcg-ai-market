@@ -23,7 +23,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   return {
     title: "Kestrel deals — Pokémon cards that look cheap",
     description:
-      "Kestrel lists Pokémon singles that look cheap or expensive vs a good price — clear maybe-buy / maybe-skip leans.",
+      "Kestrel lists Pokémon singles that look cheap or expensive vs AI fair — clear maybe-buy / maybe-skip leans.",
     alternates: { canonical: absoluteUrl("/radar") },
     openGraph: {
       type: "website",
@@ -31,7 +31,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
       siteName: "Kestrel",
       title: "Kestrel deals — Pokémon cards that look cheap",
       description:
-        "Looks cheap / looks expensive vs good price — a price check, not financial advice. Open with Kestrel Pro.",
+        "Looks cheap / looks expensive vs AI fair — a price check, not financial advice. Open with Kestrel Pro.",
       images: [
         {
           url: absoluteUrl("/radar/opengraph-image"),
@@ -45,7 +45,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
       card: "summary_large_image",
       title: "Kestrel deals — Pokémon cards that look cheap",
       description:
-        "Looks cheap / looks expensive vs good price — a price check, not financial advice.",
+        "Looks cheap / looks expensive vs AI fair — a price check, not financial advice.",
       images: [absoluteUrl("/radar/opengraph-image")],
     },
   };

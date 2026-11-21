@@ -78,7 +78,7 @@ export async function GET(request: Request) {
               OVER
             </div>
             <div style={{ fontSize: 26, color: "#9a9288" }}>
-              vs good price
+              vs AI fair
             </div>
           </div>
           <div

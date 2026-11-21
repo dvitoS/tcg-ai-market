@@ -141,7 +141,7 @@ export function radarShareSeoDescription(
 ): string {
   const chips = filters ? formatRadarShareFilters(filters) : [];
   const lens = chips.length ? `Filters: ${chips.join(" · ")}. ` : "";
-  return `${lens}Pretty-sure looks-cheap vs good price — a price check, not financial advice. Open with Kestrel Pro.`;
+  return `${lens}Pretty-sure looks-cheap vs AI fair — a price check, not financial advice. Open with Kestrel Pro.`;
 }
 
 /** Multi-line clipboard payload: blurb + filters + board + optional top UNDER + URL. */

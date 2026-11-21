@@ -68,7 +68,7 @@ export function GuideArticle({ guide }: { guide: Guide }) {
           More guides:{" "}
           <Link href="/guides">all guides</Link>
           {" · "}
-          <Link href={guidePath("pokemon-tcg-fair-value")}>good price</Link>
+          <Link href={guidePath("pokemon-tcg-fair-value")}>AI fair</Link>
           {" · "}
           <Link href={guidePath("should-i-grade")}>grading</Link>
           {" · "}
