@@ -209,17 +209,31 @@ export function PriceChart({
   }, [cardId, points.length, finish, condition]);
 
   // Lazy Cardmarket EUR series — only when the CM tab opens (PkmnPrices credits).
+  // Do NOT depend on `sources` object identity: merging CM into sources used to
+  // re-fire this effect, cancel the in-flight fetch, skip finally, and leave
+  // "Loading Cardmarket prices…" forever (cmTried true + cmLoading true).
+  const sourcesReady = sources != null;
+  const cmHave =
+    (sources?.cardmarket?.length ?? 0) > 0 ||
+    Boolean(sources?.cardmarket_error);
   useEffect(() => {
-    if (!cardId || market !== "cardmarket" || !sources || cmTried) return;
+    if (!cardId || market !== "cardmarket" || !sourcesReady || cmTried) return;
+    if (cmHave) {
+      setCmTried(true);
+      return;
+    }
     let cancelled = false;
-    setCmTried(true);
     setCmLoading(true);
+    const ac = new AbortController();
+    // PkmnPrices client timeout is 30s; abort slightly after so the API can answer first.
+    const timeoutId = window.setTimeout(() => ac.abort(), 35_000);
     fetchCardPriceSources(cardId, {
       grades: "none",
       limit: 400,
       cardmarket: true,
       printing: finish,
       condition: condition === "NM" ? null : condition,
+      signal: ac.signal,
     })
       .then((data) => {
         if (cancelled) return;
@@ -241,26 +255,45 @@ export function PriceChart({
       })
       .catch((err: unknown) => {
         if (cancelled) return;
+        const aborted =
+          (err instanceof DOMException && err.name === "AbortError") ||
+          (err instanceof Error && /abort/i.test(err.message));
         setSources((prev) =>
           prev
             ? {
                 ...prev,
                 cardmarket: prev.cardmarket ?? [],
-                cardmarket_error:
-                  err instanceof Error
+                cardmarket_error: aborted
+                  ? t("chart_cm_timeout")
+                  : err instanceof Error
                     ? err.message
-                    : "Cardmarket history failed",
+                    : t("chart_cm_failed"),
               }
             : prev,
         );
       })
       .finally(() => {
-        if (!cancelled) setCmLoading(false);
+        window.clearTimeout(timeoutId);
+        if (cancelled) return;
+        setCmTried(true);
+        setCmLoading(false);
       });
     return () => {
       cancelled = true;
+      ac.abort();
+      window.clearTimeout(timeoutId);
+      setCmLoading(false);
     };
-  }, [cardId, market, sources, cmTried, finish, condition]);
+  }, [
+    cardId,
+    market,
+    sourcesReady,
+    cmHave,
+    cmTried,
+    finish,
+    condition,
+    t,
+  ]);
 
   // Prefer live Soft Ink series, else DB / SSR history (TCGplayer-linked).
   // Non-NM must not fall back to NM DB points — that would lie about condition.
