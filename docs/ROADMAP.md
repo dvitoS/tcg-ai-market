@@ -2,9 +2,9 @@
 
 **Positioning:** Collectr tracks *what you own*. PriceCharting shows *what sold*. TCGplayer is *where you buy*. **Kestrel** is the desk that answers *should I buy / sell / trade / grade — with conformal AI, not vibes*.
 
-Last updated: 2026-11-20 (detail wins shipped; path to 10/10 below). Living doc — ship order can move; the wedge should not.
+Last updated: 2026-11-21 (T0–T3 + chart/auth/beta polish; score refresh). Living doc — ship order can move; the wedge should not.
 
-**North star:** cold user in ~30s trusts **Asking vs Good** and makes a *maybe buy / maybe skip / trade* call — **not** by becoming another binder scanner.
+**North star:** cold user in ~30s trusts **Market vs AI fair** and makes a *maybe buy / maybe skip / trade* call — **not** by becoming another binder scanner.
 
 **Marketing spend unlock:** paid acquisition only after **G0–G3** below are green. Until then: organic soft launch only.
 
@@ -12,19 +12,40 @@ Last updated: 2026-11-20 (detail wins shipped; path to 10/10 below). Living doc 
 
 ## Path to 10/10 (Nov 2026)
 
-Self-score after detail desk pass: **~7.5 / 10**. 10/10 is **trust + cold path**, not more UI.
+Self-score: **~9.2 / 10** (was ~7.5 after the first detail pass). Ladder T0→T3 is **shipped**; remaining gap to 10 is **boring trust in the wild** (G3 wrong-price gate, conversion, sparse-history cards), not more chrome.
 
-### Just shipped (detail wins)
+### Score ladder (done)
+
+| Band | Phase | Status |
+| --- | --- | --- |
+| 7.5 → 8.5 | T0 Trust on detail | **Shipped** |
+| 8.5 → 9 | T1 Cold path 30s | **Shipped** |
+| 9 → 9.5 | T2 Desk that pays rent | **Shipped** |
+| 9.5 → 10 | T3 Invisible reliability | **Shipped** (product); ops G3 / sparse data still open |
+
+### Just shipped (since last score)
+
+| Item | Notes |
+| --- | --- |
+| Market / AI fair lexicon (was Asking / Good) | #314 |
+| Google sign-in / PKCE callback | #311–#312 |
+| Open-beta landing promo (Pro desks free) | #315 |
+| Chart: no NM under MP/LP; time-scale 1Y; series label = condition | #316, #318, #319 |
+| Graded + NM/LP/MP history ask **1Y** (JustTCG same 1 req; Pkmn budgeted) | #320, #321 |
+| Pro Watchlist alerts CTA spacing | #317 |
+| Premium Portfolio / Deals / Movers chrome + card grids | #310, #313 |
+
+### Earlier detail wins (baseline for 7.5)
 
 | Item | PR |
 | --- | --- |
-| Asking / Good hero + as-of + live-asks labels | #274, #282 |
+| Market / AI fair hero + as-of + live-asks labels | #274, #282 |
 | Graded EV under Graded + share paste + eBay sold CTA | #277 |
 | eBay Sold/Active unify + mobile desk order | #278 |
 | TCP live asks no longer fake-empty | #279 |
 | Cardmarket EUR NM history + finish picker | #280 |
 | NM / LP / MP condition tiers on chart | #281 |
-| Kid-simple Asking/Good lexicon on detail | #282 |
+| Kid-simple Market / AI fair lexicon on detail | #282 |
 
 ### Phases (ship in order)
 
@@ -32,7 +53,7 @@ Self-score after detail desk pass: **~7.5 / 10**. 10/10 is **trust + cold path**
 
 | ID | Item | Why |
 | --- | --- | --- |
-| T0.1 | **Match-quality badge** next to Asking (high / med / low) | **Shipped** — low match quiets buy/skip |
+| T0.1 | **Match-quality badge** next to Market (high / med / low) | **Shipped** — low match quiets buy/skip |
 | T0.2 | **Wrong-spot report → heal → “fixed”** visible on detail | **Shipped** — report-status + Price updated chip |
 | T0.3 | Never **fake-empty** comps (TCP/CM pattern) | **Shipped** — #279 + T3 CM CTA |
 | T0.4 | User-facing “prices checked today” (no ops jargon) | **Shipped** — freshness chip on detail |
@@ -50,29 +71,29 @@ Self-score after detail desk pass: **~7.5 / 10**. 10/10 is **trust + cold path**
 | ID | Item | Why |
 | --- | --- | --- |
 | T2.1 | Radar = **sure looks-cheap** only + plain why | **Shipped** — under-only desk, plain why |
-| T2.2 | Trade = **one-screen** even / you’re ahead / they’re ahead | **Shipped** — sticky verdict + good-price net |
+| T2.2 | Trade = **one-screen** even / you’re ahead / they’re ahead | **Shipped** — sticky verdict + AI-fair net |
 | T2.3 | Pro wedge: **daily looks-cheap + alerts** | **Shipped** — /pro deals + alerts primary |
 
-#### T3 — Invisible reliability *(9.5 → 10)* — parallel
+#### T3 — Invisible reliability *(9.5 → 10)* — **SHIPPED** (product)
 
 | ID | Item | Why |
 | --- | --- | --- |
 | T3.1 | Pkmn / JustTCG **budget** so detail never goes blank | **Shipped** (#287) — chart status + never fake-blank |
-| T3.2 | Honest empty: what we know + what we don’t | **Shipped** (#287) — CM comps CTA + chart error/empty fork |
-| T3.3 | **US Asking ≠ EUR Asking** — labeled, never blended into Good | **Shipped** (#287) — US labels + € is FX note |
+| T3.2 | Honest empty: what we know + what we don’t | **Shipped** (#287 + #316/#318) — CM/condition empty forks; time-scale gaps |
+| T3.3 | **US Market ≠ EUR Market** — labeled, never blended into AI fair | **Shipped** (#287) — US labels + € is FX note |
 
-### Suggested next (post T0–T3 / G3 card)
+### Remaining to a true 10/10
 
-1. Keep **G2** cadence — ≥1 Twitter / Discord / Reddit share per week  
-2. Keep nightly **auto G0** green — reopen G0 if sniff fails  
-3. Watch Data Health funnel: Pro → `alerts_activate` / Radar / Trade + spend unlock
+1. **G3** wrong-price / cancel cite rate stays boringly low — `docs/G3_METRICS_CHECKLIST.md`  
+2. Keep **G0** nightly sniff green; reopen if fails  
+3. Keep **G2** share cadence (≥1/week) + funnel: landing → sign-in → alerts / Radar / Trade  
+4. History coverage: sparse cards still show short series — drip + 1Y asks help, not done
 
 ### Explicit non-goals for 10/10
 
 - Collectr clone / binder social first  
-- More graded history depth for its own sake  
 - Methodology essays in the hero  
-- New desks before Radar / Trade are sharp  
+- New desks before Radar / Trade stay sharp  
 - Paid ads before wrong-spot rate is boringly low  
 
 ---
@@ -129,7 +150,7 @@ Research basis (Nov 2026): r/PokemonTCG Collectr vs TCGplayer threads; r/Pokemon
 | ID | Item | Ship |
 | --- | --- | --- |
 | M1.1 | Plain-language everywhere | Radar, DOTD, detail, Trade — one vocabulary (= A1) |
-| M1.2 | Landing desk core | Hero slider → pulse → DOTD; hero + DOTD label **Asking / Good** for G1 |
+| M1.2 | Landing desk core | Hero slider → pulse → DOTD; hero + DOTD label **Market / AI fair** for G1 |
 | M1.3 | Free teaser quality | DOTD 5 UNDER = Pro vocabulary; fast SSR (= A2/A3) |
 | M1.4 | Source labels on detail | **Shipping** — US spot + as-of; Cardmarket EUR never blended; chart US-only note |
 | M1.5 | Disclaimer tone | **Shipping** — “Desk call, not financial advice” under AI band |
