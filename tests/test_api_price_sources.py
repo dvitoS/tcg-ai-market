@@ -231,9 +231,12 @@ def test_card_price_sources_condition_lp(monkeypatch) -> None:
         lambda *_a, **_k: [{"date": "2024-06-01", "price": 9.0}],
     )
     monkeypatch.setattr("pkmnprices_client.pkmnprices_configured", lambda: True)
+    seen: dict[str, object] = {}
 
     def _nm(_tcp, *, period="90d", limit=120, currency="usd", variant=None, condition=None):
         assert condition == "LP"
+        seen["period"] = period
+        seen["limit"] = limit
         return [{"date": "2024-06-01", "price": 6.5}]
 
     monkeypatch.setattr("pkmnprices_client.nm_history_for_tcgplayer_id", _nm)
@@ -252,6 +255,9 @@ def test_card_price_sources_condition_lp(monkeypatch) -> None:
     assert body["condition"] == "LP"
     assert body["justtcg"][0]["price"] == 6.5
     assert body["pkmnprices_used"] is True
+    # Soft Ink chart always asks for a year window (even when limit is modest).
+    assert seen["period"] == "365d"
+    assert seen["limit"] == 60
 
 
 def test_card_price_sources_condition_mp_empty_does_not_reuse_nm(

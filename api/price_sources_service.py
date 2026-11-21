@@ -507,9 +507,11 @@ def _build_card_price_sources_uncached(
                 pkmn_error = "PkmnPrices Soft Ink live NM daily budget exhausted."
         else:
             try:
-                # Prefer up to 1Y when the caller asks for a long series (chart 1Y).
+                # Soft Ink charts (NM/LP/MP + 1Y): always ask for a year window.
+                # JustTCG is 1 req either way; PkmnPrices bills per row returned —
+                # DB-first + daily budget + 6h cache keep credit burn bounded.
                 hist_limit = max(1, min(365, int(limit)))
-                hist_period = "365d" if hist_limit > 120 else "90d"
+                hist_period = "365d"
                 points = nm_history_for_tcgplayer_id(
                     tcp,
                     period=hist_period,
@@ -805,7 +807,7 @@ def _fetch_cardmarket_series_only(
         )
 
         hist_limit = max(1, min(365, int(limit)))
-        hist_period = "365d" if hist_limit > 120 else "90d"
+        hist_period = "365d"
         cond = condition or "NM"
         cm_points = nm_history_for_tcgplayer_id(
             tcp,
